@@ -104,6 +104,32 @@ std::string normalize_script_name(std::string script_name) {
   return script_name;
 }
 
+// Sources are stored with their line breaks overwritten by NUL bytes once the
+// script is loaded, so both separators end a line
+std::string source_line_at(const std::string_view source,
+                           const int32_t line_num) {
+  constexpr std::string_view line_breaks("\n\0", 2);
+  if (line_num <= 0) {
+    return {};
+  }
+
+  size_t start = 0;
+  for (int32_t current = 1; current < line_num; ++current) {
+    start = source.find_first_of(line_breaks, start);
+    if (start == std::string_view::npos) {
+      return {};
+    }
+    ++start;
+  }
+
+  const size_t end = source.find_first_of(line_breaks, start);
+  std::string_view line = source.substr(start, end - start);
+  if (!line.empty() && line.back() == '\r') {
+    line.remove_suffix(1);
+  }
+  return std::string(line);
+}
+
 struct pending_detour {
   std::string target_script;
   std::string target_func;
@@ -555,28 +581,6 @@ void load_script_file(std::string &data,
             }
           }
         } else {
-          const auto get_source_line = [](const std::string &src,
-                                          int32_t line_num) -> std::string {
-            if (line_num <= 0)
-              return "";
-            int32_t current = 1;
-            size_t start = 0;
-            while (current < line_num && start < src.size()) {
-              if (src[start] == '\n')
-                current++;
-              start++;
-            }
-            if (current != line_num)
-              return "";
-            size_t end = src.find('\n', start);
-            if (end == std::string::npos)
-              end = src.size();
-            std::string line = src.substr(start, end - start);
-            if (!line.empty() && line.back() == '\r')
-              line.pop_back();
-            return line;
-          };
-
           const char *err_header = utils::string::va(
               "^1*********************%s COMPILE ERROR*********************",
               script_type);
@@ -589,7 +593,7 @@ void load_script_file(std::string &data,
               const char *line_column_log = utils::string::va(
                   "^1  Line:    ^2%d^7, ^1Column: ^2%d", err.line, err.column);
               print_script_log(line_column_log);
-              std::string src_line = get_source_line(data, err.line);
+              std::string src_line = source_line_at(data, err.line);
               if (!src_line.empty()) {
                 const char *src_log =
                     utils::string::va("^1  Source:  ^7%s", src_line.data());
@@ -1356,42 +1360,19 @@ int32_t resolve_hash_line(ScrVarCanonicalName_t hash, int32_t num_params) {
 }
 
 std::string get_source_line(const std::string &file, int32_t line_num) {
-  std::optional<std::string> result = std::nullopt;
-  // Try to find source by matching file path suffix
+  const std::string wanted =
+      utils::string::to_lower(normalize_script_name(file));
+  std::string result;
   script_sources.for_each(
-      [&result, file, line_num](
-          const concurrent_hash_map<std::string, std::string>::value_type &v) {
-        if (!result.has_value()) {
-          const std::string path = v.first;
-          const std::string src = v.second;
-          if (file.find(path) != std::string::npos ||
-              path.find(file) != std::string::npos ||
-              file.find(std::filesystem::path(path).filename().string()) !=
-                  std::string::npos) {
-            if (line_num > 0) {
-              int32_t current = 1;
-              size_t start = 0;
-              while (current < line_num && start < src.size()) {
-                if (src[start] == '\n')
-                  current++;
-                start++;
-              }
-              if (current == line_num) {
-                size_t end = src.find('\n', start);
-                if (end == std::string::npos) {
-                  end = src.size();
-                }
-                std::string line = src.substr(start, end - start);
-                if (!line.empty() && line.back() == '\r') {
-                  line.pop_back();
-                }
-                result = std::optional(line);
-              }
-            }
-          }
+      [&](const concurrent_hash_map<std::string, std::string>::value_type &v) {
+        if (result.empty() &&
+            utils::string::to_lower(normalize_script_name(v.first)) == wanted) {
+          result = source_line_at(v.second, line_num);
         }
       });
-  return result.value_or("");
+
+  const size_t first = result.find_first_not_of(" \t");
+  return first == std::string::npos ? std::string() : result.substr(first);
 }
 
 namespace {

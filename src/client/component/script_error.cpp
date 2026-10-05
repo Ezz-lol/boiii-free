@@ -25,6 +25,21 @@ constexpr ScrVarCanonicalName_t SYS_NAMESPACE = builtin::SYS_NS_HASH;
 constexpr uint8_t IMPORT_TYPE_MASK = 0xF;
 constexpr int32_t BUILTIN_DEV_ONLY = 1;
 
+thread_local scriptInstance_t active_instance = SCRIPTINSTANCE_SERVER;
+
+class instance_scope {
+public:
+  explicit instance_scope(const scriptInstance_t inst)
+      : previous_(std::exchange(active_instance, inst)) {}
+  ~instance_scope() { active_instance = previous_; }
+
+  instance_scope(const instance_scope &) = delete;
+  instance_scope &operator=(const instance_scope &) = delete;
+
+private:
+  scriptInstance_t previous_;
+};
+
 struct link_failure {
   std::string error;
   std::string script;
@@ -422,12 +437,6 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
   }
 }
 
-std::string source_line(const std::string &script, const int32_t line) {
-  std::string source = script::get_source_line(script, line);
-  const size_t start = source.find_first_not_of(" \t");
-  return start == std::string::npos ? std::string() : source.substr(start);
-}
-
 std::string join_lines(const std::vector<int32_t> &lines) {
   std::string result = std::to_string(lines[0]);
   for (size_t i = 1; i < lines.size(); ++i) {
@@ -449,8 +458,9 @@ void append_failure(std::string &out, const link_failure &failure) {
   if (!failure.lines.empty()) {
     append_field(out, failure.lines.size() > 1 ? "Lines" : "Line", "^2",
                  join_lines(failure.lines));
-    append_field(out, "Source", "^7",
-                 source_line(failure.script, failure.lines.front()));
+    append_field(
+        out, "Source", "^7",
+        script::get_source_line(failure.script, failure.lines.front()));
   }
   append_field(out, "Call", "^5", failure.call);
   append_field(out, "Error", "^1", failure.error);
@@ -487,17 +497,18 @@ std::string resolve_hex_tokens(const std::string &input) {
   return result;
 }
 
-std::vector<std::string> message_lines(const char *message) {
+std::vector<std::string>
+message_lines(const std::initializer_list<const char *> parts) {
   std::vector<std::string> lines;
-  std::istringstream stream(resolve_hex_tokens(message ? message : ""));
-  std::string line;
-  while (std::getline(stream, line)) {
-    while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) {
-      line.pop_back();
-    }
-    const size_t start = line.find_first_not_of(" \t\x15");
-    if (start != std::string::npos) {
-      lines.push_back(line.substr(start));
+  for (const char *part : parts) {
+    std::istringstream stream(resolve_hex_tokens(part ? part : ""));
+    std::string line;
+    while (std::getline(stream, line)) {
+      const size_t start = line.find_first_not_of(" \t\r");
+      const size_t end = line.find_last_not_of(" \t\r");
+      if (start != std::string::npos) {
+        lines.push_back(line.substr(start, end - start + 1));
+      }
     }
   }
   return lines;
@@ -517,7 +528,6 @@ report build_link_report(const scriptInstance_t inst, const char *failures) {
   result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC LINK ERROR"
                                                      : "GSC LINK ERROR") +
                 failures;
-  result.summary = "Script link error";
   return result;
 }
 
@@ -562,86 +572,83 @@ report build_missing_script_report(const scriptInstance_t inst,
                  "correct the #using path or add the missing script");
   }
 
-  result.summary = "Script file not found: " + missing;
   return result;
 }
 
-std::string_view runtime_cause(const std::string_view source_file) {
-  if (source_file.find("scr_variable") != std::string_view::npos) {
-    return "the script VM ran out of variable slots: a script keeps creating "
-           "variables, arrays, structs or threads faster than they are freed "
-           "(usually an endless loop adding to an array or starting threads)";
-  }
-  if (source_file.find("scr_stringlist") != std::string_view::npos) {
-    return "the script VM ran out of string storage or a string exceeded the "
-           "maximum length";
-  }
-  if (source_file.find("scr_memorytree") != std::string_view::npos) {
-    return "the script VM ran out of memory for script data";
-  }
-  if (source_file.find("scr_animtree") != std::string_view::npos) {
-    return "a script uses an animtree or animation that is not loaded";
-  }
-  return {};
+std::string_view runtime_cause(const char *source_file) {
+  static const std::unordered_map<std::string, std::string_view> causes{
+      {"scr_variable",
+       "the script VM ran out of variable slots: a script keeps creating "
+       "variables, arrays, structs or threads faster than they are freed "
+       "(usually an endless loop adding to an array or starting threads)"},
+      {"scr_stringlist", "the script VM ran out of string storage or a string "
+                         "exceeded the maximum length"},
+      {"scr_memorytree", "the script VM ran out of memory for script data"},
+      {"scr_animtree",
+       "a script uses an animtree or animation that is not loaded"},
+  };
+
+  const std::string stem = utils::string::to_lower(
+      std::filesystem::path(source_file ? source_file : "").stem().string());
+  const auto cause = causes.find(stem);
+  return cause == causes.end() ? std::string_view{} : cause->second;
 }
 
-std::string append_callstack(std::string &out, const scriptInstance_t inst,
-                             const uint8_t *pos) {
-  std::string location;
+void append_callstack(std::string &out, const scriptInstance_t inst,
+                      const uint8_t *pos) {
+  bool first = true;
   for (const script::script_frame &frame :
        script::get_script_frames(inst, pos)) {
     if (frame.file.empty()) {
       continue;
     }
-    const std::string where =
-        frame.line < 0 ? frame.file
-                       : std::format("{}:{}", frame.file, frame.line);
-    if (location.empty()) {
-      location = where;
+    if (std::exchange(first, false)) {
       append_field(out, "File", "^5", frame.file);
       append_field(out, "Line", "^2",
                    frame.line < 0 ? "" : std::to_string(frame.line));
       append_field(out, "Source", "^7", frame.source);
     } else {
-      append_field(out, "Called", "^5", where);
+      append_field(out, "Called", "^5",
+                   frame.line < 0
+                       ? frame.file
+                       : std::format("{}:{}", frame.file, frame.line));
     }
   }
-  return location;
 }
 
 report build_runtime_report(const scriptInstance_t inst, const char *message,
+                            const char *detail, const char *extra,
                             const char *source_file) {
   report result{};
   result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC RUNTIME ERROR"
                                                      : "GSC RUNTIME ERROR");
 
-  const std::vector<std::string> lines = message_lines(message);
+  const std::vector<std::string> lines =
+      message_lines({message, detail, extra});
   for (const std::string &line : lines) {
     append_field(result.text, "Error", "^1", line);
   }
-  append_field(result.text, "Cause", "^7",
-               runtime_cause(source_file ? source_file : ""));
+  append_field(result.text, "Cause", "^7", runtime_cause(source_file));
 
-  const std::string location = append_callstack(result.text, inst, nullptr);
-
-  const std::string error = lines.empty() ? "script error" : lines.front();
-  result.summary =
-      location.empty()
-          ? std::format("Script runtime error: {}", error)
-          : std::format("Script runtime error in {}: {}", location, error);
+  append_callstack(result.text, inst, nullptr);
   return result;
 }
-} // namespace
 
-void print_report(const report &report, const std::string &outcome) {
+std::string report_text(const report &report, const std::string &outcome) {
   std::string text = report.text;
   if (!outcome.empty()) {
     text += SEPARATOR;
     append_field(text, "Result", "^7", outcome);
   }
   text += FOOTER;
+  return text;
+}
+} // namespace
+
+void print_report(const report &report, const std::string &outcome) {
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s", text.c_str());
+                        game::consoleLabel_e::DEFAULT, "%s",
+                        report_text(report, outcome).c_str());
 }
 
 void report_runaway_loop(const game::scr::scriptInstance_t inst,
@@ -663,33 +670,99 @@ void report_runaway_loop(const game::scr::scriptInstance_t inst,
   print_report(result, {});
 }
 
+void show_error_popup(const std::string &text) {
+  static std::atomic<bool> popup_pending{false};
+  if (popup_pending.exchange(true)) {
+    return;
+  }
+  scheduler::once(
+      [text] {
+        popup_pending = false;
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
+        scheduler::once(
+            [text] {
+              game::ui::UI_OpenErrorPopupWithMessage(
+                  game::LOCAL_CLIENT_0, game::errorCode::NONE, text.c_str());
+            },
+            scheduler::pipeline::main, 500ms);
+      },
+      scheduler::pipeline::main);
+}
+
 namespace {
-scriptInstance_t instance_of(const std::string_view name) {
-  return name.find(".csc") != std::string_view::npos ? SCRIPTINSTANCE_CLIENT
-                                                     : SCRIPTINSTANCE_SERVER;
+game::EngineDependentDvar restart_delay;
+std::atomic<int64_t> restart_not_before{0};
+std::atomic<bool> restart_queued{false};
+std::atomic<bool> console_muted{false};
+utils::hook::detour LaunchGame_hook;
+utils::hook::detour Com_Printf_hook;
+
+void Com_Printf_Muted(const game::consoleChannel_e channel,
+                      const game::consoleLabel_e label, const char *fmt, ...) {
+  if (console_muted) {
+    return;
+  }
+
+  va_list args;
+  va_start(args, fmt);
+  va_list measure;
+  va_copy(measure, args);
+  std::string text(std::max(vsnprintf(nullptr, 0, fmt, measure), 0), '\0');
+  va_end(measure);
+  vsnprintf(text.data(), text.size() + 1, fmt, args);
+  va_end(args);
+
+  Com_Printf_hook.invoke<void>(channel, label, "%s", text.c_str());
+}
+
+int64_t now_ms() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
+
+void LaunchGame_Delayed() {
+  const int64_t remaining = restart_not_before.load() - now_ms();
+  if (remaining <= 0) {
+    LaunchGame_hook.invoke<void>();
+    return;
+  }
+
+  if (restart_queued.exchange(true)) {
+    return;
+  }
+
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT,
+                        "^3Script error: restarting the map in %.1f seconds\n",
+                        static_cast<double>(remaining) / 1000.0);
+  scheduler::once(
+      [] {
+        restart_queued = false;
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "launchgame\n");
+      },
+      scheduler::pipeline::main, std::chrono::milliseconds(remaining));
+}
+
+void stop_server_map(const char *file, const int32_t line,
+                     const report &report) {
+  const int32_t delay = restart_delay.get_int();
+  restart_not_before = now_ms() + delay * 1000ll;
+  const std::string text =
+      report_text(report, std::format("The map restarts in {} seconds", delay));
+  console_muted = true;
+  scheduler::once([] { console_muted = false; }, scheduler::pipeline::main);
+  game::com::Com_Error_(file, line, game::errorParm::DROP, "\x15%s",
+                        text.c_str());
 }
 
 bool show_script_error(const report &report) {
-  print_report(report, {});
   if (game::is_server()) {
     return false;
   }
-  static std::atomic<bool> popup_pending{false};
-  if (game::com::Com_IsInGame() && !popup_pending.exchange(true)) {
-    scheduler::once(
-        [text = report.text] {
-          popup_pending = false;
-          if (game::com::Com_IsInGame()) {
-            game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
-          }
-          scheduler::once(
-              [text] {
-                game::ui::UI_OpenErrorPopupWithMessage(
-                    game::LOCAL_CLIENT_0, game::errorCode::NONE, text.c_str());
-              },
-              scheduler::pipeline::main, 500ms);
-        },
-        scheduler::pipeline::main);
+  print_report(report, {});
+  if (game::com::Com_IsInGame()) {
+    show_error_popup(report.text);
   }
   return true;
 }
@@ -697,27 +770,58 @@ bool show_script_error(const report &report) {
 void Com_Error_ScriptNotFound(const char *file, const int32_t line,
                               const game::errorParm code, const char *fmt,
                               const char *script) {
-  if (!show_script_error(
-          build_missing_script_report(instance_of(script), script))) {
-    game::com::Com_Error_(file, line, code, fmt, script);
+  const report missing = build_missing_script_report(active_instance, script);
+  if (!show_script_error(missing)) {
+    stop_server_map(file, line, missing);
   }
 }
 
 void Com_Error_LinkErrors(const char *file, const int32_t line,
                           const game::errorParm code, const char *fmt,
                           const int32_t count, const char *details) {
-  if (!show_script_error(build_link_report(instance_of(details), details))) {
-    game::com::Com_Error_(file, line, code, fmt, count, details);
+  const report link = build_link_report(active_instance, details);
+  if (!show_script_error(link)) {
+    stop_server_map(file, line, link);
   }
+}
+
+std::optional<std::string> missing_include(const std::string &script) {
+  const std::vector<known_script> scripts = collect_scripts(active_instance);
+  const std::string key = script_key(script);
+  for (const known_script &owner : scripts) {
+    if (owner.key != key) {
+      continue;
+    }
+    for (const std::string &include : object_includes(owner.obj)) {
+      const std::string include_key = script_key(include);
+      if (std::ranges::none_of(scripts, [&](const known_script &known) {
+            return known.key == include_key;
+          })) {
+        return include;
+      }
+    }
+  }
+  return std::nullopt;
 }
 
 void Com_Error_LinkScript(const char *file, const int32_t line,
                           const game::errorParm code, const char *fmt,
                           const char *script, const char *reason,
                           const char *detail) {
-  if (game::is_server()) {
-    game::com::Com_Error_(file, line, code, fmt, script, reason, detail);
+  if (!game::is_server()) {
+    return;
   }
+
+  report failure{};
+  if (const auto missing = missing_include(script)) {
+    failure = build_missing_script_report(active_instance, *missing);
+  } else {
+    failure.text = header("GSC LINK ERROR");
+    append_field(failure.text, "Script", "^5", script);
+    append_field(failure.text, "Error", "^1", reason);
+    append_field(failure.text, "Detail", "^7", detail);
+  }
+  stop_server_map(file, line, failure);
 }
 
 void Com_Error_ScriptRuntime(const char *file, const int32_t line,
@@ -725,18 +829,37 @@ void Com_Error_ScriptRuntime(const char *file, const int32_t line,
                              const char *vm, const char *error,
                              const char *detail, const char *extra,
                              const char *source, const int32_t source_line) {
-  if (!show_script_error(build_runtime_report(
-          std::string_view(vm) == "client" ? SCRIPTINSTANCE_CLIENT
-                                           : SCRIPTINSTANCE_SERVER,
-          utils::string::va(fmt, vm, error, detail, extra, source, source_line),
-          source))) {
-    game::com::Com_Error_(file, line, code, fmt, vm, error, detail, extra,
-                          source, source_line);
+  const report runtime =
+      build_runtime_report(active_instance, error, detail, extra, source);
+  if (!show_script_error(runtime)) {
+    stop_server_map(file, line, runtime);
   }
 }
 
 utils::hook::detour ReportObjLinkError_hook;
 utils::hook::detour ReportObjLinkError2_hook;
+utils::hook::detour Scr_LoadScript_hook;
+utils::hook::detour GscObjResolve_hook;
+utils::hook::detour VM_RuntimeError_hook;
+
+uint32_t Scr_LoadScript_Scoped(const scriptInstance_t inst,
+                               const char *filename) {
+  const instance_scope scope(inst);
+  return Scr_LoadScript_hook.invoke<uint32_t>(inst, filename);
+}
+
+int32_t GscObjResolve_Scoped(const scriptInstance_t inst, GSC_OBJ *obj,
+                             objFileInfo_t *fileInfo) {
+  const instance_scope scope(inst);
+  return GscObjResolve_hook.invoke<int32_t>(inst, obj, fileInfo);
+}
+
+void VM_RuntimeError_Scoped(const scriptInstance_t inst, uint8_t *pos,
+                            const uint32_t errorCode, const char *message,
+                            const char *detail) {
+  const instance_scope scope(inst);
+  VM_RuntimeError_hook.invoke<void>(inst, pos, errorCode, message, detail);
+}
 
 void ReportObjLinkError_Report(scriptInstance_t inst, GSC_OBJ *prime_obj,
                                objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
@@ -788,6 +911,20 @@ struct component final : generic_component {
                         ignore_linker_message);
       utils::hook::call(game::select(0x1412CAC18, 0x0, 0x140158E58),
                         ignore_linker_message);
+
+      Scr_LoadScript_hook.create(Scr_LoadScript, Scr_LoadScript_Scoped);
+      GscObjResolve_hook.create(GscObjResolve, GscObjResolve_Scoped);
+      VM_RuntimeError_hook.create(VM_RuntimeError, VM_RuntimeError_Scoped);
+    }
+
+    if (game::is_server()) {
+      restart_delay = game::register_dvar_int(
+          "sv_errorRestartDelay", 5, 0, 300, game::DVAR_NONE,
+          "Seconds to wait before launching the map again after a script "
+          "error stopped it");
+      Com_Printf_hook.create(game::com::Com_Printf, Com_Printf_Muted);
+      LaunchGame_hook.create(game::lobby::LobbyHostLaunch_LaunchGame_f,
+                             LaunchGame_Delayed);
     }
 
     ReportObjLinkError_hook.create(ReportObjLinkError,

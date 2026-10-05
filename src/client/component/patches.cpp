@@ -2,7 +2,10 @@
 
 #include "component/error_help.hpp"
 #include "component/exception.hpp"
+#include "component/network.hpp"
+#include "component/party.hpp"
 #include "component/path.hpp"
+#include "component/script_error.hpp"
 #include "scheduler.hpp"
 #include <loader/component_loader.hpp>
 
@@ -86,6 +89,15 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
 
     if (!game::is_server() && code == game::errorParm::FATAL) {
       exception::show_fatal_error(buffer);
+    }
+
+    if (game::is_server() &&
+        (code == game::errorParm::FATAL || code == game::errorParm::DROP)) {
+      const std::string_view reason =
+          std::string_view(buffer).substr(buffer[0] == '\x15');
+      game::foreach_connected_client([&](game::sv::client_s &client) {
+        network::send(client.address, "serverError", std::string(reason));
+      });
     }
 #ifndef NDEBUG
   }
@@ -269,6 +281,17 @@ struct component final : generic_component {
 #endif
     // Clientfield Mismatch -> recoverable ERR_DROP
     com_error_hook.create(game::com::Com_Error_, com_error_stub);
+    if (game::is_client()) {
+      network::on("serverError",
+                  [](const game::net::netadr_t &from,
+                     const network::data_view &data,
+                     const game::LocalClientNum_t localClientNum) {
+                    if (from == party::get_connected_server(localClientNum)) {
+                      script_error::show_error_popup(
+                          std::string(data.begin(), data.end()));
+                    }
+                  });
+    }
     Sys_Error_hook.create(game::sys::Sys_Error, Sys_Error_LogCaller);
 
     tlAtomicMutex_Lock_hook.create(game::tlAtomicMutex::syms::Lock.get(),

@@ -78,6 +78,9 @@ WEAK symbol<void(level::gentity_s *ent, ScrVarCanonicalName_t stringValue,
     Scr_Notify_Canon{0x141B3A130, 0x141B46500, 0x1402F5FF0};
 WEAK symbol<uint32_t(scriptInstance_t inst, const char *filename)>
     Scr_LoadScript{0x1412C8410, 0x1412C83F0, 0x140156610};
+WEAK symbol<void(scriptInstance_t inst, uint8_t *pos, uint32_t errorCode,
+                 const char *message, const char *detail)>
+    VM_RuntimeError{0x1412D4E40, 0x0, 0x140160F50};
 WEAK symbol<var::ScrVarIndex_t(
     scriptInstance_t inst, const uint8_t *pos, uint32_t numParams,
     var::ScrVarValue_t *returnValue, var::ScrVarIndex_t self)>
