@@ -1375,6 +1375,20 @@ void func(scriptInstance_t inst) {
 }
 } // namespace gscr_setname
 
+void gscr_noclip(scriptInstance_t inst, scr_entref_t *entref) {
+  level::gentity_t *ent =
+      entref->classnum == 0 ? level::entity(entref->u.entnum) : nullptr;
+  if (!ent || !ent->client) {
+    Scr_ObjectError(inst, "noclip can only be called on a player");
+    return;
+  }
+  int32_t &flags = *reinterpret_cast<int32_t *>(
+      reinterpret_cast<uint8_t *>(ent->client) +
+      game::select<uint32_t>(0x16FE4, 0x0, 0x16FF4));
+  flags ^= 1;
+  Scr_AddInt(inst, flags & 1);
+}
+
 namespace gscr_settag {
 void set(scriptInstance_t inst, game::ClientNum_t client_num,
          uint32_t tag_index) {
@@ -1821,6 +1835,7 @@ struct component final : generic_component {
     // Player name/tag overrides (server-only)
     register_builtin(SCRIPTINSTANCE_SERVER, "setname", gscr_setname::func, 2);
     register_builtin(SCRIPTINSTANCE_SERVER, "setname", gscr_setname::method, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "noclip", gscr_noclip, 0);
     register_builtin(SCRIPTINSTANCE_SERVER, "settag", gscr_settag::func, 2);
     register_builtin(SCRIPTINSTANCE_SERVER, "settag", gscr_settag::method, 1);
     register_builtin(SCRIPTINSTANCE_SERVER, "resetname", gscr_resetname::func,
