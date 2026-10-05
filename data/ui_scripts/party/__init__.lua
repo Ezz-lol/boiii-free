@@ -29,69 +29,43 @@ Engine.SetDvar("com_maxclients", maxClients)
 
 require("datasources_start_menu_game_options")
 
-local function applyGameOptionsPatch(instance, menu, controller)
-  if not instance or not instance.buttonList then
-    return false
+local ROW_HEIGHT = 33.6
+local STOCK_ROWS = 5
+
+local function fitOptions(instance, top)
+  local extra = math.max(0, (BoiiiStartMenuOptionCount or STOCK_ROWS) - STOCK_ROWS)
+  if extra == 0 or not instance or not instance.buttonList then
+    return
   end
-  if BoiiiStartMenuGameOptions then
-    DataSources.StartMenuGameOptions = BoiiiStartMenuGameOptions
-  end
-  instance.buttonList:setTopBottom(true, false, 5, 271)
-  instance.buttonList:setVerticalCount(8)
+  instance.buttonList:setVerticalCount(STOCK_ROWS + extra)
+  instance.buttonList:setTopBottom(true, false, top, top + (STOCK_ROWS + extra) * ROW_HEIGHT)
   if instance.StartMenuConnectionMeterContainer0 then
-    instance.StartMenuConnectionMeterContainer0:setTopBottom(true, false, 280, 425)
+    local shift = extra * ROW_HEIGHT
+    instance.StartMenuConnectionMeterContainer0:setTopBottom(true, false, 206 + shift, 409.37 + shift)
   end
-  return true
 end
 
-local function expandGameOptionsList(widgetName)
+local function restoreGameOptions(widgetName, top)
   local widget = CoD[widgetName]
   if not widget or type(widget.new) ~= "function" then
     return
   end
-  if widget.boiiiExpandedNew and widget.new == widget.boiiiExpandedNew then
+  if widget.boiiiRestoredNew and widget.new == widget.boiiiRestoredNew then
     return
   end
 
   local originalNew = widget.new
-  local expandedNew = function(menu, controller)
+  local restoredNew = function(menu, controller)
     if BoiiiStartMenuGameOptions then
       DataSources.StartMenuGameOptions = BoiiiStartMenuGameOptions
     end
     local instance = originalNew(menu, controller)
-    applyGameOptionsPatch(instance, menu, controller)
+    fitOptions(instance, top)
     return instance
   end
-  widget.new = expandedNew
-  widget.boiiiExpandedNew = expandedNew
+  widget.new = restoredNew
+  widget.boiiiRestoredNew = restoredNew
 end
 
-expandGameOptionsList("StartMenu_GameOptions")
-expandGameOptionsList("StartMenu_GameOptions_ZM")
-
-local function expandExistingGameOptions(element, depth)
-  if not element or depth > 24 then
-    return
-  end
-
-  local id = tostring(element.id or "")
-  if (id == "StartMenu_GameOptions" or id == "StartMenu_GameOptions_ZM") and element.buttonList then
-    applyGameOptionsPatch(element, nil, nil)
-  end
-
-  if element.getFirstChild then
-    local child = element:getFirstChild()
-    while child do
-      expandExistingGameOptions(child, depth + 1)
-      child = child:getNextSibling()
-    end
-  end
-end
-
-if LUI.roots then
-  for _, root in pairs(LUI.roots) do
-    if type(root) == "table" then
-      expandExistingGameOptions(root, 0)
-    end
-  end
-end
+restoreGameOptions("StartMenu_GameOptions", 5)
+restoreGameOptions("StartMenu_GameOptions_ZM", 4.91)

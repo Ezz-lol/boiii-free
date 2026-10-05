@@ -681,44 +681,6 @@ void setup_functions() {
       }),
       HksObjectType::TCFUNCTION);
 
-  lua["game"]["getkickableplayers"] =
-      function(convert_function([]() -> table {
-                 table players{};
-                 if (!getinfo::is_host())
-                   return players;
-
-                 int list_index = 1;
-                 game::foreach_connected_client([&players, &list_index](
-                                                    game::sv::client_s &client,
-                                                    const size_t client_index) {
-                   if (client_index == 0 ||
-                       game::sv::SV_IsTestClient(
-                           static_cast<game::ClientNum_t>(client_index))) {
-                     return;
-                   }
-
-                   char name_buffer[64]{};
-                   std::string display_name;
-                   if (game::cl::CL_GetClientName(
-                           game::LOCAL_CLIENT_0, static_cast<int>(client_index),
-                           name_buffer, sizeof(name_buffer), false) &&
-                       name_buffer[0]) {
-                     display_name = name_buffer;
-                   } else if (client.name[0]) {
-                     display_name = client.name;
-                   } else {
-                     display_name = "Player " + std::to_string(client_index);
-                   }
-
-                   table player{};
-                   player.set("client_num", static_cast<int>(client_index));
-                   player.set("name", display_name);
-                   players.set(list_index++, player);
-                 });
-                 return players;
-               }),
-               HksObjectType::TCFUNCTION);
-
   lua["game"]["ishost"] =
       function(convert_function([]() -> bool { return getinfo::is_host(); }),
                HksObjectType::TCFUNCTION);
@@ -815,30 +777,6 @@ void setup_functions() {
             return game::live::storage::Storage_Write(
                 static_cast<game::ControllerIndex_t>(controller), file, 0);
           }),
-      HksObjectType::TCFUNCTION);
-
-  lua["game"]["kickplayer"] = function(
-      convert_function([](const int client_num) -> bool {
-        if (!getinfo::is_host() || client_num <= 0)
-          return false;
-
-        bool kicked = false;
-        std::string player_name;
-        game::access_connected_client(
-            static_cast<size_t>(client_num), [&](game::sv::client_s &client) {
-              if (game::sv::SV_IsTestClient(
-                      static_cast<game::ClientNum_t>(client_num))) {
-                return;
-              }
-              player_name = client.name;
-              game::sv::SV_DropClient(&client, "EXE_PLAYERKICKED", true, true);
-              kicked = true;
-            });
-
-        if (kicked)
-          toast::warn("PLAYER KICKED", player_name + " was removed.");
-        return kicked;
-      }),
       HksObjectType::TCFUNCTION);
 
   // HTTP functions

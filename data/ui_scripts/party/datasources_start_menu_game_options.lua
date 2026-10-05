@@ -11,21 +11,35 @@ local function isLocalGameHost()
   return Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not connectedToDedicated
 end
 
-local function addFriendsAccessOption(options, controller)
-  if not isLocalGameHost() then
-    return
+local function friendsPartyLabel()
+  if Engine.DvarBool(nil, "friends_open") then
+    return "^2PARTY IS OPEN"
   end
+  return "^1PARTY IS CLOSED"
+end
 
-  local friendsCanJoin = Engine.DvarBool(controller, "friends_open")
+local function openPopup(name)
+  return function(self, element, controller, param, menu)
+    OpenPopup(menu or self, name, controller)
+  end
+end
+
+local function addHostOptions(options)
   table.insert(options, {
     models = {
-      displayText = friendsCanJoin and "CLOSE FRIEND JOINING" or "OPEN TO FRIENDS",
-      action = function(self, element, actionController, param, menu)
-        Engine.Exec(actionController, "friends_open")
-        StartMenuGoBack_ListElement(self, element, actionController, param, menu)
+      displayText = friendsPartyLabel(),
+      action = function(self, element, controller)
+        Engine.ExecNow(controller, "friends_open")
+        Engine.SetModelValue(Engine.GetModel(element:getModel(), "displayText"), friendsPartyLabel())
       end,
     },
   })
+  table.insert(options, { models = { displayText = "^3CHANGE MAP", action = openPopup("BoiiiChangeMapMenu") } })
+  table.insert(options, { models = { displayText = "^3KICK PLAYERS", action = openPopup("BoiiiKickPlayersMenu") } })
+  table.insert(options, { models = { displayText = "^3RESTART", action = RestartGame } })
+  if LUI.createMenu.BoiiiGameTweaksMenu then
+    table.insert(options, { models = { displayText = "^3GAME TWEAKS", action = openPopup("BoiiiGameTweaksMenu") } })
+  end
 end
 
 local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOptions", function(controller)
@@ -35,7 +49,6 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
   local isZM = currentMode == Enum.eModes.MODE_ZOMBIES
   local isCP = currentMode == Enum.eModes.MODE_CAMPAIGN
   local endGameOption = nil
-  local restartGameOption = nil
   local isLocalHost = isLocalGameHost()
   if Engine.IsDemoPlaying() then
     if not IsDemoRestrictedBasicMode() then
@@ -123,61 +136,19 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
     end
     local endGameText = isLocalHost and "MAIN MENU" or "MENU_QUIT_GAME_CAPS"
     endGameOption = { models = { displayText = endGameText, action = QuitGame_MP } }
-    if isLocalHost then
-      restartGameOption = {
-        models = {
-          displayText = "RESTART GAME",
-          action = RestartGame,
-        },
-      }
-    end
   elseif isZM then
     table.insert(options, { models = { displayText = "MENU_RESUMEGAME_CAPS", action = StartMenuGoBack_ListElement } })
     local endGameText = isLocalHost and "MAIN MENU" or "MENU_QUIT_GAME_CAPS"
     endGameOption = { models = { displayText = endGameText, action = QuitGame_MP } }
-    if isLocalHost then
-      restartGameOption = {
-        models = {
-          displayText = "RESTART GAME",
-          action = RestartGame,
-        },
-      }
-    end
   end
-  addFriendsAccessOption(options, controller)
   if isLocalHost then
-    table.insert(options, {
-      models = {
-        displayText = "GAME TWEAKS",
-        action = function(self, element, controller, param, menu)
-          if menu and menu.openPopup then
-            menu:openPopup("BoiiiGameTweaksMenu", controller)
-          else
-            OpenPopup(self, "BoiiiGameTweaksMenu", controller)
-          end
-        end,
-      },
-    })
-    table.insert(options, {
-      models = {
-        displayText = "KICK PLAYER",
-        action = function(self, element, controller, param, menu)
-          if menu and menu.openPopup then
-            menu:openPopup("BoiiiKickPlayersMenu", controller)
-          else
-            OpenPopup(self, "BoiiiKickPlayersMenu", controller)
-          end
-        end,
-      },
-    })
-  end
-  if restartGameOption then
-    table.insert(options, restartGameOption)
+    addHostOptions(options)
   end
   if endGameOption then
     table.insert(options, endGameOption)
   end
   table.insert(options, { models = { displayText = "QUIT TO DESKTOP", action = OpenPCQuit } })
+  BoiiiStartMenuOptionCount = #options
   return options
 end, true)
 
