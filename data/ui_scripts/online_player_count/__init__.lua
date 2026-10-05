@@ -68,9 +68,8 @@ pcall(function()
 end)
 
 -- Stock FE_3dTitleNumber hides itself (alpha 0) whenever IsLAN(), IsGameLobby(),
--- or the groupCountsVisible dvar isn't set -- all of which are effectively
--- always true for boiii. Keep it visible instead now that the number behind
--- it is real.
+-- or the groupCountsVisible dvar isn't set. Keep it visible online now that
+-- the number behind it is real, but stay hidden in LAN/offline mode.
 if original.FE3dTitleNumberNew then
   CoD.FE_3dTitleNumber.new = function(menu, controller)
     local self = original.FE3dTitleNumberNew(menu, controller)
@@ -78,8 +77,11 @@ if original.FE3dTitleNumberNew then
       return self
     end
 
-    local function forceVisibleClip()
-      return function()
+    local function forceVisibleClip(hiddenClip)
+      return function(...)
+        if IsLAN() then
+          return hiddenClip(...)
+        end
         self:setupElementClipCounter(2)
         self.FELabelSubHeadingA0:completeAnimation()
         self.FELabelSubHeadingA0:setAlpha(1)
@@ -92,8 +94,8 @@ if original.FE3dTitleNumberNew then
 
     for _, stateName in ipairs({ "Hidden", "Hidden2", "Hidden3" }) do
       local state = self.clipsPerState[stateName]
-      if state then
-        state.DefaultClip = forceVisibleClip()
+      if state and state.DefaultClip then
+        state.DefaultClip = forceVisibleClip(state.DefaultClip)
       end
     end
 

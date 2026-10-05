@@ -579,8 +579,9 @@ DataSources.LobbyServer = {
         if not list or not list.serverBrowserRootModel then
           return
         end
-        if model and type(Engine.SetModelValue) == "function" then
-          Engine.SetModelValue(model, list.serverCount or 0)
+        local count = list.serverCount or 0
+        if model and Engine.GetModelValue(model) ~= count then
+          Engine.SetModelValue(model, count)
         end
       end)
     end, false)
