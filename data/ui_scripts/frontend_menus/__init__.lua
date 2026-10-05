@@ -56,6 +56,22 @@ CoD.LobbyButtons.QUICK_SETTINGS = {
   customId = "btnQuickSettings",
 }
 
+local function friendsPartyLabel()
+  if Engine.DvarBool(nil, "friends_open") then
+    return "^2PARTY IS OPEN"
+  end
+  return "^1PARTY IS CLOSED"
+end
+
+CoD.LobbyButtons.FRIENDS_PARTY = {
+  stringRef = friendsPartyLabel(),
+  action = function(self, element, controller, param, menu)
+    Engine.ExecNow(controller, "friends_open")
+    Engine.SetModelValue(Engine.GetModel(element:getModel(), "displayText"), friendsPartyLabel())
+  end,
+  customId = "btnFriendsParty",
+}
+
 CoD.LobbyButtons.MP_START_GAME = {
   stringRef = "MENU_START_GAME_CAPS",
   action = function(self, element, controller, param, menu)
@@ -108,6 +124,29 @@ local lobbyMapVote = function(lobbyMapVoteIsEnabled)
   end
 end
 
+local function addFriendsPartyButton(controller, menuId, buttonTable, isLeader)
+  if
+    (isLeader ~= 1 and isLeader ~= true)
+    or Engine.GetLobbyNetworkMode() == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LAN
+  then
+    return
+  end
+  for _, anchor in ipairs({
+    CoD.LobbyButtons.ZM_CHANGE_MAP,
+    CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME,
+    CoD.LobbyButtons.CP_SELECT_MISSION,
+  }) do
+    local index = utils.GetButtonIndex(buttonTable, anchor)
+    if index then
+      CoD.LobbyButtons.FRIENDS_PARTY.stringRef = friendsPartyLabel()
+      utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.FRIENDS_PARTY, index + 1)
+      buttonTable[index + 1].isLastButtonInGroup = buttonTable[index].isLastButtonInGroup
+      buttonTable[index].isLastButtonInGroup = false
+      return
+    end
+  end
+end
+
 local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   if menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id then
     utils.RemoveSpaces(buttonTable)
@@ -128,6 +167,8 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.STATS)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.QUICK_SETTINGS)
   end
+
+  addFriendsPartyButton(controller, menuId, buttonTable, isLeader)
 
   if menuId == LobbyData.UITargets.UI_ZMLOBBYLANGAME.id then
     for _, button in ipairs({

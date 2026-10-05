@@ -5,7 +5,6 @@
 #include <loader/component_loader.hpp>
 
 #include "command.hpp"
-#include "getinfo.hpp"
 #include "name.hpp"
 #include "nat.hpp"
 #include "network.hpp"
@@ -465,58 +464,15 @@ std::vector<friend_server_info> get_friend_server_addresses() {
     if (entry.steam_id != 0 && !seen_ids.contains(entry.steam_id)) {
       seen_ids.insert(entry.steam_id);
 
-      const std::string addr = entry.server_address;
-
-      // green online and red offline
-      const std::string color_prefix = addr.empty() ? "^1" : "^2";
-      result.push_back({entry.steam_id, addr, color_prefix + entry.name});
+      const std::string color_prefix = entry.state == status::in_game  ? "^2"
+                                       : entry.state == status::online ? "^3"
+                                                                       : "^1";
+      result.push_back(
+          {entry.steam_id, entry.server_address, color_prefix + entry.name});
     }
   }
 
   return result;
-}
-
-std::string get_friend_game_info_by_address(const game::net::netadr_t target) {
-  std::vector<friend_entry> all_friends;
-  friends_data.access(
-      [&](const friend_state &state) { all_friends = state.list; });
-
-  for (const friend_entry &entry : all_friends) {
-    if (entry.steam_id != 0) {
-      steam_proxy::request_friend_rich_presence(entry.steam_id);
-      const std::string game_info = steam_proxy::get_friend_rich_presence(
-          entry.steam_id, "boiii_game_info");
-      if (!game_info.empty()) {
-        const std::vector<std::string> parts =
-            utils::string::split(game_info, '|');
-        if (!parts.empty()) {
-          // Check if the address in the RP data matches the requested address
-          if (parts[0] == target.toString()) {
-            return game_info;
-          }
-
-          // Also try matching resolved addresses
-          if (target.type != game::net::NA_BAD) {
-            game::net::netadr_t friend_addr =
-                network::address_from_string(parts[0]);
-            if (friend_addr.type != game::net::NA_BAD &&
-                network::are_addresses_equal(friend_addr, target))
-              return game_info;
-          }
-        }
-      }
-    }
-  }
-
-  return "";
-}
-
-std::string get_friend_game_info_by_address(const std::string &address) {
-  if (address.empty())
-    return "";
-
-  game::net::netadr_t target = network::address_from_string(address);
-  return get_friend_game_info_by_address(target);
 }
 
 bool connect_to_friend(game::XUID steam_id) {
@@ -527,23 +483,27 @@ bool connect_to_friend(game::XUID steam_id) {
   // Check if friend is in our list and has a server address
   std::string addr_str;
   std::string join_token;
-  friends_data.access([&](const friend_state &state) {
-    for (const friend_entry &e : state.list) {
-      if (e.steam_id == steam_id && !e.server_address.empty()) {
+  auto state = status::offline;
+  friends_data.access([&](const friend_state &friends) {
+    for (const friend_entry &e : friends.list) {
+      if (e.steam_id == steam_id) {
         addr_str = e.server_address;
         join_token = e.join_token;
+        state = e.state;
         break;
       }
     }
   });
 
   if (addr_str.empty()) {
-    // Friend is not in-game / not reachable
     scheduler::once(
-        [] {
+        [state] {
           game::ui::UI_OpenErrorPopupWithMessage(
               game::LOCAL_CLIENT_0, game::errorCode::UI,
-              "Friend is not online or not in a joinable game.");
+              state == status::online
+                  ? "Your friend's party is closed. Ask them to open it to "
+                    "friends."
+                  : "Your friend is offline.");
         },
         scheduler::main);
     return false;
@@ -552,33 +512,6 @@ bool connect_to_friend(game::XUID steam_id) {
   if (!join_token.empty()) {
     nat::begin_join(join_token, addr_str);
     return true;
-  }
-
-  // Try enriched game info for proper mode/map connection
-  const std::string game_info =
-      steam_proxy::get_friend_rich_presence(steam_id, "boiii_game_info");
-  if (!game_info.empty()) {
-    const std::vector<std::string> parts = utils::string::split(game_info, '|');
-    if (parts.size() >= 4) {
-      const std::string connect_addr = parts[0];
-      const std::string mapname = parts[1];
-      const std::string gametype = parts[2];
-      game::eModes mode =
-          static_cast<game::eModes>(std::atoi(parts[3].c_str()));
-      const std::string mod_id = parts.size() >= 5 ? parts[4] : "";
-
-      game::net::netadr_t target = network::address_from_string(connect_addr);
-      if (target.type != game::net::NA_BAD && !mapname.empty() &&
-          !gametype.empty()) {
-        game::com::Com_SessionMode_SetGameMode(
-            game::eGameModes::MATCHMAKING_PLAYLIST);
-        const std::string usermap_id =
-            workshop::get_usermap_publisher_id(mapname);
-        party::connect_to_lobby_with_mode(target, mode, mapname, gametype,
-                                          usermap_id, mod_id);
-        return true;
-      }
-    }
   }
 
   // Fallback: raw connect
@@ -619,11 +552,15 @@ void refresh_presence() {
     std::unordered_map<game::XUID, nat::friend_presence> available;
     available.reserve(live.size());
     for (auto &entry : live) {
-      const auto address = network::address_from_string(entry.endpoint);
-      if (entry.steam_id && network::is_connectable_address(address)) {
+      if (!entry.steam_id)
+        continue;
+      if (!entry.token.empty()) {
+        const auto address = network::address_from_string(entry.endpoint);
+        if (!network::is_connectable_address(address))
+          continue;
         entry.endpoint = network::address_to_string(address);
-        available.insert_or_assign(entry.steam_id, std::move(entry));
       }
+      available.insert_or_assign(entry.steam_id, std::move(entry));
     }
 
     bool changed{};
@@ -632,8 +569,9 @@ void refresh_presence() {
         if (!queried.contains(entry.steam_id))
           continue;
         const auto found = available.find(entry.steam_id);
-        const auto next_state =
-            found == available.end() ? status::offline : status::in_game;
+        const auto next_state = found == available.end()      ? status::offline
+                                : found->second.token.empty() ? status::online
+                                                              : status::in_game;
         const auto next_address =
             found == available.end() ? std::string{} : found->second.endpoint;
         const auto next_token =
@@ -740,21 +678,11 @@ struct component final : client_component {
     game::register_dvar_bool("friends_open", false, game::DVAR_NONE,
                              "Advertise this private match to saved friends");
     command::add("friends_open", [](const command::params &) {
-      const bool currently_open =
-          game::get_dvar_bool("friends_open").value_or(false);
-      if (!currently_open && !getinfo::is_host()) {
-        game::ui::UI_OpenErrorPopupWithMessage(
-            game::LOCAL_CLIENT_0, game::errorCode::UI,
-            "Start a private match before allowing friends to join.");
-        return;
-      }
-
-      const bool enabled = !currently_open;
+      const bool enabled = !game::get_dvar_bool("friends_open").value_or(false);
       game::Dvar_SetFromStringByName("friends_open", enabled ? "1" : "0", true);
       if (!nat::set_open_to_friends(enabled)) {
         game::Dvar_SetFromStringByName("friends_open", "0", true);
-        toast::warn("Friends",
-                    "Start a private match before opening the party.");
+        toast::warn("Friends", "Only the party leader can open the party.");
       } else if (enabled) {
         toast::success("FRIENDS", "Friends can now join.");
       } else {

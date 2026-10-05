@@ -34,8 +34,5 @@ std::string get_steam_friend_name(uint64_t steam_id);
 bool set_rich_presence(const std::string &key, const std::string &value);
 void clear_rich_presence();
 uint64_t get_own_steam_id();
-std::string get_friend_rich_presence(uint64_t friend_id,
-                                     const std::string &key);
-void request_friend_rich_presence(uint64_t friend_id);
 void clear_invite_presence();
 } // namespace steam_proxy

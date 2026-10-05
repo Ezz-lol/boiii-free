@@ -170,7 +170,10 @@ void handle_connect_query_response(const bool success,
         "No response from server %u.%u.%u.%u:%hu", target.ipv4.a, target.ipv4.b,
         target.ipv4.c, target.ipv4.d, target.port);
     printf("Connect failed: %s\n", msg.c_str());
-    toast::show("Connect failed", "No response from server",
+    toast::show("Connect failed",
+                utils::string::va("No response. The match may have ended, or "
+                                  "a firewall is blocking UDP port %hu.",
+                                  target.port),
                 "t7_icon_connect_overlays");
     return;
   }
@@ -233,6 +236,13 @@ void handle_connect_query_response(const bool success,
   }
 
   const std::string mapname = info.get("mapname");
+  if (mapname == "core_frontend") {
+    toast::show("Friend in menus",
+                "They are not in a match. Ask them to open their party, then "
+                "join from your friends list.",
+                "t7_icon_connect_overlays");
+    return;
+  }
   if (mapname.empty()) {
     const char *msg = "Invalid map.";
     printf("Connect failed: %s\n", msg);
@@ -294,36 +304,10 @@ void handle_connect_query_response(const bool success,
       scheduler::main);
 }
 
-void connect_finish(const game::net::netadr_t &target, const char *address) {
+void connect_finish(const game::net::netadr_t &target) {
   connect_host = target;
 
   profile_infos::clear_profile_infos();
-
-  if (address) {
-    std::string game_info = friends::get_friend_game_info_by_address(target);
-    if (!game_info.empty()) {
-      std::vector<std::string> parts = utils::string::split(game_info, '|');
-      if (parts.size() >= 4) {
-        std::string mapname = parts[1];
-        std::string gametype = parts[2];
-        game::eModes mode =
-            static_cast<game::eModes>(std::atoi(parts[3].c_str()));
-        std::string mod_id = parts.size() >= 5 ? parts[4] : "";
-
-        if (!mapname.empty() && !gametype.empty()) {
-          scheduler::once(
-              [=]() {
-                std::string usermap_id =
-                    workshop::get_usermap_publisher_id(mapname);
-                connect_to_lobby_with_mode_internal(
-                    connect_host, mode, mapname, gametype, usermap_id, mod_id);
-              },
-              scheduler::pipeline::main);
-          return;
-        }
-      }
-    }
-  }
 
   query_server(connect_host, handle_connect_query_response);
 }
@@ -368,14 +352,14 @@ void connect_stub(const char *address) {
               return;
             }
 
-            connect_finish(target, address_copy.c_str());
+            connect_finish(target);
           },
           scheduler::main);
     };
     // Resolve the address on a background thread.
     network::address_from_string_async(address_copy, resolveCb);
   } else {
-    connect_finish(connect_host, nullptr);
+    connect_finish(connect_host);
   }
 }
 
@@ -456,9 +440,7 @@ void cleanup_queried_servers() {
 }
 } // namespace
 
-void connect(const game::net::netadr_t &target) {
-  connect_finish(target, nullptr);
-}
+void connect(const game::net::netadr_t &target) { connect_finish(target); }
 
 void query_server(const game::net::netadr_t &host, query_callback callback) {
   server_query query{};

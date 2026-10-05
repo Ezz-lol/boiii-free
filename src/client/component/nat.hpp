@@ -1,5 +1,7 @@
 #pragma once
 
+#include <game/game.hpp>
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -17,6 +19,7 @@ std::string get_host_token();
 std::string get_host_endpoint();
 void begin_join(const std::string &token, const std::string &fallback_address);
 bool set_open_to_friends(bool enabled);
+bool is_lobby_peer(const game::net::netadr_t &address);
 void refresh_friends(const std::vector<uint64_t> &steam_ids,
                      lookup_callback callback);
 } // namespace nat

@@ -111,7 +111,7 @@ local function presenceForStatus(status)
   elseif status == 1 then
     return Enum.PresencePrimary.PRESENCE_PRIMARY_ONLINE,
       Enum.PresenceActivity.PRESENCE_ACTIVITY_ONLINE_NOT_IN_TITLE,
-      "Online"
+      "^3Party closed"
   end
   return Enum.PresencePrimary.PRESENCE_PRIMARY_OFFLINE, Enum.PresenceActivity.PRESENCE_ACTIVITY_OFFLINE, "Offline"
 end

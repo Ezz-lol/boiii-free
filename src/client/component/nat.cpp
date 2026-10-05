@@ -15,6 +15,7 @@
 #include "toast.hpp"
 #include "upnp.hpp"
 
+#include <utils/hook.hpp>
 #include <utils/string.hpp>
 
 #include <random>
@@ -49,6 +50,19 @@ struct host_probe {
 
 join_attempt joining;
 std::vector<host_probe> host_probes;
+
+struct lobby_request {
+  bool active{};
+  std::string token;
+  game::net::netadr_t host{};
+  std::chrono::steady_clock::time_point expires;
+};
+
+lobby_request lobby_joining;
+std::mutex peers_mutex;
+std::unordered_map<std::string, game::net::netadr_t> lobby_peers;
+utils::hook::detour dw_common_addr_to_netadr_hook;
+utils::hook::detour dw_get_connection_status_hook;
 
 struct lookup_state {
   std::unordered_set<uint64_t> pending;
@@ -197,6 +211,90 @@ void add_join_candidate(const std::string &text) {
     joining.candidates.push_back(candidate);
 }
 
+std::string to_hex(const void *data, const size_t size) {
+  std::string result;
+  for (size_t i = 0; i < size; ++i)
+    result += std::format("{:02x}", static_cast<const uint8_t *>(data)[i]);
+  return result;
+}
+
+bool from_hex(const std::string &text, void *out, const size_t size) {
+  if (text.size() != size * 2)
+    return false;
+  auto *bytes = static_cast<uint8_t *>(out);
+  for (size_t i = 0; i < size; ++i) {
+    if (std::from_chars(text.data() + i * 2, text.data() + i * 2 + 2, bytes[i],
+                        16)
+            .ec != std::errc{})
+      return false;
+  }
+  return true;
+}
+
+std::string peer_key(const uint8_t *address) {
+  return {reinterpret_cast<const char *>(address), sizeof(game::net::XNADDR)};
+}
+
+void add_peer(const uint8_t *address, const game::net::netadr_t &endpoint) {
+  std::lock_guard lock(peers_mutex);
+  lobby_peers.insert_or_assign(peer_key(address), endpoint);
+}
+
+std::optional<game::net::netadr_t> find_peer(const uint8_t *address) {
+  constexpr size_t ENDPOINT_SIZE = 6;
+  std::lock_guard lock(peers_mutex);
+  if (const auto peer = lobby_peers.find(peer_key(address));
+      peer != lobby_peers.end())
+    return peer->second;
+
+  std::optional<game::net::netadr_t> match;
+  for (const auto &[key, endpoint] : lobby_peers) {
+    if (std::memcmp(key.data(), address, ENDPOINT_SIZE) == 0) {
+      if (match)
+        return std::nullopt;
+      match = endpoint;
+    }
+  }
+  return match;
+}
+
+bool dw_common_addr_to_netadr_stub(game::net::netadr_t *netadr,
+                                   const uint8_t *common_addr,
+                                   const game::net::bdSecurityID *sec_id) {
+  if (const auto peer = find_peer(common_addr)) {
+    *netadr = *peer;
+    return true;
+  }
+  return dw_common_addr_to_netadr_hook.invoke<bool>(netadr, common_addr,
+                                                    sec_id);
+}
+
+int32_t dw_get_connection_status_stub(const game::net::netadr_t *netadr) {
+  constexpr int32_t CONNECTED = 2;
+  return is_lobby_peer(*netadr)
+             ? CONNECTED
+             : dw_get_connection_status_hook.invoke<int32_t>(netadr);
+}
+
+game::lobby::session::HostInfo *lobby_host_info(
+    const game::lobby::LobbyType type = game::lobby::LobbyType::PRIVATE) {
+  if (game::is_legacy_client() || !game::lobby::LobbyHost_IsHost(type))
+    return nullptr;
+  auto *session = game::lobby::LobbyHostData_GetSession(type);
+  return session ? &session->host.info : nullptr;
+}
+
+bool hosting_match() {
+  return getinfo::is_host() && !game::com::Com_IsRunningUILevel();
+}
+
+bool can_host() { return hosting_match() || lobby_host_info(); }
+
+void show_error(const std::string &message) {
+  game::ui::UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
+                                         game::errorCode::UI, message.c_str());
+}
+
 void connect_to(const game::net::netadr_t &endpoint) {
   const auto address = network::address_to_string(endpoint);
   if (address.empty())
@@ -204,18 +302,121 @@ void connect_to(const game::net::netadr_t &endpoint) {
   party::connect(endpoint);
 }
 
+void request_lobby(const game::net::netadr_t &host, const std::string &token) {
+  const auto *own = lobby_host_info();
+  lobby_joining = {true, token, host, std::chrono::steady_clock::now() + 4s};
+  network::send(host, "lobbyJoin",
+                token + " " +
+                    (own ? to_hex(own->serializedAdr.addrBuff,
+                                  sizeof(own->serializedAdr.addrBuff))
+                         : "-"));
+}
+
 void complete_join(const game::net::netadr_t &endpoint) {
   if (!joining.active)
     return;
   joining.active = false;
-  connect_to(endpoint);
+  request_lobby(endpoint, joining.token);
 }
 
-void show_join_failure() {
-  game::ui::UI_OpenErrorPopupWithMessage(
-      game::LOCAL_CLIENT_0, game::errorCode::UI,
-      "The friend could not be reached. Their match may have closed, or one "
-      "of the networks may block UDP hole punching.");
+void show_join_failure(const std::string &address) {
+  const auto port = network::address_from_string(address).port;
+  show_error(std::format(
+      "Could not reach your friend. A router or firewall is blocking the "
+      "connection.\n\nTo fix it, the host can enable UPnP on their router or "
+      "forward UDP port {} to their PC, and both of you should allow BOIII "
+      "through Windows Firewall. Using the same VPN (Radmin VPN, ZeroTier) "
+      "also works.",
+      port ? port : local_port()));
+}
+
+void lobby_join_complete(int32_t, const game::lobby::JoinResult result) {
+  using game::lobby::JoinResult;
+  std::string message;
+  switch (result) {
+  case JoinResult::SUCCESS:
+    return;
+  case JoinResult::LOBBY_FULL:
+  case JoinResult::COULD_NOT_RESERVE:
+    message = "Your friend's lobby is full.";
+    break;
+  case JoinResult::NOT_JOINABLE_NOT_IDLE:
+  case JoinResult::MIGRATE_IN_PROGRESS:
+    message = "Your friend's lobby is busy starting or changing a match. Try "
+              "again in a few seconds.";
+    break;
+  case JoinResult::JOIN_DISABLED:
+  case JoinResult::NOT_JOINABLE_NOT_HOSTING:
+  case JoinResult::NOT_JOINABLE_CLOSED:
+  case JoinResult::NOT_JOINABLE_INVITE_ONLY:
+  case JoinResult::NOT_JOINABLE_FRIENDS_ONLY:
+    message = "Your friend's party is closed. Ask them to open it to friends.";
+    break;
+  case JoinResult::NETWORK_MODE_MISMATCH:
+    message = "One of you is in LAN or offline mode. Both of you need to be "
+              "in online play.";
+    break;
+  case JoinResult::MISMATCH_PROTOCOL_VERSION:
+  case JoinResult::MISMATCH_NETFIELD_CHECKSUM:
+  case JoinResult::MISMATCH_FFOTD_VERSION_TO_NEW:
+  case JoinResult::MISMATCH_FFOTD_VERSION_TO_OLD:
+  case JoinResult::MISMATCH_PLAYLISTID:
+  case JoinResult::MISMATCH_PLAYLIST_VERSION_TO_NEW:
+  case JoinResult::MISMATCH_PLAYLIST_VERSION_TO_OLD:
+    message = "Your game doesn't match your friend's. Both of you should "
+              "update BOIII to the same version.";
+    break;
+  case JoinResult::JOIN_ALREADY_IN_PROGRESS:
+    message = "Already joining a lobby. Please wait.";
+    break;
+  default:
+    message = std::format(
+        "Your friend's lobby stopped responding while joining (code {}). Try "
+        "again. If it keeps failing, a firewall is blocking UDP traffic: "
+        "allow BOIII through Windows Firewall on both PCs.",
+        static_cast<uint32_t>(result));
+    break;
+  }
+  show_error(message);
+}
+
+void join_lobby(const game::net::netadr_t &host,
+                const std::vector<std::string> &parts) {
+  game::lobby::session::HostInfo info{};
+  info.xuid = std::strtoull(parts[1].c_str(), nullptr, 16);
+  info.serializedAdr.valid = 1;
+  if (!info.xuid ||
+      !from_hex(parts[2], info.serializedAdr.addrBuff,
+                sizeof(info.serializedAdr.addrBuff)) ||
+      !from_hex(parts[3], &info.secId, sizeof(info.secId)) ||
+      !from_hex(parts[4], &info.secKey, sizeof(info.secKey)))
+    return;
+
+  const auto target = parts[5] == "game" ? game::lobby::LobbyType::GAME
+                                         : game::lobby::LobbyType::PRIVATE;
+  std::string name = parts[6];
+  for (size_t i = 7; i < parts.size(); ++i)
+    name.append(" ").append(parts[i]);
+  utils::string::copy(info.name, name.c_str());
+
+  if (game::com::Com_IsInGame() || !lobby_host_info()) {
+    show_error("Leave your current match to join your friend's lobby.");
+    return;
+  }
+
+  add_peer(info.serializedAdr.addrBuff, host);
+  using game::lobby::LobbyType;
+  if (!game::lobby::LobbyJoin_Begin(
+          0,
+          game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
+          LobbyType::PRIVATE, target, lobby_join_complete)) {
+    show_error("Already joining a lobby. Please wait.");
+    return;
+  }
+  game::lobby::LobbyJoin_Add(info.xuid, info.name, &info.secId, &info.secKey,
+                             &info.serializedAdr, game::lobby::JoinType::FRIEND,
+                             0);
+  game::lobby::LobbyJoin_Finalize();
 }
 
 void update_punching() {
@@ -226,9 +427,9 @@ void update_punching() {
       const auto fallback = network::address_from_string(joining.fallback);
       joining.active = false;
       if (network::is_connectable_address(fallback))
-        connect_to(fallback);
+        request_lobby(fallback, joining.token);
       else
-        show_join_failure();
+        show_join_failure(joining.fallback);
     } else {
       if (joining.candidates.empty() && now >= joining.next_rendezvous) {
         send_rendezvous("privJoin", joining.token);
@@ -237,6 +438,11 @@ void update_punching() {
       for (const auto &candidate : joining.candidates)
         network::send(candidate, "punch", joining.token);
     }
+  }
+
+  if (lobby_joining.active && now >= lobby_joining.expires) {
+    lobby_joining.active = false;
+    connect_to(lobby_joining.host);
   }
 
   std::erase_if(host_probes, [now](const host_probe &probe) {
@@ -266,9 +472,12 @@ void set_open(const bool enabled) {
 }
 
 void update_hosting() {
-  if (!open_to_friends || !getinfo::is_host()) {
+  if (!open_to_friends || !can_host()) {
     if (open_to_friends || !hosting_token.empty())
       set_open(false);
+    if (const auto friend_code = auth::get_guid())
+      send_rendezvous("friendPublish",
+                      utils::string::va("1 %llu -", friend_code));
     return;
   }
   if (hosting_token.empty()) {
@@ -278,6 +487,60 @@ void update_hosting() {
   }
   send_rendezvous("privRegister", hosting_token);
   send_friend_publish();
+}
+
+void receive_lobby_join(const game::net::netadr_t &sender,
+                        const network::data_view &data,
+                        game::LocalClientNum_t) {
+  const auto parts = fields(payload_string(data));
+  if (parts.size() != 2 || hosting_token.empty() || parts[0] != hosting_token ||
+      !network::is_connectable_address(sender))
+    return;
+
+  if (hosting_match()) {
+    network::send(sender, "lobbyGame", hosting_token);
+    return;
+  }
+
+  const auto *game_lobby = lobby_host_info(game::lobby::LobbyType::GAME);
+  const auto *host = game_lobby ? game_lobby : lobby_host_info();
+  game::net::XNADDR peer{};
+  if (!host || !from_hex(parts[1], peer.addrBuff, sizeof(peer.addrBuff)))
+    return;
+
+  add_peer(peer.addrBuff, sender);
+  network::send(sender, "lobbyHost",
+                std::format("{} {:x} {} {} {} {} {}", hosting_token, host->xuid,
+                            to_hex(host->serializedAdr.addrBuff,
+                                   sizeof(host->serializedAdr.addrBuff)),
+                            to_hex(&host->secId, sizeof(host->secId)),
+                            to_hex(&host->secKey, sizeof(host->secKey)),
+                            game_lobby ? "game" : "party", host->name));
+}
+
+bool from_lobby_request(const game::net::netadr_t &sender,
+                        const std::string &token) {
+  if (!lobby_joining.active || token != lobby_joining.token ||
+      !network::is_connectable_address(sender))
+    return false;
+  lobby_joining.active = false;
+  return true;
+}
+
+void receive_lobby_host(const game::net::netadr_t &sender,
+                        const network::data_view &data,
+                        game::LocalClientNum_t) {
+  const auto parts = fields(payload_string(data));
+  if (parts.size() >= 7 && from_lobby_request(sender, parts[0]))
+    scheduler::once([sender, parts] { join_lobby(sender, parts); },
+                    scheduler::main);
+}
+
+void receive_lobby_game(const game::net::netadr_t &sender,
+                        const network::data_view &data,
+                        game::LocalClientNum_t) {
+  if (from_lobby_request(sender, payload_string(data)))
+    connect_to(sender);
 }
 
 void receive_register_ack(const game::net::netadr_t &sender,
@@ -387,9 +650,8 @@ void receive_friend_presence(const game::net::netadr_t &sender,
   }
 }
 
-void receive_friend_offline(const game::net::netadr_t &sender,
-                            const network::data_view &data,
-                            game::LocalClientNum_t) {
+void receive_friend_status(const game::net::netadr_t &sender,
+                           const network::data_view &data, const bool online) {
   if (!from_rendezvous(sender))
     return;
   const auto parts = fields(payload_string(data));
@@ -404,12 +666,26 @@ void receive_friend_offline(const game::net::netadr_t &sender,
         !request->second.pending.erase(steam_id)) {
       return;
     }
+    if (online)
+      request->second.results.push_back({steam_id, {}, {}});
     complete = request->second.pending.empty();
   }
   if (complete) {
     scheduler::once([request = parts[1]] { finish_lookup(request); },
                     scheduler::main);
   }
+}
+
+void receive_friend_offline(const game::net::netadr_t &sender,
+                            const network::data_view &data,
+                            game::LocalClientNum_t) {
+  receive_friend_status(sender, data, false);
+}
+
+void receive_friend_online(const game::net::netadr_t &sender,
+                           const network::data_view &data,
+                           game::LocalClientNum_t) {
+  receive_friend_status(sender, data, true);
 }
 } // namespace
 
@@ -429,7 +705,8 @@ std::string get_host_endpoint() {
 
 void begin_join(const std::string &token, const std::string &fallback_address) {
   if (!valid_token(token)) {
-    show_join_failure();
+    show_error(
+        "Your friend's party is closed. Ask them to open it to friends.");
     return;
   }
 
@@ -445,10 +722,18 @@ void begin_join(const std::string &token, const std::string &fallback_address) {
   joining.expires = std::chrono::steady_clock::now() + JOIN_TIMEOUT;
   joining.next_rendezvous = std::chrono::steady_clock::now() + 1s;
   send_rendezvous("privJoin", token);
+  toast::show("Friends", "Joining your friend...", "t7_icon_connect_overlays");
+}
+
+bool is_lobby_peer(const game::net::netadr_t &address) {
+  std::lock_guard lock(peers_mutex);
+  return std::ranges::any_of(lobby_peers, [&address](const auto &peer) {
+    return network::are_addresses_equal(peer.second, address);
+  });
 }
 
 bool set_open_to_friends(const bool enabled) {
-  if (enabled && !getinfo::is_host())
+  if (enabled && !can_host())
     return false;
   set_open(enabled);
   update_hosting();
@@ -509,6 +794,17 @@ public:
     network::on("punchAck", receive_punch_ack);
     network::on("friendPresence", receive_friend_presence);
     network::on("friendOffline", receive_friend_offline);
+    network::on("friendOnline", receive_friend_online);
+    network::on("lobbyJoin", receive_lobby_join);
+    network::on("lobbyHost", receive_lobby_host);
+    network::on("lobbyGame", receive_lobby_game);
+
+    if (!game::is_legacy_client()) {
+      dw_common_addr_to_netadr_hook.create(game::dw::dwCommonAddrToNetadr.get(),
+                                           dw_common_addr_to_netadr_stub);
+      dw_get_connection_status_hook.create(
+          game::dw::dwGetConnectionStatus.get(), dw_get_connection_status_stub);
+    }
 
     scheduler::loop(update_punching, scheduler::main, 250ms);
     scheduler::loop(update_hosting, scheduler::main, REGISTER_INTERVAL);

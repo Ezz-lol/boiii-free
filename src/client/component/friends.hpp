@@ -57,6 +57,4 @@ uint64_t find_browser_route(const std::string &address);
 
 std::string get_presence_server(uint64_t steam_id);
 std::vector<friend_server_info> get_friend_server_addresses();
-std::string get_friend_game_info_by_address(const std::string &address);
-std::string get_friend_game_info_by_address(const game::net::netadr_t address);
 } // namespace friends

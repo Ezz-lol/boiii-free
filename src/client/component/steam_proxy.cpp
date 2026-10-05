@@ -746,33 +746,6 @@ uint64_t get_own_steam_id() {
   return accept(emulated);
 }
 
-std::string get_friend_rich_presence(uint64_t friend_id,
-                                     const std::string &key) {
-  if (!steam_friends_real || friend_id == 0)
-    return "";
-  try {
-    steam_id sid{};
-    sid.bits = friend_id;
-    const char *val =
-        steam_friends_real.invoke<const char *>(45, sid, key.c_str());
-    if (val && val[0])
-      return val;
-  } catch (...) {
-  }
-  return "";
-}
-
-void request_friend_rich_presence(uint64_t friend_id) {
-  if (!steam_friends_real || friend_id == 0)
-    return;
-  try {
-    steam_id sid{};
-    sid.bits = friend_id;
-    steam_friends_real.invoke<void>(48, sid);
-  } catch (...) {
-  }
-}
-
 void clear_invite_presence() { set_rich_presence("boiii_invite", ""); }
 } // namespace steam_proxy
 

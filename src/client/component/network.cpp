@@ -6,6 +6,7 @@
 #include <loader/component_loader.hpp>
 
 #include "command.hpp"
+#include "nat.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
 
@@ -23,6 +24,7 @@
 namespace network {
 namespace {
 utils::hook::detour handle_packet_internal_hook{};
+utils::hook::detour net_adr_to_string_hook{};
 
 static std::unordered_map<std::string, callback> callbacks{};
 
@@ -176,9 +178,9 @@ uint64_t handle_packet_internal_stub(
     return 0;
   }
 
-  // Network security: inspect packet for exploits before processing
-  if (from_adr.type != game::net::NA_LOOPBACK) {
-    return 0; // drop malicious packet
+  if (from_adr.type != game::net::NA_LOOPBACK &&
+      (game::is_server() || !nat::is_lobby_peer(from_adr))) {
+    return 0;
   }
 
   return handle_packet_internal_hook.invoke<bool>(controller_index, from_adr,
@@ -186,6 +188,15 @@ uint64_t handle_packet_internal_stub(
                                                   dest_module, msg)
              ? 1
              : 0;
+}
+
+const char *net_adr_to_string_stub(const game::net::netadr_t *address) {
+  if (address->type != game::net::NA_RAWIP) {
+    return net_adr_to_string_hook.invoke<const char *>(address);
+  }
+  static thread_local game::net::netadr_str_t buffer{};
+  address->toString(buffer);
+  return buffer;
 }
 
 int32_t bind_stub(SOCKET /*s*/, const sockaddr * /*addr*/,
@@ -416,6 +427,10 @@ struct component final : generic_component {
     // TODO: Fix that
     // TODO: what was the prior TODO referring to?
     scheduler::once(create_ip_socket, scheduler::main);
+
+    net_adr_to_string_hook.create(
+        game::select(0x14211A3B0, 0x142172E70, 0x140515800),
+        net_adr_to_string_stub);
 
     // Kill lobby system
     handle_packet_internal_hook.create(
