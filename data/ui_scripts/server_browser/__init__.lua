@@ -43,83 +43,56 @@ end
 
 local currentSortType = nil
 
+local sortSpecs = {}
+for name, field in pairs({
+  NAME = "name",
+  PING = "ping",
+  PLAYERS = "playerCount",
+  MAP = "map",
+  GAMETYPE = "gametype",
+  DEDICATED = "dedicated",
+  RANKED = "ranked",
+  PROTECTED = "password",
+  HARDCORE = "hardcore",
+}) do
+  local prefix = "STEAM_SERVER_SORT_TYPE_" .. name
+  sortSpecs[Enum.SteamServerSortType[prefix .. "_ASCENDING"]] = { field = field, ascending = true }
+  sortSpecs[Enum.SteamServerSortType[prefix .. "_DESCENDING"]] = { field = field, ascending = false }
+end
+
+local function sortKey(value)
+  if type(value) == "boolean" then
+    return value and 1 or 0
+  elseif type(value) == "string" then
+    return string.lower(value)
+  end
+  return value
+end
+
 local function sortFilteredIndices(sortType)
-  if not filteredServerIndices or #filteredServerIndices == 0 then
+  local spec = sortSpecs[sortType]
+  if not spec or not filteredServerIndices then
     return
   end
 
-  local field, ascending
-  local st = Enum.SteamServerSortType
-  if sortType == st.STEAM_SERVER_SORT_TYPE_NAME_ASCENDING then
-    field, ascending = "name", true
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_NAME_DESCENDING then
-    field, ascending = "name", false
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_PING_ASCENDING then
-    field, ascending = "ping", true
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_PING_DESCENDING then
-    field, ascending = "ping", false
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_PLAYERS_ASCENDING then
-    field, ascending = "playerCount", true
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_PLAYERS_DESCENDING then
-    field, ascending = "playerCount", false
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_MAP_ASCENDING then
-    field, ascending = "map", true
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_MAP_DESCENDING then
-    field, ascending = "map", false
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_GAMETYPE_ASCENDING then
-    field, ascending = "gametype", true
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_GAMETYPE_DESCENDING then
-    field, ascending = "gametype", false
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_DEDICATED_ASCENDING then
-    field, ascending = "dedicated", true
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_DEDICATED_DESCENDING then
-    field, ascending = "dedicated", false
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_RANKED_ASCENDING then
-    field, ascending = "ranked", true
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_RANKED_DESCENDING then
-    field, ascending = "ranked", false
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_PROTECTED_ASCENDING then
-    field, ascending = "password", true
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_PROTECTED_DESCENDING then
-    field, ascending = "password", false
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_HARDCORE_ASCENDING then
-    field, ascending = "hardcore", true
-  elseif sortType == st.STEAM_SERVER_SORT_TYPE_HARDCORE_DESCENDING then
-    field, ascending = "hardcore", false
-  else
-    return
-  end
-
-  local cache = {}
+  local keys = {}
   for _, idx in ipairs(filteredServerIndices) do
-    cache[idx] = game.getrawserverinfo(idx)
+    local info = game.getrawserverinfo(idx)
+    keys[idx] = info and sortKey(info[spec.field])
   end
 
   table.sort(filteredServerIndices, function(a, b)
-    local infoA = cache[a]
-    local infoB = cache[b]
-    if not infoA or not infoB then
-      return false
+    local va, vb = keys[a], keys[b]
+    if va == nil or vb == nil or type(va) ~= type(vb) then
+      return va ~= nil and vb == nil
     end
-    local va = infoA[field]
-    local vb = infoB[field]
-    if va == nil then
-      va = type(vb) == "string" and "" or 0
+    if va == vb then
+      return a < b
     end
-    if vb == nil then
-      vb = type(va) == "string" and "" or 0
-    end
-    if type(va) == "boolean" then
-      va = va and 1 or 0
-    end
-    if type(vb) == "boolean" then
-      vb = vb and 1 or 0
-    end
-    if ascending then
+    if spec.ascending then
       return va < vb
-    else
-      return va > vb
     end
+    return va > vb
   end)
 end
 
@@ -261,20 +234,12 @@ if SB.RequestServers then
     currentSortType = nil
     currentRequestedServerType = serverType
 
-    local ok, err
-    if serverType == CUSTOM_TYPE_ALL then
-      currentCustomMode = "all"
-      ok, err = pcall(SB.RequestServers, Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
-    elseif serverType == CUSTOM_TYPE_CAMPAIGN then
-      currentCustomMode = "cp"
-      ok, err = pcall(SB.RequestServers, Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
-    elseif serverType == CUSTOM_TYPE_ZOMBIES then
-      currentCustomMode = "zm"
-      ok, err = pcall(SB.RequestServers, Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
-    else
-      currentCustomMode = nil
-      ok, err = pcall(SB.RequestServers, serverType)
-    end
+    local customModes = { [CUSTOM_TYPE_ALL] = "all", [CUSTOM_TYPE_CAMPAIGN] = "cp", [CUSTOM_TYPE_ZOMBIES] = "zm" }
+    currentCustomMode = customModes[serverType]
+    pcall(
+      SB.RequestServers,
+      currentCustomMode and Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET or serverType
+    )
   end
 end
 
@@ -294,7 +259,7 @@ end
 
 if SB.Sort then
   Engine.SteamServerBrowser_Sort = function(sortType)
-    local ok, err = pcall(SB.Sort, sortType)
+    pcall(SB.Sort, sortType)
     if isCustomTab() and filteredServerIndices then
       currentSortType = sortType
       skullSortedOrder = nil
@@ -310,25 +275,28 @@ if SB.Sort then
 end
 
 -- Hook filter APIs to track state and trigger rebuilds on custom tabs
-local function triggerCustomRebuild()
-  if isCustomTab() and activeServerList and not isRebuildingCustom then
-    pcall(function()
-      isRebuildingCustom = true
-      local customCount = rebuildFilteredIndices()
-      activeServerList.serverCount = customCount
-      if activeServerList.serverBrowserRootModel then
-        local countModel = Engine.GetModel(activeServerList.serverBrowserRootModel, "serverListCount")
-        if countModel then
-          Engine.SetModelValue(countModel, customCount)
-        end
-        local updatedModel = Engine.GetModel(activeServerList.serverBrowserRootModel, "serverListUpdatedCount")
-        if updatedModel then
-          Engine.SetModelValue(updatedModel, customCount)
-        end
+local function refreshCustomList(list)
+  if isRebuildingCustom or not list.serverBrowserRootModel then
+    return
+  end
+  isRebuildingCustom = true
+  pcall(function()
+    local count = rebuildFilteredIndices()
+    list.serverCount = count
+    for _, name in ipairs({ "serverListCount", "serverListUpdatedCount" }) do
+      local model = Engine.GetModel(list.serverBrowserRootModel, name)
+      if model then
+        Engine.SetModelValue(model, count)
       end
-      activeServerList:updateDataSource(false, false)
-      isRebuildingCustom = false
-    end)
+    end
+    list:updateDataSource(false, false)
+  end)
+  isRebuildingCustom = false
+end
+
+local function triggerCustomRebuild()
+  if isCustomTab() and activeServerList then
+    refreshCustomList(activeServerList)
   end
 end
 
@@ -336,7 +304,7 @@ if SB.AddFilter then
   Engine.SteamServerBrowser_AddFilter = function(filterType, id)
     customActiveFilters[filterType] = customActiveFilters[filterType] or {}
     customActiveFilters[filterType][id] = true
-    local ok, err = pcall(SB.AddFilter, filterType, id)
+    pcall(SB.AddFilter, filterType, id)
     triggerCustomRebuild()
   end
 end
@@ -346,7 +314,7 @@ if SB.RemoveFilter then
     if customActiveFilters[filterType] then
       customActiveFilters[filterType][id] = nil
     end
-    local ok, err = pcall(SB.RemoveFilter, filterType, id)
+    pcall(SB.RemoveFilter, filterType, id)
     triggerCustomRebuild()
   end
 end
@@ -354,19 +322,15 @@ end
 if SB.ClearFilter then
   Engine.SteamServerBrowser_ClearFilter = function(filterType)
     customActiveFilters[filterType] = nil
-    local ok, err = pcall(SB.ClearFilter, filterType)
+    pcall(SB.ClearFilter, filterType)
     triggerCustomRebuild()
   end
 end
 
 if SB.SetAttributeFilter then
   Engine.SteamServerBrowser_SetAttributeFilter = function(attr, active)
-    if active then
-      customActiveAttributes[attr] = true
-    else
-      customActiveAttributes[attr] = nil
-    end
-    local ok, err = pcall(SB.SetAttributeFilter, attr, active)
+    customActiveAttributes[attr] = active or nil
+    pcall(SB.SetAttributeFilter, attr, active)
     triggerCustomRebuild()
   end
 end
@@ -374,7 +338,7 @@ end
 if SB.ClearAttributeFilters then
   Engine.SteamServerBrowser_ClearAttributeFilters = function()
     customActiveAttributes = {}
-    local ok, err = pcall(SB.ClearAttributeFilters)
+    pcall(SB.ClearAttributeFilters)
     triggerCustomRebuild()
   end
 end
@@ -533,7 +497,7 @@ DataSources.LobbyServer = {
     end
     local serverListUpdateModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListCount")
     list.serverListUpdateSubscription = list:subscribeToModel(serverListUpdateModel, function(model)
-      local ok, err = pcall(function()
+      pcall(function()
         if not list or not list.serverBrowserRootModel then
           return
         end
@@ -541,22 +505,7 @@ DataSources.LobbyServer = {
         skullSortAscending = nil
 
         if isCustomTab() then
-          if isRebuildingCustom then
-            return
-          end
-          isRebuildingCustom = true
-          local customCount = rebuildFilteredIndices()
-          list.serverCount = customCount
-          if model then
-            Engine.SetModelValue(model, customCount)
-          end
-          local updatedModel = list.serverBrowserRootModel
-            and Engine.GetModel(list.serverBrowserRootModel, "serverListUpdatedCount")
-          if updatedModel then
-            Engine.SetModelValue(updatedModel, customCount)
-          end
-          list:updateDataSource(false, false)
-          isRebuildingCustom = false
+          refreshCustomList(list)
         else
           rebuildAddressMap()
           list.serverCount = (model and Engine.GetModelValue(model)) or 0
@@ -643,6 +592,34 @@ DataSources.LobbyServer = {
   end,
 }
 
+local function addFlag(self, menu, controller, left, right, image, field)
+  local flag = CoD.ServerBrowserFlag.new(menu, controller)
+  flag:setLeftRight(true, false, left, right)
+  flag:setTopBottom(true, true, 0, 0)
+  flag.icon:setImage(RegisterImage(image))
+  flag:linkToElementModel(self, nil, false, function(model)
+    flag:setModel(model, controller)
+  end)
+  flag:mergeStateConditions({
+    {
+      stateName = "FlagOn",
+      condition = function(menu, element, event)
+        return IsSelfModelValueTrue(element, controller, field)
+      end,
+    },
+  })
+  flag:linkToElementModel(flag, field, true, function(model)
+    menu:updateElementState(flag, {
+      name = "model_validation",
+      menu = menu,
+      modelValue = Engine.GetModelValue(model),
+      modelName = field,
+    })
+  end)
+  self:addElement(flag)
+  return flag
+end
+
 CoD.ServerBrowserRowInternal.new = function(menu, controller)
   local self = LUI.UIHorizontalList.new({
     left = 0,
@@ -669,83 +646,11 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
   self.onlyChildrenFocusable = true
   self.anyChildUsesUpdateState = true
 
-  local passwordFlag = CoD.ServerBrowserFlag.new(menu, controller)
-  passwordFlag:setLeftRight(true, false, 0, 28)
-  passwordFlag:setTopBottom(true, true, 0, 0)
-  passwordFlag.icon:setImage(RegisterImage("uie_t7_icon_serverbrowser_protected"))
-  passwordFlag:linkToElementModel(self, nil, false, function(model)
-    passwordFlag:setModel(model, controller)
-  end)
-  passwordFlag:mergeStateConditions({
-    {
-      stateName = "FlagOn",
-      condition = function(menu, element, event)
-        return IsSelfModelValueTrue(element, controller, "passwordProtected")
-      end,
-    },
-  })
-  passwordFlag:linkToElementModel(passwordFlag, "passwordProtected", true, function(model)
-    menu:updateElementState(passwordFlag, {
-      name = "model_validation",
-      menu = menu,
-      modelValue = Engine.GetModelValue(model),
-      modelName = "passwordProtected",
-    })
-  end)
-  self:addElement(passwordFlag)
-  self.passwordFlag = passwordFlag
+  self.passwordFlag = addFlag(self, menu, controller, 0, 28, "uie_t7_icon_serverbrowser_protected", "passwordProtected")
 
-  local dedicatedFlag = CoD.ServerBrowserFlag.new(menu, controller)
-  dedicatedFlag:setLeftRight(true, false, 30, 58)
-  dedicatedFlag:setTopBottom(true, true, 0, 0)
-  dedicatedFlag.icon:setImage(RegisterImage("uie_t7_icon_serverbrowser_dedicated"))
-  dedicatedFlag:linkToElementModel(self, nil, false, function(model)
-    dedicatedFlag:setModel(model, controller)
-  end)
-  dedicatedFlag:mergeStateConditions({
-    {
-      stateName = "FlagOn",
-      condition = function(menu, element, event)
-        return IsSelfModelValueTrue(element, controller, "dedicated")
-      end,
-    },
-  })
-  dedicatedFlag:linkToElementModel(dedicatedFlag, "dedicated", true, function(model)
-    menu:updateElementState(dedicatedFlag, {
-      name = "model_validation",
-      menu = menu,
-      modelValue = Engine.GetModelValue(model),
-      modelName = "dedicated",
-    })
-  end)
-  self:addElement(dedicatedFlag)
-  self.dedicatedFlag = dedicatedFlag
+  self.dedicatedFlag = addFlag(self, menu, controller, 30, 58, "uie_t7_icon_serverbrowser_dedicated", "dedicated")
 
-  local rankedFlag = CoD.ServerBrowserFlag.new(menu, controller)
-  rankedFlag:setLeftRight(true, false, 60, 88)
-  rankedFlag:setTopBottom(true, true, 0, 0)
-  rankedFlag.icon:setImage(RegisterImage("uie_t7_icon_serverbrowser_ranked"))
-  rankedFlag:linkToElementModel(self, nil, false, function(model)
-    rankedFlag:setModel(model, controller)
-  end)
-  rankedFlag:mergeStateConditions({
-    {
-      stateName = "FlagOn",
-      condition = function(menu, element, event)
-        return IsSelfModelValueTrue(element, controller, "ranked")
-      end,
-    },
-  })
-  rankedFlag:linkToElementModel(rankedFlag, "ranked", true, function(model)
-    menu:updateElementState(rankedFlag, {
-      name = "model_validation",
-      menu = menu,
-      modelValue = Engine.GetModelValue(model),
-      modelName = "ranked",
-    })
-  end)
-  self:addElement(rankedFlag)
-  self.rankedFlag = rankedFlag
+  self.rankedFlag = addFlag(self, menu, controller, 60, 88, "uie_t7_icon_serverbrowser_ranked", "ranked")
 
   local name = CoD.horizontalScrollingTextBox_18pt.new(menu, controller)
   name:setLeftRight(true, false, 90, 330)
@@ -782,30 +687,7 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
   self:addElement(map)
   self.map = map
 
-  local hardcoreFlag = CoD.ServerBrowserFlag.new(menu, controller)
-  hardcoreFlag:setLeftRight(true, false, 448, 470)
-  hardcoreFlag:setTopBottom(true, true, 0, 0)
-  hardcoreFlag.icon:setImage(RegisterImage("uie_t7_icon_serverbrowser_skull"))
-  hardcoreFlag:linkToElementModel(self, nil, false, function(model)
-    hardcoreFlag:setModel(model, controller)
-  end)
-  hardcoreFlag:mergeStateConditions({
-    {
-      stateName = "FlagOn",
-      condition = function(menu, element, event)
-        return IsSelfModelValueTrue(element, controller, "hardcore")
-      end,
-    },
-  })
-  hardcoreFlag:linkToElementModel(hardcoreFlag, "hardcore", true, function(model)
-    menu:updateElementState(hardcoreFlag, {
-      name = "model_validation",
-      menu = menu,
-      modelValue = Engine.GetModelValue(model),
-      modelName = "hardcore",
-    })
-  end)
-  self:addElement(hardcoreFlag)
+  local hardcoreFlag = addFlag(self, menu, controller, 448, 470, "uie_t7_icon_serverbrowser_skull", "hardcore")
   self.hardcoreFlag = hardcoreFlag
 
   local roundText = LUI.UIText.new()
@@ -1115,85 +997,48 @@ pcall(function()
     return currentCustomMode == nil or currentCustomMode == "all"
   end
 
-  -- Base maps (non-DLC)
-  DataSources.ServerBrowserFilter = DataSourceHelpers.ListSetup("ServerBrowserFilter", function(controller)
+  local function mapFilterItems(dlc)
     local items = {}
-    table.insert(items, {
+    local maps = CoD.mapsTable or Engine.GetGDTMapsTable()
+    local sessionMode = getSessionModeForTab()
+    local sorted = {}
+    local seenNames = {}
+    for key, data in pairs(maps) do
+      local show = isAllModeFilter() or data.session_mode == sessionMode
+      if show and not freerunMaps[key] and ((data.dlc_pack or 0) > 0) == dlc and not seenNames[data.mapName] then
+        seenNames[data.mapName] = true
+        table.insert(sorted, { key = key, data = data })
+      end
+    end
+    table.sort(sorted, function(a, b)
+      return (a.data.unique_id or 0) < (b.data.unique_id or 0)
+    end)
+    for _, entry in ipairs(sorted) do
+      table.insert(items, {
+        models = {
+          type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_MAP,
+          id = entry.key,
+          name = entry.data.mapName,
+        },
+      })
+    end
+    return items
+  end
+
+  DataSources.ServerBrowserFilter = DataSourceHelpers.ListSetup("ServerBrowserFilter", function(controller)
+    local items = mapFilterItems(false)
+    table.insert(items, 1, {
       models = {
         type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_MAP,
         id = "any",
         name = "PLATFORM_ANY",
       },
     })
-    if CoD.mapsTable then
-      local sessionMode = getSessionModeForTab()
-      local sorted = {}
-      local seenNames = {}
-      for key, data in pairs(CoD.mapsTable) do
-        if not freerunMaps[key] and data.dlc_pack == 0 then
-          local show = false
-          if isAllModeFilter() then
-            show = true
-          else
-            show = (data.session_mode == sessionMode)
-          end
-          if show and not seenNames[data.mapName] then
-            seenNames[data.mapName] = true
-            table.insert(sorted, { key = key, data = data })
-          end
-        end
-      end
-      table.sort(sorted, function(a, b)
-        return (a.data.unique_id or 0) < (b.data.unique_id or 0)
-      end)
-      for _, entry in ipairs(sorted) do
-        table.insert(items, {
-          models = {
-            type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_MAP,
-            id = entry.key,
-            name = entry.data.mapName,
-          },
-        })
-      end
-    end
     return items
   end, false)
 
-  -- DLC maps
   DataSources.ServerBrowserDLCFilter = DataSourceHelpers.ListSetup("ServerBrowserDLCFilter", function(controller)
-    local items = {}
-    if CoD.mapsTable then
-      local sessionMode = getSessionModeForTab()
-      local sorted = {}
-      local seenNames = {}
-      for key, data in pairs(CoD.mapsTable) do
-        if not freerunMaps[key] and data.dlc_pack ~= nil and data.dlc_pack > 0 then
-          local show = false
-          if isAllModeFilter() then
-            show = true
-          else
-            show = (data.session_mode == sessionMode)
-          end
-          if show and not seenNames[data.mapName] then
-            seenNames[data.mapName] = true
-            table.insert(sorted, { key = key, data = data })
-          end
-        end
-      end
-      table.sort(sorted, function(a, b)
-        return (a.data.unique_id or 0) < (b.data.unique_id or 0)
-      end)
-      for _, entry in ipairs(sorted) do
-        table.insert(items, {
-          models = {
-            type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_MAP,
-            id = entry.key,
-            name = entry.data.mapName,
-          },
-        })
-      end
-    end
-    return items
+    return mapFilterItems(true)
   end, false)
 
   -- Game modes
@@ -1230,12 +1075,15 @@ pcall(function()
           end
         end
       end
+      local sorted = {}
       for _, gt in pairs(modes) do
-        local allowed = true
-        if CoD.AllowGameType then
-          allowed = CoD.AllowGameType(gt.gametype)
-        end
-        if allowed then
+        table.insert(sorted, gt)
+      end
+      table.sort(sorted, function(a, b)
+        return a.gametype < b.gametype
+      end)
+      for _, gt in ipairs(sorted) do
+        if not CoD.AllowGameType or CoD.AllowGameType(gt.gametype) then
           table.insert(items, {
             models = {
               type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_GAMETYPE,

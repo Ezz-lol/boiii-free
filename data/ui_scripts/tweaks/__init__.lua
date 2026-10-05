@@ -334,29 +334,3 @@ if isPrivateGame then
     return self
   end
 end
-
-if not LUI.createMenu.BoiiiGameTweaksMenu then
-  LUI.createMenu.BoiiiGameTweaksMenu = function(controller)
-    local self = CoD.Menu.NewForUIEditor("BoiiiGameTweaksMenu")
-    self.soundSet = "ChooseDecal"
-    self:setOwner(controller)
-    self:setLeftRight(true, true, 0, 0)
-    self:setTopBottom(true, true, 0, 0)
-    self:AddButtonCallbackFunction(
-      self,
-      controller,
-      Enum.LUIButton.LUI_KEY_XBB_PSCIRCLE,
-      nil,
-      function(element, menu, controller, model)
-        GoBack(self, controller)
-        return true
-      end,
-      function(element, menu, controller)
-        CoD.Menu.SetButtonLabel(menu, Enum.LUIButton.LUI_KEY_XBB_PSCIRCLE, "MENU_BACK")
-        return true
-      end,
-      false
-    )
-    return self
-  end
-end

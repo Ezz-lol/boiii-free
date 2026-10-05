@@ -11,6 +11,19 @@ if type(GoBackAndOpenOverlayOnParent) == "function" then
   end
 end
 
+local function guarded(owner, name, fallback)
+  local original = owner and owner[name]
+  if original then
+    owner[name] = function(...)
+      local ok, result = pcall(original, ...)
+      if ok and result ~= nil then
+        return result
+      end
+      return fallback
+    end
+  end
+end
+
 -- XP bar pcall fix
 pcall(function()
   if DataSources and DataSources.XPProgressionBar then
@@ -72,54 +85,11 @@ pcall(function()
         end)
       end
     end
-    local origGetMatch = CoD.AARUtilityZM.GetMatchStat
-    if origGetMatch then
-      CoD.AARUtilityZM.GetMatchStat = function(a, b)
-        local ok, r = pcall(origGetMatch, a, b)
-        if ok and r then
-          return r
-        end
-        return 0
-      end
-    end
-    local origGetXP = CoD.AARUtilityZM.GetXPEarnedDuringMatch
-    if origGetXP then
-      CoD.AARUtilityZM.GetXPEarnedDuringMatch = function(a, b)
-        local ok, r = pcall(origGetXP, a, b)
-        if ok and r then
-          return r
-        end
-        return 0
-      end
-    end
+    guarded(CoD.AARUtilityZM, "GetMatchStat", 0)
+    guarded(CoD.AARUtilityZM, "GetXPEarnedDuringMatch", 0)
   end
 end)
 
-pcall(function()
-  if CoD.AARUtility then
-    local origSetCurr = CoD.AARUtility.SetCurrLevelModels
-    if origSetCurr then
-      CoD.AARUtility.SetCurrLevelModels = function(...)
-        local ok, err = pcall(origSetCurr, ...)
-        if not ok then
-        end
-      end
-    end
-    local origSetNext = CoD.AARUtility.SetNextLevelModels
-    if origSetNext then
-      CoD.AARUtility.SetNextLevelModels = function(...)
-        local ok, err = pcall(origSetNext, ...)
-        if not ok then
-        end
-      end
-    end
-    local origDoXP = CoD.AARUtility.DoXPBarAnimation
-    if origDoXP then
-      CoD.AARUtility.DoXPBarAnimation = function(...)
-        local ok, err = pcall(origDoXP, ...)
-        if not ok then
-        end
-      end
-    end
-  end
-end)
+guarded(CoD.AARUtility, "SetCurrLevelModels")
+guarded(CoD.AARUtility, "SetNextLevelModels")
+guarded(CoD.AARUtility, "DoXPBarAnimation")

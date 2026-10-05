@@ -39,30 +39,18 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
       "Let mods read and write files, run commands and load DLLs without asking. Only enable this for mods you trust.",
     },
   }
-  for _, setting in ipairs(toggleSettings) do
+  local function addToggle(dvar, name, description)
     table.insert(
       optionsTable,
-      CoD.OptionsUtility.CreateDvarSettings(
-        controller,
-        setting[2],
-        setting[3],
-        "QuickSettings_" .. setting[1],
-        setting[1],
-        {
-          {
-            option = "MENU_DISABLED",
-            value = 0,
-            default = true,
-          },
-          {
-            option = "MENU_ENABLED",
-            value = 1,
-          },
-        },
-        nil,
-        updateDvar
-      )
+      CoD.OptionsUtility.CreateDvarSettings(controller, name, description, "QuickSettings_" .. dvar, dvar, {
+        { option = "MENU_DISABLED", value = 0, default = true },
+        { option = "MENU_ENABLED", value = 1 },
+      }, nil, updateDvar)
     )
+  end
+
+  for _, setting in ipairs(toggleSettings) do
+    addToggle(setting[1], setting[2], setting[3])
   end
 
   -- FOV (65-120 in steps of 5)
@@ -150,55 +138,8 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
     )
   )
 
-  -- VSync toggle
-  table.insert(
-    optionsTable,
-    CoD.OptionsUtility.CreateDvarSettings(
-      controller,
-      "VSync",
-      "Sync framerate to monitor refresh rate.",
-      "QuickSettings_vsync",
-      "r_vsync",
-      {
-        {
-          option = "MENU_DISABLED",
-          value = 0,
-          default = true,
-        },
-        {
-          option = "MENU_ENABLED",
-          value = 1,
-        },
-      },
-      nil,
-      updateDvar
-    )
-  )
-
-  -- Draw FPS counter toggle
-  table.insert(
-    optionsTable,
-    CoD.OptionsUtility.CreateDvarSettings(
-      controller,
-      "Show FPS Counter",
-      "Display frames per second on screen.",
-      "QuickSettings_drawfps",
-      "com_drawFPS_PC",
-      {
-        {
-          option = "MENU_DISABLED",
-          value = 0,
-          default = true,
-        },
-        {
-          option = "MENU_ENABLED",
-          value = 1,
-        },
-      },
-      nil,
-      updateDvar
-    )
-  )
+  addToggle("r_vsync", "VSync", "Sync framerate to monitor refresh rate.")
+  addToggle("com_drawFPS_PC", "Show FPS Counter", "Display frames per second on screen.")
 
   -- ── Game Settings ──
 

@@ -28,6 +28,43 @@ local easterEggStats = {
   "DARKOPS_GENESIS_SUPER_EE",
 }
 
+local modeRanks = {
+  [Enum.eModes.MODE_MULTIPLAYER] = {
+    levels = { 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55 },
+    masterLevels = { 56, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 },
+    paragonOffset = 55,
+    maxXpBonus = 55600,
+    rankTableSkip = 3,
+    rankTable = "gamedata/tables/mp/mp_ranktable.csv",
+    paragonTable = "gamedata/tables/mp/mp_paragonranktable.csv",
+  },
+  [Enum.eModes.MODE_ZOMBIES] = {
+    levels = { 1, 5, 10, 15, 20, 25, 30, 35 },
+    masterLevels = { 36, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 },
+    paragonOffset = 35,
+    maxXpBonus = 54244,
+    rankTableSkip = 2,
+    rankTable = "gamedata/tables/zm/zm_ranktable.csv",
+    paragonTable = "gamedata/tables/zm/zm_paragonranktable.csv",
+  },
+  [Enum.eModes.MODE_CAMPAIGN] = {
+    levels = { 1, 5, 10, 15, 20 },
+    masterLevels = { 21, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 },
+    paragonOffset = 20,
+    maxXpBonus = 0,
+    rankTableSkip = 2,
+    rankTable = "gamedata/tables/cp/cp_ranktable.csv",
+    paragonTable = "gamedata/tables/cp/cp_paragonranktable.csv",
+  },
+}
+
+local function toggleSetting(controller, name, description, id, dvar, enabledByDefault, action)
+  return CoD.OptionsUtility.CreateDvarSettings(controller, name, description, id, dvar, {
+    { option = "MENU_DISABLED", value = 0, default = not enabledByDefault },
+    { option = "MENU_ENABLED", value = 1, default = enabledByDefault },
+  }, nil, action)
+end
+
 local function allEasterEggsCompleted(controller)
   local stats = Engine.GetPlayerStats(controller, CoD.STATS_LOCATION_NORMAL, Enum.eModes.MODE_ZOMBIES)
   if not stats or not stats.PlayerStatsList then
@@ -65,18 +102,9 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       refreshCurrencyModels(controllerIndex)
     end
     if dvarName == "all_ee_completed" then
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_zod_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_zod_super_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_factory_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_factory_super_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_castle_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_castle_super_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_island_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_island_super_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_stalingrad_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_stalingrad_super_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname darkops_genesis_ee " .. itemModel.value)
-      Engine.ExecNow(controllerIndex, "statsetbyname DARKOPS_GENESIS_SUPER_EE " .. itemModel.value)
+      for _, stat in ipairs(easterEggStats) do
+        Engine.ExecNow(controllerIndex, "statsetbyname " .. stat .. " " .. itemModel.value)
+      end
       game.savestats(controllerIndex, Enum.eModes.MODE_ZOMBIES)
     end
   end
@@ -107,291 +135,103 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
     end
   end
 
-  table.insert(
-    optionsTable,
-    CoD.OptionsUtility.CreateDvarSettings(
-      controller,
-      "Unlock All Loot",
-      "Unlocks all Black Market loot.",
-      "MPStatsSettings_unlock_loot",
-      "cg_unlockall_loot",
-      {
-        {
-          option = "MENU_DISABLED",
-          value = 0,
-          default = true,
-        },
-        {
-          option = "MENU_ENABLED",
-          value = 1,
-        },
-      },
-      nil,
-      updateDvar
-    )
-  )
-  if
-    Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES
-    and type(game.resetgobblegums) == "function"
-    and type(game.setcurrenciesmaxed) == "function"
-  then
+  local mode = Engine.CurrentSessionMode()
+  local isMP = mode == Enum.eModes.MODE_MULTIPLAYER
+  local isZM = mode == Enum.eModes.MODE_ZOMBIES
+  local function addToggle(name, description, id, dvar, enabledByDefault, action)
     table.insert(
       optionsTable,
-      CoD.OptionsUtility.CreateDvarSettings(
-        controller,
-        "Local Currency",
-        "Uses locally saved COD Points, Liquid Divinium, GobbleGums, and Cookbook Distills.",
-        "MPStatsSettings_local_currency",
-        "cg_local_currency",
-        {
-          { option = "MENU_DISABLED", value = 0 },
-          { option = "MENU_ENABLED", value = 1, default = true },
-        },
-        nil,
-        updateDvar
-      )
-    )
-    table.insert(
-      optionsTable,
-      CoD.OptionsUtility.CreateDvarSettings(
-        controller,
-        "Unlimited GobbleGums",
-        "Uses unlimited GobbleGums without replacing your earned inventory.",
-        "MPStatsSettings_unlimited_gobblegums",
-        "cg_unlockall_gobblegums",
-        {
-          { option = "MENU_DISABLED", value = 0, default = true },
-          { option = "MENU_ENABLED", value = 1 },
-        },
-        nil,
-        updateDvar
-      )
-    )
-    table.insert(
-      optionsTable,
-      CoD.OptionsUtility.CreateDvarSettings(
-        controller,
-        "Max Local Currencies",
-        "Sets COD Points, Liquid Divinium, and Cookbook Distills to maximum or zero.",
-        "MPStatsSettings_max_currencies",
-        "cg_max_local_currencies",
-        {
-          { option = "MENU_DISABLED", value = 0, default = true },
-          { option = "MENU_ENABLED", value = 1 },
-        },
-        nil,
-        updateMaxCurrencies
-      )
-    )
-  end
-  if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
-    table.insert(
-      optionsTable,
-      CoD.OptionsUtility.CreateDvarSettings(
-        controller,
-        "Unlock All Purchases",
-        "All items that need to be purchased with unlock tokens are unlocked.",
-        "MPStatsSettings_purchase_all",
-        "cg_unlockall_purchases",
-        {
-          {
-            option = "MENU_DISABLED",
-            value = 0,
-            default = true,
-          },
-          {
-            option = "MENU_ENABLED",
-            value = 1,
-          },
-        },
-        nil,
-        updateDvar
-      )
-    )
-    table.insert(
-      optionsTable,
-      CoD.OptionsUtility.CreateDvarSettings(
-        controller,
-        "Unlock All Class Slots",
-        "Unlocks all create-a-class slots and sets.",
-        "MPStatsSettings_unlockall_cac_slots",
-        "cg_unlockall_cac_slots",
-        {
-          {
-            option = "MENU_DISABLED",
-            value = 0,
-            default = true,
-          },
-          {
-            option = "MENU_ENABLED",
-            value = 1,
-          },
-        },
-        nil,
-        updateDvar
-      )
-    )
-  end
-  table.insert(
-    optionsTable,
-    CoD.OptionsUtility.CreateDvarSettings(
-      controller,
-      "Unlock All Attachments",
-      "All attachments on weapons are unlocked.",
-      "MPStatsSettings_unlockall_attachments",
-      "cg_unlockall_attachments",
-      {
-        {
-          option = "MENU_DISABLED",
-          value = 0,
-          default = true,
-        },
-        {
-          option = "MENU_ENABLED",
-          value = 1,
-        },
-      },
-      nil,
-      updateDvar
-    )
-  )
-  table.insert(
-    optionsTable,
-    CoD.OptionsUtility.CreateDvarSettings(
-      controller,
-      "Unlock all Camos and Reticles",
-      "All camos and reticles on weapons are unlocked.",
-      "MPStatsSettings_unlockall_camos_and_reticles",
-      "cg_unlockall_camos_and_reticles",
-      {
-        {
-          option = "MENU_DISABLED",
-          value = 0,
-          default = true,
-        },
-        {
-          option = "MENU_ENABLED",
-          value = 1,
-        },
-      },
-      nil,
-      updateDvar
-    )
-  )
-  table.insert(
-    optionsTable,
-    CoD.OptionsUtility.CreateDvarSettings(
-      controller,
-      "Unlock all Calling Cards",
-      "All calling cards are unlocked.",
-      "MPStatsSettings_unlockall_calling_cards",
-      "cg_unlockall_calling_cards",
-      {
-        {
-          option = "MENU_DISABLED",
-          value = 0,
-          default = true,
-        },
-        {
-          option = "MENU_ENABLED",
-          value = 1,
-        },
-      },
-      nil,
-      updateDvar
-    )
-  )
-  if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
-    table.insert(
-      optionsTable,
-      CoD.OptionsUtility.CreateDvarSettings(
-        controller,
-        "Unlock all Specialists Outfits",
-        "All specialists outfits are unlocked.",
-        "MPStatsSettings_unlockall_specialists_outfits",
-        "cg_unlockall_specialists_outfits",
-        {
-          {
-            option = "MENU_DISABLED",
-            value = 0,
-            default = true,
-          },
-          {
-            option = "MENU_ENABLED",
-            value = 1,
-          },
-        },
-        nil,
-        updateDvar
-      )
-    )
-  end
-  if Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
-    table.insert(
-      optionsTable,
-      CoD.OptionsUtility.CreateDvarSettings(
-        controller,
-        "Unlock Easter Eggs",
-        "Complete all Easter Egg Achievements.",
-        "MPStatsSettings_complete_ee",
-        "all_ee_completed",
-        {
-          {
-            option = "MENU_DISABLED",
-            value = 0,
-            default = true,
-          },
-          {
-            option = "MENU_ENABLED",
-            value = 1,
-          },
-        },
-        nil,
-        updateDvar
-      )
+      toggleSetting(controller, name, description, id, dvar, enabledByDefault, action or updateDvar)
     )
   end
 
-  local rankLevels = {}
+  addToggle("Unlock All Loot", "Unlocks all Black Market loot.", "MPStatsSettings_unlock_loot", "cg_unlockall_loot")
+  if isZM and type(game.resetgobblegums) == "function" and type(game.setcurrenciesmaxed) == "function" then
+    addToggle(
+      "Local Currency",
+      "Uses locally saved COD Points, Liquid Divinium, GobbleGums, and Cookbook Distills.",
+      "MPStatsSettings_local_currency",
+      "cg_local_currency",
+      true
+    )
+    addToggle(
+      "Unlimited GobbleGums",
+      "Uses unlimited GobbleGums without replacing your earned inventory.",
+      "MPStatsSettings_unlimited_gobblegums",
+      "cg_unlockall_gobblegums"
+    )
+    addToggle(
+      "Max Local Currencies",
+      "Sets COD Points, Liquid Divinium, and Cookbook Distills to maximum or zero.",
+      "MPStatsSettings_max_currencies",
+      "cg_max_local_currencies",
+      false,
+      updateMaxCurrencies
+    )
+  end
+  if isMP then
+    addToggle(
+      "Unlock All Purchases",
+      "All items that need to be purchased with unlock tokens are unlocked.",
+      "MPStatsSettings_purchase_all",
+      "cg_unlockall_purchases"
+    )
+    addToggle(
+      "Unlock All Class Slots",
+      "Unlocks all create-a-class slots and sets.",
+      "MPStatsSettings_unlockall_cac_slots",
+      "cg_unlockall_cac_slots"
+    )
+  end
+  addToggle(
+    "Unlock All Attachments",
+    "All attachments on weapons are unlocked.",
+    "MPStatsSettings_unlockall_attachments",
+    "cg_unlockall_attachments"
+  )
+  addToggle(
+    "Unlock all Camos and Reticles",
+    "All camos and reticles on weapons are unlocked.",
+    "MPStatsSettings_unlockall_camos_and_reticles",
+    "cg_unlockall_camos_and_reticles"
+  )
+  addToggle(
+    "Unlock all Calling Cards",
+    "All calling cards are unlocked.",
+    "MPStatsSettings_unlockall_calling_cards",
+    "cg_unlockall_calling_cards"
+  )
+  if isMP then
+    addToggle(
+      "Unlock all Specialists Outfits",
+      "All specialists outfits are unlocked.",
+      "MPStatsSettings_unlockall_specialists_outfits",
+      "cg_unlockall_specialists_outfits"
+    )
+  end
+  if isZM then
+    addToggle(
+      "Unlock Easter Eggs",
+      "Complete all Easter Egg Achievements.",
+      "MPStatsSettings_complete_ee",
+      "all_ee_completed"
+    )
+  end
+
+  local ranks = modeRanks[mode]
   local rankObjs = {}
-  local hasDefault = true
-  local currentPrestige = CoD.PrestigeUtility.GetCurrentPLevel(controller, Engine.CurrentSessionMode())
+  local currentPrestige = CoD.PrestigeUtility.GetCurrentPLevel(controller, mode)
   local currentRank = CoD.BlackMarketUtility.GetCurrentRank(controller) + 1
 
   local isMasterPrestige = currentPrestige == 11
-  if isMasterPrestige then
-    local stats = Engine.GetPlayerStats(controller, CoD.STATS_LOCATION_NORMAL, Engine.CurrentSessionMode())
+  if ranks and isMasterPrestige then
+    local stats = Engine.GetPlayerStats(controller, CoD.STATS_LOCATION_NORMAL, mode)
     if stats and stats.PlayerStatsList and stats.PlayerStatsList.PARAGON_RANK then
-      local paragonRank = stats.PlayerStatsList.PARAGON_RANK.StatValue:get()
-      if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
-        currentRank = paragonRank + 56
-      elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
-        currentRank = paragonRank + 36
-      elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_CAMPAIGN then
-        currentRank = paragonRank + 21
-      end
+      currentRank = stats.PlayerStatsList.PARAGON_RANK.StatValue:get() + ranks.paragonOffset + 1
     end
   end
 
-  if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
-    if not isMasterPrestige then
-      rankLevels = { 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55 }
-    else
-      rankLevels = { 56, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 }
-    end
-  elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
-    if not isMasterPrestige then
-      rankLevels = { 1, 5, 10, 15, 20, 25, 30, 35 }
-    else
-      rankLevels = { 36, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 }
-    end
-  elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_CAMPAIGN then
-    if not isMasterPrestige then
-      rankLevels = { 1, 5, 10, 15, 20 }
-    else
-      rankLevels = { 21, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 }
-    end
-  end
+  local rankLevels = ranks and (isMasterPrestige and ranks.masterLevels or ranks.levels) or {}
 
   if #rankLevels > 0 then
     local maxlevel = math.max(table.unpack(rankLevels))
@@ -407,7 +247,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       })
     end
 
-    if hasDefault and currentRank ~= minlevel and currentRank < maxlevel and not isMasterPrestige then
+    if currentRank ~= minlevel and currentRank < maxlevel and not isMasterPrestige then
       table.insert(rankObjs, {
         name = "Current: "
           .. tostring(currentRank <= minlevel and "Min" or currentRank >= maxlevel and "Max" or currentRank),
@@ -475,17 +315,17 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
           controller,
           "MPStatsSettings_rank_prestige",
           prestigeTable,
-          CoD.PrestigeUtility.GetCurrentPLevel(controller, Engine.CurrentSessionMode()),
+          CoD.PrestigeUtility.GetCurrentPLevel(controller, mode),
           false,
           function(element, itemModel, controllerIndex, dvarName, param)
             UpdateInfoModels(itemModel)
             local newPrestige = itemModel.value
             if newPrestige == 11 then
-              Engine.ExecNow(controllerIndex, "PrestigeStatsMaster " .. tostring(Engine.CurrentSessionMode()))
+              Engine.ExecNow(controllerIndex, "PrestigeStatsMaster " .. tostring(mode))
             end
             Engine.ExecNow(controllerIndex, "statsetbyname plevel " .. newPrestige)
             Engine.ExecNow(controllerIndex, "statsetbyname hasprestiged " .. (newPrestige > 0 and 1 or 0))
-            game.savestats(controllerIndex, Engine.CurrentSessionMode())
+            game.savestats(controllerIndex, mode)
           end
         ),
       },
@@ -507,65 +347,26 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
           false,
           function(element, itemModel, controllerIndex, dvarName, param)
             UpdateInfoModels(itemModel)
-            local rankTable = nil
             local rank = itemModel.value + 1
-            if currentPrestige <= 10 then
-              if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
-                rankTable = "gamedata/tables/mp/mp_ranktable.csv"
-              elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
-                rankTable = "gamedata/tables/zm/zm_ranktable.csv"
-              elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_CAMPAIGN then
-                rankTable = "gamedata/tables/cp/cp_ranktable.csv"
+            local function maxXpForRow(rankTable, row)
+              local maxXp = tonumber(Engine.TableLookupGetColumnValueForRow(rankTable, row, 7)) or 0
+              if rank == maxlevel then
+                maxXp = maxXp + ranks.maxXpBonus
               end
-              local skipLines = Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER and 3 or 2
-              local maxXp = tonumber(Engine.TableLookupGetColumnValueForRow(rankTable, rank - 2 + skipLines, 7))
-              if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
-                if maxXp ~= nil and rank == maxlevel then
-                  maxXp = maxXp + 55600
-                end
-              end
-              if Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
-                if maxXp ~= nil and rank == maxlevel then
-                  maxXp = maxXp + 54244
-                end
-              end
-              if maxXp == nil then
-                maxXp = 0
-              end
+              return maxXp
+            end
+            if not isMasterPrestige then
+              local maxXp = maxXpForRow(ranks.rankTable, rank - 2 + ranks.rankTableSkip)
               Engine.ExecNow(controllerIndex, "statsetbyname rank " .. rank - 1)
               Engine.ExecNow(controllerIndex, "statsetbyname rankxp " .. maxXp)
-              Engine.ExecNow(controllerIndex, "statsetbyname paragon_rankxp " .. 0)
+              Engine.ExecNow(controllerIndex, "statsetbyname paragon_rankxp 0")
             else
-              if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
-                rankTable = "gamedata/tables/mp/mp_paragonranktable.csv"
-              elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
-                rankTable = "gamedata/tables/zm/zm_paragonranktable.csv"
-              elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_CAMPAIGN then
-                rankTable = "gamedata/tables/cp/cp_paragonranktable.csv"
-              end
-              local skipLines = 2
-              local maxXp = 0
-              if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
-                maxXp = tonumber(Engine.TableLookupGetColumnValueForRow(rankTable, rank - 57 + skipLines, 7))
-                if maxXp ~= nil and rank == maxlevel then
-                  maxXp = maxXp + 55600
-                end
-                rank = rank - 55
-              end
-              if Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
-                maxXp = tonumber(Engine.TableLookupGetColumnValueForRow(rankTable, rank - 37 + skipLines, 7))
-                if maxXp ~= nil and rank == maxlevel then
-                  maxXp = maxXp + 54244
-                end
-                rank = rank - 35
-              end
-              if maxXp == nil then
-                maxXp = 0
-              end
-              Engine.ExecNow(controllerIndex, "statsetbyname paragon_rank  " .. rank - 1)
+              local paragonRank = rank - ranks.paragonOffset
+              local maxXp = maxXpForRow(ranks.paragonTable, paragonRank)
+              Engine.ExecNow(controllerIndex, "statsetbyname paragon_rank " .. paragonRank - 1)
               Engine.ExecNow(controllerIndex, "statsetbyname paragon_rankxp " .. maxXp)
             end
-            game.savestats(controllerIndex, Engine.CurrentSessionMode())
+            game.savestats(controllerIndex, mode)
 
             currentRank = rank
           end

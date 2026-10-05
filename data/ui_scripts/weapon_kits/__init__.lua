@@ -65,24 +65,22 @@ original.GetAttachmentUniqueImage = original.GetAttachmentUniqueImage
 local weaponsByRef = {}
 local weaponsByIndex = {}
 
-local function getRef(index, mode)
-  local ok, ref = pcall(original.GetItemRef, index, mode)
-  if ok and ref and ref ~= "" then
-    return ref
-  end
-end
-
-local function findIndex(ref, mode)
+local function indicesByRef(mode)
+  local indices = {}
   for index = 1, 255 do
-    if getRef(index, mode) == ref then
-      return index
+    local ok, ref = pcall(original.GetItemRef, index, mode)
+    if ok and ref and ref ~= "" and not indices[ref] then
+      indices[ref] = index
     end
   end
+  return indices
 end
 
+local mpIndices = indicesByRef(MP)
+local zmIndices = indicesByRef(ZM)
 for _, definition in ipairs(definitions) do
-  definition.mpIndex = findIndex(definition.ref, MP)
-  definition.zmIndex = findIndex(definition.ref, ZM)
+  definition.mpIndex = mpIndices[definition.ref]
+  definition.zmIndex = zmIndices[definition.ref]
   definition.index = definition.zmIndex or definition.mpIndex
   weaponsByRef[definition.ref] = definition
   if definition.index then
@@ -99,6 +97,11 @@ local function resolveAttachmentLookup(index, mode)
     return weapon.mpIndex, MP
   end
   return index, mode
+end
+
+local function isZombiesCopy(index)
+  local weapon = weaponsByIndex[index]
+  return weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= index
 end
 
 local function getModelValue(model, name)
@@ -239,11 +242,8 @@ end
 
 if original.GetGunsmithWeaponOptionsTable then
   CoD.GetGunsmithWeaponOptionsTable = function(controller, table, group, weaponIndex, ...)
-    if group == Enum.eWeaponOptionGroup.WEAPONOPTION_GROUP_CAMO then
-      local weapon = weaponsByIndex[weaponIndex]
-      if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= weaponIndex then
-        weaponIndex = weapon.mpIndex
-      end
+    if group == Enum.eWeaponOptionGroup.WEAPONOPTION_GROUP_CAMO and isZombiesCopy(weaponIndex) then
+      weaponIndex = weaponsByIndex[weaponIndex].mpIndex
     end
     return original.GetGunsmithWeaponOptionsTable(controller, table, group, weaponIndex, ...)
   end
@@ -256,9 +256,7 @@ local PREVIEW_NOTIFY_PREFIXES = {
 }
 
 local function isBrokenPreviewWeapon(controller)
-  local index = original.GetCustomization(controller, "weapon_index")
-  local weapon = weaponsByIndex[index]
-  return weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= index
+  return isZombiesCopy(original.GetCustomization(controller, "weapon_index"))
 end
 
 if original.SendClientScriptNotify then
@@ -287,33 +285,20 @@ if original.NavigateToMenu then
   end
 end
 
-if original.SetWeaponOptionAsOld then
-  Engine.SetWeaponOptionAsOld = function(controller, weaponIndex, ...)
-    local weapon = weaponsByIndex[weaponIndex]
-    if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= weaponIndex then
-      return
+for _, entry in ipairs({
+  { name = "SetWeaponOptionAsOld" },
+  { name = "IsWeaponOptionNew", result = false },
+  { name = "IsWeaponOptionGroupNew", result = false },
+}) do
+  local name, result = entry.name, entry.result
+  local fn = original[name]
+  if fn then
+    Engine[name] = function(controller, weaponIndex, ...)
+      if isZombiesCopy(weaponIndex) then
+        return result
+      end
+      return fn(controller, weaponIndex, ...)
     end
-    return original.SetWeaponOptionAsOld(controller, weaponIndex, ...)
-  end
-end
-
-if original.IsWeaponOptionNew then
-  Engine.IsWeaponOptionNew = function(controller, weaponIndex, ...)
-    local weapon = weaponsByIndex[weaponIndex]
-    if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= weaponIndex then
-      return false
-    end
-    return original.IsWeaponOptionNew(controller, weaponIndex, ...)
-  end
-end
-
-if original.IsWeaponOptionGroupNew then
-  Engine.IsWeaponOptionGroupNew = function(controller, weaponIndex, ...)
-    local weapon = weaponsByIndex[weaponIndex]
-    if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= weaponIndex then
-      return false
-    end
-    return original.IsWeaponOptionGroupNew(controller, weaponIndex, ...)
   end
 end
 
@@ -330,72 +315,39 @@ Engine.GetItemRef = function(index, mode, ...)
   return ref
 end
 
-if original.GetItemName then
-  Engine.GetItemName = function(index, mode, ...)
-    index, mode = resolveAttachmentLookup(index, mode)
-    return original.GetItemName(index, mode, ...)
-  end
-end
-
-if original.GetNumAttachments then
-  Engine.GetNumAttachments = function(index, mode, ...)
-    index, mode = resolveAttachmentLookup(index, mode)
-    return original.GetNumAttachments(index, mode, ...)
-  end
-end
-
-if original.IsOptic then
-  Engine.IsOptic = function(index, attachment, mode, ...)
-    index, mode = resolveAttachmentLookup(index, mode)
-    return original.IsOptic(index, attachment, mode, ...)
-  end
-end
-
-if original.GetItemAttachment then
-  Engine.GetItemAttachment = function(index, attachment, mode, ...)
-    index, mode = resolveAttachmentLookup(index, mode)
-    return original.GetItemAttachment(index, attachment, mode, ...)
-  end
-end
-
-if original.GetAttachmentAllocationCost then
-  Engine.GetAttachmentAllocationCost = function(index, attachment, mode, ...)
-    index, mode = resolveAttachmentLookup(index, mode)
-    return original.GetAttachmentAllocationCost(index, attachment, mode, ...)
-  end
-end
-
-if original.GetAttachmentRef then
-  Engine.GetAttachmentRef = function(index, attachment, mode, ...)
-    index, mode = resolveAttachmentLookup(index, mode)
-    return original.GetAttachmentRef(index, attachment, mode, ...)
-  end
-end
-
-if original.GetAttachmentDesc then
-  Engine.GetAttachmentDesc = function(index, attachment, mode, ...)
-    index, mode = resolveAttachmentLookup(index, mode)
-    return original.GetAttachmentDesc(index, attachment, mode, ...)
-  end
-end
-
-if original.WeaponOptionNewItemCount then
-  Engine.WeaponOptionNewItemCount = function(controller, index, ...)
-    local weapon = weaponsByIndex[index]
-    if weapon and weapon.mpIndex and weapon.mpIndex ~= index then
-      index = weapon.mpIndex
+for _, name in ipairs({ "GetItemName", "GetNumAttachments" }) do
+  local fn = original[name]
+  if fn then
+    Engine[name] = function(index, mode, ...)
+      index, mode = resolveAttachmentLookup(index, mode)
+      return fn(index, mode, ...)
     end
-    return original.WeaponOptionNewItemCount(controller, index, ...)
   end
 end
 
-if original.WeaponOptionNewModeAgnosticItemCount then
-  Engine.WeaponOptionNewModeAgnosticItemCount = function(controller, index, ...)
-    local weapon = weaponsByIndex[index]
-    if weapon and weapon.mpIndex and weapon.mpIndex ~= index then
-      index = weapon.mpIndex
+for _, name in ipairs({
+  "IsOptic",
+  "GetItemAttachment",
+  "GetAttachmentAllocationCost",
+  "GetAttachmentRef",
+  "GetAttachmentDesc",
+}) do
+  local fn = original[name]
+  if fn then
+    Engine[name] = function(index, attachment, mode, ...)
+      index, mode = resolveAttachmentLookup(index, mode)
+      return fn(index, attachment, mode, ...)
     end
-    return original.WeaponOptionNewModeAgnosticItemCount(controller, index, ...)
+  end
+end
+
+for _, name in ipairs({ "WeaponOptionNewItemCount", "WeaponOptionNewModeAgnosticItemCount" }) do
+  local fn = original[name]
+  if fn then
+    Engine[name] = function(controller, index, ...)
+      local weapon = weaponsByIndex[index]
+      return fn(controller, weapon and weapon.mpIndex or index, ...)
+    end
   end
 end
 

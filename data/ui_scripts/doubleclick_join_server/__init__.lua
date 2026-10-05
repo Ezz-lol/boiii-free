@@ -65,44 +65,25 @@ CoD.ServerBrowserRow.new = function(menu, controller)
   self:addElement(FocusBarT)
   self.FocusBarT = FocusBarT
 
+  local function rowState(shade, focusAlpha)
+    return function()
+      self:setupElementClipCounter(3)
+      background:completeAnimation()
+      background:setRGB(shade, shade, shade)
+      self.clipFinished(background, {})
+      for _, bar in ipairs({ FocusBarB, FocusBarT }) do
+        bar:completeAnimation()
+        bar:setAlpha(focusAlpha)
+        self.clipFinished(bar, {})
+      end
+    end
+  end
+
   self.clipsPerState = {
     DefaultState = {
-      DefaultClip = function()
-        self:setupElementClipCounter(3)
-        background:completeAnimation()
-        self.background:setRGB(0.2, 0.2, 0.2)
-        self.clipFinished(background, {})
-        FocusBarB:completeAnimation()
-        self.FocusBarB:setAlpha(0)
-        self.clipFinished(FocusBarB, {})
-        FocusBarT:completeAnimation()
-        self.FocusBarT:setAlpha(0)
-        self.clipFinished(FocusBarT, {})
-      end,
-      Focus = function()
-        self:setupElementClipCounter(3)
-        background:completeAnimation()
-        self.background:setRGB(0.2, 0.2, 0.2)
-        self.clipFinished(background, {})
-        FocusBarB:completeAnimation()
-        self.FocusBarB:setAlpha(1)
-        self.clipFinished(FocusBarB, {})
-        FocusBarT:completeAnimation()
-        self.FocusBarT:setAlpha(1)
-        self.clipFinished(FocusBarT, {})
-      end,
-      Over = function()
-        self:setupElementClipCounter(3)
-        background:completeAnimation()
-        self.background:setRGB(0.39, 0.39, 0.39)
-        self.clipFinished(background, {})
-        FocusBarB:completeAnimation()
-        self.FocusBarB:setAlpha(0)
-        self.clipFinished(FocusBarB, {})
-        FocusBarT:completeAnimation()
-        self.FocusBarT:setAlpha(0)
-        self.clipFinished(FocusBarT, {})
-      end,
+      DefaultClip = rowState(0.2, 0),
+      Focus = rowState(0.2, 1),
+      Over = rowState(0.39, 0),
     },
   }
   LUI.OverrideFunction_CallOriginalSecond(self, "close", function(element)

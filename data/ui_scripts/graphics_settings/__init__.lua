@@ -1,4 +1,4 @@
-if Engine.IsUsingMods() and Engine.UsingModsUgcName() ~= "" and Engine.UsingModsUgcName ~= "usermaps" then
+if Engine.IsUsingMods() and Engine.UsingModsUgcName() ~= "" and Engine.UsingModsUgcName() ~= "usermaps" then
   return
 end
 
