@@ -914,10 +914,13 @@ bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo) {
          code == STATUS_SINGLE_STEP;
 }
 
+std::atomic<bool> crashed{false};
+
 long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
   if (is_harmless_error(exceptioninfo)) {
     return EXCEPTION_CONTINUE_EXECUTION;
   }
+  crashed = true;
 
   const resolved_frame crash_frame =
       resolve_address(exceptioninfo->ExceptionRecord->ExceptionAddress);
@@ -1053,8 +1056,9 @@ void watch_for_freezes() {
       last_frame = frame;
       last_progress = std::chrono::steady_clock::now();
       reported = false;
-    } else if (!reported && std::chrono::steady_clock::now() - last_progress >=
-                                FREEZE_TIME) {
+    } else if (!reported && !crashed &&
+               std::chrono::steady_clock::now() - last_progress >=
+                   FREEZE_TIME) {
       reported = true;
       report_freeze();
     }
