@@ -27,25 +27,22 @@ game::EngineDependentDvar cl_yaw_speed;
 game::EngineDependentDvar cl_pitch_speed;
 
 void stop_intro_if_needed() {
-  if (game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES &&
-      game::com::Com_SessionMode_GetMode() != game::eModes::CAMPAIGN) {
-    return;
-  }
-
-  scheduler::once(
-      [] {
-        scheduler::schedule(
-            [] {
-              if (!game::sys::Sys_IsDatabaseReady()) {
+  if (game::com::Com_SessionMode_GetMode() == game::eModes::ZOMBIES ||
+      game::com::Com_SessionMode_GetMode() == game::eModes::CAMPAIGN) {
+    scheduler::once(
+        [] {
+          scheduler::schedule(
+              [] {
+                if (game::sys::Sys_IsDatabaseReady()) {
+                  game::cinematic::Cinematic_StopPlayback(0, true);
+                  return scheduler::cond_end;
+                }
                 return scheduler::cond_continue;
-              }
-
-              game::cinematic::Cinematic_StopPlayback(0, true);
-              return scheduler::cond_end;
-            },
-            scheduler::main);
-      },
-      scheduler::main, 15s);
+              },
+              scheduler::main);
+        },
+        scheduler::main, 15s);
+  }
 }
 
 void preload_map_stub(game::LocalClientNum_t local_client_num,
