@@ -19,8 +19,8 @@ local function friendsPartyLabel()
 end
 
 local function openPopup(name)
-  return function(self, element, controller, param, menu)
-    OpenPopup(menu or self, name, controller)
+  return function(self, element, controller)
+    OpenPopup(self, name, controller)
   end
 end
 
