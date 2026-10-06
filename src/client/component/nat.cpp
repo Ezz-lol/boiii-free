@@ -6,6 +6,7 @@
 #include "game/utils.hpp"
 
 #include "auth.hpp"
+#include "friends.hpp"
 #include "getinfo.hpp"
 #include "nat.hpp"
 #include "network.hpp"
@@ -14,6 +15,7 @@
 #include "server_list.hpp"
 #include "toast.hpp"
 #include "upnp.hpp"
+#include "workshop.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -26,6 +28,7 @@ namespace {
 constexpr auto REGISTER_INTERVAL = 5s;
 constexpr auto JOIN_TIMEOUT = 12s;
 constexpr size_t MAX_CANDIDATES = 16;
+constexpr const char *FRIEND_REJOIN_ROUTE = "192.0.2.254:40000";
 
 bool open_to_friends{};
 bool registration_confirmed{};
@@ -35,6 +38,8 @@ std::string reflected_endpoint;
 
 struct join_attempt {
   bool active{};
+  bool retried{};
+  uint64_t friend_id{};
   std::string token;
   std::string fallback;
   std::vector<game::net::netadr_t> candidates;
@@ -156,13 +161,6 @@ std::string local_endpoint() {
   return local_ip.empty()
              ? std::string{}
              : utils::string::va("%s:%hu", local_ip.c_str(), local_port());
-}
-
-bool from_rendezvous(const game::net::netadr_t &sender) {
-  const auto masters = server_list::get_master_servers();
-  return std::ranges::any_of(masters, [&sender](const auto &master) {
-    return sender.addr == master.addr && sender.port == master.port;
-  });
 }
 
 void send_rendezvous(const std::string &command, const std::string &token) {
@@ -288,7 +286,10 @@ bool hosting_match() {
   return getinfo::is_host() && !game::com::Com_IsRunningUILevel();
 }
 
-bool can_host() { return hosting_match() || lobby_host_info(); }
+bool can_host() {
+  return hosting_match() || lobby_host_info() ||
+         lobby_host_info(game::lobby::LobbyType::GAME);
+}
 
 void show_error(const std::string &message) {
   game::ui::UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
@@ -319,14 +320,12 @@ void complete_join(const game::net::netadr_t &endpoint) {
   request_lobby(endpoint, joining.token);
 }
 
-void show_join_failure(const std::string &address) {
-  const auto port = network::address_from_string(address).port;
+void show_join_failure(const uint16_t port) {
   show_error(std::format(
-      "Could not reach your friend. A router or firewall is blocking the "
-      "connection.\n\nTo fix it, the host can enable UPnP on their router or "
-      "forward UDP port {} to their PC, and both of you should allow BOIII "
-      "through Windows Firewall. Using the same VPN (Radmin VPN, ZeroTier) "
-      "also works, or try swapping who hosts.",
+      "Could not reach your friend.\n\nAsk your friend to restart their game, "
+      "then try again. If it keeps failing, the host can enable UPnP on their "
+      "router or forward UDP port {} to their PC, and both of you should allow "
+      "BOIII through Windows Firewall. Swapping who hosts also works.",
       port ? port : local_port()));
 }
 
@@ -394,13 +393,43 @@ void join_lobby(const game::net::netadr_t &host,
 
   const auto target = parts[5] == "game" ? game::lobby::LobbyType::GAME
                                          : game::lobby::LobbyType::PRIVATE;
-  std::string name = parts[6];
-  for (size_t i = 7; i < parts.size(); ++i)
-    name.append(" ").append(parts[i]);
+  std::vector<std::string> content{"", "", ""};
+  size_t name_index = 6;
+  if (parts[6].starts_with("c:")) {
+    content = utils::string::split(parts[6].substr(2), ':');
+    content.resize(3);
+    name_index = 7;
+  }
+  std::string name;
+  for (size_t i = name_index; i < parts.size(); ++i)
+    name.append(name.empty() ? "" : " ").append(parts[i]);
   utils::string::copy(info.name, name.c_str());
 
   if (game::com::Com_IsInGame() || !lobby_host_info()) {
     show_error("Leave your current match to join your friend's lobby.");
+    return;
+  }
+
+  const std::string &mod = content[0];
+  const std::string &map = content[1];
+  if (!workshop::check_valid_mod_id(mod, {}) ||
+      (!map.empty() &&
+       !workshop::check_valid_usermap_id(map, content[2], {}, {}))) {
+    if (joining.friend_id) {
+      friends::remember_browser_route(joining.friend_id, FRIEND_REJOIN_ROUTE);
+      workshop::set_pending_download_reconnect(FRIEND_REJOIN_ROUTE);
+    }
+    return;
+  }
+
+  const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
+  if (mod != (loaded_mod == "usermaps" ? std::string{} : loaded_mod)) {
+    workshop::setup_same_mod_as_host(game::LOCAL_CLIENT_0, {}, mod);
+    scheduler::once(
+        [friend_id = joining.friend_id] {
+          friends::connect_to_friend(friend_id);
+        },
+        scheduler::main, 3s);
     return;
   }
 
@@ -423,13 +452,26 @@ void update_punching() {
   const auto now = std::chrono::steady_clock::now();
 
   if (joining.active) {
-    if (now >= joining.expires) {
+    if (now >= joining.expires && !joining.retried) {
+      printf("[Friends] Could not reach your friend yet, retrying\n");
+      joining.retried = true;
+      joining.candidates.clear();
+      joining.expires = now + JOIN_TIMEOUT;
+      joining.next_rendezvous = now;
+    } else if (now >= joining.expires) {
       const auto fallback = network::address_from_string(joining.fallback);
       joining.active = false;
+      if (joining.candidates.empty())
+        printf("[Friends] The master server did not send your friend's "
+               "address\n");
+      else
+        printf("[Friends] Could not reach your friend directly (%zu "
+               "addresses tried)\n",
+               joining.candidates.size());
       if (network::is_connectable_address(fallback))
         request_lobby(fallback, joining.token);
       else
-        show_join_failure(joining.fallback);
+        show_join_failure(fallback.port);
     } else {
       if (joining.candidates.empty() && now >= joining.next_rendezvous) {
         send_rendezvous("privJoin", joining.token);
@@ -442,7 +484,8 @@ void update_punching() {
 
   if (lobby_joining.active && now >= lobby_joining.expires) {
     lobby_joining.active = false;
-    connect_to(lobby_joining.host);
+    printf("[Friends] Your friend's game did not answer\n");
+    show_join_failure(lobby_joining.host.port);
   }
 
   std::erase_if(host_probes, [now](const host_probe &probe) {
@@ -452,10 +495,19 @@ void update_punching() {
     network::send(probe.candidate, "punch", probe.token);
 }
 
+void refresh_lobby_buttons() {
+  if (const auto global = game::ui::UI_Model_GetGlobalModel()) {
+    if (const auto model = game::ui::UI_Model_CreateModelFromPath(
+            global, "lobbyRoot.lobbyButtonUpdate"))
+      game::ui::UI_Model_ForceNotify(model);
+  }
+}
+
 void set_open(const bool enabled) {
   open_to_friends = enabled;
   game::Dvar_SetFromStringByName("nat_open", enabled ? "1" : "0", true);
   game::Dvar_SetFromStringByName("friends_open", enabled ? "1" : "0", true);
+  refresh_lobby_buttons();
   game::Dvar_SetFromStringByName("com_pauseSupported", enabled ? "0" : "1",
                                  true);
   if (enabled)
@@ -472,14 +524,15 @@ void set_open(const bool enabled) {
 }
 
 void update_hosting() {
-  if (!open_to_friends || !can_host()) {
-    if (open_to_friends || !hosting_token.empty())
-      set_open(false);
+  if (!open_to_friends) {
     if (const auto friend_code = auth::get_guid())
       send_rendezvous("friendPublish",
                       utils::string::va("1 %llu -", friend_code));
     return;
   }
+  if (!can_host())
+    return;
+
   if (hosting_token.empty()) {
     hosting_token = new_token();
     registration_confirmed = false;
@@ -509,13 +562,19 @@ void receive_lobby_join(const game::net::netadr_t &sender,
     return;
 
   add_peer(peer.addrBuff, sender);
+  const std::string mod = workshop::get_mod_publisher_id();
+  const std::string map(game::get_dvar_string("ui_mapname").value_or(""));
   network::send(sender, "lobbyHost",
-                std::format("{} {:x} {} {} {} {} {}", hosting_token, host->xuid,
+                std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", hosting_token,
+                            host->xuid,
                             to_hex(host->serializedAdr.addrBuff,
                                    sizeof(host->serializedAdr.addrBuff)),
                             to_hex(&host->secId, sizeof(host->secId)),
                             to_hex(&host->secKey, sizeof(host->secKey)),
-                            game_lobby ? "game" : "party", host->name));
+                            game_lobby ? "game" : "party",
+                            mod == "usermaps" ? std::string{} : mod, map,
+                            workshop::get_usermap_publisher_id(map),
+                            host->name));
 }
 
 bool from_lobby_request(const game::net::netadr_t &sender,
@@ -546,7 +605,7 @@ void receive_lobby_game(const game::net::netadr_t &sender,
 void receive_register_ack(const game::net::netadr_t &sender,
                           const network::data_view &data,
                           game::LocalClientNum_t) {
-  if (!from_rendezvous(sender) || hosting_token.empty())
+  if (!is_rendezvous(sender) || hosting_token.empty())
     return;
 
   const auto endpoint = network::address_from_string(payload_string(data));
@@ -558,7 +617,7 @@ void receive_register_ack(const game::net::netadr_t &sender,
 
 void receive_peer(const game::net::netadr_t &sender,
                   const network::data_view &data, game::LocalClientNum_t) {
-  if (!from_rendezvous(sender))
+  if (!is_rendezvous(sender))
     return;
 
   const auto parts = fields(payload_string(data));
@@ -593,8 +652,10 @@ void receive_peer(const game::net::netadr_t &sender,
 
 void receive_rejection(const game::net::netadr_t &sender,
                        const network::data_view &, game::LocalClientNum_t) {
-  if (!from_rendezvous(sender) || !joining.active)
+  if (!is_rendezvous(sender) || !joining.active)
     return;
+  printf("[Friends] Your friend's party is no longer open on the master "
+         "server\n");
   joining.expires = std::chrono::steady_clock::now();
 }
 
@@ -622,7 +683,7 @@ void receive_punch_ack(const game::net::netadr_t &sender,
 void receive_friend_presence(const game::net::netadr_t &sender,
                              const network::data_view &data,
                              game::LocalClientNum_t) {
-  if (!from_rendezvous(sender))
+  if (!is_rendezvous(sender))
     return;
   const auto parts = fields(payload_string(data));
   if (parts.size() != 5 || parts[0] != "1" || !valid_token(parts[3]))
@@ -652,7 +713,7 @@ void receive_friend_presence(const game::net::netadr_t &sender,
 
 void receive_friend_status(const game::net::netadr_t &sender,
                            const network::data_view &data, const bool online) {
-  if (!from_rendezvous(sender))
+  if (!is_rendezvous(sender))
     return;
   const auto parts = fields(payload_string(data));
   if (parts.size() != 3 || parts[0] != "1")
@@ -703,7 +764,8 @@ std::string get_host_endpoint() {
   return local_endpoint();
 }
 
-void begin_join(const std::string &token, const std::string &fallback_address) {
+void begin_join(const std::string &token, const std::string &fallback_address,
+                const uint64_t friend_id) {
   if (!valid_token(token)) {
     show_error(
         "Your friend's party is closed. Ask them to open it to friends.");
@@ -715,6 +777,7 @@ void begin_join(const std::string &token, const std::string &fallback_address) {
 
   joining = {};
   joining.active = true;
+  joining.friend_id = friend_id;
   joining.token = token;
   const auto fallback = network::address_from_string(fallback_address);
   if (network::is_connectable_address(fallback))
@@ -730,6 +793,23 @@ bool is_lobby_peer(const game::net::netadr_t &address) {
   return std::ranges::any_of(lobby_peers, [&address](const auto &peer) {
     return network::are_addresses_equal(peer.second, address);
   });
+}
+
+bool is_rendezvous(const game::net::netadr_t &sender) {
+  const auto masters = server_list::get_master_servers();
+  return std::ranges::any_of(masters, [&sender](const auto &master) {
+    return sender.addr == master.addr && sender.port == master.port;
+  });
+}
+
+void send_invite(const uint64_t steam_id, const std::string &sender_name) {
+  const auto friend_code = auth::get_guid();
+  if (!friend_code || !steam_id)
+    return;
+  const auto payload =
+      std::format("1 {} {} {}", steam_id, friend_code, sender_name);
+  for (const auto &master : server_list::get_master_servers())
+    network::send(master, "friendInvite", payload);
 }
 
 bool set_open_to_friends(const bool enabled) {

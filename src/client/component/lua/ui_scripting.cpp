@@ -587,6 +587,30 @@ void load_scripts(const std::string &script_dir) {
   }
 }
 
+table social_player(const game::XUID id, const std::string &name) {
+  const std::optional<friends::friend_entry> entry = friends::find_friend(id);
+  table player = table();
+  player.set("steam_id", utils::string::va("%llu", id));
+  player.set("name", name);
+  player.set("friend", entry.has_value());
+  player.set("status", entry ? static_cast<int>(entry->state) : 0);
+  player.set("server", entry ? entry->server_address : std::string());
+  player.set("invited", friends::has_invited_us(id));
+  return player;
+}
+
+std::string time_ago(const int64_t timestamp) {
+  const int64_t minutes =
+      std::max<int64_t>(std::time(nullptr) - timestamp, 0) / 60;
+  if (minutes < 1)
+    return "just now";
+  if (minutes < 60)
+    return std::format("{}m ago", minutes);
+  if (minutes < 1440)
+    return std::format("{}h ago", minutes / 60);
+  return std::format("{}d ago", minutes / 1440);
+}
+
 void setup_functions() {
   const table lua = get_globals();
   lua["game"] = table();
@@ -604,7 +628,27 @@ void setup_functions() {
                  t.set("name", std::string(f.name));
                  t.set("status", static_cast<int>(f.state));
                  t.set("server", std::string(f.server_address));
+                 t.set("invited", friends::has_invited_us(f.steam_id));
                  return t;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["getrecentplayer"] =
+      function(convert_function([](const int index) -> table {
+                 const std::vector<friends::recent_player> players =
+                     friends::get_recent_players();
+                 if (index < 0 || index >= static_cast<int>(players.size()))
+                   return table();
+                 const friends::recent_player &recent = players[index];
+                 table player = social_player(recent.steam_id, recent.name);
+                 player.set("seen", time_ago(recent.last_seen));
+                 return player;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["getrecentcount"] =
+      function(convert_function([]() -> int32_t {
+                 return static_cast<int32_t>(friends::get_recent_count());
                }),
                HksObjectType::TCFUNCTION);
 
@@ -658,6 +702,14 @@ void setup_functions() {
                    return false;
                  }
                  return friends::connect_to_friend(id);
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["getsocialplayer"] =
+      function(convert_function([](const std::string &id_hex) -> table {
+                 const game::XUID id =
+                     std::strtoull(id_hex.c_str(), nullptr, 16);
+                 return social_player(id, friends::get_known_name(id));
                }),
                HksObjectType::TCFUNCTION);
 

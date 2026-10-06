@@ -27,10 +27,8 @@ void access_subscribed_items(
 void access_steam_friends(
     const std::function<
         void(const std::vector<std::pair<uint64_t, std::string>> &)> &callback);
-void invite_friend(uint64_t xuid, const std::string &connect_string);
 std::string get_pending_game_invite();
 std::string get_pending_game_invite(uint64_t *out_friend_id);
-std::string get_steam_friend_name(uint64_t steam_id);
 bool set_rich_presence(const std::string &key, const std::string &value);
 void clear_rich_presence();
 uint64_t get_own_steam_id();

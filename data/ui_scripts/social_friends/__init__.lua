@@ -1,5 +1,9 @@
-if not game or not game.getfriendcount or not game.getfriend then
+if not game or not game.getfriendcount or not game.getrecentplayer then
   return
+end
+
+IsGroupsEnabled = function()
+  return false
 end
 
 require("ui.uieditor.datasources")
@@ -97,27 +101,45 @@ if not nativeSocialPlayers then
   return
 end
 
-local function isFriendsTab()
+local function currentTab()
   local root = Engine.GetModel(Engine.GetGlobalModel(), "socialRoot")
   local tab = root and Engine.GetModel(root, "tab")
-  return not tab or Engine.GetModelValue(tab) == "friends"
+  return tab and Engine.GetModelValue(tab) or "friends"
 end
 
-local function presenceForStatus(status)
-  if status == 2 then
+local function isOurTab()
+  local tab = currentTab()
+  return tab == "friends" or tab == "recent"
+end
+
+local function hexOf(xuid)
+  return xuid and Engine.UInt64ToString(xuid)
+end
+
+local function presenceForFriend(friend)
+  if friend.invited and friend.status == 2 then
+    return Enum.PresencePrimary.PRESENCE_PRIMARY_TITLE,
+      Enum.PresenceActivity.PRESENCE_ACTIVITY_MENU_INLOBBY,
+      "^2Invited you to play"
+  elseif friend.status == 2 then
     return Enum.PresencePrimary.PRESENCE_PRIMARY_TITLE,
       Enum.PresenceActivity.PRESENCE_ACTIVITY_MENU_INLOBBY,
       "In a joinable game"
-  elseif status == 1 then
+  elseif friend.status == 1 then
     return Enum.PresencePrimary.PRESENCE_PRIMARY_ONLINE,
       Enum.PresenceActivity.PRESENCE_ACTIVITY_ONLINE_NOT_IN_TITLE,
-      "^3Party closed"
+      "^3Online, party closed"
   end
   return Enum.PresencePrimary.PRESENCE_PRIMARY_OFFLINE, Enum.PresenceActivity.PRESENCE_ACTIVITY_OFFLINE, "Offline"
 end
 
 local function createPlayerSlot(parent, index)
-  local root = Engine.CreateModel(parent, "boiii_player_" .. index)
+  local name = "boiii_player_" .. index
+  local previous = Engine.GetModel(parent, name)
+  if previous then
+    Engine.UnsubscribeAndFreeModel(previous)
+  end
+  local root = Engine.CreateModel(parent, name)
   local model = Engine.CreateModel(root, "model")
   local fields = {
     xuid = Engine.StringToXUIDDecimal("0"),
@@ -170,51 +192,71 @@ local function createPlayerSlot(parent, index)
   }
 end
 
-local function updatePlayerSlot(controller, slot, friend)
-  local xuid = Engine.StringToXUIDDecimal(friend.steam_id)
-  local primary, activity, presence = presenceForStatus(friend.status)
+local function updatePlayerSlot(controller, slot, player)
+  local xuid = Engine.StringToXUIDDecimal(player.steam_id)
+  local primary, activity, presence = presenceForFriend(player)
+  if player.seen then
+    presence = (player.friend and "Friend, " or "") .. "last seen " .. player.seen
+  end
   local values = {
     xuid = xuid,
-    boiiiFriendIcon = friendEmblems[stableIndex(friend.steam_id, #friendEmblems)],
-    backgroundId = friendBackground(controller, friend.steam_id),
-    gamertag = friend.name,
-    fullname = friend.name,
+    boiiiFriendIcon = friendEmblems[stableIndex(player.steam_id, #friendEmblems)],
+    backgroundId = friendBackground(controller, player.steam_id),
+    gamertag = player.name,
+    fullname = player.name,
+    friend = player.friend == false and 0 or 1,
     primaryPresence = primary,
     activity = activity,
     titlePresence = presence,
     platformPresence = presence,
-    joinable = friend.server ~= "" and 1 or 0,
+    joinable = (player.server or "") ~= "" and 1 or 0,
   }
   for key, value in pairs(values) do
     Engine.SetModelValue(Engine.GetModel(slot.model, key), value)
   end
   slot.properties.xuid = xuid
+  slot.properties.showyourfriend = player.seen and 1 or 0
+  slot.properties.showlastmet = player.seen and 1 or 0
+end
+
+local function sourceForTab(tab)
+  if tab == "recent" then
+    return {
+      count = game.getrecentcount,
+      get = game.getrecentplayer,
+    }
+  end
+  return {
+    count = game.getfriendcount,
+    get = game.getfriend,
+  }
 end
 
 local customSocialPlayers = {
   prepare = function(controller, list, filter)
-    if not isFriendsTab() then
-      list.boiiiFriends = false
+    if not isOurTab() then
+      list.boiiiPlayers = nil
       return nativeSocialPlayers.prepare(controller, list, filter)
     end
 
-    list.boiiiFriends = true
+    local tab = currentTab()
+    list.boiiiPlayers = sourceForTab(tab)
     list.numElementsInList = list.vCount
-    list.playerCount = game.getfriendcount()
+    list.playerCount = list.boiiiPlayers.count()
     list.players = {}
     local socialRoot = Engine.CreateModel(Engine.GetGlobalModel(), "socialRoot")
-    local friendsRoot = Engine.CreateModel(socialRoot, "friends")
-    local updateModel = Engine.CreateModel(friendsRoot, "update")
+    local tabRoot = Engine.CreateModel(socialRoot, tab == "recent" and "recentPlayers" or "friends")
+    local updateModel = Engine.CreateModel(Engine.CreateModel(socialRoot, "friends"), "update")
     for index = 1, list.numElementsInList do
-      list.players[index] = createPlayerSlot(friendsRoot, index)
+      list.players[index] = createPlayerSlot(tabRoot, index)
     end
 
     list.updateModels = function(_, currentList, offset, count)
-      currentList.playerCount = game.getfriendcount()
+      currentList.playerCount = currentList.boiiiPlayers.count()
       local limit = math.min(count, currentList.playerCount - offset)
       for item = 1, limit do
         local slotIndex = (offset + item - 1) % currentList.numElementsInList + 1
-        updatePlayerSlot(controller, currentList.players[slotIndex], game.getfriend(offset + item - 1))
+        updatePlayerSlot(controller, currentList.players[slotIndex], currentList.boiiiPlayers.get(offset + item - 1))
       end
       return currentList.players[offset % currentList.numElementsInList + 1].model
     end
@@ -224,44 +266,43 @@ local customSocialPlayers = {
       list:removeSubscription(list.socialUpdateSubscription)
     end
     list.socialUpdateSubscription = list:subscribeToModel(updateModel, function()
-      if list.boiiiFriends then
+      if list.boiiiPlayers then
+        list.boiiiPlayers = sourceForTab(currentTab())
         RefreshListFindSelectedXuid(controller, list)
       end
     end, false)
     if not list.boiiiFriendsRefreshTimer then
       list.boiiiFriendsRefreshTimer = LUI.UITimer.newElementTimer(5000, false, function()
-        if list.boiiiFriends and game.refreshfriends then
+        if list.boiiiPlayers then
           game.refreshfriends()
         end
       end)
       list:addElement(list.boiiiFriendsRefreshTimer)
     end
-    if game.refreshfriends then
-      game.refreshfriends()
-    end
+    game.refreshfriends()
   end,
   getCount = function(list)
-    if list.boiiiFriends then
-      list.playerCount = game.getfriendcount()
+    if list.boiiiPlayers then
+      list.playerCount = list.boiiiPlayers.count()
       return list.playerCount
     end
     return nativeSocialPlayers.getCount(list)
   end,
   getItem = function(controller, list, index)
-    if list.boiiiFriends then
+    if list.boiiiPlayers then
       list.updateModels(controller, list, index - 1, 1)
       return list.players[(index - 1) % list.numElementsInList + 1].model
     end
     return nativeSocialPlayers.getItem(controller, list, index)
   end,
   getCustomPropertiesForItem = function(list, index)
-    if list.boiiiFriends then
+    if list.boiiiPlayers then
       return list.players[(index - 1) % list.numElementsInList + 1].properties
     end
     return nativeSocialPlayers.getCustomPropertiesForItem(list, index)
   end,
   cleanup = function(list)
-    list.boiiiFriends = false
+    list.boiiiPlayers = nil
     if list.socialUpdateSubscription then
       list:removeSubscription(list.socialUpdateSubscription)
       list.socialUpdateSubscription = nil
@@ -279,27 +320,45 @@ local customSocialPlayers = {
 BoiiiSocialPlayersList = customSocialPlayers
 DataSources.SocialPlayersList = customSocialPlayers
 
+local function ourPlayerCount()
+  if currentTab() == "recent" then
+    return game.getrecentcount()
+  end
+  return game.getfriendcount()
+end
+
 local nativeHasFriends = HasFriends
 HasFriends = function(controller)
-  if isFriendsTab() then
-    return game.getfriendcount() > 0
+  if isOurTab() then
+    return ourPlayerCount() > 0
   end
   return nativeHasFriends and nativeHasFriends(controller) or false
 end
 
+HasRecentPlayers = function()
+  return game.getrecentcount() > 0
+end
+
 local nativeListHasPlayers = IsSocialPlayersListEmpty
 IsSocialPlayersListEmpty = function(controller)
-  if isFriendsTab() then
-    return game.getfriendcount() > 0
+  if isOurTab() then
+    return ourPlayerCount() > 0
   end
   return nativeListHasPlayers and nativeListHasPlayers(controller) or false
 end
 
+local function joinPlayer(hex)
+  local player = hex and game.getsocialplayer(hex)
+  if not player or not player.friend then
+    return false
+  end
+  game.connectsocialfriend(hex)
+  return true
+end
+
 local nativeSocialJoin = SocialJoin
 SocialJoin = function(menu, element, controller, param, parentMenu)
-  local hex = param and param.xuid and Engine.UInt64ToString(param.xuid)
-  if hex and game.issocialfriend and game.issocialfriend(hex) then
-    game.connectsocialfriend(hex)
+  if joinPlayer(param and hexOf(param.xuid)) then
     GoBackToMenu(GoBack(menu, controller), controller, "Lobby")
     return
   end
@@ -309,14 +368,218 @@ end
 local nativeLobbyQuickJoin = LobbyQuickJoin
 LobbyQuickJoin = function(menu, element, controller, joinType, closeMenu)
   local xuidModel = element and element.getModel and element:getModel(controller, "xuid")
-  local xuid = xuidModel and Engine.GetModelValue(xuidModel)
-  local hex = xuid and Engine.UInt64ToString(xuid)
-  if hex and game.issocialfriend and game.issocialfriend(hex) then
-    game.connectsocialfriend(hex)
+  if joinPlayer(xuidModel and hexOf(Engine.GetModelValue(xuidModel))) then
     if closeMenu then
       GoBack(menu, controller)
     end
     return
   end
   return nativeLobbyQuickJoin(menu, element, controller, joinType, closeMenu)
+end
+
+LobbyInviteFriend = function(menu, element, controller, param)
+  local xuid = param and param.xuid
+  if not xuid and element then
+    xuid = Engine.GetModelValue(element:getModel(controller, "xuid"))
+  end
+  if xuid then
+    game.invitefriend(game.getsocialplayer(hexOf(xuid)).steam_id)
+  end
+end
+
+local function goBackAfter(action)
+  return function(menu, element, controller, param)
+    action(param)
+    GoBack(menu, controller)
+  end
+end
+
+local function detailsButtons(controller)
+  local buttons = {}
+  local controllerModel = Engine.GetModelForController(controller)
+  local xuid = Engine.GetModelValue(Engine.CreateModel(controllerModel, "Social.selectedFriendXUID"))
+  if not xuid or xuid == Engine.GetXUID64(controller) then
+    return buttons
+  end
+
+  local player = game.getsocialplayer(hexOf(xuid))
+  local params = { controller = controller, xuid = xuid, steamId = player.steam_id, hex = hexOf(xuid) }
+  local inParty = Engine.LobbyIsPlayerInLobby(Enum.LobbyType.LOBBY_TYPE_PRIVATE, xuid)
+  local inGameLobby = Engine.LobbyIsPlayerInLobby(Enum.LobbyType.LOBBY_TYPE_GAME, xuid)
+  local function add(text, action, lastInGroup)
+    table.insert(buttons, { text = text, action = action, params = params, lastInGroup = lastInGroup })
+  end
+
+  if inParty and not Engine.IsInGame() and Engine.IsLeader(controller, Enum.LobbyType.LOBBY_TYPE_PRIVATE) then
+    add("MENU_PROMOTE_TO_PARTY_LEADER", PromoteToLeader)
+    if not Engine.IsLocalClient(xuid) then
+      add("MENU_REMOVE_FROM_PARTY", DisconnectClient, true)
+    end
+  end
+
+  if player.friend and player.server ~= "" and not inParty and not inGameLobby then
+    add(player.invited and "Accept Invite" or "MENU_JOIN_GAME", function(menu, element, controllerIndex)
+      joinPlayer(params.hex)
+      GoBackToMenu(GoBack(menu, controllerIndex), controllerIndex, "Lobby")
+    end)
+  end
+
+  if not inParty and not inGameLobby then
+    add(
+      Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) and "MENU_INVITE_GAME" or "MENU_INVITE_TO_PARTY",
+      goBackAfter(function(p)
+        game.invitefriend(p.steamId)
+      end),
+      true
+    )
+  end
+
+  if player.friend then
+    add(
+      "Remove Friend",
+      goBackAfter(function(p)
+        game.removefriend(p.steamId)
+      end)
+    )
+  else
+    add(
+      "MENU_SEND_FRIEND_REQUEST",
+      goBackAfter(function(p)
+        game.addfriend(p.steamId, player.name)
+      end)
+    )
+  end
+
+  add(
+    "Copy Friend Code",
+    goBackAfter(function(p)
+      FileIO.ClipboardSet(p.steamId)
+    end),
+    not (inParty or inGameLobby)
+  )
+
+  if inParty or inGameLobby then
+    local lobby = Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) and Enum.LobbyType.LOBBY_TYPE_GAME
+      or Enum.LobbyType.LOBBY_TYPE_PRIVATE
+    if Engine.IsPlayerMuted(controller, lobby, xuid) then
+      add("MENU_UNMUTE_PLAYER", UnMutePlayer, true)
+    else
+      add("MENU_MUTE_PLAYER", MutePlayer, true)
+    end
+  end
+
+  local items = {}
+  for _, button in ipairs(buttons) do
+    table.insert(items, {
+      models = { displayText = Engine.Localize(button.text) },
+      properties = {
+        action = button.action,
+        actionParam = button.params,
+        isLastButtonInGroup = button.lastInGroup,
+      },
+    })
+  end
+  return items
+end
+
+local nativeDetailsButtons = DataSources.SocialPlayerDetailsButtons
+if nativeDetailsButtons then
+  DataSources.SocialPlayerDetailsButtons = ListHelper_SetupDataSource(
+    "SocialPlayerDetailsButtons",
+    detailsButtons,
+    nil,
+    nil,
+    nil,
+    nativeDetailsButtons.getSpacerAfterRow
+  )
+end
+
+local nativeSocialTabs = DataSources.SocialTabs
+if nativeSocialTabs then
+  local nativePrepare = nativeSocialTabs.prepare
+  nativeSocialTabs.prepare = function(controller, list, filter)
+    nativePrepare(controller, list, filter)
+    for _, item in ipairs(list.SocialTabs or {}) do
+      if item.properties and item.properties.tabId == "party" then
+        item.properties.disabled = false
+      end
+    end
+  end
+end
+
+if Engine.GetCurrentMap() ~= "core_frontend" then
+  return
+end
+
+require("ui.uieditor.widgets.Social.Social_Party_PC")
+
+local function partyLabel()
+  return Engine.DvarBool(nil, "friends_open") and "^2PARTY IS OPEN" or "^1PARTY IS CLOSED"
+end
+
+local function managePartyButton(label, action)
+  return {
+    models = {
+      label = label,
+      profileType = "user",
+      widgetType = "button",
+      onPressFn = function(element, controller)
+        ProcessListAction(element.gridInfoTable.parentGrid.menu.TabFrame.framedWidget, element, controller)
+      end,
+    },
+    properties = { action = action },
+  }
+end
+
+local nativePartyControls = DataSources.PartyControlsPCList
+if nativePartyControls then
+  DataSources.PartyControlsPCList = DataSourceHelpers.ListSetup("PartyControlsPCList", function(controller)
+    local items = {
+      managePartyButton(partyLabel(), function(_, element, controllerIndex)
+        Engine.ExecNow(controllerIndex, "friends_open")
+        Engine.SetModelValue(element:getModel(controllerIndex, "label"), partyLabel())
+      end),
+    }
+    if ShouldShowPartyPrivacy(controller) then
+      table.insert(items, {
+        models = {
+          label = "MENU_PLAYER_LIMIT_CAPS",
+          profileVarName = "party_maxplayers",
+          profileType = "user",
+          datasource = "SocialPartyMaxSizePresets",
+          widgetType = "dropdown",
+        },
+        properties = CoD.PCUtil.OptionsGenericDropdownProperties,
+      })
+    end
+    if ShouldShowLeaveParty(controller) then
+      table.insert(
+        items,
+        managePartyButton(
+          Engine.ToUpper(Engine.Localize("MENU_MANAGE_PARTY_LEAVE_BUTTON")),
+          function(_, _, controllerIndex, _, menu)
+            CoD.OverlayUtility.CreateOverlay(
+              controllerIndex,
+              menu,
+              "LobbyLeavePopup",
+              LuaEnums.LEAVE_LOBBY_POPUP.LEAVE_PARTY
+            )
+          end
+        )
+      )
+    end
+    if ShouldShowBootPlayer(controller) then
+      table.insert(
+        items,
+        managePartyButton(
+          Engine.ToUpper(Engine.Localize("MENU_MANAGE_PARTY_KICK_BUTTON")),
+          function(self, element, controllerIndex, _, menu)
+            ShowManagePartyPopup(menu, self, element, controllerIndex, "KICK")
+          end
+        )
+      )
+    end
+    return items
+  end, true)
+  DataSources.PartyControlsPCList.getWidgetTypeForItem = nativePartyControls.getWidgetTypeForItem
 end

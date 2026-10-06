@@ -223,7 +223,8 @@ void finish_friend_scan(const uint64_t generation) {
         row.server_item.m_nAppID = 311210;
         row.server_item.m_steamID.bits = entry.steam_id;
         copy_safe(row.server_item.m_szServerName, entry.player_name.c_str());
-        copy_safe(row.server_item.m_szGameDescription, "Offline");
+        copy_safe(row.server_item.m_szGameDescription,
+                  entry.description.c_str());
       }
       row.handled = true;
       const auto route = network::address_to_string(row.address);
@@ -329,6 +330,10 @@ void *matchmaking_servers::RequestFriendsServerList(
         return;
       for (const auto &presence : live) {
         const auto address = network::address_from_string(presence.endpoint);
+        if (presence.token.empty()) {
+          ::friends::set_closed_presence(presence.steam_id);
+          continue;
+        }
         if (!network::is_connectable_address(address))
           continue;
         ::friends::set_master_presence(presence.steam_id, presence.endpoint,
@@ -534,10 +539,13 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
           }
           const auto presence = std::ranges::find(
               live, steam_id, &nat::friend_presence::steam_id);
-          const bool online = presence != live.end();
+          const bool online =
+              presence != live.end() && !presence->token.empty();
           if (online)
             ::friends::set_master_presence(steam_id, presence->endpoint,
                                            presence->token);
+          else if (presence != live.end())
+            ::friends::set_closed_presence(steam_id);
           else
             ::friends::clear_master_presence(steam_id);
 
@@ -569,7 +577,8 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
                 row.server_item = create_server_item(row.address, {}, 0, true);
                 row.server_item.m_nAppID = 311210;
                 row.server_item.m_steamID.bits = steam_id;
-                copy_safe(row.server_item.m_szGameDescription, "Offline");
+                copy_safe(row.server_item.m_szGameDescription,
+                          entry->description.c_str());
               }
               copy_safe(row.server_item.m_szServerName,
                         entry->player_name.c_str());
@@ -578,17 +587,18 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
               row_index = static_cast<int>(i);
               break;
             }
-            std::stable_sort(
-                items.begin(), items.end(),
-                [](const server &left, const server &right) {
-                  const bool left_online =
-                      std::strcmp(left.server_item.m_szGameDescription,
-                                  "Offline") != 0;
-                  const bool right_online =
-                      std::strcmp(right.server_item.m_szGameDescription,
-                                  "Offline") != 0;
-                  return left_online && !right_online;
-                });
+            std::stable_sort(items.begin(), items.end(),
+                             [](const server &left, const server &right) {
+                               const auto rank = [](const server &row) {
+                                 const std::string_view description =
+                                     row.server_item.m_szGameDescription;
+                                 return description == "Friend match" ? 0
+                                        : description == "Online, party closed"
+                                            ? 1
+                                            : 2;
+                               };
+                               return rank(left) < rank(right);
+                             });
             for (size_t i = 0; i < items.size(); ++i) {
               if (items[i].server_item.m_steamID.bits == steam_id) {
                 row_index = static_cast<int>(i);

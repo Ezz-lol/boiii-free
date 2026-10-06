@@ -562,30 +562,6 @@ void access_steam_friends(
   callback(result);
 }
 
-void invite_friend(uint64_t xuid, const std::string &connect_string) {
-  steam_id sid{};
-  sid.bits = xuid;
-
-  // set rich presence invite key so receiver can detect it via RP polling
-  set_rich_presence("boiii_invite",
-                    utils::string::va("%llu:%s", xuid, connect_string.c_str()));
-
-  if (steam_friends_real) {
-    try {
-      steam_friends_real.invoke<bool>(49, sid, connect_string.c_str());
-      return;
-    } catch (...) {
-    }
-  }
-  if (client_friends) {
-    try {
-      client_friends.invoke<bool>("InviteUserToGame", sid,
-                                  connect_string.c_str());
-    } catch (...) {
-    }
-  }
-}
-
 std::string get_pending_game_invite(uint64_t *out_friend_id) {
   if (out_friend_id)
     *out_friend_id = 0;
@@ -636,21 +612,6 @@ std::string get_pending_game_invite(uint64_t *out_friend_id) {
 
 std::string get_pending_game_invite() {
   return get_pending_game_invite(nullptr);
-}
-
-std::string get_steam_friend_name(uint64_t friend_steam_id) {
-  if (!client_friends || friend_steam_id == 0)
-    return "";
-  try {
-    steam_id sid{};
-    sid.bits = friend_steam_id;
-    const char *name =
-        client_friends.invoke<const char *>("GetFriendPersonaName", sid);
-    if (name && name[0])
-      return name;
-  } catch (...) {
-  }
-  return "";
 }
 
 uint64_t get_own_steam_id() {
