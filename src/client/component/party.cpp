@@ -101,9 +101,9 @@ void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
 void launch_mode(const game::eModes mode) {
   scheduler::once(
       [=] {
-        const game::LocalClientNum_t local_client = game::INVALID_LOCAL_CLIENT;
-        const game::eModes current_mode = game::com::Com_SessionMode_GetMode();
-        game::com::Com_SwitchMode(local_client, current_mode, mode, 6);
+        game::com::Com_SwitchMode(game::LOCAL_CLIENT_0,
+                                  game::com::Com_SessionMode_GetMode(), mode,
+                                  6);
       },
       scheduler::main);
 }
