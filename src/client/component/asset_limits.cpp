@@ -271,7 +271,7 @@ utils::hook::detour DB_AssetPoolAlloc_hook;
 } // namespace
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(asset_limits);
+  DEFINE_COMPONENT_NAME(asset_limits);
 
 public:
   void post_unpack() override {

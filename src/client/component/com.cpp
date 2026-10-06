@@ -81,7 +81,7 @@ void on_level_unload(const LoadTask &callback) {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(com);
+  DEFINE_COMPONENT_NAME(com);
 
 public:
   void post_unpack() override {

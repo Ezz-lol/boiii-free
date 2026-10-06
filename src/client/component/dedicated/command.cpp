@@ -62,7 +62,7 @@ void trigger_map_rotation() {
 }
 
 struct component final : server_component {
-DEFINE_COMPONENT_NAME(command);
+  DEFINE_COMPONENT_NAME(command);
 
   void post_unpack() override {
     // Ignore "bad stats"

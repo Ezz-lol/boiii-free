@@ -37,7 +37,7 @@ void live_presence_party_stub(void *context_array, void *data_buffer) {
 } // namespace
 
 struct component final : client_component {
-DEFINE_COMPONENT_NAME(live_presence_patch);
+  DEFINE_COMPONENT_NAME(live_presence_patch);
 
   void post_unpack() override {
     live_presence_party_hook.create(game::select(0x141E84D90, 0x141E91820, 0x0),

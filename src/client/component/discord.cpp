@@ -417,7 +417,7 @@ void register_lua_libs() {
 } // namespace lua
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(discord);
+  DEFINE_COMPONENT_NAME(discord);
 
 public:
   void post_load() override {

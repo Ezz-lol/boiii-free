@@ -23,7 +23,7 @@ void apply_flags() {
 } // namespace
 
 class component final : public client_component {
-DEFINE_COMPONENT_NAME(settings);
+  DEFINE_COMPONENT_NAME(settings);
 
 public:
   void post_unpack() override {

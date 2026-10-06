@@ -154,7 +154,7 @@ void read_archive_dvars() {
 } // namespace
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(dvars);
+  DEFINE_COMPONENT_NAME(dvars);
 
 public:
   void post_unpack() override {

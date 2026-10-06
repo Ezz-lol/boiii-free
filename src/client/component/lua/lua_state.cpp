@@ -53,7 +53,7 @@ void on_state_openlibs(const lua_state_cb callback) {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(lua_state);
+  DEFINE_COMPONENT_NAME(lua_state);
 
 public:
   void post_unpack() override {

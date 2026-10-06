@@ -1674,7 +1674,7 @@ void apply_exitlevel_hooks() {
 }
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(gsc/gsc_funcs);
+  DEFINE_COMPONENT_NAME(gsc / gsc_funcs);
 
   void post_unpack() override {
 

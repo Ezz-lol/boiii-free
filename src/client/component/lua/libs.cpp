@@ -21,7 +21,7 @@ luaReturnCount_e lua_return_true(lua_State *s) {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(lua/lualibs);
+  DEFINE_COMPONENT_NAME(lua / lualibs);
 
 public:
   void post_unpack() override {

@@ -209,7 +209,7 @@ bool GScr_IsItemPurchasedForClientNum_AlwaysTrue(
 }; // namespace
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(loot);
+  DEFINE_COMPONENT_NAME(loot);
 
   void post_unpack() override {
     GScr_IsItemPurchasedForClientNum_hook.create(

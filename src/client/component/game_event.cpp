@@ -47,7 +47,7 @@ void on_g_shutdown_game(const game_event_cb callback) {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(game_event);
+  DEFINE_COMPONENT_NAME(game_event);
 
 public:
   void post_unpack() override {

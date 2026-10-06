@@ -136,7 +136,7 @@ void draw() {
 } // namespace
 
 struct component final : client_component {
-DEFINE_COMPONENT_NAME(splash);
+  DEFINE_COMPONENT_NAME(splash);
 
   component() {
     image = load_splash_image();

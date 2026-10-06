@@ -43,7 +43,7 @@ luaReturnCount_e steam_disabled(lua_State *luaVM) {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(lua/net);
+  DEFINE_COMPONENT_NAME(lua / net);
 
 public:
   void post_unpack() override {

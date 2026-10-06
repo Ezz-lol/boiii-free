@@ -471,7 +471,7 @@ inline void flush_exec_all() {
 }
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(gsc/vm);
+  DEFINE_COMPONENT_NAME(gsc / vm);
 
   void post_unpack() override { flush_exec_all(); }
 };

@@ -759,7 +759,7 @@ NTSTATUS zw_terminate_process_stub(const HANDLE process_handle,
 }
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(arxan);
+  DEFINE_COMPONENT_NAME(arxan);
 
   void post_load() override {
 

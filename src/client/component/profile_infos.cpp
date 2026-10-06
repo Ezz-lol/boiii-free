@@ -209,7 +209,7 @@ void update_profile_info(const profile_info &info) {
 }
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(profile_infos);
+  DEFINE_COMPONENT_NAME(profile_infos);
 
   void post_unpack() override {
     scheduler::loop(clean_cached_profile_infos, scheduler::main, 5s);

@@ -623,7 +623,7 @@ std::string fastdl_ui::get_relevant_file_name() const {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(fastdl);
+  DEFINE_COMPONENT_NAME(fastdl);
 
 public:
   void pre_destroy() override { cancel_download(); }

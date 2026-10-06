@@ -501,7 +501,7 @@ bool show_confirmation_blocking(const std::string &title,
 }
 
 struct component final : client_component {
-DEFINE_COMPONENT_NAME(download_overlay);
+  DEFINE_COMPONENT_NAME(download_overlay);
 
   void post_unpack() override {
     scheduler::once(setup_present_hook, scheduler::async);

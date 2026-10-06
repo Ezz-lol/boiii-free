@@ -339,7 +339,7 @@ luaReturnCount_e write(hks::lua_State *luaVM) {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(lua/json);
+  DEFINE_COMPONENT_NAME(lua / json);
 
 public:
   void post_unpack() override {

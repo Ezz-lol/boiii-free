@@ -75,7 +75,7 @@ template <const uint8_t Count> inline void set_max_name_characters() {
 } // namespace
 
 struct component final : server_component {
-DEFINE_COMPONENT_NAME(core);
+  DEFINE_COMPONENT_NAME(core);
 
   void post_unpack() override {
     // Fix infinite loop

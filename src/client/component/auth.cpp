@@ -621,7 +621,7 @@ void CL_Disconnect_ClearStoredChallenge(game::LocalClientNum_t localClientNum,
 utils::hook::detour LiveUser_GetXuid_hook;
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(auth);
+  DEFINE_COMPONENT_NAME(auth);
 
   void post_unpack() override {
     scheduler::loop(evict_stale_challenges, scheduler::pipeline::async, 5min);

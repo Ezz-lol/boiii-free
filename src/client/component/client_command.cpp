@@ -37,7 +37,7 @@ void register_handler(std::string name, clientCommandHandler_t cmd) {
 }
 
 class component final : public server_component {
-DEFINE_COMPONENT_NAME(client_command);
+  DEFINE_COMPONENT_NAME(client_command);
 
 public:
   void post_unpack() override {

@@ -206,7 +206,7 @@ game::gfx::GfxImage *find_image(const char *name) {
 }
 
 class component final : public client_component {
-DEFINE_COMPONENT_NAME(mod_previews);
+  DEFINE_COMPONENT_NAME(mod_previews);
 
 public:
   void post_unpack() override {

@@ -73,7 +73,7 @@ game::EngineDependentDvar register_g_log_stub() {
 } // namespace
 
 class component final : public server_component {
-DEFINE_COMPONENT_NAME(game_log);
+  DEFINE_COMPONENT_NAME(game_log);
 
 public:
   void post_unpack() override {

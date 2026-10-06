@@ -439,7 +439,7 @@ utils::hook::detour Com_FPSLimit_hook;
 } // namespace
 
 class component final : public client_component {
-DEFINE_COMPONENT_NAME(client_patches);
+  DEFINE_COMPONENT_NAME(client_patches);
 
 public:
   void post_unpack() override {

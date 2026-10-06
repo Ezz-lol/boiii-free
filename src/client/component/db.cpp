@@ -76,7 +76,7 @@ maptable::MapTable *Com_GetMapTable_Safe(const char *mapTableName) {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(db);
+  DEFINE_COMPONENT_NAME(db);
 
 public:
   void post_unpack() override {

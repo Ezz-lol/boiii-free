@@ -150,7 +150,7 @@ inline void handle_invalid_mt_allocs() {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(scrvar);
+  DEFINE_COMPONENT_NAME(scrvar);
 
 public:
   void post_unpack() override {

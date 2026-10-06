@@ -273,7 +273,7 @@ void disable_unused_asset_loads() {
 } // namespace
 
 struct component final : server_component {
-DEFINE_COMPONENT_NAME(networking);
+  DEFINE_COMPONENT_NAME(networking);
 
   void post_unpack() override {
 

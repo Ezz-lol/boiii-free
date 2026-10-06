@@ -32,7 +32,7 @@ void override(const std::string &key, const std::string &value) {
 }
 
 class component final : public client_component {
-DEFINE_COMPONENT_NAME(localized_strings);
+  DEFINE_COMPONENT_NAME(localized_strings);
 
 public:
   void post_unpack() override {

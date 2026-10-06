@@ -1576,7 +1576,7 @@ void register_lua_libs() {
 } // namespace lua
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(console);
+  DEFINE_COMPONENT_NAME(console);
 
   component() {
     SetConsoleTitleA("EZZ BOIII V" SHORTVERSION);

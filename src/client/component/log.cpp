@@ -7,7 +7,7 @@
 namespace log {
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(log);
+  DEFINE_COMPONENT_NAME(log);
 
 public:
   void post_load() override { game::log::thread::startup(); }

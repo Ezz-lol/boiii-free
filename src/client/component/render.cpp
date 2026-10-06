@@ -58,7 +58,7 @@ void R_StoreWindowSettings_AllowPositiveViewScale(
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(render);
+  DEFINE_COMPONENT_NAME(render);
 
 public:
   void post_unpack() override {

@@ -118,18 +118,6 @@ std::vector<std::string> object_includes(const GSC_OBJ *obj) {
   return includes;
 }
 
-template <typename Callback>
-void for_each_import(const GSC_OBJ *obj, Callback &&callback) {
-  const uint8_t *cursor =
-      reinterpret_cast<const uint8_t *>(obj) + obj->imports_offset;
-  for (uint16_t i = 0; i < obj->imports_count; ++i) {
-    const GSC_IMPORT_ITEM *import =
-        reinterpret_cast<const GSC_IMPORT_ITEM *>(cursor);
-    callback(*import);
-    cursor += sizeof(GSC_IMPORT_ITEM) + import->num_address * sizeof(uint32_t);
-  }
-}
-
 std::vector<known_script> collect_scripts(const scriptInstance_t inst) {
   const std::string_view extension =
       inst == SCRIPTINSTANCE_CLIENT ? ".csc" : ".gsc";
@@ -893,7 +881,7 @@ void ignore_linker_message() {}
 } // namespace
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(script_error);
+  DEFINE_COMPONENT_NAME(script_error);
 
   void post_unpack() override {
     if (!game::is_legacy_client()) {

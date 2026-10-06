@@ -1134,7 +1134,7 @@ void extend_ugc_pools() {
 }
 
 class component final : public generic_component {
-DEFINE_COMPONENT_NAME(workshop);
+  DEFINE_COMPONENT_NAME(workshop);
 
 public:
   void post_unpack() override {

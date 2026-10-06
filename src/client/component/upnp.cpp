@@ -129,7 +129,7 @@ std::string external_endpoint() {
 }
 
 class component final : public client_component {
-DEFINE_COMPONENT_NAME(upnp);
+  DEFINE_COMPONENT_NAME(upnp);
 
 public:
   void pre_destroy() override { close_port(); }

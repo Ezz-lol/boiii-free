@@ -546,7 +546,7 @@ void initialize() {
 }
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(name);
+  DEFINE_COMPONENT_NAME(name);
 
   void post_load() override {
     if (game::is_client()) {

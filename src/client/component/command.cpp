@@ -224,7 +224,7 @@ size_t get_registered_command_count() {
 }
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(command);
+  DEFINE_COMPONENT_NAME(command);
 
   void post_unpack() override {
     // Disable whitelist
