@@ -72,6 +72,17 @@ CoD.LobbyButtons.FRIENDS_PARTY = {
   customId = "btnFriendsParty",
 }
 
+CoD.LobbyButtons.STEAM_STORE = {
+  stringRef = "MENU_STORE_CAPS",
+  action = function(self, element, controller, param, menu)
+    local storeRoot = Engine.CreateModel(Engine.GetModelForController(controller), "StoreRoot")
+    Engine.SetModelValue(Engine.CreateModel(storeRoot, "actionSource", true), "StoreButton")
+    Engine.SetModelValue(Engine.CreateModel(storeRoot, "storeSource", true), LobbyData:GetCurrentMenuTarget().name)
+    OpenOverlay(menu, "Store", controller)
+  end,
+  customId = "btnSteamStore",
+}
+
 CoD.LobbyButtons.MP_START_GAME = {
   stringRef = "MENU_START_GAME_CAPS",
   action = function(self, element, controller, param, menu)
