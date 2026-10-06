@@ -15,6 +15,7 @@
 
 #include "download_overlay.hpp"
 #include "fastdl.hpp"
+#include "network.hpp"
 #include "party.hpp"
 #include "scheduler.hpp"
 #include "steamcmd.hpp"
@@ -1015,8 +1016,8 @@ static std::string last_auto_reconnect_target;
 
 void com_error_missing_map_stub(const char *file, int line,
                                 game::errorParm code, const char *fmt, ...) {
-  const game::net::netadr_t target = party::get_connect_host();
-  if (target.type != game::net::NA_BAD) {
+  const game::net::netadr_t target = party::get_connected_server();
+  if (network::is_connectable_address(target)) {
     const char *addr_str =
         utils::string::va("%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b,
                           target.ipv4.c, target.ipv4.d, target.port);
@@ -1045,7 +1046,8 @@ void com_error_missing_map_stub(const char *file, int line,
         scheduler::main, 3s);
 
     game::com::Com_Error_(file, line, code, "%s",
-                          "Missing map! Reconnecting to download...");
+                          "You don't have this map. Reconnecting to download "
+                          "it...");
     return;
   }
 
