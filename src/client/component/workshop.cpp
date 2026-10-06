@@ -1134,9 +1134,7 @@ void extend_ugc_pools() {
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "workshop"; }
-#endif
+DEFINE_COMPONENT_NAME(workshop);
 
 public:
   void post_unpack() override {

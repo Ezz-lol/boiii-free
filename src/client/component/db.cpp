@@ -76,9 +76,7 @@ maptable::MapTable *Com_GetMapTable_Safe(const char *mapTableName) {
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "db"; }
-#endif
+DEFINE_COMPONENT_NAME(db);
 
 public:
   void post_unpack() override {

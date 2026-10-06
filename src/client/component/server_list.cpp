@@ -421,9 +421,7 @@ utils::concurrency::container<recent_list> &get_recent_servers() {
 }
 
 struct component final : client_component {
-#ifndef NDEBUG
-  std::string name() override { return "server_list"; }
-#endif
+DEFINE_COMPONENT_NAME(server_list);
 
   void post_unpack() override {
 

@@ -546,9 +546,7 @@ void initialize() {
 }
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "name"; }
-#endif
+DEFINE_COMPONENT_NAME(name);
 
   void post_load() override {
     if (game::is_client()) {

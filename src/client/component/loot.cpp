@@ -209,9 +209,7 @@ bool GScr_IsItemPurchasedForClientNum_AlwaysTrue(
 }; // namespace
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "loot"; }
-#endif
+DEFINE_COMPONENT_NAME(loot);
 
   void post_unpack() override {
     GScr_IsItemPurchasedForClientNum_hook.create(

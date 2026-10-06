@@ -26,9 +26,7 @@ HICON WINAPI load_icon_a_stub(HINSTANCE module, LPCSTR icon_name) {
 } // namespace
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "icon"; }
-#endif
+DEFINE_COMPONENT_NAME(icon);
 
   void post_load() override {
     load_icon_a_hook.create(LoadIconA, load_icon_a_stub);

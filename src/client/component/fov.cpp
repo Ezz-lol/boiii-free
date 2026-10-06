@@ -25,9 +25,7 @@ void cg_calc_fov_stub(const game::LocalClientNum_t local_client_num,
 } // namespace
 
 struct component final : client_component {
-#ifndef NDEBUG
-  std::string name() override { return "fov"; }
-#endif
+DEFINE_COMPONENT_NAME(fov);
 
   void post_unpack() override {
     // Hook CG_CalcFOVfromLens within CG_CalcFov

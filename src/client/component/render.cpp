@@ -58,9 +58,7 @@ void R_StoreWindowSettings_AllowPositiveViewScale(
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "render"; }
-#endif
+DEFINE_COMPONENT_NAME(render);
 
 public:
   void post_unpack() override {

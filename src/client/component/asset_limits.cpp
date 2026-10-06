@@ -271,9 +271,7 @@ utils::hook::detour DB_AssetPoolAlloc_hook;
 } // namespace
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "asset_limits"; }
-#endif
+DEFINE_COMPONENT_NAME(asset_limits);
 
 public:
   void post_unpack() override {

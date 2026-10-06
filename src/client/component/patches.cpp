@@ -268,9 +268,7 @@ inline void patch_fs_functions() {
 }
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "patches"; }
-#endif
+DEFINE_COMPONENT_NAME(patches);
 
   void post_unpack() override {
     G_RegisterSoundWait_hook.create(game::G_RegisterSoundWait.get(),

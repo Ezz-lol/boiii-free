@@ -1088,9 +1088,7 @@ void show_fatal_error(const std::string &message) {
 }
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "exception"; }
-#endif
+DEFINE_COMPONENT_NAME(exception);
 
   component() {
     main_thread_id = GetCurrentThreadId();

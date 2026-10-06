@@ -400,9 +400,7 @@ luaReturnCount_e list_files(lua_State *luaVM) {
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "lua/fileio"; }
-#endif
+DEFINE_COMPONENT_NAME(lua/fileio);
 
 public:
   void post_unpack() override {

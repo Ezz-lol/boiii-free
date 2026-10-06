@@ -471,9 +471,7 @@ inline void flush_exec_all() {
 }
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "gsc/vm"; }
-#endif
+DEFINE_COMPONENT_NAME(gsc/vm);
 
   void post_unpack() override { flush_exec_all(); }
 };

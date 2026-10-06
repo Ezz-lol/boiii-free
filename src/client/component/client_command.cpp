@@ -37,9 +37,7 @@ void register_handler(std::string name, clientCommandHandler_t cmd) {
 }
 
 class component final : public server_component {
-#ifndef NDEBUG
-  std::string name() override { return "client_command"; }
-#endif
+DEFINE_COMPONENT_NAME(client_command);
 
 public:
   void post_unpack() override {

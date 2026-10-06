@@ -117,9 +117,7 @@ void search_gamesettings_files_on_disk() {
 } // namespace
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "game_settings"; }
-#endif
+DEFINE_COMPONENT_NAME(game_settings);
 
   void post_unpack() override {
     search_gamesettings_files_on_disk();

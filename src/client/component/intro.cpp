@@ -32,9 +32,7 @@ void cinematic_start_playback_stub(const char *name, const char *key,
 } // namespace
 
 class component final : public client_component {
-#ifndef NDEBUG
-  std::string name() override { return "intro"; }
-#endif
+DEFINE_COMPONENT_NAME(intro);
 
 public:
   void post_unpack() override {

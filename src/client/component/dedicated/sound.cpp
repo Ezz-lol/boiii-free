@@ -221,9 +221,7 @@ inline void enable_sound() {
 } // namespace
 
 struct component final : server_component {
-#ifndef NDEBUG
-  std::string name() override { return "sound"; }
-#endif
+DEFINE_COMPONENT_NAME(sound);
 
   void post_unpack() override {
     if (!utils::flags::has_flag("nosnd")) {

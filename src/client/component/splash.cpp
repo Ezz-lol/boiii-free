@@ -136,9 +136,7 @@ void draw() {
 } // namespace
 
 struct component final : client_component {
-#ifndef NDEBUG
-  std::string name() override { return "splash"; }
-#endif
+DEFINE_COMPONENT_NAME(splash);
 
   component() {
     image = load_splash_image();

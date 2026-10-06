@@ -364,9 +364,7 @@ int32_t net_sendpacket_stub(const game::net::netsrc_t sock,
 }
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "network"; }
-#endif
+DEFINE_COMPONENT_NAME(network);
 
   void post_unpack() override {
     scheduler::loop(game::fragment_handler::clean, scheduler::async, 5s);

@@ -501,9 +501,7 @@ bool show_confirmation_blocking(const std::string &title,
 }
 
 struct component final : client_component {
-#ifndef NDEBUG
-  std::string name() override { return "download_overlay"; }
-#endif
+DEFINE_COMPONENT_NAME(download_overlay);
 
   void post_unpack() override {
     scheduler::once(setup_present_hook, scheduler::async);

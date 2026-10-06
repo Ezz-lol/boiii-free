@@ -213,9 +213,7 @@ void NitrousVehicle_pause_insentient_physics(NitrousVehicle *self,
 } // namespace
 
 struct component final : server_component {
-#ifndef NDEBUG
-  std::string name() override { return "vehicle"; }
-#endif
+DEFINE_COMPONENT_NAME(vehicle);
 
   void post_unpack() override {
     enable_client_game_pools();

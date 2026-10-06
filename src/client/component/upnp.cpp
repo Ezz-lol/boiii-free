@@ -129,9 +129,7 @@ std::string external_endpoint() {
 }
 
 class component final : public client_component {
-#ifndef NDEBUG
-  std::string name() override { return "upnp"; }
-#endif
+DEFINE_COMPONENT_NAME(upnp);
 
 public:
   void pre_destroy() override { close_port(); }

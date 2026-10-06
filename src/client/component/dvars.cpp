@@ -154,9 +154,7 @@ void read_archive_dvars() {
 } // namespace
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "dvars"; }
-#endif
+DEFINE_COMPONENT_NAME(dvars);
 
 public:
   void post_unpack() override {

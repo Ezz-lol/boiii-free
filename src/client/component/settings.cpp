@@ -23,9 +23,7 @@ void apply_flags() {
 } // namespace
 
 class component final : public client_component {
-#ifndef NDEBUG
-  std::string name() override { return "settings"; }
-#endif
+DEFINE_COMPONENT_NAME(settings);
 
 public:
   void post_unpack() override {

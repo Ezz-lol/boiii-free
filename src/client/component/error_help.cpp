@@ -403,9 +403,7 @@ std::string explain_module(const std::filesystem::path &module_path) {
 }
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "error_help"; }
-#endif
+DEFINE_COMPONENT_NAME(error_help);
 
   void post_unpack() override {
     if (game::is_legacy_client()) {

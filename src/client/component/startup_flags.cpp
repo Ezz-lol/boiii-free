@@ -24,9 +24,7 @@ void apply_startup_flags() {
 } // namespace
 
 class component final : public client_component {
-#ifndef NDEBUG
-  std::string name() override { return "startup_flags"; }
-#endif
+DEFINE_COMPONENT_NAME(startup_flags);
 
 public:
   void post_unpack() override {

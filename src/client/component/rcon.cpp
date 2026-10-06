@@ -89,9 +89,7 @@ void rcon_handler(const game::net::netadr_t &target,
 } // namespace
 
 struct component final : server_component {
-#ifndef NDEBUG
-  std::string name() override { return "rcon"; }
-#endif
+DEFINE_COMPONENT_NAME(rcon);
 
   void post_unpack() override {
     network::on("rcon", rcon_handler);

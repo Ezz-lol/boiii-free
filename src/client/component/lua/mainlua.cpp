@@ -123,9 +123,7 @@ luaReturnCount_e get_xuid(lua_State *luaVM) {
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "lua/mainlua"; }
-#endif
+DEFINE_COMPONENT_NAME(lua/mainlua);
 
 public:
   void post_unpack() override {

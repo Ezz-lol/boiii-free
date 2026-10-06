@@ -339,9 +339,7 @@ luaReturnCount_e write(hks::lua_State *luaVM) {
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "lua/json"; }
-#endif
+DEFINE_COMPONENT_NAME(lua/json);
 
 public:
   void post_unpack() override {

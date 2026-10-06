@@ -34,9 +34,7 @@ void add_console(const std::string &name, const callback &cmd) {
 }
 
 class component final : public server_component {
-#ifndef NDEBUG
-  std::string name() override { return "console_command"; }
-#endif
+DEFINE_COMPONENT_NAME(console_command);
 
 public:
   void post_unpack() override {

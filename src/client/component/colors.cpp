@@ -135,9 +135,7 @@ bool cl_get_client_name_stub(const int local_client_num, const int index,
 } // namespace
 
 struct component final : client_component {
-#ifndef NDEBUG
-  std::string name() override { return "colors"; }
-#endif
+DEFINE_COMPONENT_NAME(colors);
 
   void post_unpack() override {
     patch_color<1>(255, 49, 49);  // 1  - Red

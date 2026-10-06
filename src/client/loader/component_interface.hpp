@@ -1,6 +1,7 @@
 #pragma once
 
-#include <string>
+#include "macros.hpp"
+#include <string_view>
 
 enum class component_priority {
   min = 0,
@@ -27,8 +28,12 @@ struct generic_component {
   static constexpr component_type type = component_type::any;
 
 #ifndef NDEBUG
-  virtual std::string name() { return "generic"; }
+  virtual const std::string_view &name() {
+    static constexpr std::string_view name = "generic";
+    return name;
+  }
 #endif
+
   virtual ~generic_component() = default;
 
   virtual void post_load() {}
@@ -43,17 +48,13 @@ struct generic_component {
 };
 
 struct client_component : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "generic_client"; }
-#endif
+  DEFINE_COMPONENT_NAME(generic_client);
 
   static constexpr component_type type = component_type::client;
 };
 
 struct server_component : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "generic_server"; }
-#endif
+  DEFINE_COMPONENT_NAME(generic_server);
 
   static constexpr component_type type = component_type::server;
 };

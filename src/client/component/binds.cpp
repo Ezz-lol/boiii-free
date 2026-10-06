@@ -297,9 +297,7 @@ void init_hooks_and_load() {
 } // namespace
 
 struct component final : client_component {
-#ifndef NDEBUG
-  std::string name() override { return "binds"; }
-#endif
+DEFINE_COMPONENT_NAME(binds);
 
   void post_unpack() override {
     command::add("binds_loaded", [] {

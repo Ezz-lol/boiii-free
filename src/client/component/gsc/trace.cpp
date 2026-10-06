@@ -5735,9 +5735,7 @@ inline void log_all_builtin_calls() {
 }
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "gsc/trace"; }
-#endif
+DEFINE_COMPONENT_NAME(gsc/trace);
 
   void post_unpack() override {
     if (utils::flags::has_flag("scr-trace")) {

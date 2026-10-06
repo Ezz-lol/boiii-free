@@ -273,9 +273,7 @@ void disable_unused_asset_loads() {
 } // namespace
 
 struct component final : server_component {
-#ifndef NDEBUG
-  std::string name() override { return "networking"; }
-#endif
+DEFINE_COMPONENT_NAME(networking);
 
   void post_unpack() override {
 

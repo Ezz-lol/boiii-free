@@ -73,9 +73,7 @@ inline void detect_instability() {
 } // namespace
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "gsc/debug"; }
-#endif
+DEFINE_COMPONENT_NAME(gsc/debug);
 
   void post_unpack() override {
     if (game::scr_debug()) {

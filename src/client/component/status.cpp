@@ -29,9 +29,7 @@ void print_client_xuid(const game::consoleChannel_e channel,
 } // namespace
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "status"; }
-#endif
+DEFINE_COMPONENT_NAME(status);
 
   void post_unpack() override {
     // Patch the status command for test clients

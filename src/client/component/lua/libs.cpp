@@ -21,9 +21,7 @@ luaReturnCount_e lua_return_true(lua_State *s) {
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "lua/lualibs"; }
-#endif
+DEFINE_COMPONENT_NAME(lua/lualibs);
 
 public:
   void post_unpack() override {

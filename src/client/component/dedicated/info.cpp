@@ -46,9 +46,7 @@ void set_server_info_in_console_title() {
 } // namespace
 
 class component final : public server_component {
-#ifndef NDEBUG
-  std::string name() override { return "info"; }
-#endif
+DEFINE_COMPONENT_NAME(info);
 
 public:
   void post_unpack() override {

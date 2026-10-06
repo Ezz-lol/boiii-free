@@ -1552,9 +1552,7 @@ utils::hook::detour Scr_FindObjFileInfo_hook;
 utils::hook::detour Scr_GetFileAndLineNum_hook;
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "script"; }
-#endif
+DEFINE_COMPONENT_NAME(script);
 
   void post_unpack() override {
     // Return custom or overrided scripts if found

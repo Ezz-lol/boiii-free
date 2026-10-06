@@ -150,9 +150,7 @@ int format_bot_string(char *buffer, [[maybe_unused]] const char *format,
 } // namespace
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "bots"; }
-#endif
+DEFINE_COMPONENT_NAME(bots);
 
   void post_unpack() override {
     utils::hook::jump(game::select(0x141653B90, 0x141653B70, 0x1402732E0),

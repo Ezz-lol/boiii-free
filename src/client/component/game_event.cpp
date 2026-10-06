@@ -47,9 +47,7 @@ void on_g_shutdown_game(const game_event_cb callback) {
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "game_event"; }
-#endif
+DEFINE_COMPONENT_NAME(game_event);
 
 public:
   void post_unpack() override {

@@ -854,9 +854,7 @@ void refresh_friends(const std::vector<uint64_t> &steam_ids,
 }
 
 class component final : public client_component {
-#ifndef NDEBUG
-  std::string name() override { return "nat"; }
-#endif
+DEFINE_COMPONENT_NAME(nat);
 
 public:
   void post_unpack() override {

@@ -183,9 +183,7 @@ const char *get_client_name(const uint64_t xuid) {
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "chat"; }
-#endif
+DEFINE_COMPONENT_NAME(chat);
 
 public:
   void post_unpack() override {

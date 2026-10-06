@@ -1674,9 +1674,7 @@ void apply_exitlevel_hooks() {
 }
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "gsc/gsc_funcs"; }
-#endif
+DEFINE_COMPONENT_NAME(gsc/gsc_funcs);
 
   void post_unpack() override {
 

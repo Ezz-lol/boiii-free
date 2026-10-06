@@ -182,8 +182,7 @@ template <const bool Value> inline void sv_cheats_force() {
      protection on a dvar to be modified is checked and respected in internal
      setters.
      Global is named `dvar_cheats` in engine.
-     This is the one that GSC scripts can modify. If not for this hook,
-     anyway.
+     This is the one that GSC scripts can modify, if not for this hook.
   */
   {
     // Dvar_Init
@@ -264,9 +263,7 @@ bool return_false() { return false; }
 } // namespace
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "dvar_patches"; }
-#endif
+  DEFINE_COMPONENT_NAME(dvar_patches);
 
 public:
   void post_unpack() override {

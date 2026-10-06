@@ -759,9 +759,7 @@ NTSTATUS zw_terminate_process_stub(const HANDLE process_handle,
 }
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "arxan"; }
-#endif
+DEFINE_COMPONENT_NAME(arxan);
 
   void post_load() override {
 

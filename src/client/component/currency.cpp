@@ -1122,9 +1122,7 @@ bool set_currencies_maxed(ControllerIndex_t controller, bool maxed) {
 }
 
 struct component final : client_component {
-#ifndef NDEBUG
-  std::string name() override { return "currency"; }
-#endif
+DEFINE_COMPONENT_NAME(currency);
 
   void post_unpack() override {
     local_currency = game::register_dvar_bool(

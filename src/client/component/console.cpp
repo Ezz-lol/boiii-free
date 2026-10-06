@@ -1576,9 +1576,7 @@ void register_lua_libs() {
 } // namespace lua
 
 struct component final : generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "console"; }
-#endif
+DEFINE_COMPONENT_NAME(console);
 
   component() {
     SetConsoleTitleA("EZZ BOIII V" SHORTVERSION);

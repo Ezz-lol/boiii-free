@@ -53,9 +53,7 @@ void on_state_openlibs(const lua_state_cb callback) {
 }
 
 class component final : public generic_component {
-#ifndef NDEBUG
-  std::string name() override { return "lua_state"; }
-#endif
+DEFINE_COMPONENT_NAME(lua_state);
 
 public:
   void post_unpack() override {
