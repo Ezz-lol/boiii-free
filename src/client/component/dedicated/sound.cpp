@@ -221,7 +221,7 @@ inline void enable_sound() {
 } // namespace
 
 struct component final : server_component {
-  DEFINE_COMPONENT_NAME(sound);
+  DEFINE_COMPONENT_NAME("sound");
 
   void post_unpack() override {
     if (!utils::flags::has_flag("nosnd")) {

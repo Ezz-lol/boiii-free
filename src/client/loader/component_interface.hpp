@@ -48,13 +48,13 @@ struct generic_component {
 };
 
 struct client_component : generic_component {
-  DEFINE_COMPONENT_NAME(generic_client);
+  DEFINE_COMPONENT_NAME("generic_client");
 
   static constexpr component_type type = component_type::client;
 };
 
 struct server_component : generic_component {
-  DEFINE_COMPONENT_NAME(generic_server);
+  DEFINE_COMPONENT_NAME("generic_server");
 
   static constexpr component_type type = component_type::server;
 };

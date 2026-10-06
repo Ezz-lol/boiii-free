@@ -188,7 +188,7 @@ utils::hook::detour LiveAntiCheat_ConsoleDetailsReported_hook;
 utils::hook::detour LiveSteam_NotVacBanned_hook;
 
 class component final : public client_component {
-  DEFINE_COMPONENT_NAME(live);
+  DEFINE_COMPONENT_NAME("live");
 
 public:
   void post_unpack() override {

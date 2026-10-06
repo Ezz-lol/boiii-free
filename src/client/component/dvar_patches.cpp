@@ -263,7 +263,7 @@ bool return_false() { return false; }
 } // namespace
 
 class component final : public generic_component {
-  DEFINE_COMPONENT_NAME(dvar_patches);
+  DEFINE_COMPONENT_NAME("dvar_patches");
 
 public:
   void post_unpack() override {

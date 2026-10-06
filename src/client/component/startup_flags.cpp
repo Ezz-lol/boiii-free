@@ -24,7 +24,7 @@ void apply_startup_flags() {
 } // namespace
 
 class component final : public client_component {
-  DEFINE_COMPONENT_NAME(startup_flags);
+  DEFINE_COMPONENT_NAME("startup_flags");
 
 public:
   void post_unpack() override {

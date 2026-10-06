@@ -34,7 +34,7 @@ void add_console(const std::string &name, const callback &cmd) {
 }
 
 class component final : public server_component {
-  DEFINE_COMPONENT_NAME(console_command);
+  DEFINE_COMPONENT_NAME("console_command");
 
 public:
   void post_unpack() override {

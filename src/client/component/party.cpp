@@ -500,7 +500,7 @@ void clear_server_info() {
 }
 
 struct component final : client_component {
-  DEFINE_COMPONENT_NAME(party);
+  DEFINE_COMPONENT_NAME("party");
 
   void post_unpack() override {
     cl_connected_to_dedi =

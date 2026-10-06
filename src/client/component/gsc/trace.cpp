@@ -5735,7 +5735,7 @@ inline void log_all_builtin_calls() {
 }
 
 struct component final : generic_component {
-  DEFINE_COMPONENT_NAME(gsc / trace);
+  DEFINE_COMPONENT_NAME("gsc/trace");
 
   void post_unpack() override {
     if (utils::flags::has_flag("scr-trace")) {

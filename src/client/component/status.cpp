@@ -29,7 +29,7 @@ void print_client_xuid(const game::consoleChannel_e channel,
 } // namespace
 
 struct component final : generic_component {
-  DEFINE_COMPONENT_NAME(status);
+  DEFINE_COMPONENT_NAME("status");
 
   void post_unpack() override {
     // Patch the status command for test clients

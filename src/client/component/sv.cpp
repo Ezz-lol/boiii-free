@@ -99,7 +99,7 @@ game::sv::client_s *get_client(game::ClientNum_t clientNum) {
 }
 
 class component final : public generic_component {
-  DEFINE_COMPONENT_NAME(sv);
+  DEFINE_COMPONENT_NAME("sv");
 
 public:
   void post_unpack() override {

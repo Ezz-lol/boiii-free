@@ -75,7 +75,7 @@ luaReturnCount_e ping(lua_State *s) {
 }
 
 class component final : public generic_component {
-  DEFINE_COMPONENT_NAME(lua / axios);
+  DEFINE_COMPONENT_NAME("lua/axios");
 
 public:
   void post_unpack() override {

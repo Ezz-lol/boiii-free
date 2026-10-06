@@ -331,7 +331,7 @@ void evaluate_ownership_state(const ownership_state state) {
 } // namespace
 
 struct component final : client_component {
-  DEFINE_COMPONENT_NAME(steam_proxy);
+  DEFINE_COMPONENT_NAME("steam_proxy");
 
   void post_load() override {
     load_client();

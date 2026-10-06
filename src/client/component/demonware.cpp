@@ -373,7 +373,7 @@ const char *get_ffotd_name() { return "core_ffotd_tu32_593"; }
 } // namespace
 
 struct component final : generic_component {
-  DEFINE_COMPONENT_NAME(demonware);
+  DEFINE_COMPONENT_NAME("demonware");
 
   component() {
     udp_servers.create<stun_server>("stun.us.demonware.net");

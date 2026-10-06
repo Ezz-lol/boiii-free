@@ -881,7 +881,7 @@ void ignore_linker_message() {}
 } // namespace
 
 struct component final : generic_component {
-  DEFINE_COMPONENT_NAME(script_error);
+  DEFINE_COMPONENT_NAME("script_error");
 
   void post_unpack() override {
     if (!game::is_legacy_client()) {

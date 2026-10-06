@@ -183,7 +183,7 @@ const char *get_client_name(const uint64_t xuid) {
 }
 
 class component final : public generic_component {
-  DEFINE_COMPONENT_NAME(chat);
+  DEFINE_COMPONENT_NAME("chat");
 
 public:
   void post_unpack() override {

@@ -26,7 +26,7 @@ HICON WINAPI load_icon_a_stub(HINSTANCE module, LPCSTR icon_name) {
 } // namespace
 
 struct component final : generic_component {
-  DEFINE_COMPONENT_NAME(icon);
+  DEFINE_COMPONENT_NAME("icon");
 
   void post_load() override {
     load_icon_a_hook.create(LoadIconA, load_icon_a_stub);

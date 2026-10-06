@@ -11,7 +11,7 @@
 
 namespace plugins {
 struct component final : generic_component {
-  DEFINE_COMPONENT_NAME(plugins);
+  DEFINE_COMPONENT_NAME("plugins");
 
   component() {
     namespace fs = std::filesystem;

@@ -40,7 +40,7 @@ bool is_password_set() {
 }
 
 struct component final : generic_component {
-  DEFINE_COMPONENT_NAME(network_password);
+  DEFINE_COMPONENT_NAME("network_password");
 
   void post_unpack() override {
     scheduler::once(

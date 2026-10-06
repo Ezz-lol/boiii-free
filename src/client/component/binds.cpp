@@ -297,7 +297,7 @@ void init_hooks_and_load() {
 } // namespace
 
 struct component final : client_component {
-  DEFINE_COMPONENT_NAME(binds);
+  DEFINE_COMPONENT_NAME("binds");
 
   void post_unpack() override {
     command::add("binds_loaded", [] {

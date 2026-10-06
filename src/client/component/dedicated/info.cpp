@@ -46,7 +46,7 @@ void set_server_info_in_console_title() {
 } // namespace
 
 class component final : public server_component {
-  DEFINE_COMPONENT_NAME(info);
+  DEFINE_COMPONENT_NAME("info");
 
 public:
   void post_unpack() override {

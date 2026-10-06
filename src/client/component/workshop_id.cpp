@@ -195,7 +195,7 @@ void get_map_id_from_json() {
 } // namespace
 
 class component final : public generic_component {
-  DEFINE_COMPONENT_NAME(workshop_id);
+  DEFINE_COMPONENT_NAME("workshop_id");
 
 public:
   void pre_destroy() override {

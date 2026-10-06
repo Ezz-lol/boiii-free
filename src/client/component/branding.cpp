@@ -43,7 +43,7 @@ const char *get_ingame_console_prefix_stub() { return "EZZ> "; }
 } // namespace
 
 struct component final : client_component {
-  DEFINE_COMPONENT_NAME(branding);
+  DEFINE_COMPONENT_NAME("branding");
 
   void post_unpack() override {
     if (!utils::flags::has_flag("nobranding")) {

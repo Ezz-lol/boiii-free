@@ -2752,7 +2752,7 @@ luaReturnCount_e Lua_CoD_LuaCall_GetHeroName_Safe(lua_State *luaVM) {
 }
 
 class component final : public generic_component {
-  DEFINE_COMPONENT_NAME(lua / ui_scripting);
+  DEFINE_COMPONENT_NAME("lua/ui_scripting");
 
 public:
   void post_unpack() override {

@@ -706,7 +706,7 @@ game::XUID find_browser_route(const std::string &address) {
 }
 
 struct component final : client_component {
-  DEFINE_COMPONENT_NAME(friends);
+  DEFINE_COMPONENT_NAME("friends");
 
   void post_unpack() override {
     reload_from_disk();

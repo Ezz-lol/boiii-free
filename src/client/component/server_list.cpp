@@ -421,7 +421,7 @@ utils::concurrency::container<recent_list> &get_recent_servers() {
 }
 
 struct component final : client_component {
-  DEFINE_COMPONENT_NAME(server_list);
+  DEFINE_COMPONENT_NAME("server_list");
 
   void post_unpack() override {
 

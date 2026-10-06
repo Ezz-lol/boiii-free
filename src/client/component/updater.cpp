@@ -56,7 +56,7 @@ void update(bool force) {
 }
 
 class component final : public generic_component {
-  DEFINE_COMPONENT_NAME(updater);
+  DEFINE_COMPONENT_NAME("updater");
 
 public:
   component() {
