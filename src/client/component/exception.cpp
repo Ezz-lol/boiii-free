@@ -42,12 +42,11 @@ namespace {
 void exception_log(bool err, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  int32_t buf_len = vsnprintf(nullptr, 0, fmt, args);
-
-  std::string buffer;
-  buffer.resize(buf_len + 1);
-  va_start(args, fmt);
-  vsnprintf(buffer.data(), buffer.size(), fmt, args);
+  va_list measure;
+  va_copy(measure, args);
+  std::string buffer(std::max(vsnprintf(nullptr, 0, fmt, measure), 0), '\0');
+  va_end(measure);
+  vsnprintf(buffer.data(), buffer.size() + 1, fmt, args);
   va_end(args);
 
   std::FILE *io = err ? stderr : stdout;
