@@ -275,7 +275,7 @@ void Hunk_UserFree_ResetGlobal([[maybe_unused]] game::hunk::HunkUser *user,
   de/encryption, we cannot feasibly access these globals in boiii.
 
   To circumvent this, rather than allocate these pools at a varying address on
-  the heap, we can instead statically allocate these pool and return the address
+  the heap, we can instead statically allocate each pool and return the address
   to our allocation where the pool would be dynamically allocated in the base
   game.
 
@@ -353,14 +353,14 @@ int32_t Dvar_GetInt_NonZero(game::EngineDependentDvar dvar) {
   return val ? val : NonZeroVal;
 }
 
-utils::hook::detour TaskManager2_ProcessDemonwareTask_Safe_hook;
+utils::hook::detour TaskManager2_ProcessDemonwareTask_hook;
 void TaskManager2_ProcessDemonwareTask_Safe(game::dw::TaskRecord *task) {
   if (task != nullptr &&
       (task->state != game::dw::TaskState::INPROGRESS ||
        (task->remoteTask.m_ptr != nullptr &&
         task->remoteTask.m_ptr->vtbl != nullptr &&
         task->remoteTask.m_ptr->vtbl->checkTimeout != nullptr))) {
-    TaskManager2_ProcessDemonwareTask_Safe_hook.invoke(task);
+    TaskManager2_ProcessDemonwareTask_hook.invoke(task);
   }
 }
 
@@ -387,7 +387,7 @@ void fix_mapswitch_crashes() {
       reinterpret_cast<void *>(
           Dvar_GetInt_NonZero<NETCHAN_EMERGENCYFREEPERCENT_DEFAULT_VAL>));
 
-  TaskManager2_ProcessDemonwareTask_Safe_hook.create(
+  TaskManager2_ProcessDemonwareTask_hook.create(
       game::dw::task::TaskManager2_ProcessDemonwareTask.get(),
       TaskManager2_ProcessDemonwareTask_Safe);
 }

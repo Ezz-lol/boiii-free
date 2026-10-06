@@ -123,11 +123,9 @@ EngineDependentDvarMut register_dvar_string(const char *dvar_name,
 }
 template <DvarFlagLike T>
 void dvar_add_flags(EngineDependentDvarMut dvar, const T flags) {
-  if (!dvar) {
-    return;
+  if (dvar) {
+    dvar.flags() |= flags;
   }
-
-  dvar.flags() |= flags;
 }
 template <DvarFlagLike T>
 void dvar_add_flags(const char *dvar_name, const T flags) {
@@ -140,11 +138,9 @@ void dvar_add_flags(const char *dvar_name, const T flags) {
 
 template <DvarFlagLike T>
 void dvar_set_flags(EngineDependentDvarMut dvar, const T flags) {
-  if (!dvar) {
-    return;
+  if (dvar) {
+    dvar.flags().set(flags);
   }
-
-  dvar.flags().set(flags);
 }
 
 template <DvarFlagLike T>
@@ -158,12 +154,9 @@ void dvar_set_flags(const char *dvar_name, const T flags) {
 
 template <DvarFlagLike T>
 void dvar_remove_flags(EngineDependentDvarMut dvar, const T flags) {
-
-  if (!dvar) {
-    return;
+  if (dvar) {
+    dvar.flags() &= ~flags;
   }
-
-  dvar.flags() &= ~flags;
 }
 
 template <DvarFlagLike T>
@@ -334,10 +327,10 @@ template <typename E>
 concept EnumType = std::is_enum_v<E>;
 
 template <EnumType T, const T MinValue, const T MaxValue>
-inline constexpr bool valid(T enum_val) {
+inline constexpr bool valid(const T enum_val) {
   using Underlying = std::underlying_type_t<T>;
 
-  Underlying casted = static_cast<Underlying>(enum_val);
+  const Underlying casted = static_cast<Underlying>(enum_val);
   return casted >= static_cast<Underlying>(MinValue) &&
          casted < static_cast<Underlying>(MaxValue);
 }
@@ -368,11 +361,7 @@ template <typename T>
 inline level::gentity_t *client_ent(T index) {
   level::gentity_pool *pool = get_g_entities();
   ClientNum_t clientNum = static_cast<game::ClientNum_t>(index);
-  if (valid_client_num(clientNum)) {
-    return &pool->pool[clientNum];
-  }
-
-  return nullptr;
+  return valid_client_num(clientNum) ? &pool->pool[clientNum] : nullptr;
 }
 } // namespace level
 

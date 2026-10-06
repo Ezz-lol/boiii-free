@@ -408,6 +408,7 @@ DEP_INCLUDE_PATHS=(
 	"deps/zstd/lib"
 	"deps/brotli/c/include"
 	"deps/gtl/include"
+	"deps/hksc/src"
 )
 
 NUM_DEP_INCLUDES="${#DEP_INCLUDE_PATHS[@]}"
@@ -431,7 +432,7 @@ clangd_include_flags() {
 		echo "$(inc_path_flag "${DEP_INCLUDE_PATHS[$dep_inc_idx]}"),"
 	done
 
-	echo "$(inc_path_flag "${DEP_INCLUDE_PATHS[$((NUM_DEP_INCLUDES - 1))]}")"
+	inc_path_flag "${DEP_INCLUDE_PATHS[$((NUM_DEP_INCLUDES - 1))]}"
 
 }
 
@@ -749,7 +750,6 @@ BUILD_DEPS=(
 )
 
 if tidy; then
-
 	if ! cross_env \
 		clang-tidy "${EXEC_ARGS[@]}" -- \
 		-I"${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" \

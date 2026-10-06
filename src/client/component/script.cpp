@@ -2,7 +2,7 @@
 
 #include "script.hpp"
 
-#include "structs/concurrent.hpp"
+#include <structs/concurrent.hpp>
 
 #include <component/dump.hpp>
 #include <component/game_event.hpp>

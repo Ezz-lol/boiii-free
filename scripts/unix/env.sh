@@ -265,7 +265,8 @@ chdir() {
 		shift
 	done
 
-	local init_pwd="$(pwd)"
+	local init_pwd
+	init_pwd="$(pwd)"
 
 	if ! cd "$path"; then
 		return 1
@@ -363,7 +364,8 @@ lnrs() {
 		link_name="$(basename "$link_path")"
 	fi
 
-	local rel_path="$(relative_path "$link_dir" "$target")"
+	local rel_path
+	rel_path="$(relative_path "$link_dir" "$target")"
 
 	chdir "$link_dir" \
 		ln -s "$rel_path" "$link_name"
@@ -377,7 +379,8 @@ is_gnu() {
 	local application="$1"
 
 	if [ -n "$application" ] && have_application "$application"; then
-		local version_output="$("$application" --version 2>&1 || true)"
+		local version_output
+		version_output="$("$application" --version 2>&1 || true)"
 		version_output="$(to_lowercase "$version_output")"
 		if [[ "$version_output" == *"gnu"* ]] || [[ "$version_output" == *"free software foundation"* ]]; then
 			return 0
@@ -400,7 +403,8 @@ host_triple() {
 }
 
 tree_depth() {
-	local target_dir="$(normalize_path "${1:-.}")"
+	local target_dir
+	target_dir="$(normalize_path "${1:-.}")"
 
 	# Ensure the target is a valid directory
 	if [ ! -d "$target_dir" ]; then
