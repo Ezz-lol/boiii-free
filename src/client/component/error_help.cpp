@@ -213,6 +213,16 @@ constexpr char HELP_GAME_MISMATCH[] =
     "^1Your game and the server are not running the same mod or "
     "version.\n^3Fix: ^7Load the same mod as the server (or none), and make "
     "sure both are up to date.";
+constexpr char HELP_CONFIGSTRING_MISMATCH[] =
+    "^1Your game and the server disagree about the match data (models, "
+    "effects or settings).\n^3Fix: ^7Your game and the server are probably "
+    "not on the same BOIII version or mod files. Update BOIII, load the same "
+    "mod as the server, or join another server.";
+constexpr char HELP_RELIABLE_CYCLED_OUT[] =
+    "^1The server sent updates faster than your game could confirm them, so "
+    "the connection fell out of sync.\n^3Fix: ^7This is usually a lag spike or "
+    "a server script/mod sending too many updates at once. Join again. If it "
+    "keeps happening on this server, the server or its mods are the cause.";
 constexpr char HELP_MISSING_MAP[] =
     "^1You do not have the map this server is running.\n^3Fix: ^7Download it "
     "from the Steam Workshop or the launcher's Workshop tab, then join again.";
@@ -293,8 +303,26 @@ void Com_Error_ServerTimeout(const char *file, const int32_t line,
   Com_Error_Explained(file, line, code, explain_server_timeout(), fmt);
 }
 
-void Com_Error_MissingBsp(const char *, const int32_t, const game::errorParm,
-                          const char *fmt, const char *map) {
+void Com_Error_MissingBsp(const char *file, const int32_t line,
+                          const game::errorParm code, const char *fmt,
+                          const char *map) {
+  if (std::string_view(map).find("core_frontend") == std::string_view::npos) {
+    const std::string name = std::filesystem::path(map).stem().string();
+    Com_Error_Explained(
+        file, line, code,
+        std::filesystem::exists(std::format("zone/{}.ff", name))
+            ? std::format("^1The server changed to '{}' while you were "
+                          "joining, so your game loaded the wrong map.\n^3Fix: "
+                          "^7Join the server again.",
+                          name)
+            : std::format("^1You don't have the map '{}' installed.\n^3Fix: "
+                          "^7Install the DLC or Workshop map it comes from, or "
+                          "join another server.",
+                          name),
+        fmt, map);
+    return;
+  }
+
   printf("[Com][Error] %s\n", utils::string::va(unprefixed(fmt).c_str(), map));
   scheduler::once(
       [] {
@@ -387,6 +415,12 @@ struct component final : generic_component {
     if (game::is_client()) {
       utils::hook::set<uint8_t>(0x1420EBA93_g, 0xEB);
       utils::hook::jump(0x14135CAB9_g, Com_Error_ServerTimeout);
+      utils::hook::jump(0x142245108_g,
+                        static_cast<void (*)(const char *, int32_t,
+                                             game::errorParm, const char *)>(
+                            Com_Error_WithHelp<HELP_CONFIGSTRING_MISMATCH>));
+      hook_calls({0x14131FCBD}, {},
+                 Com_Error_WithHelp<HELP_RELIABLE_CYCLED_OUT>);
     }
 
     hook_calls({0x1414251A9}, {0x1401DA2BE}, Com_Error_ZoneNotFound);
