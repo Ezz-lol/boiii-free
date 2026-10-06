@@ -10,6 +10,7 @@
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
+#include <utils/nt.hpp>
 #include <utils/string.hpp>
 
 #include <str.hpp>
@@ -74,7 +75,9 @@ std::vector<BotName> load_bots_names() {
 
   std::string buffer;
   std::vector<BotName> bot_names;
-  if (utils::io::read_file("boiii/bots.txt", &buffer) && !buffer.empty()) {
+  if (utils::io::read_file(utils::nt::library{}.get_folder() / "boiii/bots.txt",
+                           &buffer) &&
+      !buffer.empty()) {
     std::vector<std::string> data = utils::string::split(buffer, '\n');
     for (std::string &entry : data) {
       utils::string::replace(entry, "\r", "");
@@ -151,7 +154,7 @@ int format_bot_string(char *buffer, [[maybe_unused]] const char *format,
 } // namespace
 
 struct component final : generic_component {
-DEFINE_COMPONENT_NAME(bots);
+  DEFINE_COMPONENT_NAME(bots);
 
   void post_unpack() override {
     utils::hook::jump(game::select(0x141653B90, 0x141653B70, 0x1402732E0),
