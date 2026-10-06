@@ -323,23 +323,23 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
 }
 
 void UGC_SetMapPreviewImageByPublisherId_Impl(const char *publisherId) {
+  const OptionalWorkshopDataRef usermap =
+      publisherId ? usermapsPool.find([publisherId](WorkshopData &usermap) {
+        return strcmp(usermap.publisherId, publisherId) == 0 ||
+               strcmp(usermap.internalName, publisherId) == 0;
+      })
+                  : std::nullopt;
+  if (!usermap.has_value()) {
+    return;
+  }
 
   gfx::GfxImage *previewImage =
       db::xasset::DB_FindXAssetHeader(db::xasset::XAssetType::IMAGE,
                                       "img_t7_mod_preview", 1, -1)
           .image;
   if (previewImage) {
-    char pathBuf[272];
-    OptionalWorkshopDataRef usermap = UGC_GetUsermapByPublisherId(publisherId);
-    if (usermap.has_value() && usermap->get().absolutePathZoneFiles[0]) {
-      snprintf(pathBuf, sizeof(pathBuf), "%s/%s/%s%s",
-               usermap->get().absolutePathZoneFiles, "", "previewimage",
-               ".png");
-    } else {
-      snprintf(pathBuf, sizeof(pathBuf), "%s/%s/%s/%s/%s%s", sys::Sys_Cwd(),
-               "usermaps", publisherId, "", "previewimage", ".png");
-    }
-    gfx::GfxTexture texture = gfx::Gfx_LoadTextureFromPng(pathBuf);
+    gfx::GfxTexture texture = gfx::Gfx_LoadTextureFromPng(utils::string::va(
+        "%s/previewimage.png", usermap->get().absolutePathZoneFiles));
 
     const bool is_client = game::is_client();
     if (is_client) {
