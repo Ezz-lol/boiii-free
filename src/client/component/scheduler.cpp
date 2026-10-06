@@ -67,7 +67,7 @@ private:
   }
 };
 
-volatile bool kill = false;
+static std::atomic_bool kill = false;
 std::thread async_thread;
 task_pipeline pipelines[count];
 
@@ -132,12 +132,15 @@ void once(const std::function<void()> &callback, const pipeline type,
 namespace scheduler {
 struct component final : generic_component {
 #ifndef NDEBUG
-  std::string name() override { return "scheduler"; }
+  const std::string_view &name() override {
+    static constexpr std::string_view name = "scheduler";
+    return name;
+  }
 #endif
 
   void post_load() override {
     async_thread = utils::thread::create_named_thread("Async Scheduler", []() {
-      while (!kill) {
+      while (!kill.load(std::memory_order_acquire)) {
         execute(async);
         std::this_thread::sleep_for(10ms);
       }
@@ -145,7 +148,7 @@ struct component final : generic_component {
   }
 
   void post_unpack() override {
-    if (!game::is_server()) {
+    if (game::is_client()) {
       r_end_frame_hook.create(game::snd::SND_EndFrame, r_end_frame_stub);
     }
 
@@ -156,7 +159,7 @@ struct component final : generic_component {
   }
 
   void pre_destroy() override {
-    kill = true;
+    kill.store(true, std::memory_order_release);
     if (async_thread.joinable()) {
       async_thread.join();
     }

@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include <game/game.hpp>
+#include <game/utils.hpp>
 
 #include <component/command.hpp>
 #include <component/getinfo.hpp>
@@ -15,13 +16,14 @@
 
 namespace bots {
 namespace {
-constexpr const char bot_format_string[] =
+constexpr const char BOT_CONNECT_PACKET_INFOSTRING_FMT[] =
     "connect "
     "\"\\invited\\1\\cg_predictItems\\1\\cl_"
     "anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\rate\\"
     "5000\\name\\%s\\clanAbbrev\\%s\\xuid\\%s\\xnaddr\\%"
     "s\\natType\\2\\protocol\\%d\\netfieldchk\\%d\\sessionmode\\%s\\qport\\%"
     "d\"";
+constexpr char DEFAULT_BOT_CLAN_ABBREV[] = "3arc";
 
 struct BotName {
   game::playerName_t name;
@@ -71,36 +73,34 @@ std::vector<BotName> load_bots_names() {
                                                  {"TheLegend27", "GOW"}};
 
   std::string buffer;
-  if (!utils::io::read_file("boiii/bots.txt", &buffer) || buffer.empty()) {
-    return std::vector(std::begin(DEFAULT_BOT_NAMES),
-                       std::end(DEFAULT_BOT_NAMES));
-  }
-
   std::vector<BotName> bot_names;
-  std::vector<std::string> data = utils::string::split(buffer, '\n');
-  for (std::string &entry : data) {
-    utils::string::replace(entry, "\r", "");
-    utils::string::trim(entry);
+  if (utils::io::read_file("boiii/bots.txt", &buffer) && !buffer.empty()) {
+    std::vector<std::string> data = utils::string::split(buffer, '\n');
+    for (std::string &entry : data) {
+      utils::string::replace(entry, "\r", "");
+      utils::string::trim(entry);
 
-    if (!entry.empty()) {
-      std::string clan_abbrev;
-      // Check if there is a clan tag
-      const size_t pos = entry.find(',');
-      if (pos != std::string::npos) {
-        // Only start copying over from non-null characters (otherwise it can be
-        // "<=")
-        if ((pos + 1) < entry.size()) {
-          clan_abbrev = entry.substr(pos + 1);
+      if (!entry.empty()) {
+        std::string clan_abbrev;
+        // Check if there is a clan tag
+        const size_t pos = entry.find(',');
+        if (pos != std::string::npos) {
+          // Only start copying over from non-null characters (otherwise it can
+          // be
+          // "<=")
+          if ((pos + 1) < entry.size()) {
+            clan_abbrev = entry.substr(pos + 1);
+          }
+
+          entry = entry.substr(0, pos);
         }
 
-        entry = entry.substr(0, pos);
+        BotName name;
+        strscpy(name.name, entry);
+        strscpy(name.clan_abbrev, clan_abbrev);
+
+        bot_names.emplace_back(name);
       }
-
-      BotName name;
-      strscpy(name.name, entry);
-      strscpy(name.clan_abbrev, clan_abbrev);
-
-      bot_names.emplace_back(name);
     }
   }
 
@@ -136,7 +136,7 @@ const char *find_clan_name(const std::string &needle) {
     }
   }
 
-  return "3arc";
+  return DEFAULT_BOT_CLAN_ABBREV;
 }
 
 int format_bot_string(char *buffer, [[maybe_unused]] const char *format,
@@ -144,8 +144,9 @@ int format_bot_string(char *buffer, [[maybe_unused]] const char *format,
                       int protocol, int net_field_chk, const char *session_mode,
                       int qport) {
 
-  return sprintf_s(buffer, 1024, bot_format_string, name, find_clan_name(name),
-                   xuid, xnaddr, protocol, net_field_chk, session_mode, qport);
+  return sprintf_s(buffer, 0x400, BOT_CONNECT_PACKET_INFOSTRING_FMT, name,
+                   find_clan_name(name), xuid, xnaddr, protocol, net_field_chk,
+                   session_mode, qport);
 }
 } // namespace
 
@@ -164,28 +165,30 @@ DEFINE_COMPONENT_NAME(bots);
     }
 
     command::add("spawnBot", [](const command::params &params) {
-      if (!getinfo::is_host()) {
-        return;
-      }
+      if (getinfo::is_host()) {
+        game::ClientNum_t count = game::ClientNum_t::CLIENT_INDEX_1;
+        if (params.size() > 1) {
+          if (params[1] == "all"s) {
+            count = game::get_com_maxclients();
+          } else {
+            count = static_cast<game::ClientNum_t>(atoi(params[1]));
+          }
+        }
 
-      size_t count = 1;
-      if (params.size() > 1) {
-        if (params[1] == "all"s) {
-          count = 18;
-        } else {
-          count = atoi(params[1]);
+        count =
+            std::min<game::ClientNum_t>(count, game::available_client_count());
+
+        if (count > game::lobby::MIN_PLAYERS &&
+            count < game::lobby::MAX_PLAYERS) {
+          scheduler::once(
+              [count] {
+                for (game::ClientNum_t i = game::ClientNum_t::CLIENT_INDEX_0;
+                     i < count && game::sv::SV_AddTestClient(); ++i) {
+                }
+              },
+              scheduler::server);
         }
       }
-
-      scheduler::once(
-          [count] {
-            for (size_t i = 0; i < count; ++i) {
-              if (!game::sv::SV_AddTestClient()) {
-                break;
-              }
-            }
-          },
-          scheduler::server);
     });
   }
 };
