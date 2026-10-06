@@ -56,6 +56,15 @@ CoD.LobbyButtons.QUICK_SETTINGS = {
   customId = "btnQuickSettings",
 }
 
+CoD.LobbyButtons.LOOT_DROPS = {
+  stringRef = "BLACK MARKET DROPS",
+  action = function(self, element, controller, param, menu)
+    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
+    OpenPopup(menu, "BoiiiLootDropsMenu", controller)
+  end,
+  customId = "btnLootDrops",
+}
+
 CoD.LobbyButtons.MP_START_GAME = {
   stringRef = "MENU_START_GAME_CAPS",
   action = function(self, element, controller, param, menu)
@@ -127,6 +136,58 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   then
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.STATS)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.QUICK_SETTINGS)
+  end
+
+  if
+    type(game) == "table"
+    and type(game.getrecentlootdrops) == "function"
+    and (
+      menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id
+      or menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id
+      or (LobbyData.UITargets.UI_MPLOBBYLANGAME and menuId == LobbyData.UITargets.UI_MPLOBBYLANGAME.id)
+    )
+  then
+    local replaceOriginal = true
+    pcall(function()
+      replaceOriginal = Dvar.cg_loot_hide_blackmarket:get() ~= 0
+    end)
+
+    local label = replaceOriginal and "BLACK MARKET" or "BLACK MARKET DROPS"
+    local progress = type(game.getlootprogress) == "function" and game.getlootprogress() or nil
+    if progress and (progress.unseen or 0) > 0 then
+      label = string.format("%s (%d NEW)", label, progress.unseen)
+    end
+    CoD.LobbyButtons.LOOT_DROPS.stringRef = label
+
+    if CoD.BoiiiPreloadLootArt then
+      pcall(CoD.BoiiiPreloadLootArt)
+    end
+
+    local function findButton(word)
+      for index, option in ipairs(buttonTable) do
+        if option.customId ~= CoD.LobbyButtons.LOOT_DROPS.customId then
+          local text = string.upper(tostring(option.optionDisplay or "") .. " " .. tostring(option.customId or ""))
+          text = string.gsub(text, "[_%s]", "")
+          if string.find(text, word, 1, true) then
+            return index
+          end
+        end
+      end
+      return nil
+    end
+
+    local original = findButton("BLACKMARKET")
+    if original ~= nil and replaceOriginal then
+      table.remove(buttonTable, original)
+      utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.LOOT_DROPS, original)
+    else
+      local anchor = original or findButton("STORE")
+      if anchor ~= nil then
+        utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.LOOT_DROPS, anchor + 1)
+      else
+        utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.LOOT_DROPS)
+      end
+    end
   end
 
   if menuId == LobbyData.UITargets.UI_ZMLOBBYLANGAME.id then

@@ -137,6 +137,10 @@ end
 
 void patch_hud() { execute_lua(zombie_toast_patch); }
 
+void run_lua(const std::string &code) {
+  scheduler::once([code] { execute_lua(code); }, scheduler::main);
+}
+
 void precache_icon(const std::string &material) {
   const auto escaped = escape_lua_string(material);
   const std::string code =

@@ -17,6 +17,7 @@
 #include <component/discord.hpp>
 #include <component/friends.hpp>
 #include <component/getinfo.hpp>
+#include <component/loot.hpp>
 #include <component/name.hpp>
 #include <component/scheduler.hpp>
 #include <component/script.hpp>
@@ -696,6 +697,95 @@ void setup_functions() {
                    players.set(list_index++, player);
                  });
                  return players;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["getrecentlootdrops"] =
+      function(convert_function([](const int max_count) -> table {
+                 table drops{};
+                 int index = 1;
+                 for (const loot::recent_drop &drop : loot::get_recent_drops(
+                          static_cast<size_t>(std::clamp(max_count, 1, 50)))) {
+                   table entry{};
+                   entry.set("title", drop.title);
+                   entry.set("display", drop.display);
+                   entry.set("icon", drop.icon);
+                   entry.set("category", drop.category);
+                   entry.set("tier", drop.tier);
+                   entry.set("is_new", drop.is_new);
+                   drops.set(index++, entry);
+                 }
+                 return drops;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["marklootdropsseen"] = function(convert_function([]() -> bool {
+                                                loot::mark_recent_drops_seen();
+                                                return true;
+                                              }),
+                                              HksObjectType::TCFUNCTION);
+
+  lua["game"]["getlootprogress"] = function(
+      convert_function([]() -> table {
+        table progress{};
+        progress.set("owned", static_cast<int>(loot::owned_item_count()));
+        progress.set("total", static_cast<int>(loot::total_item_count()));
+        progress.set("unseen", static_cast<int>(loot::unseen_drop_count()));
+        progress.set("keys", loot::cryptokey_balance());
+        progress.set("next_key", loot::next_cryptokey_progress());
+        progress.set("common_cost", loot::supply_drop_price(false));
+        progress.set("rare_cost", loot::supply_drop_price(true));
+        return progress;
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["openlootsupplydrop"] =
+      function(convert_function([](const std::string &kind) -> bool {
+                 return loot::open_supply_drop_from_ui(kind == "rare");
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["getlastsupplydrop"] =
+      function(convert_function([]() -> table {
+                 const loot::last_supply_drop drop =
+                     loot::get_last_supply_drop();
+                 table result{};
+                 table items{};
+                 int index = 1;
+                 for (const loot::revealed_item &item : drop.items) {
+                   table entry{};
+                   entry.set("name", item.name);
+                   entry.set("subtitle", item.subtitle);
+                   entry.set("icon", item.icon);
+                   entry.set("rarity", item.rarity);
+                   entry.set("category", item.category);
+                   entry.set("rank", item.rank);
+                   items.set(index++, entry);
+                 }
+                 result.set("items", items);
+                 result.set("bonus_keys", drop.bonus_keys);
+                 result.set("rare", drop.rare);
+                 return result;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["receivelootkeys"] =
+      function(convert_function([](const int amount) -> bool {
+                 loot::receive_server_keys(amount);
+                 return true;
+               }),
+               HksObjectType::TCFUNCTION);
+  lua["game"]["receivelootdrops"] =
+      function(convert_function([](const int amount) -> bool {
+                 loot::receive_server_drops(amount);
+                 return true;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["lootlog"] =
+      function(convert_function([](const std::string &message) -> bool {
+                 loot::debug_log(message);
+                 return true;
                }),
                HksObjectType::TCFUNCTION);
 

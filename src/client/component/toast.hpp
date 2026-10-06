@@ -16,4 +16,6 @@ void success(const std::string &title, const std::string &description);
 void error(const std::string &title, const std::string &description);
 void info(const std::string &title, const std::string &description);
 void warn(const std::string &title, const std::string &description);
+// Runs a snippet of UI Lua on the main thread (errors are printed).
+void run_lua(const std::string &code);
 } // namespace toast
