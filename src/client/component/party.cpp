@@ -478,7 +478,10 @@ bool is_host(const game::net::netadr_t &addr) {
   return get_connected_server() == addr || connect_host == addr;
 }
 
-uint16_t get_local_port() { return game::port(); }
+uint16_t get_local_port() {
+  const uint16_t port = network::get_bound_port();
+  return port ? port : game::port();
+}
 
 std::string get_server_hostname() {
   std::lock_guard lock(hostname_mutex);

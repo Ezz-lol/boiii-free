@@ -23,6 +23,7 @@
 
 namespace network {
 namespace {
+std::atomic<uint16_t> bound_port{};
 utils::hook::detour handle_packet_internal_hook{};
 utils::hook::detour net_adr_to_string_hook{};
 
@@ -132,6 +133,7 @@ void create_ip_socket() {
   } while (bind(s, reinterpret_cast<sockaddr *>(&server_addr),
                 sizeof(server_addr)) == SOCKET_ERROR);
 
+  bound_port = port - 1;
   printf("[NET] Socket bound on port %u\n", static_cast<uint32_t>(port - 1));
 
   if (!game::is_server()) {
@@ -317,6 +319,8 @@ bool is_connectable_address(const game::net::netadr_t &addr) {
   return is_ip_address(addr) && addr.addr != 0 && addr.ipv4.a != 0 &&
          addr.ipv4.a != 127 && addr.ipv4.a < 224 && addr.port >= 1024;
 }
+
+uint16_t get_bound_port() { return bound_port; }
 
 std::string address_to_string(const game::net::netadr_t &addr) {
   if (!is_ip_address(addr))
