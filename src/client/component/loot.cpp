@@ -577,7 +577,7 @@ void loot_progression_frame() {
   if (was_in_match && !in_match) {
     if (keys_earned_this_match > 0) {
       play_ui_sound("uin_bm_key_earned");
-      show_toast("Match Cryptokeys",
+      show_toast("Cryptokeys",
                  "+" + std::to_string(keys_earned_this_match) + " (" +
                      std::to_string(get_keys()) + " total)",
                  "uie_t7_blackmarket_promo_cryptokeys");
