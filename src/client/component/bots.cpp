@@ -126,11 +126,13 @@ const std::vector<BotName> &get_bot_names() {
 }
 
 const char *get_bot_name() {
-  static size_t current = 0;
+  static std::atomic<size_t> current = 0;
   const std::vector<BotName> &names = get_bot_names();
 
-  current = (current + 1) % names.size();
-  return names.at(current).name;
+  current.store((current.load(std::memory_order_acquire) + 1) % names.size(),
+                std::memory_order_release);
+  const char *result = names.at(current).name;
+  return result;
 }
 const char *find_clan_name(const std::string &needle) {
   for (const BotName &entry : get_bot_names()) {

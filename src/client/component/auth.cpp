@@ -284,14 +284,15 @@ bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,
 }
 
 void distribute_player_xuid(const game::net::netadr_t &target,
-                            const size_t player_index, const game::XUID xuid) {
-  if (player_index < 18) {
+                            const game::ClientNum_t player_index,
+                            const game::XUID xuid) {
+  if (player_index < game::CLIENT_INDEX_COUNT) {
     utils::byte_buffer buffer{};
     buffer.write(static_cast<uint32_t>(player_index));
     buffer.write(xuid);
 
-    game::XUID localXuid1 = get_guid(game::CONTROLLER_INDEX_0);
-    game::XUID localXuid2 = get_guid(game::CONTROLLER_INDEX_1);
+    static const game::XUID localXuid1 = get_guid(game::CONTROLLER_INDEX_0);
+    static const game::XUID localXuid2 = get_guid(game::CONTROLLER_INDEX_1);
 
     game::foreach_connected_client(
         [&](const game::sv::client_s &client, const size_t index) {
@@ -300,7 +301,8 @@ void distribute_player_xuid(const game::net::netadr_t &target,
               network::send(client.address, "playerXuid", buffer.get_buffer());
             }
 
-            if (index != player_index && target.type != game::net::NA_BOT) {
+            if (static_cast<game::ClientNum_t>(index) != player_index &&
+                target.type != game::net::NA_BOT) {
               utils::byte_buffer current_buffer{};
               current_buffer.write(static_cast<uint32_t>(index));
               current_buffer.write(client.xuid);
@@ -320,12 +322,12 @@ void handle_new_player(const game::net::netadr_t &target) {
     const game::XUID xuid =
         strtoull(info_string.get("xuid").data(), nullptr, 16);
 
-    size_t player_index = 18;
+    game::ClientNum_t player_index = game::CLIENT_INDEX_COUNT;
     game::first_connected_client(
         [&](game::sv::client_s &client, const size_t index) {
           if (client.address == target && client.xuid == 0) {
             client.xuid = xuid;
-            player_index = index;
+            player_index = static_cast<game::ClientNum_t>(index);
             return true;
           }
           return false;
@@ -482,12 +484,7 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
 
   const std::string name = info_string.get("name");
 
-  const auto is_name_invalid = [&name]() -> bool {
-    return std::ranges::any_of(name,
-                               [](const char c) { return is_invalid_char(c); });
-  };
-
-  if (name.empty() || is_name_invalid()) {
+  if (name.empty() || std::ranges::any_of(name, is_invalid_char)) {
     network::send(target, "error", "Bad name");
     return;
   }

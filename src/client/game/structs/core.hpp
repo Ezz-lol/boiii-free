@@ -270,6 +270,76 @@ enum ClientNum_t : int32_t {
   CLIENT_INDEX_COUNT = 0x12,
 };
 IMPL_ENUM_OPERATORS(ClientNum_t);
+inline constexpr const char *serialize(const ClientNum_t clientNum) {
+  switch (clientNum) {
+  case CLIENT_INDEX_0:
+    return "CLIENT_INDEX_0";
+  case CLIENT_INDEX_1:
+    return "CLIENT_INDEX_1";
+  case CLIENT_INDEX_2:
+    return "CLIENT_INDEX_2";
+  case CLIENT_INDEX_3:
+    return "CLIENT_INDEX_3";
+  case CLIENT_INDEX_4:
+    return "CLIENT_INDEX_4";
+  case CLIENT_INDEX_5:
+    return "CLIENT_INDEX_5";
+  case CLIENT_INDEX_6:
+    return "CLIENT_INDEX_6";
+  case CLIENT_INDEX_7:
+    return "CLIENT_INDEX_7";
+  case CLIENT_INDEX_8:
+    return "CLIENT_INDEX_8";
+  case CLIENT_INDEX_9:
+    return "CLIENT_INDEX_9";
+  case CLIENT_INDEX_10:
+    return "CLIENT_INDEX_10";
+  case CLIENT_INDEX_11:
+    return "CLIENT_INDEX_11";
+  case CLIENT_INDEX_12:
+    return "CLIENT_INDEX_12";
+  case CLIENT_INDEX_13:
+    return "CLIENT_INDEX_13";
+  case CLIENT_INDEX_14:
+    return "CLIENT_INDEX_14";
+  case CLIENT_INDEX_15:
+    return "CLIENT_INDEX_15";
+  case CLIENT_INDEX_16:
+    return "CLIENT_INDEX_16";
+  case CLIENT_INDEX_17:
+    return "CLIENT_INDEX_17";
+  case CLIENT_INDEX_18:
+    return "CLIENT_INDEX_18";
+  case CLIENT_INDEX_19:
+    return "CLIENT_INDEX_19";
+  case CLIENT_INDEX_20:
+    return "CLIENT_INDEX_20";
+  case CLIENT_INDEX_21:
+    return "CLIENT_INDEX_21";
+  case CLIENT_INDEX_22:
+    return "CLIENT_INDEX_22";
+  case CLIENT_INDEX_23:
+    return "CLIENT_INDEX_23";
+  case CLIENT_INDEX_24:
+    return "CLIENT_INDEX_24";
+  case CLIENT_INDEX_25:
+    return "CLIENT_INDEX_25";
+  case CLIENT_INDEX_26:
+    return "CLIENT_INDEX_26";
+  case CLIENT_INDEX_27:
+    return "CLIENT_INDEX_27";
+  case CLIENT_INDEX_28:
+    return "CLIENT_INDEX_28";
+  case CLIENT_INDEX_29:
+    return "CLIENT_INDEX_29";
+  case CLIENT_INDEX_30:
+    return "CLIENT_INDEX_30";
+  case CLIENT_INDEX_31:
+    return "CLIENT_INDEX_31";
+  default:
+    return "INVALID_CLIENT_INDEX";
+  }
+}
 
 enum ControllerIndex_t : int32_t {
   INVALID_CONTROLLER_PORT = -1,

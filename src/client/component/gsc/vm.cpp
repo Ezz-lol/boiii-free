@@ -134,19 +134,23 @@ void hook_opcode(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
     }
 
     for (const vm::op::OP_TYPE bytecode : op::OPCODE_BYTECODE_MAP.at(opcode)) {
-      vm::op::VM_OP_FUNC_PTR *handler = vm::op::handler(bytecode);
-      if (*handler == *out_orig) [[likely]] {
-        *handler = hook;
-      } else [[unlikely]] {
-        const char *err_msg = utils::string::va(
-            "Warning: Opcode handler for opcode %s with jumptable index 0x%04X "
-            "at 0x%p did not match expected function pointer. Expected: 0x%p, "
-            "got: 0x%p. Skipping hook application.",
-            op::serialize(opcode), bytecode, game::derelocate(handler),
-            game::derelocate(*out_orig), game::derelocate(*handler));
-        game::trace("{}", err_msg);
-        fprintf(stderr, "%s\n", err_msg);
-        fflush(stderr);
+      if (bytecode != 0x0000) {
+        vm::op::VM_OP_FUNC_PTR *handler = vm::op::handler(bytecode);
+        if (*handler == *out_orig) [[likely]] {
+          *handler = hook;
+        } else [[unlikely]] {
+          const char *err_msg = utils::string::va(
+              "Warning: Opcode handler for opcode %s with jumptable index "
+              "0x%04X "
+              "at 0x%p did not match expected function pointer. Expected: "
+              "0x%p, "
+              "got: 0x%p. Skipping hook application.",
+              op::serialize(opcode), bytecode, game::derelocate(handler),
+              game::derelocate(*out_orig), game::derelocate(*handler));
+          game::trace("{}", err_msg);
+          fprintf(stderr, "%s\n", err_msg);
+          fflush(stderr);
+        }
       }
     }
   } else [[unlikely]] {
@@ -170,20 +174,22 @@ void hook_opcode_err(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
 
     for (const vm::op::OP_TYPE bytecode :
          vm::op::OPCODE_BYTECODE_MAP.at(opcode)) {
-      vm::op::VM_OP_FUNC_PTR *handler = vm::op::error_recovery(bytecode);
-      if (*handler == *out_orig) [[likely]] {
-        *handler = hook;
-      } else [[unlikely]] {
-        const char *err_msg = utils::string::va(
-            "[Scr][VM] Warning: Opcode error recovery handler for opcode %s "
-            "with jumptable index 0x%04X at 0x%p did not match expected "
-            "function pointer. Expected: 0x%p, got: 0x%p. Skipping hook "
-            "application.",
-            op::serialize(opcode), bytecode, game::derelocate(handler),
-            game::derelocate(*out_orig), game::derelocate(*handler));
-        game::trace("{}", err_msg);
-        fprintf(stderr, "%s\n", err_msg);
-        fflush(stderr);
+      if (bytecode != 0x0000) {
+        vm::op::VM_OP_FUNC_PTR *handler = vm::op::error_recovery(bytecode);
+        if (*handler == *out_orig) [[likely]] {
+          *handler = hook;
+        } else [[unlikely]] {
+          const char *err_msg = utils::string::va(
+              "[Scr][VM] Warning: Opcode error recovery handler for opcode %s "
+              "with jumptable index 0x%04X at 0x%p did not match expected "
+              "function pointer. Expected: 0x%p, got: 0x%p. Skipping hook "
+              "application.",
+              op::serialize(opcode), bytecode, game::derelocate(handler),
+              game::derelocate(*out_orig), game::derelocate(*handler));
+          game::trace("{}", err_msg);
+          fprintf(stderr, "%s\n", err_msg);
+          fflush(stderr);
+        }
       }
     }
   } else [[unlikely]] {
