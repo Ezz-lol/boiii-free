@@ -637,6 +637,16 @@ e.g. map vote - that is circumvented by custom end game logic in either a custom
 map or mod which exits the level prior to execution of the server's end game
 logic.
 
+## clientindex
+
+`clientindex(player)` or `player clientindex()` returns the client index for the
+given player entity.
+
+This can be useful for correct assignment of values derived from client index -
+e.g. `player.playernum` - in a dedicated server which can have clients
+disconnect from and hot-join to a given client slot many times throughout a
+game.
+
 ## Method-style custom calls
 
 The project also supports the cleaner entity-style form for a few helpers:

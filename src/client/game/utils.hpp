@@ -297,39 +297,49 @@ constexpr uint16_t DEFAULT_PORT = 3074;
 void foreach_client(
     const std::function<void(sv::client_s &, size_t index)> &callback);
 void foreach_client(const std::function<void(sv::client_s &)> &callback);
-inline ClientNum_t client_count() {
-  ClientNum_t count = game::ClientNum_t::CLIENT_INDEX_0;
-  foreach_client([&count](sv::client_s &, size_t) { ++count; });
-  return count;
-}
 void first_client(
     const std::function<bool(sv::client_s &, size_t index)> &callback);
 void first_client(const std::function<bool(sv::client_s &)> &callback);
 
 void foreach_connected_client(
     const std::function<void(sv::client_s &, size_t index)> &callback);
-inline ClientNum_t connected_client_count() {
-  ClientNum_t count = game::ClientNum_t::CLIENT_INDEX_0;
-  foreach_connected_client([&count](sv::client_s &, size_t) { ++count; });
-  return count;
-}
 void foreach_connected_client(
     const std::function<void(sv::client_s &)> &callback);
+inline ClientNum_t connected_client_count() {
+  ClientNum_t count = game::ClientNum_t::CLIENT_INDEX_0;
+  foreach_connected_client([&count](sv::client_s &) { ++count; });
+  return count;
+}
 void first_connected_client(
     const std::function<bool(sv::client_s &, size_t index)> &callback);
 void first_connected_client(
     const std::function<bool(sv::client_s &)> &callback);
-
 bool access_connected_client(
     size_t index, const std::function<void(sv::client_s &)> &callback);
+
+void foreach_test_client(
+    const std::function<void(sv::client_s &, size_t index)> &callback);
+void foreach_test_client(const std::function<void(sv::client_s &)> &callback);
+inline ClientNum_t test_client_count() {
+  ClientNum_t count = game::ClientNum_t::CLIENT_INDEX_0;
+  foreach_test_client([&count](sv::client_s &) { ++count; });
+  return count;
+}
+void first_test_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback);
+void first_test_client(const std::function<bool(sv::client_s &)> &callback);
 
 void foreach_active_client(
     const std::function<void(sv::client_s &, size_t index)> &callback);
 void foreach_active_client(const std::function<void(sv::client_s &)> &callback);
+inline ClientNum_t active_client_count() {
+  ClientNum_t count = game::ClientNum_t::CLIENT_INDEX_0;
+  foreach_active_client([&count](sv::client_s &) { ++count; });
+  return count;
+}
 void first_active_client(
     const std::function<bool(sv::client_s &, size_t index)> &callback);
 void first_active_client(const std::function<bool(sv::client_s &)> &callback);
-
 bool access_active_client(size_t index,
                           const std::function<void(sv::client_s &)> &callback);
 

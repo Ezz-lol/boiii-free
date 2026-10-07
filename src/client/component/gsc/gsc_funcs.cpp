@@ -706,23 +706,22 @@ void gscr_executecommand(scriptInstance_t inst) {
 // the command
 void gscr_addcommand(scriptInstance_t inst) {
   const char *name = Scr_GetString(inst, 0);
-  if (!name || !name[0])
-    return;
-
-  const std::string cmd_name(name);
-  const std::string cmd_key = normalize_command_name(cmd_name);
-  {
-    std::scoped_lock lock(script_cmd_mutex);
-    for (const std::string &existing : script_cmd_names) {
-      if (existing == cmd_key)
-        return; // Already registered
+  if (name && name[0]) {
+    const std::string cmd_name(name);
+    const std::string cmd_key = normalize_command_name(cmd_name);
+    {
+      std::scoped_lock lock(script_cmd_mutex);
+      for (const std::string &existing : script_cmd_names) {
+        if (existing == cmd_key)
+          return; // Already registered
+      }
+      script_cmd_names.push_back(cmd_key);
     }
-    script_cmd_names.push_back(cmd_key);
-  }
 
-  command::add(cmd_name, [](const command::params &params) {
-    script_cmd_handler(params);
-  });
+    command::add(cmd_name, [](const command::params &params) {
+      script_cmd_handler(params);
+    });
+  }
 }
 
 // getcommand("name") - returns the next queued command for that name, or ""
@@ -765,10 +764,11 @@ void gscr_getcommand(scriptInstance_t inst) {
 // GSC: say("Hello world");
 void gscr_say(scriptInstance_t inst) {
   const char *msg = Scr_GetString(inst, 0);
-  if (msg)
+  if (msg) {
     sv::SV_GameSendServerCommand(
         game::INVALID_CLIENT_INDEX, game::net::SV_CMD_CAN_IGNORE,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
+  }
 }
 
 namespace gscr_tell {
@@ -801,33 +801,32 @@ void gscr_writefile(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
   const char *data = Scr_GetString(inst, 1);
 
-  if (!path || !data || !is_safe_path(path)) {
+  if (path && data && is_safe_path(path)) {
+    const std::filesystem::path full = resolve_path(path);
+    const std::filesystem::path parent = full.parent_path();
+    if (!parent.empty()) {
+      utils::io::create_directory(parent);
+    }
+    bool append = Scr_GetBoolOptional(inst, 2, false);
+
+    qboolean result =
+        qboolean::from(utils::io::write_file(full.string(), data, append));
+    push(inst, result);
+  } else {
     push(inst, 0);
-    return;
   }
-
-  const std::filesystem::path full = resolve_path(path);
-  const std::filesystem::path parent = full.parent_path();
-  if (!parent.empty()) {
-    utils::io::create_directory(parent);
-  }
-  bool append = Scr_GetBoolOptional(inst, 2, false);
-
-  qboolean result =
-      qboolean::from(utils::io::write_file(full.string(), data, append));
-  push(inst, result);
 }
 
 void gscr_readfile(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (!path || !is_safe_path(path)) {
-    push_string(inst, "");
-    return;
-  }
-  const std::filesystem::path full = resolve_path(path);
-  std::string data;
-  if (utils::io::read_file(full.string(), &data)) {
-    push_string(inst, data.c_str());
+  if (path && is_safe_path(path)) {
+    const std::filesystem::path full = resolve_path(path);
+    std::string data;
+    if (utils::io::read_file(full.string(), &data)) {
+      push_string(inst, data.c_str());
+    } else {
+      push_string(inst, "");
+    }
   } else {
     push_string(inst, "");
   }
@@ -836,33 +835,33 @@ void gscr_readfile(scriptInstance_t inst) {
 void gscr_appendfile(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
   const char *data = Scr_GetString(inst, 1);
-  if (!path || !data || !is_safe_path(path)) {
+  if (path && data && is_safe_path(path)) {
+    const std::filesystem::path full = resolve_path(path);
+    const std::filesystem::path parent = full.parent_path();
+    if (!parent.empty())
+      utils::io::create_directory(parent);
+    push(inst, utils::io::write_file(full.string(), data, true));
+  } else {
     push(inst, 0);
-    return;
   }
-  const std::filesystem::path full = resolve_path(path);
-  const std::filesystem::path parent = full.parent_path();
-  if (!parent.empty())
-    utils::io::create_directory(parent);
-  push(inst, utils::io::write_file(full.string(), data, true));
 }
 
 void gscr_fileexists(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (!path || !is_safe_path(path)) {
+  if (path && is_safe_path(path)) {
+    push(inst, utils::io::file_exists(resolve_path(path).string()));
+  } else {
     push(inst, 0);
-    return;
   }
-  push(inst, utils::io::file_exists(resolve_path(path).string()));
 }
 
 void gscr_removedirectory(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (!path || !is_safe_path(path)) {
+  if (path && is_safe_path(path)) {
+    push(inst, utils::io::remove_directory(resolve_path(path), true));
+  } else {
     push(inst, 0);
-    return;
   }
-  push(inst, utils::io::remove_directory(resolve_path(path), true));
 }
 
 void gscr_rm(scriptInstance_t inst) {
@@ -1177,13 +1176,15 @@ void gscr_prepareweaponkitassets(scriptInstance_t inst) {
   }
 
   const auto find_camo = [](const std::string &name) {
-    const auto header = game::db::xasset::DB_FindXAssetHeader(
-        game::db::xasset::XAssetType::WEAPON_CAMO, name.c_str(), false, -1);
+    const game::db::xasset::XAssetHeader header =
+        game::db::xasset::DB_FindXAssetHeader(
+            game::db::xasset::XAssetType::WEAPON_CAMO, name.c_str(), false, -1);
     return const_cast<game::weapon::WeaponCamo *>(
         reinterpret_cast<const game::weapon::WeaponCamo *>(header.named));
   };
 
-  auto *weapon_camo = find_camo("camo_t7_" + std::string(base_name));
+  game::weapon::WeaponCamo *weapon_camo =
+      find_camo("camo_t7_" + std::string(base_name));
 
   if (weapon_camo && weapon_camo->numCamoMaterials && ctx.base->weapDef &&
       ctx.upgrade->weapDef) {
@@ -1347,6 +1348,25 @@ void gscr_vector(scriptInstance_t inst) {
   }
 }
 
+namespace gscr_clientindex {
+inline void impl(scriptInstance_t inst, const level::gentity_t *ent) {
+  if (ent != nullptr) {
+    const ClientNum_t clientNum =
+        static_cast<ClientNum_t>(level::entity_index(ent));
+    if (valid_client_num(clientNum)) {
+      push(inst, clientNum);
+    }
+  }
+
+  push(inst, game::INVALID_CLIENT_INDEX);
+}
+
+void func(scriptInstance_t inst) { return impl(inst, Scr_GetEntity_Impl(0)); }
+void method(scriptInstance_t inst, scr_entref_t *entref) {
+  return impl(inst, level::entity(entref->u.entnum));
+}
+} // namespace gscr_clientindex
+
 // =====================================================
 // Player name/tag overrides (server-only)
 // =====================================================
@@ -1355,13 +1375,13 @@ namespace gscr_setname {
 void set(scriptInstance_t inst, game::ClientNum_t client_num,
          uint32_t name_index) {
   const char *player_name = game::scr::Scr_GetString(inst, name_index);
-  if (!game::valid_client_num(client_num) || !player_name) {
+  if (game::valid_client_num(client_num) && player_name) {
+    name::set_name_override(client_num, player_name);
+    name::sync_name_override_to_clients(client_num);
+    name::trigger_client_update(client_num);
+  } else {
     Scr_ParamError(inst, name_index, "^1[setname] Invalid arguments\n");
-    return;
   }
-  name::set_name_override(client_num, player_name);
-  name::sync_name_override_to_clients(client_num);
-  name::trigger_client_update(client_num);
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
@@ -1461,20 +1481,19 @@ namespace gscr_setclientdvar {
 void set(scriptInstance_t inst, game::ClientNum_t client_num,
          uint32_t command_index) {
   const char *dvar_cmd = game::scr::Scr_GetString(inst, command_index);
-  if (!game::valid_client_num(client_num) || !dvar_cmd) {
+  if (game::valid_client_num(client_num) && dvar_cmd) {
+    const std::optional<std::string> dvar_name =
+        dvar_cmd ? extract_dvar_name(dvar_cmd) : std::nullopt;
+    if (dvar_name.has_value()) {
+      client_dvar_changes[client_num].insert(*dvar_name);
+    }
+
+    sv::SV_GameSendServerCommand(client_num, game::net::SV_CMD_CAN_IGNORE,
+                                 utils::string::va("c \"%s\"", dvar_cmd));
+  } else {
     Scr_ParamError(inst, command_index,
                    "^1[setclientdvar] Invalid arguments\n");
-    return;
   }
-
-  const std::optional<std::string> dvar_name =
-      dvar_cmd ? extract_dvar_name(dvar_cmd) : std::nullopt;
-  if (dvar_name.has_value()) {
-    client_dvar_changes[client_num].insert(*dvar_name);
-  }
-
-  sv::SV_GameSendServerCommand(client_num, game::net::SV_CMD_CAN_IGNORE,
-                               utils::string::va("c \"%s\"", dvar_cmd));
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
@@ -1755,44 +1774,43 @@ struct component final : generic_component {
           [](db::xasset::XAssetHeader header, void *data) {
             enum_ctx *ctx = static_cast<enum_ctx *>(data);
             game::weapon::WeaponVariantDef *variant = header.weapon;
-            if (!variant || !variant->szModeIndependentName) {
-              return;
+            if (variant && variant->szModeIndependentName) {
+              rapidjson::Document::AllocatorType &alloc = *ctx->alloc;
+              const game::weapon::WeaponCamo *camo =
+                  variant->weapDef ? variant->weapDef->weaponCamo : nullptr;
+
+              rapidjson::Value entry(rapidjson::kObjectType);
+              entry.AddMember(
+                  "name",
+                  rapidjson::Value(variant->szModeIndependentName, alloc),
+                  alloc);
+              entry.AddMember("internalName",
+                              rapidjson::Value(variant->szInternalName
+                                                   ? variant->szInternalName
+                                                   : "",
+                                               alloc),
+                              alloc);
+              entry.AddMember("sessionMode",
+                              static_cast<int>(variant->sessionMode), alloc);
+              entry.AddMember("variantCount",
+                              static_cast<int>(variant->iVariantCount), alloc);
+              entry.AddMember("attachmentMask",
+                              static_cast<uint64_t>(variant->iAttachments),
+                              alloc);
+              entry.AddMember(
+                  "camoName",
+                  rapidjson::Value(camo && camo->name ? camo->name : "", alloc),
+                  alloc);
+              entry.AddMember(
+                  "camoMaterials",
+                  camo ? static_cast<uint32_t>(camo->numCamoMaterials) : 0u,
+                  alloc);
+              entry.AddMember("hasRealCamo",
+                              camo != nullptr && camo->numCamoMaterials > 0,
+                              alloc);
+
+              ctx->doc->PushBack(entry, alloc);
             }
-
-            auto &alloc = *ctx->alloc;
-            const game::weapon::WeaponCamo *camo =
-                variant->weapDef ? variant->weapDef->weaponCamo : nullptr;
-
-            rapidjson::Value entry(rapidjson::kObjectType);
-            entry.AddMember(
-                "name", rapidjson::Value(variant->szModeIndependentName, alloc),
-                alloc);
-            entry.AddMember("internalName",
-                            rapidjson::Value(variant->szInternalName
-                                                 ? variant->szInternalName
-                                                 : "",
-                                             alloc),
-                            alloc);
-            entry.AddMember("sessionMode",
-                            static_cast<int>(variant->sessionMode), alloc);
-            entry.AddMember("variantCount",
-                            static_cast<int>(variant->iVariantCount), alloc);
-            entry.AddMember("attachmentMask",
-                            static_cast<uint64_t>(variant->iAttachments),
-                            alloc);
-            entry.AddMember(
-                "camoName",
-                rapidjson::Value(camo && camo->name ? camo->name : "", alloc),
-                alloc);
-            entry.AddMember("camoMaterials",
-                            camo ? static_cast<uint32_t>(camo->numCamoMaterials)
-                                 : 0u,
-                            alloc);
-            entry.AddMember("hasRealCamo",
-                            camo != nullptr && camo->numCamoMaterials > 0,
-                            alloc);
-
-            ctx->doc->PushBack(entry, alloc);
           },
           &ctx, false);
 
@@ -1811,6 +1829,8 @@ struct component final : generic_component {
                       msg.c_str());
       toast::info("Weapon Kit Dump", msg);
     });
+
+    // int64 arithmetic, related utils
     register_builtin("int64_min", gscr_int64_min, 2);
     register_builtin("int64_max", gscr_int64_max, 2);
     register_builtin("int64_abs", gscr_int64_abs, 1);
@@ -1848,11 +1868,16 @@ struct component final : generic_component {
     register_builtin(SCRIPTINSTANCE_SERVER, "setclientdvar",
                      gscr_setclientdvar::method, 1);
 
+    // Misc. utils
     register_builtin("conststring", gscr_conststring, 1);
     register_builtin("isstruct", gscr_isstruct, 1);
     register_builtin("typename", gscr_typename, 1);
     register_builtin("ismenucached", gscr_ismenucached, 1);
     register_builtin("vector", gscr_vector, 0, 3);
+    register_builtin(SCRIPTINSTANCE_SERVER, "clientindex",
+                     gscr_clientindex::func, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "clientindex",
+                     gscr_clientindex::method, 0);
 
     apply_hudelem_hooks();
     apply_bgb_hooks();

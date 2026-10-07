@@ -64,6 +64,12 @@ inline gentity_t *entity(Index input_index) {
   return nullptr;
 }
 
+inline size_t entity_index(const gentity_t *ent) {
+  return (reinterpret_cast<uintptr_t>(get_g_entities()->pool) -
+          reinterpret_cast<uintptr_t>(ent)) /
+         sizeof(gentity_t);
+}
+
 WEAK symbol<int32_t> level_time{0x14A1B6C14, 0x14A5502C4, 0x1474FDC94};
 WEAK symbol<int32_t> level_rounds_played{0x14a1c273c, 0x14A55BDEC, 0x1475097BC};
 } // namespace level

@@ -199,6 +199,35 @@ bool access_connected_client(
                      : access_client(*svs_clients_cl, index, callback);
 }
 
+void foreach_test_client(
+    const std::function<void(sv::client_s &, size_t index)> &callback) {
+  foreach_client([&](sv::client_s &client, const size_t index) {
+    if (client.bIsTestClient) {
+      callback(client, index);
+    }
+  });
+}
+
+void foreach_test_client(const std::function<void(sv::client_s &)> &callback) {
+  foreach_connected_client(
+      [&callback](sv::client_s &client, size_t) { callback(client); });
+}
+
+void first_test_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback) {
+  first_client([&callback](sv::client_s &client, const size_t index) {
+    if (client.bIsTestClient) {
+      return callback(client, index);
+    }
+    return false;
+  });
+}
+
+void first_test_client(const std::function<bool(sv::client_s &)> &callback) {
+  first_test_client(
+      [&callback](sv::client_s &client, size_t) { return callback(client); });
+}
+
 void foreach_active_client(
     const std::function<void(sv::client_s &, size_t index)> &callback) {
   foreach_client([&callback](sv::client_s &client, const size_t index) {

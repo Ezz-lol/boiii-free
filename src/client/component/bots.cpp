@@ -182,12 +182,17 @@ struct component final : generic_component {
 
         count =
             std::min<game::ClientNum_t>(count, game::available_client_count());
+        game::trace("[Bot] spawnBot command parsed argument count: {}. "
+                    "available_client_count: {}",
+                    game::serialize(count),
+                    game::serialize(game::available_client_count()));
 
         if (count > game::lobby::MIN_PLAYERS &&
             count < game::lobby::MAX_PLAYERS) {
           scheduler::once(
               [count] {
-                for (game::ClientNum_t i = game::ClientNum_t::CLIENT_INDEX_0;
+                for (game::ClientNum_t i =
+                         game::ClientNum_t::CLIENT_INDEX_FIRST;
                      i < count && game::sv::SV_AddTestClient(); ++i) {
                 }
               },
