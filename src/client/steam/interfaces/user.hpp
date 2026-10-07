@@ -1,7 +1,13 @@
 #pragma once
 
 #include <cstdint>
+
+#include <steam/common.hpp>
+
+#include <steam/voicechat.hpp>
+
 namespace steam {
+
 struct encrypted_app_ticket_response final {
   enum { callback_id = 154 };
 
@@ -17,7 +23,11 @@ struct get_auth_session_ticket_response {
 
 class user {
 public:
-  ~user() = default;
+  voice::VoiceChat *voicechat{};
+
+  user() { voicechat = new voice::VoiceChat(); }
+
+  ~user() { delete voicechat; }
 
   virtual int32_t GetHSteamUser();
   virtual bool LoggedOn();
@@ -34,24 +44,26 @@ public:
   virtual bool GetUserDataFolder(char *pchBuffer, int32_t cubBuffer);
   virtual void StartVoiceRecording();
   virtual void StopVoiceRecording();
-  virtual int GetAvailableVoice(uint32_t *pcbCompressed,
-                                uint32_t *pcbUncompressed,
+  virtual EVoiceResult
+  GetAvailableVoice(uint32_t *pcbCompressed, uint32_t *pcbUncompressed,
+                    uint32_t nUncompressedVoiceDesiredSampleRate);
+  virtual EVoiceResult GetVoice(bool bWantCompressed, void *pDestBuffer,
+                                uint32_t cbDestBufferSize,
+                                uint32_t *nBytesWritten, bool bWantUncompressed,
+                                void *pUncompressedDestBuffer,
+                                uint32_t cbUncompressedDestBufferSize,
+                                uint32_t *nUncompressBytesWritten,
                                 uint32_t nUncompressedVoiceDesiredSampleRate);
-  virtual int32_t GetVoice(bool bWantCompressed, void *pDestBuffer,
-                           uint32_t cbDestBufferSize, uint32_t *nBytesWritten,
-                           bool bWantUncompressed,
-                           void *pUncompressedDestBuffer,
-                           uint32_t cbUncompressedDestBufferSize,
-                           uint32_t *nUncompressBytesWritten,
-                           uint32_t nUncompressedVoiceDesiredSampleRate);
-  virtual int32_t DecompressVoice(void *pCompressed, uint32_t cbCompressed,
-                                  void *pDestBuffer, uint32_t cbDestBufferSize,
-                                  uint32_t *nBytesWritten);
+  virtual EVoiceResult DecompressVoice(void *pCompressed, uint32_t cbCompressed,
+                                       void *pDestBuffer,
+                                       uint32_t cbDestBufferSize,
+                                       uint32_t *nBytesWritten);
   virtual uint32_t GetVoiceOptimalSampleRate();
-  virtual uint32_t GetAuthSessionTicket(void *pTicket, int32_t cbMaxTicket,
-                                        uint32_t *pcbTicket);
-  virtual int32_t BeginAuthSession(const void *pAuthTicket,
-                                   int32_t cbAuthTicket, steam_id steamID);
+  virtual HAuthTicket GetAuthSessionTicket(void *pTicket, int32_t cbMaxTicket,
+                                           uint32_t *pcbTicket);
+  virtual EBeginAuthSessionResult BeginAuthSession(const void *pAuthTicket,
+                                                   int32_t cbAuthTicket,
+                                                   steam_id steamID);
   virtual void EndAuthSession(steam_id steamID);
   virtual void CancelAuthTicket(uint32_t hAuthTicket);
   virtual uint32_t UserHasLicenseForApp(steam_id steamID, uint32_t appID);

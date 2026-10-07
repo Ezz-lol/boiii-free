@@ -407,11 +407,10 @@ class ModsUGCDetailsCallbackResult
     : steam::CCallResult<ModsUGCDetailsCallback,
                          steam::SteamUGCRequestUGCDetailsResult_t> {
 public:
-  void Set(steam::SteamAPICall_t hApiCall, WorkshopData *result) {
+  void Set(SteamAPICall_t hApiCall, WorkshopData *result) {
 
     typedef thiscallPtr_t<void(ModsUGCDetailsCallbackResult * _this,
-                               steam::SteamAPICall_t hApiCall,
-                               WorkshopData * result)>
+                               SteamAPICall_t hApiCall, WorkshopData * result)>
         SetFunc;
 
     SetFunc setImpl = reinterpret_cast<SetFunc>(
@@ -522,7 +521,7 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
               newUgcEntry->publisherIdInteger = publisherId;
               newUgcEntry->type = zoneType;
 
-              steam::SteamAPICall_t steamApiCall =
+              SteamAPICall_t steamApiCall =
                   pSteamUGC->RequestUGCDetails(publisherId, 60);
               ModsUGCDetailsCallbackResult *callbackResult =
                   new ModsUGCDetailsCallbackResult();

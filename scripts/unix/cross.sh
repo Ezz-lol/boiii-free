@@ -409,6 +409,17 @@ DEP_INCLUDE_PATHS=(
 	"deps/brotli/c/include"
 	"deps/gtl/include"
 	"deps/hksc/src"
+	"deps/opus/include"
+	"deps/opus/silk"
+	"deps/opus/silk/x86"
+	"deps/opus/silk/float"
+	"deps/opus/silk/float/x86"
+	"deps/opus/celt"
+	"deps/opus/celt/x86"
+	"deps/portaudio/include"
+	"deps/portaudio/src/common"
+	"deps/portaudio/src/os/win"
+
 )
 
 NUM_DEP_INCLUDES="${#DEP_INCLUDE_PATHS[@]}"

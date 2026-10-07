@@ -1,34 +1,15 @@
 #pragma once
 
+#include <std_include.hpp>
+
+#include <steam/common.hpp>
+
 #ifdef interface
 #undef interface
 #endif
 
 namespace steam {
-struct raw_steam_id final {
-  unsigned int account_id : 32;
-  unsigned int account_instance : 20;
-  unsigned int account_type : 4;
-  int universe : 8;
-};
-
-using steam_id = union {
-  raw_steam_id raw;
-  unsigned long long bits;
-};
-
-#pragma pack(push, 1)
-struct raw_game_id final {
-  unsigned int app_id : 24;
-  unsigned int type : 8;
-  unsigned int mod_id : 32;
-};
-
-using game_id = union {
-  raw_game_id raw;
-  unsigned long long bits;
-};
-#pragma pack(pop)
+typedef std::unordered_map<std::string, void *> methodTable_t;
 
 class interface final {
 public:
@@ -43,7 +24,7 @@ public:
       throw std::runtime_error("Invalid interface pointer");
     }
 
-    const auto method = this->find_method(method_name);
+    const void *method = this->find_method(method_name);
     if (!method) {
       throw std::runtime_error("Unable to find method: " + method_name);
     }
@@ -64,7 +45,7 @@ public:
 
 private:
   void ***interface_ptr_;
-  std::unordered_map<std::string, void *> methods_;
+  methodTable_t methods_;
 
   void *find_method(const std::string &name);
   void *search_method(const std::string &name);

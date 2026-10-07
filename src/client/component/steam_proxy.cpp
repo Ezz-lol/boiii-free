@@ -544,7 +544,7 @@ void access_steam_friends(
       if (id == 0)
         continue;
 
-      steam_id sid{};
+      steam::steam_id sid{};
       sid.bits = id;
       const int state =
           client_friends.invoke<int>("GetFriendPersonaState", sid);

@@ -99,7 +99,7 @@ struct ReliableCommands {
 
 #pragma pack(push, 1)
 struct ClientSteamAuth {
-  steam::HAuthTicket authTicket;
+  HAuthTicket authTicket;
   uint8_t pTicket[1024];
   uint32_t pcbTicket;
 };

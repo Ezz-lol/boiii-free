@@ -60,3 +60,9 @@
 [submodule "deps/hksc"]
 	path = deps/hksc
 	url = https://github.com/Jake-NotTheMuss/hksc.git
+[submodule "deps/opus"]
+	path = deps/opus
+	url = https://github.com/xiph/opus
+[submodule "deps/portaudio"]
+	path = deps/portaudio
+	url = https://github.com/PortAudio/portaudio

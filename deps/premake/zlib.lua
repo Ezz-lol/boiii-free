@@ -30,6 +30,7 @@ function zlib.project()
 
   defines({
     "_CRT_SECURE_NO_DEPRECATE",
+    "ZLIB_USE_STATIC_LIBS=ON",
   })
 
   warnings("Off")

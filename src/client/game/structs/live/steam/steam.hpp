@@ -12,7 +12,7 @@ namespace steam {
 // Verified on client. Fields - their types and offsets - and total size.
 // Not verified on dedicated server, but also may not exist there.
 PACKED(struct LiveSteamClient {
-  game::steam::EResult resultOnRequestEncryptedAppTicket;
+  EResult resultOnRequestEncryptedAppTicket;
   int32_t ticketTime;
   int32_t numFriendsNotifications;
   uint8_t _padding0C[4];

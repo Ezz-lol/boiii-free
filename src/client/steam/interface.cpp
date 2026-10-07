@@ -14,7 +14,7 @@ interface::interface(void *interface_ptr)
 interface::operator bool() const { return this->interface_ptr_ != nullptr; }
 
 void *interface::find_method(const std::string &name) {
-  const auto method_entry = this->methods_.find(name);
+  const methodTable_t::iterator method_entry = this->methods_.find(name);
   if (method_entry != this->methods_.end()) {
     return method_entry->second;
   }
@@ -24,12 +24,12 @@ void *interface::find_method(const std::string &name) {
 
 void *interface::search_method(const std::string &name) {
   if (!utils::memory::is_bad_read_ptr(this->interface_ptr_)) {
-    auto vftbl = *this->interface_ptr_;
+    void **vftbl = *this->interface_ptr_;
 
     while (!utils::memory::is_bad_read_ptr(vftbl) &&
            !utils::memory::is_bad_code_ptr(*vftbl)) {
-      const auto ptr = *vftbl;
-      const auto result = this->analyze_method(ptr);
+      void *const ptr = *vftbl;
+      const std::string result = this->analyze_method(ptr);
       if (!result.empty()) {
         this->methods_[result] = ptr;
 
@@ -63,9 +63,9 @@ std::string interface::analyze_method(const void *method_ptr) {
     }
 
     if (ud_insn_mnemonic(&ud) == UD_Ilea) {
-      const auto *operand = ud_insn_opr(&ud, 1);
+      const ud_operand *operand = ud_insn_opr(&ud, 1);
       if (operand && operand->type == UD_OP_MEM && operand->base == UD_R_RIP) {
-        auto *operand_ptr = reinterpret_cast<char *>(
+        char *operand_ptr = reinterpret_cast<char *>(
             ud_insn_len(&ud) + ud_insn_off(&ud) + operand->lval.sdword);
         if (!utils::memory::is_bad_read_ptr(operand_ptr) &&
             utils::memory::is_rdata_ptr(operand_ptr)) {

@@ -1,7 +1,10 @@
 #include <std_include.hpp>
 
-#include "../../component/auth.hpp"
-#include "../steam.hpp"
+#include "user.hpp"
+
+#include <steam/steam.hpp>
+
+#include <component/auth.hpp>
 
 namespace steam {
 namespace {
@@ -36,34 +39,66 @@ bool user::GetUserDataFolder(char *pchBuffer, int32_t cubBuffer) {
   return false;
 }
 
-void user::StartVoiceRecording() {}
+void user::StartVoiceRecording() {
+  if (!voicechat->Recording() && voicechat->Init()) {
+    voicechat->StartVoiceRecording();
+  }
+}
 
-void user::StopVoiceRecording() {}
+void user::StopVoiceRecording() { voicechat->StopVoiceRecording(); }
 
-int user::GetAvailableVoice(uint32_t *pcbCompressed, uint32_t *pcbUncompressed,
+EVoiceResult
+user::GetAvailableVoice(uint32_t *pcbCompressed, uint32_t *pcbUncompressed,
+                        uint32_t nUncompressedVoiceDesiredSampleRate) {
+
+  if (pcbCompressed) {
+    *pcbCompressed = 0;
+  }
+  if (pcbUncompressed) {
+    *pcbUncompressed = 0;
+  }
+
+  StartVoiceRecording();
+  return voicechat->GetAvailableVoice(pcbCompressed);
+}
+
+EVoiceResult user::GetVoice(bool bWantCompressed, void *pDestBuffer,
+                            uint32_t cbDestBufferSize, uint32_t *nBytesWritten,
+                            bool bWantUncompressed,
+                            void *pUncompressedDestBuffer,
+                            uint32_t cbUncompressedDestBufferSize,
+                            uint32_t *nUncompressBytesWritten,
                             uint32_t nUncompressedVoiceDesiredSampleRate) {
-  return 0;
+  if (nBytesWritten) {
+    *nBytesWritten = 0;
+  }
+  if (nUncompressBytesWritten) {
+    *nUncompressBytesWritten = 0;
+  };
+  StartVoiceRecording();
+  return voicechat->GetVoice(bWantCompressed, pDestBuffer, cbDestBufferSize,
+                             nBytesWritten);
+  ;
 }
 
-int user::GetVoice(bool bWantCompressed, void *pDestBuffer,
-                   uint32_t cbDestBufferSize, uint32_t *nBytesWritten,
-                   bool bWantUncompressed, void *pUncompressedDestBuffer,
-                   uint32_t cbUncompressedDestBufferSize,
-                   uint32_t *nUncompressBytesWritten,
-                   uint32_t nUncompressedVoiceDesiredSampleRate) {
-  return 2;
+EVoiceResult user::DecompressVoice(void *pCompressed, uint32_t cbCompressed,
+                                   void *pDestBuffer, uint32_t cbDestBufferSize,
+                                   uint32_t *nBytesWritten) {
+  return voicechat->DecompressVoice(
+      pCompressed, cbCompressed, pDestBuffer, cbDestBufferSize, nBytesWritten,
+      /*
+         TODO: should this be `GetVoiceOptimalSampleRate()` ? 11025 is used
+         inline by all Steam emulators I could find, in this variation of
+         `DecompressVoice`, but this explicit, inline usage of the minimum
+         sample rate seems peculiar.
+      */
+      11025);
 }
 
-int user::DecompressVoice(void *pCompressed, uint32_t cbCompressed,
-                          void *pDestBuffer, uint32_t cbDestBufferSize,
-                          uint32_t *nBytesWritten) {
-  return 0;
-}
+uint32_t user::GetVoiceOptimalSampleRate() { return voice::SAMPLE_RATE; }
 
-uint32_t user::GetVoiceOptimalSampleRate() { return 0; }
-
-uint32_t user::GetAuthSessionTicket(void *pTicket, int32_t cbMaxTicket,
-                                    uint32_t *pcbTicket) {
+HAuthTicket user::GetAuthSessionTicket(void *pTicket, int32_t cbMaxTicket,
+                                       uint32_t *pcbTicket) {
   static uint32_t ticket = 0;
   *pcbTicket = 1;
 
@@ -72,16 +107,17 @@ uint32_t user::GetAuthSessionTicket(void *pTicket, int32_t cbMaxTicket,
       static_cast<get_auth_session_ticket_response *>(
           calloc(1, sizeof(get_auth_session_ticket_response)));
   response->m_h_auth_ticket = ++ticket;
-  response->m_e_result = 1; // k_EResultOK;
+  response->m_e_result = k_EResultOK;
 
   callbacks::return_call(response, sizeof(get_auth_session_ticket_response),
                          get_auth_session_ticket_response::callback_id, result);
   return response->m_h_auth_ticket;
 }
 
-int32_t user::BeginAuthSession(const void *pAuthTicket, int32_t cbAuthTicket,
-                               steam_id steamID) {
-  return game::steam::k_EBeginAuthSessionResultOK;
+EBeginAuthSessionResult user::BeginAuthSession(const void *pAuthTicket,
+                                               int32_t cbAuthTicket,
+                                               steam_id steamID) {
+  return k_EBeginAuthSessionResultOK;
 }
 
 void user::EndAuthSession(steam_id steamID) {}
@@ -89,8 +125,7 @@ void user::EndAuthSession(steam_id steamID) {}
 void user::CancelAuthTicket(uint32_t hAuthTicket) {}
 
 uint32_t user::UserHasLicenseForApp(steam_id steamID, uint32_t appID) {
-  return game::steam::EUserHasLicenseForAppResult::
-      k_EUserHasLicenseResultHasLicense;
+  return EUserHasLicenseForAppResult::k_EUserHasLicenseResultHasLicense;
 }
 
 bool user::BIsBehindNAT() { return false; }
