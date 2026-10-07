@@ -254,7 +254,16 @@ boiii.exe -nointro -console -unsafe-lua
 - ⚠️ Port forwarding access (or see
   [alternatives](#port-forwarding-alternatives))
 
-### Server Setup
+### Initial Configuration
+
+#### Plutainer
+
+[Plutainer](https://github.com/Ayymoss/Plutainer) provides a Docker image
+containing the base dedicated server installation and configuration. If you are
+setting up a server for the first time, usage of Plutainer should be the fastest
+and overall preferred approach.
+
+#### Manual
 
 **For detailed server setup instructions, check out:** 🔗
 [BO3 Server Installer by framilano](https://github.com/framilano/BlackOps3ServerInstaller)
@@ -282,7 +291,7 @@ boiii.exe -nointro -console -unsafe-lua
 
 6. **Monitor** the console for any errors
 
-### Connecting
+### Connection
 
 **Option 1: Server Browser**
 
@@ -360,7 +369,7 @@ zone/zm_zod_patch.ff
 1. **Copy files** from `Call of Duty Black Ops III/zone/` to your server's
    `zone/` folder
 2. **Repeat** for each map you want to host
-3. **Skip** `.xpak` files (these are textures/sounds that servers don't need)
+3. **Skip** `.xpak` files if you are launching with the `-nosnd` flag enabled.
 
 > [!NOTE]
 >
