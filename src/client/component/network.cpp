@@ -439,10 +439,6 @@ struct component final : generic_component {
         game::select(0x141EEB860, 0x141EF7FE0, 0x1404A5B90),
         &handle_packet_internal_stub);
 
-    // Kill voice chat
-    utils::hook::set<uint32_t>(
-        game::select(0x141359330, 0x141359310, 0x14018FE40), 0xC3C03148);
-
     // Don't let the game bind sockets anymore
     utils::hook::set(game::select(0x15AA6A38C, 0x15AAE9344, 0x14B4BD828),
                      bind_stub);

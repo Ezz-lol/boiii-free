@@ -73,8 +73,6 @@ void fix_amd_cpu_stuttering() {
       scheduler::pipeline::main);
 }
 
-MMRESULT mixer_open_stub() { return MMSYSERR_NODRIVER; }
-
 bool is_mod_loaded_stub() { return false; }
 
 void patch_is_mod_loaded_checks() {
@@ -456,10 +454,6 @@ public:
 
     // Don't modify process priority
     utils::hook::nop(game::select(0x1422BBB28, 0x142334C98, 0x0), 6);
-
-    // Kill microphones for now
-    utils::hook::set(game::select(0x15AA6A29C, 0x15AAE9254, 0x0),
-                     mixer_open_stub);
 
     preload_map_hook.create(game::cl::CL_PreloadMap, preload_map_stub);
 
