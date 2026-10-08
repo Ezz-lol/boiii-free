@@ -1,10 +1,13 @@
 #include <std_include.hpp>
 
-#include "voicechat.hpp"
+#include "voice.hpp"
+
+#include <game/game.hpp>
 
 namespace steam {
 namespace voice {
 void VoiceChat::clearCapture() {
+  game::trace("VoiceChat::clearCapture entered");
   if (inputStream) {
     Pa_AbortStream(inputStream);
     Pa_CloseStream(inputStream);
@@ -26,6 +29,7 @@ void VoiceChat::clearCapture() {
 }
 
 void VoiceChat::clearPlayback() {
+  game::trace("VoiceChat::clearPlayback entered");
   if (outputStream) {
     Pa_AbortStream(outputStream);
     Pa_CloseStream(outputStream);
@@ -55,6 +59,7 @@ int32_t VoiceChat::inputCallback(
     [[maybe_unused]] const void *input, void *output, unsigned long frameCount,
     [[maybe_unused]] const PaStreamCallbackTimeInfo *timeInfo,
     [[maybe_unused]] PaStreamCallbackFlags statusFlags, void *userData) {
+  game::trace("VoiceChat::inputCallback entered");
   VoiceChat *self = static_cast<VoiceChat *>(userData);
   if (input && self && self->state.recording.load(std::memory_order_acquire)) {
     std::vector<uint8_t> encodedBuffer(ENCODING_BUFFER_SIZE);
@@ -78,6 +83,7 @@ int32_t VoiceChat::outputCallback(
     [[maybe_unused]] const void *input, void *output, unsigned long frameCount,
     [[maybe_unused]] const PaStreamCallbackTimeInfo *timeInfo,
     [[maybe_unused]] PaStreamCallbackFlags statusFlags, void *userData) {
+  game::trace("VoiceChat::outputCallback entered");
   VoiceChat *self = static_cast<VoiceChat *>(userData);
   if (self && output) {
     int16_t *pcmOutput = static_cast<int16_t *>(output);
@@ -111,16 +117,16 @@ int32_t VoiceChat::outputCallback(
       }
 
       std::vector<opus_int16> decodedSamples(MAX_DECODED_PLAYBACK_SIZE);
-      int32_t decodedFrameCount =
+      int32_t decFrameCount =
           opus_decode(decoder, packet.encoded.data(),
                       static_cast<opus_int32>(packet.encoded.size()),
                       decodedSamples.data(), MAX_FRAME_SIZE, 0);
 
-      if (decodedFrameCount < 0) {
+      if (decFrameCount < 0) {
         break;
       }
 
-      uint32_t framesToCopy = static_cast<uint32_t>(decodedFrameCount);
+      uint32_t framesToCopy = static_cast<uint32_t>(decFrameCount);
       if (framesToCopy > framesRemaining) {
         framesToCopy = framesRemaining;
       }
@@ -137,13 +143,15 @@ int32_t VoiceChat::outputCallback(
 }
 
 VoiceChat::~VoiceChat() {
+  game::trace("VoiceChat destructor entered");
   clearCapture();
   clearPlayback();
   Shutdown();
 }
 
 bool VoiceChat::Init() {
-  if (state.initialized.load(std::memory_order_acquire)) {
+  game::trace("VoiceChat::Init entered");
+  if (!state.initialized.load(std::memory_order_acquire)) {
     PaError err = Pa_Initialize();
     if (err == paNoError) {
       state.initialized.store(true, std::memory_order_release);
@@ -155,12 +163,14 @@ bool VoiceChat::Init() {
 }
 
 void VoiceChat::Shutdown() {
+  game::trace("VoiceChat::Shutdown entered");
   if (state.initialized.exchange(false)) {
     Pa_Terminate();
   }
 }
 
 bool VoiceChat::StartVoiceRecording() {
+  game::trace("VoiceChat::StartVoiceRecording entered");
   if (state.recording.load(std::memory_order_acquire)) {
     return true;
   }
@@ -176,11 +186,11 @@ bool VoiceChat::StartVoiceRecording() {
       if (inputParams.device == paNoDevice) {
         clearCapture();
       } else {
-        const PaDeviceInfo *devInfo = Pa_GetDeviceInfo(inputParams.device);
+        const PaDeviceInfo *deviceInfo = Pa_GetDeviceInfo(inputParams.device);
         inputParams.channelCount = RECORDING_CHANNEL_COUNT;
         inputParams.sampleFormat = paInt16;
         inputParams.suggestedLatency =
-            devInfo ? devInfo->defaultLowInputLatency : 0.0;
+            deviceInfo ? deviceInfo->defaultLowInputLatency : 0.0;
         inputParams.hostApiSpecificStreamInfo = nullptr;
 
         PaError paErr =
@@ -208,12 +218,14 @@ bool VoiceChat::StartVoiceRecording() {
 }
 
 void VoiceChat::StopVoiceRecording() {
+  game::trace("VoiceChat::StopVoiceRecording entered");
   if (state.recording.exchange(false)) {
     clearCapture();
   }
 }
 
 bool VoiceChat::StartVoicePlayback() {
+  game::trace("VoiceChat::StartVoicePlayback entered");
   if (!state.playing.load(std::memory_order_acquire)) {
     if (!state.initialized.load(std::memory_order_acquire)) {
       return false;
@@ -226,10 +238,11 @@ bool VoiceChat::StartVoicePlayback() {
       return false;
     }
 
-    const PaDeviceInfo *devInfo = Pa_GetDeviceInfo(params.device);
+    const PaDeviceInfo *deviceInfo = Pa_GetDeviceInfo(params.device);
     params.channelCount = PLAYBACK_CHANNEL_COUNT;
     params.sampleFormat = paInt16;
-    params.suggestedLatency = devInfo ? devInfo->defaultLowOutputLatency : 0.0;
+    params.suggestedLatency =
+        deviceInfo ? deviceInfo->defaultLowOutputLatency : 0.0;
     params.hostApiSpecificStreamInfo = nullptr;
 
     if (Pa_OpenStream(&outputStream, nullptr, &params, SAMPLE_RATE, FRAME_SIZE,
@@ -245,12 +258,14 @@ bool VoiceChat::StartVoicePlayback() {
 }
 
 void VoiceChat::StopVoicePlayback() {
+  game::trace("VoiceChat::StopVoicePlayback entered");
   if (state.playing.exchange(false)) {
     clearPlayback();
   }
 }
 
 EVoiceResult VoiceChat::GetAvailableVoice(uint32_t *pcbCompressed) {
+  game::trace("VoiceChat::GetAvailableVoice entered");
   if (pcbCompressed) {
     *pcbCompressed = 0;
   }
@@ -279,14 +294,21 @@ EVoiceResult VoiceChat::GetAvailableVoice(uint32_t *pcbCompressed) {
 EVoiceResult VoiceChat::GetVoice(bool bWantCompressed, void *pDestBuffer,
                                  uint32_t cbDestBufferSize,
                                  uint32_t *nBytesWritten) {
+  game::trace(
+      "VoiceChat::GetVoice called with bWantCompressed: {}, "
+      "pDestBuffer: {:p}, cbDestBufferSize: {}, nBytesWritten: {:X}@{:p}",
+      bWantCompressed ? "true" : "false", pDestBuffer, cbDestBufferSize,
+      nBytesWritten ? *nBytesWritten : 0, static_cast<void *>(nBytesWritten));
   if (nBytesWritten) {
     *nBytesWritten = 0;
   }
 
   if (!state.initialized.load(std::memory_order_acquire)) {
+    game::trace("VoiceChat::GetVoice: returning k_EVoiceResultNotInitialized");
     return k_EVoiceResultNotInitialized;
   }
   if (!state.recording.load(std::memory_order_acquire)) {
+    game::trace("VoiceChat::GetVoice: returning k_EVoiceResultNotRecording");
     return k_EVoiceResultNotRecording;
   }
   if (!pDestBuffer || !nBytesWritten) {
@@ -296,6 +318,7 @@ EVoiceResult VoiceChat::GetVoice(bool bWantCompressed, void *pDestBuffer,
   std::scoped_lock<std::recursive_mutex> lock(inputMutex);
 
   if (encodingQueue.empty()) {
+    game::trace("VoiceChat::GetVoice: returning k_EVoiceResultNoData");
     return k_EVoiceResultNoData;
   }
 
@@ -322,6 +345,13 @@ EVoiceResult VoiceChat::GetVoice(bool bWantCompressed, void *pDestBuffer,
     encodingQueue.pop();
   }
 
+  game::trace(
+      "VoiceChat::GetVoice returning with result: {}. Arg values: "
+      "bWantCompressed: {}, "
+      "pDestBuffer: {:p}, cbDestBufferSize: {}, nBytesWritten: {:X}@{:p}",
+      static_cast<int32_t>(result), bWantCompressed ? "true" : "false",
+      pDestBuffer, cbDestBufferSize, nBytesWritten ? *nBytesWritten : 0,
+      static_cast<void *>(nBytesWritten));
   return result;
 }
 
@@ -330,26 +360,27 @@ VoiceChat::DecompressVoice(const void *pCompressed, uint32_t cbCompressed,
                            void *pDestBuffer, uint32_t cbDestBufferSize,
                            uint32_t *nBytesWritten,
                            [[maybe_unused]] uint32_t nDesiredSampleRate) {
+  game::trace("VoiceChat::DecompressVoice entered");
   if (nBytesWritten) {
     *nBytesWritten = 0;
   }
 
-  if (pCompressed && cbCompressed > 0) {
+  if (pCompressed && cbCompressed) {
     int32_t err = OPUS_OK;
     OpusDecoder *decoder =
         opus_decoder_create(SAMPLE_RATE, RECORDING_CHANNEL_COUNT, &err);
     if (decoder && err == OPUS_OK) {
       std::vector<opus_int16> pcmSamples(MAX_DECODED_RECORDING_SIZE);
-      int32_t decodedFrameCount =
+      int32_t decFrameCount =
           opus_decode(decoder, static_cast<const uint8_t *>(pCompressed),
                       static_cast<opus_int32>(cbCompressed), pcmSamples.data(),
                       MAX_FRAME_SIZE, 0);
 
       opus_decoder_destroy(decoder);
 
-      if (decodedFrameCount >= 0) {
+      if (decFrameCount >= 0) {
         uint32_t bytesRequired = static_cast<uint32_t>(
-            decodedFrameCount * RECORDING_CHANNEL_COUNT * sizeof(opus_int16));
+            decFrameCount * RECORDING_CHANNEL_COUNT * sizeof(opus_int16));
 
         if (nBytesWritten) {
           *nBytesWritten = bytesRequired;
@@ -371,6 +402,7 @@ VoiceChat::DecompressVoice(const void *pCompressed, uint32_t cbCompressed,
 
 void VoiceChat::QueueAudioPlayback(uint64_t userId, const uint8_t *data,
                                    size_t len) {
+  game::trace("VoiceChat::QueueAudioPlayback entered");
   if (data && len > 0) {
     std::scoped_lock<std::recursive_mutex> lock(playbackQueueMutex);
     playbackQueue.push({userId, std::vector<uint8_t>(data, data + len)});

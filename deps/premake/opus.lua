@@ -29,11 +29,6 @@ function opus.defines()
     -- Runtime CPU feature detection
     "CPU_INFO_BY_C=1",
     "OPUS_HAVE_RTCD=1",
-    -- "OPUS_X86_MAY_HAVE_SSE=1",
-    -- "OPUS_X86_MAY_HAVE_SSE2=1",
-    -- "OPUS_X86_MAY_HAVE_SSE4_1=OFF",
-    -- "OPUS_X86_MAY_HAVE_AVX=OFF",
-    -- "OPUS_X86_MAY_HAVE_AVX2=OFF",
 
     -- Default in `x86-64` march
     "OPUS_X86_PRESUME_SSE=1",

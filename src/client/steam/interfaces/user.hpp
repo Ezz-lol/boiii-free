@@ -4,7 +4,7 @@
 
 #include <steam/common.hpp>
 
-#include <steam/voicechat.hpp>
+#include <steam/voice.hpp>
 
 namespace steam {
 

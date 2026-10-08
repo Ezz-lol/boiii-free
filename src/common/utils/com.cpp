@@ -1,14 +1,16 @@
 #include "com.hpp"
-#include "finally.hpp"
-#include "nt.hpp"
-#include "string.hpp"
 
 #include <stdexcept>
 
+#include <atlbase.h>
+
 #include <shlobj.h>
+
+#include "string.hpp"
 
 namespace utils::com {
 namespace {
+
 void initialize_com() {
   thread_local struct x {
     x() {

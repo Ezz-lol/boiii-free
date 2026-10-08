@@ -1,30 +1,13 @@
-// Microsoft Visual C++ generated resource script.
-//
 #pragma code_page(65001)
 
-#define APSTUDIO_READONLY_SYMBOLS
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 2 resource.
-//
 #include "windows.h"
 #include "version.h"
 #include "resource.hpp"
 
-/////////////////////////////////////////////////////////////////////////////
-#undef APSTUDIO_READONLY_SYMBOLS
-
-/////////////////////////////////////////////////////////////////////////////
 // English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-
-#ifdef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// TEXTINCLUDE
-//
 
 1 TEXTINCLUDE 
 BEGIN
@@ -38,13 +21,7 @@ BEGIN
     "\0"
 END
 
-#endif    // APSTUDIO_INVOKED
-
-/////////////////////////////////////////////////////////////////////////////
-//
 // Version
-//
-
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION VERSION_FILE_RC
  PRODUCTVERSION VERSION_PRODUCT_RC
@@ -86,11 +63,7 @@ BEGIN
     END
 END
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Binary Data
-//
-
+// Binary data
 ID_ICON               ICON   "resources/icon.ico"
 IMAGE_SPLASH          RCDATA "resources/splash.jpg"
 
@@ -108,17 +81,5 @@ TLS_DLL               RCDATA "../../build/bin/x64/Release/tlsdll.dll"
 #endif
 
 #endif    // English (United States) resources
-/////////////////////////////////////////////////////////////////////////////
 
-
-
-#ifndef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 3 resource.
-//
-
-
-/////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
-
+1 RT_MANIFEST "app.manifest"

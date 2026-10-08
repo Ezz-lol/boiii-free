@@ -74,11 +74,10 @@ EVoiceResult user::GetVoice(bool bWantCompressed, void *pDestBuffer,
   }
   if (nUncompressBytesWritten) {
     *nUncompressBytesWritten = 0;
-  };
+  }
   StartVoiceRecording();
   return voicechat->GetVoice(bWantCompressed, pDestBuffer, cbDestBufferSize,
                              nBytesWritten);
-  ;
 }
 
 EVoiceResult user::DecompressVoice(void *pCompressed, uint32_t cbCompressed,

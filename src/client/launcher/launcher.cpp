@@ -42,9 +42,6 @@
 #define XXH_INLINE_ALL
 #include "xxhash.h"
 
-#pragma comment(lib, "Shell32.lib")
-#pragma comment(lib, "Shlwapi.lib")
-
 namespace launcher {
 namespace {
 std::string human_readable_size(std::uint64_t bytes);

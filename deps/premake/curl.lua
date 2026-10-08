@@ -69,7 +69,16 @@ function curl.project()
   })
 
   defines({
+    "BUILD_CURL_EXE=OFF",
+    "BUILD_STATIC_CURL=OFF", -- Build curl executable against static libcurl
     "BUILDING_LIBCURL",
+
+    "BUILD_SHARED_LIBS=OFF",
+    "BUILD_STATIC_LIBS=ON",
+    "BUILD_MISC_DOCS=OFF",
+    "BUILD_TESTING=OFF",
+    "BUILD_LIBCURL_DOCS=OFF",
+    "ENABLE_CURL_MANUAL=OFF",
   })
 
   defines({
