@@ -23,11 +23,11 @@ struct get_auth_session_ticket_response {
 
 class user {
 public:
-  voice::VoiceChat *voicechat{};
+  voice::Voice *voice{};
 
-  user() { voicechat = new voice::VoiceChat(); }
+  user() { voice = new voice::Voice(); }
 
-  ~user() { delete voicechat; }
+  ~user() { delete voice; }
 
   virtual int32_t GetHSteamUser();
   virtual bool LoggedOn();

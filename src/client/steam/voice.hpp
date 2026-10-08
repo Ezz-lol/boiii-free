@@ -35,7 +35,7 @@ struct VoicePacket {
 
 typedef std::unordered_map<uint64_t, OpusDecoder *> decoderMap_t;
 
-class VoiceChat {
+class Voice {
 private:
   struct {
     std::atomic<bool> initialized{false};
@@ -78,29 +78,28 @@ private:
                                 void *userData);
 
 public:
-  VoiceChat() = default;
-  ~VoiceChat();
+  Voice() = default;
+  ~Voice();
 
   // Lifecycle operations
   bool Init();
   void Shutdown();
 
   // Recording controls
-  bool StartVoiceRecording();
-  void StopVoiceRecording();
+  bool StartRecording();
+  void StopRecording();
 
   // Playback controls
-  bool StartVoicePlayback();
-  void StopVoicePlayback();
+  bool StartPlayback();
+  void StopPlayback();
 
   // Voice data retrieval & processing
-  EVoiceResult GetAvailableVoice(uint32_t *pcbCompressed);
+  EVoiceResult GetAvailable(uint32_t *pcbCompressed);
   EVoiceResult GetVoice(bool bWantCompressed, void *pDestBuffer,
                         uint32_t cbDestBufferSize, uint32_t *nBytesWritten);
-  EVoiceResult DecompressVoice(const void *pCompressed, uint32_t cbCompressed,
-                               void *pDestBuffer, uint32_t cbDestBufferSize,
-                               uint32_t *nBytesWritten,
-                               uint32_t nDesiredSampleRate);
+  EVoiceResult Decompress(const void *pCompressed, uint32_t cbCompressed,
+                          void *pDestBuffer, uint32_t cbDestBufferSize,
+                          uint32_t *nBytesWritten, uint32_t nDesiredSampleRate);
 
   // Audio stream ingest
   void QueueAudioPlayback(uint64_t userId, const uint8_t *data, size_t len);

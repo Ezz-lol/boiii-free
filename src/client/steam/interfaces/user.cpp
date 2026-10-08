@@ -40,12 +40,12 @@ bool user::GetUserDataFolder(char *pchBuffer, int32_t cubBuffer) {
 }
 
 void user::StartVoiceRecording() {
-  if (!voicechat->Recording() && voicechat->Init()) {
-    voicechat->StartVoiceRecording();
+  if (!voice->Recording() && voice->Init()) {
+    voice->StartRecording();
   }
 }
 
-void user::StopVoiceRecording() { voicechat->StopVoiceRecording(); }
+void user::StopVoiceRecording() { voice->StopRecording(); }
 
 EVoiceResult
 user::GetAvailableVoice(uint32_t *pcbCompressed, uint32_t *pcbUncompressed,
@@ -59,7 +59,7 @@ user::GetAvailableVoice(uint32_t *pcbCompressed, uint32_t *pcbUncompressed,
   }
 
   StartVoiceRecording();
-  return voicechat->GetAvailableVoice(pcbCompressed);
+  return voice->GetAvailable(pcbCompressed);
 }
 
 EVoiceResult user::GetVoice(bool bWantCompressed, void *pDestBuffer,
@@ -76,14 +76,14 @@ EVoiceResult user::GetVoice(bool bWantCompressed, void *pDestBuffer,
     *nUncompressBytesWritten = 0;
   }
   StartVoiceRecording();
-  return voicechat->GetVoice(bWantCompressed, pDestBuffer, cbDestBufferSize,
-                             nBytesWritten);
+  return voice->GetVoice(bWantCompressed, pDestBuffer, cbDestBufferSize,
+                         nBytesWritten);
 }
 
 EVoiceResult user::DecompressVoice(void *pCompressed, uint32_t cbCompressed,
                                    void *pDestBuffer, uint32_t cbDestBufferSize,
                                    uint32_t *nBytesWritten) {
-  return voicechat->DecompressVoice(
+  return voice->Decompress(
       pCompressed, cbCompressed, pDestBuffer, cbDestBufferSize, nBytesWritten,
       /*
          TODO: should this be `GetVoiceOptimalSampleRate()` ? 11025 is used
