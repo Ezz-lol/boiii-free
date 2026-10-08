@@ -22,6 +22,7 @@ bool alias();
 bool quiet_crash();
 bool is_headless();
 bool scr_debug();
+bool allow_unsafe_lua();
 
 #ifdef NDEBUG
 inline bool vm_trace() { return false; }

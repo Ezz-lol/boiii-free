@@ -33,11 +33,6 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
       "Allow Cheats",
       "Allow cheat commands like noclip and god mode. Only this setting can turn cheats on, maps and scripts can't.",
     },
-    {
-      "boiii_allowUnsafeLua",
-      "Allow Unsafe Lua",
-      "Let mods read and write files, run commands and load DLLs without asking. Only enable this for mods you trust.",
-    },
   }
   local function addToggle(dvar, name, description)
     table.insert(

@@ -33,14 +33,11 @@ static constinit flag_setting ultrawide_flag{
 static constinit flag_setting allow_cheats_flag{
     "boiii_allowCheats", "cheats",
     "Allow cheat commands like noclip and god mode"};
-static constinit flag_setting allow_unsafe_lua_flag{
-    "boiii_allowUnsafeLua", "unsafe-lua",
-    "Allow mods to use unsafe Lua functions without asking"};
 
 constexpr flag_setting *all_settings[] = {
     &skip_intro_flag,   &skip_cinematics_flag,   &skip_forest_cinematic_flag,
     &full_logs_flag,    &log_script_errors_flag, &ultrawide_flag,
-    &allow_cheats_flag, &allow_unsafe_lua_flag,
+    &allow_cheats_flag,
 };
 
 inline bool skip_intro() { return skip_intro_flag.enabled(); }
@@ -52,5 +49,4 @@ inline bool full_logs() { return full_logs_flag.enabled(); }
 inline bool log_script_errors() { return log_script_errors_flag.enabled(); }
 inline bool ultrawide() { return ultrawide_flag.enabled(); }
 inline bool cheats() { return allow_cheats_flag.enabled(); }
-inline bool allow_unsafe_lua() { return allow_unsafe_lua_flag.enabled(); }
 } // namespace game

@@ -95,6 +95,11 @@ bool scr_debug() {
   return result;
 }
 
+bool allow_unsafe_lua() {
+  static const bool result = utils::flags::has_flag("unsafe-lua");
+  return result;
+}
+
 #ifndef NDEBUG
 bool vm_trace() {
   static const bool result = utils::flags::has_flag("vm-trace");
