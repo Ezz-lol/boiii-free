@@ -213,38 +213,37 @@ const std::vector<gum> &gum_pool() {
   thread_local std::vector<gum> pool;
   thread_local uint64_t generation = 0;
   const uint64_t current_generation = gum_generation.load();
-  if (generation == current_generation && !pool.empty()) {
-    return pool;
-  }
-  pool.clear();
-  generation = current_generation;
-  const StringTable *items = table("gamedata/loot/zmlootitems.csv");
-  const StringTable *stat_table = table("gamedata/stats/zm/zm_statsTable.csv");
-  if (!items || !stat_table) {
-    return pool;
-  }
-  for (int32_t row = 0; row < stat_table->rowCount; ++row) {
-    const char *type = StringTable_GetColumnValueForRow(stat_table, row, 2);
-    if (!type || std::string_view(type) != "bubblegum_consumable") {
-      continue;
-    }
-    const char *index_text =
-        StringTable_GetColumnValueForRow(stat_table, row, 0);
-    const char *ref = StringTable_GetColumnValueForRow(stat_table, row, 4);
-    if (!index_text || !ref || !*ref || strlen(ref) >= 256) {
-      continue;
-    }
-    const std::optional<uint32_t> index = accounting::parse_amount(index_text);
-    const char *id_text = StringTable_Lookup(items, 0, ref, 1);
-    if (!id_text) {
-      continue;
-    }
-    uint32_t id = 0;
-    const char *end = id_text + strlen(id_text);
-    const std::from_chars_result parsed = std::from_chars(id_text, end, id);
-    if (index && *index < 256 && *ref && strlen(ref) < 256 && id &&
-        parsed.ec == std::errc{} && parsed.ptr == end) {
-      pool.push_back({id, *index, ref});
+  if (generation != current_generation || pool.empty()) {
+    pool.clear();
+    generation = current_generation;
+    const StringTable *items = table("gamedata/loot/zmlootitems.csv");
+    const StringTable *stat_table =
+        table("gamedata/stats/zm/zm_statsTable.csv");
+    if (items && stat_table) {
+      for (int32_t row = 0; row < stat_table->rowCount; ++row) {
+        const char *type = StringTable_GetColumnValueForRow(stat_table, row, 2);
+        if (type && std::string_view(type) == "bubblegum_consumable") {
+          const char *index_text =
+              StringTable_GetColumnValueForRow(stat_table, row, 0);
+          const char *ref =
+              StringTable_GetColumnValueForRow(stat_table, row, 4);
+          if (index_text && ref && ref[0] && strlen(ref) < 256) {
+            const std::optional<uint32_t> index =
+                accounting::parse_amount(index_text);
+            const char *id_text = StringTable_Lookup(items, 0, ref, 1);
+            if (id_text) {
+              uint32_t id = 0;
+              const char *end = id_text + strlen(id_text);
+              const std::from_chars_result parsed =
+                  std::from_chars(id_text, end, id);
+              if (index && *index < 256 && *ref && strlen(ref) < 256 && id &&
+                  parsed.ec == std::errc{} && parsed.ptr == end) {
+                pool.push_back({id, *index, ref});
+              }
+            }
+          }
+        }
+      }
     }
   }
   return pool;
@@ -260,10 +259,10 @@ std::optional<uint32_t> quantity(const stats &data, const gum &item) {
       gum_stat(data, item, "bgbconsumablesgained");
   const std::optional<DDLState> used =
       gum_stat(data, item, "bgbconsumablesused");
-  if (!gained || !used) {
-    return std::nullopt;
-  }
-  return accounting::remaining(data.get(*gained), data.get(*used));
+
+  return gained && used ? std::optional(accounting::remaining(data.get(*gained),
+                                                              data.get(*used)))
+                        : std::nullopt;
 }
 
 uint32_t get_currency(ControllerIndex_t controller, int32_t kind) {
@@ -947,6 +946,8 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
     return false;
   }
 
+  /* FIXME: We have this stored in a global. Why are we needlessly looking
+   up the dvar by name? This needs to be fixed. */
   const bool unlockall =
       game::get_dvar_bool("cg_unlockall_gobblegums").value_or(false);
 
