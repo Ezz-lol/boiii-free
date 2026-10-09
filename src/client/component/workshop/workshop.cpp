@@ -3,7 +3,7 @@
 #include "workshop.hpp"
 #include <loader/component_loader.hpp>
 
-#include "command.hpp"
+#include <component/command.hpp>
 #include <game/utils.hpp>
 
 #include <utils/flags.hpp>
@@ -11,15 +11,13 @@
 #include <utils/http.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
-#include <utils/thread.hpp>
 
-#include "download_overlay.hpp"
-#include "fastdl.hpp"
-#include "network.hpp"
-#include "party.hpp"
-#include "scheduler.hpp"
-#include "steamcmd.hpp"
-#include "toast.hpp"
+#include <component/download_overlay.hpp>
+#include <component/fastdl.hpp>
+#include <component/network.hpp>
+#include <component/party.hpp>
+#include <component/scheduler.hpp>
+#include <component/toast.hpp>
 
 #include <game/impl/db/xzone/xzone.hpp>
 #include <game/impl/lua/lua.hpp>
@@ -40,7 +38,6 @@ using XZoneName = xzone::XZoneName;
 namespace workshop {
 game::EngineDependentDvar workshop_timeout;
 game::EngineDependentDvar workshop_retry_attempts;
-std::thread download_thread{};
 
 utils::hook::detour CL_SetupForNewServerMap_hook;
 
@@ -312,6 +309,43 @@ void supplement_mods_from_disk() {
   }
 }
 
+void supplement_usermaps_from_disk() {
+  std::error_code ec;
+  uint32_t count = game::ugc::usermapsPool.count;
+  for (const std::filesystem::directory_entry &entry :
+       std::filesystem::directory_iterator(
+           std::filesystem::current_path() / "usermaps", ec)) {
+    if (count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE)
+      break;
+    if (!entry.is_directory(ec) ||
+        (!std::filesystem::exists(entry.path() / "workshop.json", ec) &&
+         !std::filesystem::exists(entry.path() / "zone" / "workshop.json",
+                                  ec))) {
+      continue;
+    }
+
+    const std::string folder = entry.path().filename().string();
+    if (std::any_of(game::ugc::usermapsPool.data,
+                    game::ugc::usermapsPool.data + count,
+                    [&](const game::ugc::WorkshopData &existing) {
+                      return folder == existing.publisherId ||
+                             folder == existing.internalName;
+                    })) {
+      continue;
+    }
+
+    game::ugc::WorkshopData *map_data = &game::ugc::usermapsPool.data[count++];
+    populate_workshop_paths(map_data, entry.path(), game::ZoneType::USERMAP);
+    load_workshop_data(map_data);
+  }
+
+  if (count != game::ugc::usermapsPool.count) {
+    printf("[ Workshop ] Supplemented %u usermaps from disk fallback\n",
+           count - game::ugc::usermapsPool.count);
+    game::ugc::usermapsPool.count = count;
+  }
+}
+
 void supplement_ugc_from_workshop(game::ZoneType zoneType) {
   if (game::ugc::usermapsPool.count >=
       game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
@@ -513,6 +547,8 @@ std::string get_usermap_publisher_id(const std::string &zone_name) {
 }
 
 int get_workshop_retry_attempts() {
+  if (!workshop_retry_attempts.cl)
+    return 30;
   const int val = workshop_retry_attempts.get_int();
   if (val < 1)
     return 1;
@@ -650,128 +686,163 @@ std::uint64_t parse_human_size_to_bytes(const std::string &text) {
 }
 
 std::uint64_t scrape_workshop_file_size_bytes(const std::string &workshop_id) {
-  try {
-    utils::http::headers h;
-    h["User-Agent"] =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
-    h["Accept"] = "text/html";
-    h["Accept-Language"] = "en-US,en;q=0.9";
-    h["Referer"] = "https://steamcommunity.com/app/311210/workshop/";
-
-    const auto url = "https://steamcommunity.com/sharedfiles/filedetails/?id=" +
-                     workshop_id + "&searchtext=";
-    const auto resp = utils::http::get_data(url, h, {}, 2);
-    if (!resp || resp->empty())
-      return 0;
-
-    const std::string &html = *resp;
-
-    {
-      std::regex re(
-          R"(detailsStatRight[^>]*>\s*([\d,\.]+\s*(?:B|KB|MB|GB|TB))\s*<)",
-          std::regex::icase);
-      std::smatch m;
-      if (std::regex_search(html, m, re) && m.size() >= 2) {
-        std::string size_text = m[1].str();
-        size_text.erase(std::remove(size_text.begin(), size_text.end(), ','),
-                        size_text.end());
-        const auto bytes = parse_human_size_to_bytes(size_text);
-        if (bytes > 0)
-          return bytes;
-      }
-    }
-    {
-      std::regex re(R"(File\s*Size\s*<\/div>\s*<div[^>]*>([^<]+)<)",
-                    std::regex::icase);
-      std::smatch m;
-      if (std::regex_search(html, m, re) && m.size() >= 2) {
-        std::string size_text = m[1].str();
-        size_text.erase(std::remove(size_text.begin(), size_text.end(), ','),
-                        size_text.end());
-        const auto bytes = parse_human_size_to_bytes(size_text);
-        if (bytes > 0)
-          return bytes;
-      }
-    }
-    {
-      std::regex re(R"(File\s*Size[^\d]*(\d+(?:[,.]\d+)?)\s*(B|KB|MB|GB|TB))",
-                    std::regex::icase);
-      std::smatch m;
-      if (std::regex_search(html, m, re) && m.size() >= 3) {
-        std::string num = m[1].str();
-        num.erase(std::remove(num.begin(), num.end(), ','), num.end());
-        const auto bytes = parse_human_size_to_bytes(num + " " + m[2].str());
-        if (bytes > 0)
-          return bytes;
-      }
-    }
+  utils::http::headers h;
+  h["User-Agent"] =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+  h["Accept"] = "text/html";
+  h["Referer"] = "https://steamcommunity.com/app/311210/workshop/";
+  const auto resp = utils::http::get_data(
+      "https://steamcommunity.com/sharedfiles/filedetails/?id=" + workshop_id +
+          "&l=english",
+      h, {}, 10);
+  if (!resp)
     return 0;
-  } catch (...) {
-    return 0;
+
+  const auto column = [&](const std::string &cls) {
+    std::vector<std::string> out;
+    const std::string needle = "class=\"" + cls + "\"";
+    for (size_t pos = resp->find(needle); pos != std::string::npos;
+         pos = resp->find(needle, pos + 1)) {
+      const auto gt = resp->find('>', pos);
+      const auto lt = resp->find('<', gt);
+      if (gt == std::string::npos || lt == std::string::npos)
+        break;
+      auto text = resp->substr(gt + 1, lt - gt - 1);
+      utils::string::trim(text);
+      out.push_back(utils::string::to_lower(text));
+    }
+    return out;
+  };
+
+  const auto labels = column("detailsStatLeft");
+  const auto values = column("detailsStatRight");
+  for (size_t i = 0; i < std::min(labels.size(), values.size()); ++i) {
+    if (labels[i].find("size") == std::string::npos &&
+        labels[i].find("tamanho") == std::string::npos &&
+        labels[i].find("taille") == std::string::npos &&
+        labels[i].find("tama") == std::string::npos &&
+        labels[i].find("gr") == std::string::npos)
+      continue;
+    auto text = values[i];
+    if (text.find('.') == std::string::npos)
+      std::replace(text.begin(), text.end(), ',', '.');
+    else
+      std::erase(text, ',');
+    if (const auto bytes = parse_human_size_to_bytes(text))
+      return bytes;
   }
+  return 0;
+}
+
+std::vector<item_details> get_details(const std::vector<std::string> &ids) {
+  std::vector<item_details> result;
+  constexpr size_t BATCH = 100;
+  for (size_t start = 0; start < ids.size(); start += BATCH) {
+    const size_t count = std::min(BATCH, ids.size() - start);
+    std::string body = "itemcount=" + std::to_string(count);
+    for (size_t i = 0; i < count; ++i)
+      body += "&publishedfileids[" + std::to_string(i) + "]=" + ids[start + i];
+
+    const auto resp = utils::http::post_data(
+        "https://api.steampowered.com/ISteamRemoteStorage/"
+        "GetPublishedFileDetails/v1/",
+        body, 15);
+    rapidjson::Document doc;
+    if (!resp || doc.Parse(resp->c_str()).HasParseError() || !doc.IsObject() ||
+        !doc.HasMember("response") ||
+        !doc["response"].HasMember("publishedfiledetails") ||
+        !doc["response"]["publishedfiledetails"].IsArray())
+      continue;
+
+    for (const auto &entry :
+         doc["response"]["publishedfiledetails"].GetArray()) {
+      const auto string_of = [&](const char *key) {
+        const auto it = entry.FindMember(key);
+        return it != entry.MemberEnd() && it->value.IsString()
+                   ? std::string(it->value.GetString())
+                   : std::string();
+      };
+      const auto number_of = [&](const char *key) -> std::uint64_t {
+        const auto it = entry.FindMember(key);
+        if (it == entry.MemberEnd())
+          return 0;
+        if (it->value.IsString())
+          return std::strtoull(it->value.GetString(), nullptr, 10);
+        return it->value.IsNumber()
+                   ? static_cast<std::uint64_t>(it->value.GetDouble())
+                   : 0;
+      };
+
+      if (!entry.IsObject())
+        continue;
+      const auto app_id = number_of("consumer_app_id");
+      if (app_id && app_id != game::APP_ID)
+        continue;
+
+      item_details item{};
+      item.id = string_of("publishedfileid");
+      if (item.id.empty())
+        continue;
+      item.title = string_of("title");
+      item.description = string_of("description");
+      item.preview_url = string_of("preview_url");
+      item.file_size = number_of("file_size");
+      item.time_updated = number_of("time_updated");
+      item.subs =
+          static_cast<std::int64_t>(number_of("lifetime_subscriptions")
+                                        ? number_of("lifetime_subscriptions")
+                                        : number_of("subscriptions"));
+      item.favorites = static_cast<std::int64_t>(
+          number_of("lifetime_favorited") ? number_of("lifetime_favorited")
+                                          : number_of("favorited"));
+
+      bool map = false;
+      bool mod = false;
+      if (entry.HasMember("tags") && entry["tags"].IsArray()) {
+        for (const auto &tag : entry["tags"].GetArray()) {
+          if (tag.IsObject() && tag.HasMember("tag") && tag["tag"].IsString()) {
+            item.tags.emplace_back(tag["tag"].GetString());
+            const auto kind = normalize_kind(item.tags.back());
+            map |= kind == "Map";
+            mod |= kind == "Mod";
+          }
+        }
+      }
+      item.kind = mod && !map ? "Mod" : "Map";
+      result.push_back(std::move(item));
+    }
+  }
+  return result;
 }
 
 workshop_info get_steam_workshop_info(const std::string &workshop_id) {
   workshop_info info{};
   if (workshop_id.empty())
     return info;
-  try {
-    const std::string body = "itemcount=1&publishedfileids[0]=" + workshop_id;
-    const auto resp = utils::http::post_data(
-        "https://api.steampowered.com/ISteamRemoteStorage/"
-        "GetPublishedFileDetails/v1/",
-        body, 10);
-    if (!resp || resp->empty())
-      return info;
-
-    rapidjson::Document doc;
-    if (doc.Parse(resp->c_str()).HasParseError() || !doc.IsObject())
-      return info;
-    auto resp_it = doc.FindMember("response");
-    if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
-      return info;
-    auto details_it = resp_it->value.FindMember("publishedfiledetails");
-    if (details_it == resp_it->value.MemberEnd() ||
-        !details_it->value.IsArray() || details_it->value.Empty())
-      return info;
-    const auto &first = details_it->value[0];
-    if (!first.IsObject())
-      return info;
-
-    auto title_it = first.FindMember("title");
-    if (title_it != first.MemberEnd() && title_it->value.IsString())
-      info.title = title_it->value.GetString();
-
-    auto size_it = first.FindMember("file_size");
-    if (size_it != first.MemberEnd()) {
-      if (size_it->value.IsUint64())
-        info.file_size = size_it->value.GetUint64();
-      else if (size_it->value.IsInt64())
-        info.file_size = static_cast<std::uint64_t>(size_it->value.GetInt64());
-      else if (size_it->value.IsUint())
-        info.file_size = size_it->value.GetUint();
-      else if (size_it->value.IsInt())
-        info.file_size = static_cast<std::uint64_t>(size_it->value.GetInt());
-      else if (size_it->value.IsString())
-        info.file_size = static_cast<std::uint64_t>(
-            std::strtoull(size_it->value.GetString(), nullptr, 10));
-      else if (size_it->value.IsDouble())
-        info.file_size = static_cast<std::uint64_t>(size_it->value.GetDouble());
-      else if (size_it->value.IsNumber())
-        info.file_size = static_cast<std::uint64_t>(size_it->value.GetDouble());
-    }
-
-    if (info.file_size == 0) {
-      const auto scraped = scrape_workshop_file_size_bytes(workshop_id);
-      if (scraped > 0)
-        info.file_size = scraped;
-    }
-  } catch (...) {
-    const auto scraped = scrape_workshop_file_size_bytes(workshop_id);
-    if (scraped > 0)
-      info.file_size = scraped;
+  const auto details = get_details({workshop_id});
+  if (!details.empty()) {
+    info.title = details[0].title;
+    info.file_size = details[0].file_size;
   }
+  if (!info.file_size)
+    info.file_size = scrape_workshop_file_size_bytes(workshop_id);
   return info;
+}
+
+void offer_download(const std::string &kind, const std::string &name,
+                    const std::string &workshop_id) {
+  const auto info = get_steam_workshop_info(workshop_id);
+  std::string message = kind + " '" + name + "' was not found.\n";
+  if (name != workshop_id)
+    message += "Workshop ID: " + workshop_id + "\n";
+  if (!info.title.empty())
+    message += "Title: " + info.title + "\n";
+  if (info.file_size > 0)
+    message += "Size: " + human_readable_size(info.file_size) + "\n";
+  message += "\nDo you want to download it from the Steam Workshop?";
+  download_overlay::show_confirmation(
+      "Download " + kind + "?", message,
+      [workshop_id, kind] { start_download(workshop_id, kind); });
 }
 
 bool check_valid_usermap_id(const std::string &mapname,
@@ -816,41 +887,10 @@ bool check_valid_usermap_id(const std::string &mapname,
     }
 
     if (utils::string::is_numeric(mapname.data())) {
-      const std::string id_copy = mapname;
-      const workshop_info ws_info = get_steam_workshop_info(id_copy);
-      std::string confirm_msg =
-          utils::string::va("Usermap '%s' was not found.\n", id_copy.c_str());
-      if (!ws_info.title.empty())
-        confirm_msg += "Title: " + ws_info.title + "\n";
-      if (ws_info.file_size > 0)
-        confirm_msg += "Size: " + human_readable_size(ws_info.file_size) + "\n";
-      confirm_msg += "\nDo you want to download it from the Steam Workshop?";
-      download_overlay::show_confirmation(
-          "Download Map?", confirm_msg, [id_copy] {
-            download_thread = utils::thread::create_named_thread(
-                "workshop_download", steamcmd::initialize_download, id_copy,
-                std::string("Map"));
-            download_thread.detach();
-          });
+      offer_download("Map", mapname, mapname);
     } else if (!workshop_id.empty() &&
                utils::string::is_numeric(workshop_id.data())) {
-      const std::string id_copy = workshop_id;
-      const std::string name_copy = mapname;
-      const workshop_info ws_info = get_steam_workshop_info(id_copy);
-      std::string confirm_msg =
-          utils::string::va("Usermap '%s' was not found.\n", name_copy.c_str());
-      if (!ws_info.title.empty())
-        confirm_msg += "Title: " + ws_info.title + "\n";
-      if (ws_info.file_size > 0)
-        confirm_msg += "Size: " + human_readable_size(ws_info.file_size) + "\n";
-      confirm_msg += "\nDo you want to download it from the Steam Workshop?";
-      download_overlay::show_confirmation(
-          "Download Map?", confirm_msg, [id_copy] {
-            download_thread = utils::thread::create_named_thread(
-                "workshop_download", steamcmd::initialize_download, id_copy,
-                std::string("Map"));
-            download_thread.detach();
-          });
+      offer_download("Map", mapname, workshop_id);
     } else {
       const std::string name_copy = mapname;
       scheduler::once(
@@ -890,77 +930,28 @@ bool check_valid_mod_id(const std::string &mod,
       return false;
     }
 
-    if (utils::string::is_numeric(mod.data())) {
-      const std::string id_copy = mod;
-      const workshop_info ws_info = get_steam_workshop_info(id_copy);
-      std::string confirm_msg =
-          utils::string::va("Mod '%s' was not found.\n", id_copy.c_str());
-      if (!ws_info.title.empty())
-        confirm_msg += "Title: " + ws_info.title + "\n";
-      if (ws_info.file_size > 0)
-        confirm_msg += "Size: " + human_readable_size(ws_info.file_size) + "\n";
-      confirm_msg += "\nDo you want to download it from the Steam Workshop?";
-      download_overlay::show_confirmation(
-          "Download Mod?", confirm_msg, [id_copy] {
-            download_thread = utils::thread::create_named_thread(
-                "workshop_download", steamcmd::initialize_download, id_copy,
-                std::string("Mod"));
-            download_thread.detach();
-          });
-    } else if (!workshop_id.empty() &&
-               utils::string::is_numeric(workshop_id.data())) {
-      const std::string id_copy = workshop_id;
-      const std::string name_copy = mod;
-      const workshop_info ws_info = get_steam_workshop_info(id_copy);
-      std::string confirm_msg =
-          utils::string::va("Mod '%s' was not found.\n", name_copy.c_str());
-      if (!ws_info.title.empty())
-        confirm_msg += "Title: " + ws_info.title + "\n";
-      if (ws_info.file_size > 0)
-        confirm_msg += "Size: " + human_readable_size(ws_info.file_size) + "\n";
-      confirm_msg += "\nDo you want to download it from the Steam Workshop?";
-      download_overlay::show_confirmation(
-          "Download Mod?", confirm_msg, [id_copy] {
-            download_thread = utils::thread::create_named_thread(
-                "workshop_download", steamcmd::initialize_download, id_copy,
-                std::string("Mod"));
-            download_thread.detach();
-          });
+    const std::string resolved_id =
+        utils::string::is_numeric(mod.data())
+            ? mod
+            : (!workshop_id.empty() &&
+                       utils::string::is_numeric(workshop_id.data())
+                   ? workshop_id
+                   : resolve_mod_workshop_id(mod));
+    if (!resolved_id.empty()) {
+      offer_download("Mod", mod, resolved_id);
     } else {
-      std::string resolved_id = resolve_mod_workshop_id(mod);
-      if (!resolved_id.empty()) {
-        const std::string name_copy = mod;
-        const workshop_info ws_info = get_steam_workshop_info(resolved_id);
-        std::string confirm_msg = utils::string::va(
-            "Mod '%s' was not found.\nResolved workshop ID: %s\n",
-            name_copy.c_str(), resolved_id.c_str());
-        if (!ws_info.title.empty())
-          confirm_msg += "Title: " + ws_info.title + "\n";
-        if (ws_info.file_size > 0)
-          confirm_msg +=
-              "Size: " + human_readable_size(ws_info.file_size) + "\n";
-        confirm_msg += "\nDo you want to download it now?";
-        download_overlay::show_confirmation(
-            "Download Mod?", confirm_msg, [resolved_id] {
-              download_thread = utils::thread::create_named_thread(
-                  "workshop_download", steamcmd::initialize_download,
-                  resolved_id, std::string("Mod"));
-              download_thread.detach();
-            });
-      } else {
-        const std::string name_copy = mod;
-        scheduler::once(
-            [name_copy] {
-              game::ui::UI_OpenErrorPopupWithMessage(
-                  game::LOCAL_CLIENT_0, game::errorCode::UI,
-                  utils::string::va(
-                      "Could not download: folder name is not numeric and "
-                      "'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id "
-                      "or subscribe on Steam Workshop.",
-                      name_copy.c_str()));
-            },
-            scheduler::main);
-      }
+      const std::string name_copy = mod;
+      scheduler::once(
+          [name_copy] {
+            game::ui::UI_OpenErrorPopupWithMessage(
+                game::LOCAL_CLIENT_0, game::errorCode::UI,
+                utils::string::va(
+                    "Could not download: folder name is not numeric and "
+                    "'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id "
+                    "or subscribe on Steam Workshop.",
+                    name_copy.c_str()));
+          },
+          scheduler::main);
     }
     return false;
   }
@@ -1175,24 +1166,9 @@ public:
         std::string type_str = params.size() >= 3 ? params.get(2) : "Map";
         if (id.empty())
           return;
-        if (is_any_download_active()) {
-          game::ui::UI_OpenErrorPopupWithMessage(
-              game::LOCAL_CLIENT_0, game::errorCode::UI,
-              "A download is already in progress. Wait for it to finish.");
-          return;
-        }
         if (type_str != "Map" && type_str != "Mod")
           type_str = "Map";
-        printf("[ Workshop ] Starting download: %s (%s)\n", id.c_str(),
-               type_str.c_str());
-        if (!game::is_server())
-          toast::show("Workshop",
-                      utils::string::va("Downloading %s: %s", type_str.c_str(),
-                                        id.c_str()),
-                      "t7_icon_menu_options_download");
-        download_thread = utils::thread::create_named_thread(
-            "workshop_download", steamcmd::initialize_download, id, type_str);
-        download_thread.detach();
+        start_download(id, type_str);
       });
       command::add("loadmod", [](const command::params &params) {
         if (params.size() > 0) {
@@ -1254,13 +1230,11 @@ public:
 
   void pre_destroy() override {
     if (game::is_client()) {
-      downloading_workshop_item = false;
+      cancel_download();
       dlc_thread_shutdown = true;
       dlc_cv.notify_one();
       if (dlc_popup_thread_obj.joinable())
         dlc_popup_thread_obj.join();
-      if (download_thread.joinable())
-        download_thread.join();
     }
   }
 };

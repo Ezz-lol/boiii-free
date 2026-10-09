@@ -9,7 +9,7 @@
 #include "network.hpp"
 #include "network_password.hpp"
 #include "scheduler.hpp"
-#include "workshop.hpp"
+#include "workshop/workshop.hpp"
 
 #include <utils/info_string.hpp>
 #include <utils/string.hpp>

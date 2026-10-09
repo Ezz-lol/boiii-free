@@ -6,6 +6,7 @@
 namespace download_overlay {
 struct download_state {
   bool active{false};
+  bool hidden{false};
   std::string item_name; // e.g. "Map: zm_cosmodrome"
   std::size_t downloaded_bytes{0};
   std::size_t total_bytes{0}; // 0 = unknown (indeterminate bar)
@@ -17,10 +18,8 @@ struct download_state {
 
 void update(const download_state &state);
 void clear();
+download_state get_state();
 
 void show_confirmation(const std::string &title, const std::string &message,
                        std::function<void()> on_yes);
-bool show_confirmation_blocking(const std::string &title,
-                                const std::string &message);
-void close_confirmation();
 } // namespace download_overlay

@@ -7,6 +7,7 @@
 #include <utils/string.hpp>
 
 #include "component/auth.hpp"
+#include "component/workshop/workshop.hpp"
 #include "html/html_window.hpp"
 #include "launcher.hpp"
 #include "launcher_workshop.hpp"
@@ -44,7 +45,6 @@
 
 namespace launcher {
 namespace {
-std::string human_readable_size(std::uint64_t bytes);
 const std::filesystem::path &get_steam_workshop_path();
 
 std::string sanitize_player_name(const std::string &name) {
@@ -159,21 +159,6 @@ void reset_remove_status() {
   remove_status_message.clear();
   remove_progress_percent = 0.0;
   remove_progress_details.clear();
-}
-
-std::uint64_t compute_folder_size(const std::filesystem::path &folder) {
-  std::uint64_t total = 0;
-  std::error_code ec;
-  if (!std::filesystem::exists(folder, ec))
-    return 0;
-  for (const std::filesystem::directory_entry &entry :
-       std::filesystem::recursive_directory_iterator(folder, ec)) {
-    if (ec)
-      break;
-    if (entry.is_regular_file(ec))
-      total += static_cast<std::uint64_t>(entry.file_size(ec));
-  }
-  return total;
 }
 
 std::mutex verify_mutex;
@@ -823,7 +808,7 @@ std::string get_mode_files_info() {
     w.Key("size");
     w.Uint64(m.total_size);
     w.Key("sizeHuman");
-    w.String(human_readable_size(m.total_size).c_str());
+    w.String(::workshop::human_readable_size(m.total_size).c_str());
     w.EndObject();
   }
   w.EndObject();
@@ -882,26 +867,11 @@ std::string remove_mode_files(const std::string &prefixes_csv) {
   w.Key("removedCount");
   w.Uint(removed_count);
   w.Key("removedSize");
-  w.String(human_readable_size(removed_size).c_str());
+  w.String(::workshop::human_readable_size(removed_size).c_str());
   w.Key("failedCount");
   w.Uint(failed_count);
   w.EndObject();
   return std::string(buf.GetString(), buf.GetSize());
-}
-
-std::string human_readable_size(std::uint64_t bytes) {
-  const char *suffixes[] = {"B", "KB", "MB", "GB", "TB"};
-  double value = static_cast<double>(bytes);
-  int idx = 0;
-
-  while (value >= 1024.0 && idx < 4) {
-    value /= 1024.0;
-    ++idx;
-  }
-
-  char buf[64]{};
-  std::snprintf(buf, sizeof(buf), "%.2f %s", value, suffixes[idx]);
-  return buf;
 }
 
 const std::filesystem::path &get_steam_workshop_path() {
@@ -1032,7 +1002,7 @@ std::string workshop_list_json() {
         item.id = item.folder;
       }
     }
-    item.local_size = compute_folder_size(dir);
+    item.local_size = ::workshop::compute_folder_size_bytes(dir);
     const std::string image_path = find_mod_image_path(dir);
     if (!image_path.empty()) {
       item.image = path_to_file_url(image_path);
@@ -2742,11 +2712,11 @@ bool run() {
           if (GetDiskFreeSpaceExW(game_path.c_str(), &available, nullptr,
                                   nullptr)) {
             const ULONGLONG free_space = available.QuadPart;
-            add_check("Free disk space",
-                      free_space >= 5ULL * 1024ULL * 1024ULL * 1024ULL
-                          ? "ok"
-                          : "warning",
-                      human_readable_size(free_space) + " available");
+            add_check(
+                "Free disk space",
+                free_space >= 5ULL * 1024ULL * 1024ULL * 1024ULL ? "ok"
+                                                                 : "warning",
+                ::workshop::human_readable_size(free_space) + " available");
           }
 
           if (utils::nt::is_wine())

@@ -58,6 +58,4 @@ bool ensure_installed(const std::filesystem::path &dir, bool wine,
 void clear_downloads(const std::filesystem::path &dir);
 std::vector<std::filesystem::path>
 workshop_roots(const std::filesystem::path &dir, bool wine);
-
-void initialize_download(std::string workshop_id, std::string modtype);
 } // namespace steamcmd

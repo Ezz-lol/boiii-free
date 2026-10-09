@@ -15,7 +15,7 @@
 #include <steam/steam.hpp>
 
 #include <component/asset_limits.hpp>
-#include <component/workshop.hpp>
+#include <component/workshop/workshop.hpp>
 
 #include <str.hpp>
 
@@ -91,6 +91,9 @@ inline void UGC_LoadPool_Patches(ExtendedWorkshopDataPool *pool,
 
   if (zoneType == ZoneType::MOD) {
     workshop::supplement_mods_from_disk();
+  }
+  if (zoneType == ZoneType::USERMAP) {
+    workshop::supplement_usermaps_from_disk();
   }
 
   workshop::supplement_ugc_from_workshop(zoneType);

@@ -9,9 +9,6 @@ CComVariant utf8_variant(const std::string &utf8_str);
 void register_callbacks(html_frame *frame);
 void try_refresh_workshop_content();
 
-std::map<std::string, uint64_t>
-batch_get_time_updated(const std::vector<std::string> &ids);
-
 struct workshop_item_meta {
   uint64_t time_updated = 0;
   uint64_t file_size = 0;

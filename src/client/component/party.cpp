@@ -12,7 +12,7 @@
 #include "profile_infos.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"
-#include "workshop.hpp"
+#include "workshop/workshop.hpp"
 
 #include <game/utils.hpp>
 #include <utils/concurrency.hpp>

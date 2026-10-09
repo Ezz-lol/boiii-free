@@ -15,12 +15,14 @@
 #include <component/command.hpp>
 #include <component/currency.hpp>
 #include <component/discord.hpp>
+#include <component/download_overlay.hpp>
 #include <component/friends.hpp>
 #include <component/getinfo.hpp>
 #include <component/name.hpp>
 #include <component/scheduler.hpp>
 #include <component/script.hpp>
 #include <component/toast.hpp>
+#include <component/workshop/workshop.hpp>
 
 #include <steam/interfaces/matchmaking_servers.hpp>
 #include <steam/steam.hpp>
@@ -848,6 +850,185 @@ void setup_functions() {
                  return result.value_or("");
                }),
                HksObjectType::TCFUNCTION);
+
+  lua["game"]["getworkshopcatalog"] = function(
+      convert_function([](const std::string &query, const int page) -> table {
+        workshop::request_catalog_page(query, page);
+        table result{};
+        int index = 1;
+        for (const auto &item : workshop::get_catalog_page()) {
+          table row{};
+          row.set("id", item.id);
+          row.set("title", item.title);
+          row.set("description", item.description);
+          row.set("kind", item.kind);
+          row.set("file_size", static_cast<double>(item.file_size));
+          row.set("preview", item.preview_url);
+          result.set(index++, row);
+        }
+        return result;
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["requestworkshopcatalog"] =
+      function(convert_function([](const std::string &query, const int page) {
+                 workshop::request_catalog_page(query, page);
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["getworkshopcatalogstatus"] =
+      function(convert_function([]() -> table {
+                 const auto status = workshop::get_catalog_status();
+                 table row{};
+                 row.set("loading", status.loading);
+                 row.set("page", status.page);
+                 row.set("generation", static_cast<double>(status.generation));
+                 row.set("error", status.error);
+                 return row;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["requestworkshoppreview"] = function(
+      convert_function([](const std::string &id, const std::string &url) {
+        workshop::request_preview(id, url);
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["setworkshopcover"] =
+      function(convert_function([](const std::string &id) {
+                 workshop::set_preview_cover(id);
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["getworkshopdownload"] = function(
+      convert_function([]() -> table {
+        const auto state = download_overlay::get_state();
+        table row{};
+        row.set("active", state.active);
+        row.set("id", workshop::queue::current_id());
+        row.set("item_name", state.item_name);
+        row.set("downloaded_bytes",
+                static_cast<double>(state.downloaded_bytes));
+        row.set("total_bytes", static_cast<double>(state.total_bytes));
+        row.set("speed_bps", static_cast<double>(state.speed_bps));
+        row.set("eta_seconds", static_cast<double>(state.eta_seconds));
+        row.set("status_line", state.status_line);
+        row.set(
+            "fraction",
+            state.total_bytes
+                ? std::min(1.0, static_cast<double>(state.downloaded_bytes) /
+                                    static_cast<double>(state.total_bytes))
+                : 0.0);
+        return row;
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["queueworkshopitem"] = function(
+      convert_function([](const std::string &id, const std::string &kind,
+                          const std::string &title,
+                          const std::string &size) -> bool {
+        if (!workshop::queue::add(id, kind, title,
+                                  std::strtoull(size.c_str(), nullptr, 10),
+                                  false))
+          return false;
+        const int position = workshop::queue::position(id);
+        const auto name = title.empty() ? id : title;
+        toast::info("Workshop",
+                    position <= 1 && !workshop::is_any_download_active()
+                        ? "Downloading " + name
+                        : "Added to queue (#" + std::to_string(position) +
+                              "): " + name);
+        return true;
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["getworkshopqueue"] = function(
+      convert_function([]() -> table {
+        table result{};
+        int index = 1;
+        for (const auto &entry : workshop::queue::list()) {
+          table row{};
+          row.set("id", entry.id);
+          row.set("kind", entry.kind);
+          row.set("title", entry.title);
+          row.set("file_size", static_cast<double>(entry.file_size));
+          row.set("state",
+                  std::string(workshop::queue::state_name(entry.state)));
+          row.set("position", entry.position);
+          result.set(index++, row);
+        }
+        return result;
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["getworkshopqueuegeneration"] = function(
+      convert_function([]() -> int {
+        return static_cast<int>(workshop::queue::generation() & 0x7FFFFFFF);
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["getworkshopqueueposition"] =
+      function(convert_function([](const std::string &id) -> int {
+                 return workshop::queue::position(id);
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["removeworkshopqueue"] =
+      function(convert_function([](const std::string &id) -> bool {
+                 return workshop::queue::remove(id);
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["moveworkshopqueue"] = function(
+      convert_function([](const std::string &id, const int delta) -> bool {
+        return workshop::queue::move(id, delta);
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["clearworkshopqueue"] =
+      function(convert_function([]() { workshop::queue::clear(); }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["getworkshopinstalled"] =
+      function(convert_function([]() -> table {
+                 table result{};
+                 int index = 1;
+                 for (const auto &item : workshop::list_installed()) {
+                   table row{};
+                   row.set("id", item.id);
+                   row.set("title", item.title);
+                   row.set("description", item.description);
+                   row.set("kind", item.kind);
+                   row.set("path", item.path);
+                   row.set("file_size", static_cast<double>(item.file_size));
+                   row.set("installed", true);
+                   result.set(index++, row);
+                 }
+                 return result;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["isworkshopinstalled"] =
+      function(convert_function([](const std::string &id) -> bool {
+                 return !workshop::find_installed(id).empty();
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["deleteworkshopitem"] =
+      function(convert_function([](const std::string &id) -> bool {
+                 std::string error;
+                 const bool ok = workshop::delete_installed(id, error);
+                 if (ok)
+                   toast::success("Workshop", "Item deleted.");
+                 else
+                   toast::error("Workshop", error);
+                 return ok;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["cancelworkshopdownload"] = function(
+      convert_function([]() -> bool { return workshop::cancel_download(); }),
+      HksObjectType::TCFUNCTION);
 
   lua["game"]["setDiscordPlayerScore"] = function(
       convert_function([](int score) { discord::set_player_score(score); }),

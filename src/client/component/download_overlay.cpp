@@ -4,7 +4,7 @@
 #include <loader/component_loader.hpp>
 
 #include "download_overlay.hpp"
-#include "workshop.hpp"
+#include "workshop/workshop.hpp"
 
 #include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
@@ -222,7 +222,7 @@ void render_confirmation() {
 
 void render() {
   const auto s = state_.copy();
-  if (!s.active)
+  if (!s.active || s.hidden)
     return;
 
   const auto &io = ImGui::GetIO();
@@ -339,7 +339,7 @@ LRESULT CALLBACK wndproc_stub(HWND hwnd, UINT msg, WPARAM wparam,
     const auto s = state_.copy();
     const auto c = confirm_.copy();
 
-    if (s.active || c.active) {
+    if ((s.active && !s.hidden) || c.active) {
       if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam)) {
         return TRUE;
       }
@@ -461,6 +461,8 @@ void clear() {
   state_.access([](download_state &st) { st = {}; });
 }
 
+download_state get_state() { return state_.copy(); }
+
 void show_confirmation(const std::string &title, const std::string &message,
                        std::function<void()> on_yes) {
   confirm_.access([&](confirm_state &cstate) {
@@ -469,35 +471,6 @@ void show_confirmation(const std::string &title, const std::string &message,
     cstate.message = message;
     cstate.on_yes = std::move(on_yes);
   });
-}
-
-void close_confirmation() {
-  confirm_.access([](confirm_state &cstate) { cstate = {}; });
-}
-
-bool show_confirmation_blocking(const std::string &title,
-                                const std::string &message) {
-  // Atomic result: 0 = pending, 1 = yes, 2 = no
-  auto result = std::make_shared<std::atomic<int>>(0);
-
-  confirm_.access([&](confirm_state &cstate) {
-    cstate.active = true;
-    cstate.title = title;
-    cstate.message = message;
-    cstate.on_yes = [result] { result->store(1); };
-    cstate.on_no = [result] { result->store(2); };
-  });
-
-  // Block the calling thread until the user responds or download is cancelled
-  while (result->load() == 0) {
-    if (!workshop::downloading_workshop_item.load()) {
-      close_confirmation();
-      return false;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-
-  return result->load() == 1;
 }
 
 struct component final : client_component {

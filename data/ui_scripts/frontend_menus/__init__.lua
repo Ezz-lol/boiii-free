@@ -6,18 +6,41 @@ if not CoD.LobbyButtons then
   return
 end
 
+local utils = require("utils")
+
+CoD.LobbyButtons.WORKSHOP = {
+  stringRef = "WORKSHOP",
+  action = function(self, element, controller, param, menu)
+    OpenPopup(menu, "BoiiiWorkshopMenu", controller)
+  end,
+  customId = "btnWorkshop",
+}
+
+local function addWorkshopButton(controller, menuId, buttonTable)
+  if menuId ~= LobbyData.UITargets.UI_MODESELECT.id or not buttonTable then
+    return
+  end
+  local modsIndex = utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.MODS_LOAD)
+  utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.WORKSHOP, modsIndex and modsIndex + 1)
+end
+
 if
   type(Engine.IsUsingMods) == "function"
   and Engine.IsUsingMods()
   and (type(Engine.UsingModsUgcName) ~= "function" or Engine.UsingModsUgcName() ~= "usermaps")
 then
+  local oldAddButtonsForTarget = CoD.LobbyMenus.AddButtonsForTarget
+  CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
+    local result = oldAddButtonsForTarget(controller, id)
+    addWorkshopButton(controller, id, result)
+    return result
+  end
   return
 end
 
 local enableLobbyMapVote = true -- toggle map vote in public lobby
 local enableLargeServerBrowserButton = true -- toggle large server browser button
 
-local utils = require("utils")
 require("datasources_start_menu_tabs")
 require("datasources_change_map_categories")
 require("datasources_gamesettingsflyout_buttons")
@@ -252,6 +275,7 @@ CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
     isLeader = 1
   end
   local result = oldAddButtonsForTarget(controller, id)
+  addWorkshopButton(controller, id, result)
   addCustomButtons(controller, id, result, isLeader)
   return result
 end

@@ -15,7 +15,7 @@
 #include "server_list.hpp"
 #include "toast.hpp"
 #include "upnp.hpp"
-#include "workshop.hpp"
+#include "workshop/workshop.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
