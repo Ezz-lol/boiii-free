@@ -169,6 +169,17 @@ void PhysPrint_AllOutputs(const char *fmt, ...) {
                         game::consoleLabel_e::DEFAULT, "%s\n", formatted_msg);
   game::trace("{}", formatted_msg);
 }
+
+utils::hook::detour AddRow_hook;
+void AddRow_Trace(game::lobby::debug::DebugSystem system, const char *str) {
+  const void *returnAddr = _ReturnAddress();
+  if (str && str[0]) {
+    game::trace("[Lobby][Debug][{}][@{:p}] {}",
+                game::lobby::debug::serialize(system), returnAddr, str);
+  }
+
+  return AddRow_hook.invoke(system, str);
+}
 #endif
 
 utils::hook::detour G_RegisterSoundWait_hook;
@@ -330,8 +341,9 @@ struct component final : generic_component {
 
 #ifndef NDEBUG
     PhysPrint_hook.create(game::phys::PhysPrint, PhysPrint_AllOutputs);
+    AddRow_hook.create(game::lobby::debug::AddRow, AddRow_Trace);
 #endif
-  } // namespace patches
+  }
 };
 } // namespace patches
 
