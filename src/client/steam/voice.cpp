@@ -197,7 +197,9 @@ void Voice::Shutdown() {
 }
 
 bool Voice::StartRecording() {
+#ifndef NDEBUG
   game::trace("Voice::StartRecording entered");
+#endif
   if (state.recording.load(std::memory_order_acquire)) {
     return true;
   }
@@ -484,7 +486,9 @@ EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
 
 void Voice::QueueAudioPlayback(uint64_t userId, const uint8_t *data,
                                size_t len) {
+#ifndef NDEBUG
   game::trace("Voice::QueueAudioPlayback entered");
+#endif
   if (data && len > 0) {
     std::scoped_lock<std::recursive_mutex> lock(playbackQueueMutex);
     playbackQueue.push({userId, std::vector<uint8_t>(data, data + len)});
