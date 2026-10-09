@@ -48,8 +48,8 @@ std::optional<int> get_color_for_xuid(const uint64_t xuid) {
   return {};
 }
 
-std::optional<int> get_color_for_client(const int client_num) {
-  const game::XUID xuid = auth::get_guid(static_cast<size_t>(client_num));
+std::optional<int> get_color_for_client(const game::ClientNum_t client_num) {
+  const game::XUID xuid = auth::get_guid(client_num);
   return get_color_for_xuid(xuid);
 }
 
@@ -69,27 +69,26 @@ void patch_color(const uint8_t r, const uint8_t g, const uint8_t b,
                           .a = static_cast<float>(a) / 255.0f};
 }
 
-bool cl_get_client_name_stub(const int local_client_num, const int index,
-                             char *buf, const int size,
-                             const bool add_clan_name) {
+bool cl_get_client_name_stub(const game::LocalClientNum_t localClientNum,
+                             const game::ClientNum_t clientNum, char *buf,
+                             const int size, const bool add_clan_name) {
   if (!buf || size <= 0) {
-    return cl_get_client_name_hook.invoke<bool>(local_client_num, index, buf,
+    return cl_get_client_name_hook.invoke<bool>(localClientNum, clientNum, buf,
                                                 size, add_clan_name);
   }
 
   const bool res = cl_get_client_name_hook.invoke<bool>(
-      local_client_num, index, buf, size, add_clan_name);
+      localClientNum, clientNum, buf, size, add_clan_name);
 
   std::string packed_name(buf);
   std::optional<std::string> override_name;
   std::optional<std::string> override_tag;
-  const game::ClientNum_t client_num = static_cast<game::ClientNum_t>(index);
 
-  if (game::valid_client_num(client_num)) {
-    if (name::has_name_override(client_num))
-      override_name = name::get_name_override(client_num);
-    if (name::has_clan_abbrev_override(client_num))
-      override_tag = name::get_clan_abbrev_override(client_num);
+  if (game::valid_client_num(clientNum)) {
+    if (name::has_name_override(clientNum))
+      override_name = name::get_name_override(clientNum);
+    if (name::has_clan_abbrev_override(clientNum))
+      override_tag = name::get_clan_abbrev_override(clientNum);
   }
 
   std::string name_part = packed_name;
@@ -122,7 +121,7 @@ bool cl_get_client_name_stub(const int local_client_num, const int index,
     return res;
   }
 
-  const std::optional<int32_t> color = get_color_for_client(index);
+  const std::optional<int32_t> color = get_color_for_client(clientNum);
   if (!color) {
     return res;
   }

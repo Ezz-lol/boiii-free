@@ -131,7 +131,7 @@ struct component final : generic_component {
       info.set("isPrivate", game::password().value_or("").empty() ? "0" : "1");
       info.set("clients", std::to_string(get_client_count()));
       info.set("bots", std::to_string(get_bot_count()));
-      info.set("sv_maxclients", std::to_string(game::get_max_client_count()));
+      info.set("sv_maxclients", std::to_string(+game::get_max_client_count()));
       info.set("protocol", std::to_string(PROTOCOL));
       info.set("sub_protocol", std::to_string(SUB_PROTOCOL));
       info.set("playmode", std::to_string(static_cast<int32_t>(

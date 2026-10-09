@@ -25,8 +25,8 @@
 
 namespace nat {
 namespace {
-constexpr auto REGISTER_INTERVAL = 5s;
-constexpr auto JOIN_TIMEOUT = 12s;
+constexpr std::chrono::seconds REGISTER_INTERVAL = 5s;
+constexpr std::chrono::seconds JOIN_TIMEOUT = 12s;
 constexpr size_t MAX_CANDIDATES = 16;
 constexpr const char *FRIEND_REJOIN_ROUTE = "192.0.2.254:40000";
 
@@ -65,7 +65,8 @@ struct lobby_request {
 
 lobby_request lobby_joining;
 std::mutex peers_mutex;
-std::unordered_map<std::string, game::net::netadr_t> lobby_peers;
+typedef std::unordered_map<std::string, game::net::netadr_t> lobbyPeerMap_t;
+lobbyPeerMap_t lobby_peers;
 utils::hook::detour dw_common_addr_to_netadr_hook;
 utils::hook::detour dw_get_connection_status_hook;
 
@@ -76,14 +77,15 @@ struct lookup_state {
 };
 
 std::mutex lookup_mutex;
-std::unordered_map<std::string, lookup_state> lookup_requests;
+typedef std::unordered_map<std::string, lookup_state> lookupMap_t;
+static lookupMap_t lookup_requests;
 
 void finish_lookup(const std::string &request) {
   lookup_callback done;
   std::vector<friend_presence> results;
   {
     std::lock_guard lock(lookup_mutex);
-    const auto found = lookup_requests.find(request);
+    const lookupMap_t::iterator found = lookup_requests.find(request);
     if (found == lookup_requests.end())
       return;
     results = std::move(found->second.results);
@@ -127,13 +129,13 @@ std::string new_token() {
 }
 
 uint16_t local_port() {
-  const auto port = party::get_local_port();
+  const uint16_t port = party::get_local_port();
   return port >= 1024 ? port : 3074;
 }
 
 std::string local_endpoint() {
   static const std::string local_ip = [] {
-    const auto socket_handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    const SOCKET socket_handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (socket_handle == INVALID_SOCKET)
       return std::string{};
 
@@ -164,19 +166,20 @@ std::string local_endpoint() {
 }
 
 void send_rendezvous(const std::string &command, const std::string &token) {
-  const auto masters = server_list::get_master_servers();
+  const std::vector<game::net::netadr_t> &masters =
+      server_list::get_master_servers();
   if (masters.empty())
     return;
 
-  auto message = token;
-  if (const auto local = local_endpoint(); !local.empty())
+  std::string message = token;
+  if (const std::string local = local_endpoint(); !local.empty())
     message.append(" ").append(local);
-  for (const auto &master : masters)
+  for (const game::net::netadr_t &master : masters)
     network::send(master, command, message);
 }
 
 void send_friend_publish() {
-  const auto friend_code = auth::get_guid();
+  const game::XUID friend_code = auth::get_guid();
   if (!friend_code) {
     if (!identity_warning_shown) {
       identity_warning_shown = true;
@@ -187,7 +190,7 @@ void send_friend_publish() {
   }
   if (hosting_token.empty())
     return;
-  const auto payload =
+  const char *payload =
       utils::string::va("1 %llu %s", friend_code, hosting_token.c_str());
   send_rendezvous("friendPublish", payload);
 }
@@ -196,11 +199,11 @@ void add_join_candidate(const std::string &text) {
   if (joining.candidates.size() >= MAX_CANDIDATES)
     return;
 
-  const auto candidate = network::address_from_string(text);
+  const game::net::netadr_t candidate = network::address_from_string(text);
   if (!network::is_connectable_address(candidate))
     return;
 
-  const auto duplicate =
+  const bool duplicate =
       std::any_of(joining.candidates.begin(), joining.candidates.end(),
                   [&candidate](const game::net::netadr_t &existing) {
                     return network::are_addresses_equal(existing, candidate);
@@ -219,7 +222,7 @@ std::string to_hex(const void *data, const size_t size) {
 bool from_hex(const std::string &text, void *out, const size_t size) {
   if (text.size() != size * 2)
     return false;
-  auto *bytes = static_cast<uint8_t *>(out);
+  uint8_t *bytes = static_cast<uint8_t *>(out);
   for (size_t i = 0; i < size; ++i) {
     if (std::from_chars(text.data() + i * 2, text.data() + i * 2 + 2, bytes[i],
                         16)
@@ -241,7 +244,7 @@ void add_peer(const uint8_t *address, const game::net::netadr_t &endpoint) {
 std::optional<game::net::netadr_t> find_peer(const uint8_t *address) {
   constexpr size_t ENDPOINT_SIZE = 6;
   std::lock_guard lock(peers_mutex);
-  if (const auto peer = lobby_peers.find(peer_key(address));
+  if (const lobbyPeerMap_t::iterator peer = lobby_peers.find(peer_key(address));
       peer != lobby_peers.end())
     return peer->second;
 
@@ -259,7 +262,7 @@ std::optional<game::net::netadr_t> find_peer(const uint8_t *address) {
 bool dw_common_addr_to_netadr_stub(game::net::netadr_t *netadr,
                                    const uint8_t *common_addr,
                                    const game::net::bdSecurityID *sec_id) {
-  if (const auto peer = find_peer(common_addr)) {
+  if (const std::optional<game::net::netadr_t> peer = find_peer(common_addr)) {
     *netadr = *peer;
     return true;
   }
@@ -278,7 +281,8 @@ game::lobby::session::HostInfo *lobby_host_info(
     const game::lobby::LobbyType type = game::lobby::LobbyType::PRIVATE) {
   if (game::is_legacy_client() || !game::lobby::LobbyHost_IsHost(type))
     return nullptr;
-  auto *session = game::lobby::LobbyHostData_GetSession(type);
+  game::lobby::session::LobbySession *session =
+      game::lobby::LobbyHostData_GetSession(type);
   return session ? &session->host.info : nullptr;
 }
 
@@ -297,14 +301,14 @@ void show_error(const std::string &message) {
 }
 
 void connect_to(const game::net::netadr_t &endpoint) {
-  const auto address = network::address_to_string(endpoint);
+  const std::string address = network::address_to_string(endpoint);
   if (address.empty())
     return;
   party::connect(endpoint);
 }
 
 void request_lobby(const game::net::netadr_t &host, const std::string &token) {
-  const auto *own = lobby_host_info();
+  const game::lobby::session::HostInfo *own = lobby_host_info();
   lobby_joining = {true, token, host, std::chrono::steady_clock::now() + 4s};
   network::send(host, "lobbyJoin",
                 token + " " +
@@ -391,8 +395,9 @@ void join_lobby(const game::net::netadr_t &host,
       !from_hex(parts[4], &info.secKey, sizeof(info.secKey)))
     return;
 
-  const auto target = parts[5] == "game" ? game::lobby::LobbyType::GAME
-                                         : game::lobby::LobbyType::PRIVATE;
+  const game::lobby::LobbyType target = parts[5] == "game"
+                                            ? game::lobby::LobbyType::GAME
+                                            : game::lobby::LobbyType::PRIVATE;
   std::vector<std::string> content{"", "", ""};
   size_t name_index = 6;
   if (parts[6].starts_with("c:")) {
@@ -449,7 +454,8 @@ void join_lobby(const game::net::netadr_t &host,
 }
 
 void update_punching() {
-  const auto now = std::chrono::steady_clock::now();
+  const std::chrono::steady_clock::time_point now =
+      std::chrono::steady_clock::now();
 
   if (joining.active) {
     if (now >= joining.expires && !joining.retried) {
@@ -459,7 +465,8 @@ void update_punching() {
       joining.expires = now + JOIN_TIMEOUT;
       joining.next_rendezvous = now;
     } else if (now >= joining.expires) {
-      const auto fallback = network::address_from_string(joining.fallback);
+      const game::net::netadr_t fallback =
+          network::address_from_string(joining.fallback);
       joining.active = false;
       if (joining.candidates.empty())
         printf("[Friends] The master server did not send your friend's "
@@ -477,7 +484,7 @@ void update_punching() {
         send_rendezvous("privJoin", joining.token);
         joining.next_rendezvous = now + 1s;
       }
-      for (const auto &candidate : joining.candidates)
+      for (const game::net::netadr_t &candidate : joining.candidates)
         network::send(candidate, "punch", joining.token);
     }
   }
@@ -491,13 +498,13 @@ void update_punching() {
   std::erase_if(host_probes, [now](const host_probe &probe) {
     return now >= probe.expires;
   });
-  for (const auto &probe : host_probes)
+  for (const host_probe &probe : host_probes)
     network::send(probe.candidate, "punch", probe.token);
 }
 
 void refresh_lobby_buttons() {
-  if (const auto global = game::ui::UI_Model_GetGlobalModel()) {
-    if (const auto model = game::ui::UI_Model_CreateModelFromPath(
+  if (const uint16_t global = game::ui::UI_Model_GetGlobalModel()) {
+    if (const uint16_t model = game::ui::UI_Model_CreateModelFromPath(
             global, "lobbyRoot.lobbyButtonUpdate"))
       game::ui::UI_Model_ForceNotify(model);
   }
@@ -525,7 +532,7 @@ void set_open(const bool enabled) {
 
 void update_hosting() {
   if (!open_to_friends) {
-    if (const auto friend_code = auth::get_guid())
+    if (const game::XUID friend_code = auth::get_guid())
       send_rendezvous("friendPublish",
                       utils::string::va("1 %llu -", friend_code));
     return;
@@ -545,7 +552,7 @@ void update_hosting() {
 void receive_lobby_join(const game::net::netadr_t &sender,
                         const network::data_view &data,
                         game::LocalClientNum_t) {
-  const auto parts = fields(payload_string(data));
+  const std::vector<std::string> parts = fields(payload_string(data));
   if (parts.size() != 2 || hosting_token.empty() || parts[0] != hosting_token ||
       !network::is_connectable_address(sender))
     return;
@@ -555,8 +562,10 @@ void receive_lobby_join(const game::net::netadr_t &sender,
     return;
   }
 
-  const auto *game_lobby = lobby_host_info(game::lobby::LobbyType::GAME);
-  const auto *host = game_lobby ? game_lobby : lobby_host_info();
+  const game::lobby::session::HostInfo *game_lobby =
+      lobby_host_info(game::lobby::LobbyType::GAME);
+  const game::lobby::session::HostInfo *host =
+      game_lobby ? game_lobby : lobby_host_info();
   game::net::XNADDR peer{};
   if (!host || !from_hex(parts[1], peer.addrBuff, sizeof(peer.addrBuff)))
     return;
@@ -589,7 +598,7 @@ bool from_lobby_request(const game::net::netadr_t &sender,
 void receive_lobby_host(const game::net::netadr_t &sender,
                         const network::data_view &data,
                         game::LocalClientNum_t) {
-  const auto parts = fields(payload_string(data));
+  const std::vector<std::string> parts = fields(payload_string(data));
   if (parts.size() >= 7 && from_lobby_request(sender, parts[0]))
     scheduler::once([sender, parts] { join_lobby(sender, parts); },
                     scheduler::main);
@@ -608,7 +617,8 @@ void receive_register_ack(const game::net::netadr_t &sender,
   if (!is_rendezvous(sender) || hosting_token.empty())
     return;
 
-  const auto endpoint = network::address_from_string(payload_string(data));
+  const game::net::netadr_t endpoint =
+      network::address_from_string(payload_string(data));
   if (network::is_connectable_address(endpoint)) {
     reflected_endpoint = network::address_to_string(endpoint);
     registration_confirmed = true;
@@ -620,11 +630,11 @@ void receive_peer(const game::net::netadr_t &sender,
   if (!is_rendezvous(sender))
     return;
 
-  const auto parts = fields(payload_string(data));
+  const std::vector<std::string> parts = fields(payload_string(data));
   if (parts.size() < 2 || !valid_token(parts.front()))
     return;
 
-  const auto &token = parts.front();
+  const std::basic_string<char> &token = parts.front();
   if (joining.active && token == joining.token) {
     for (size_t i = 1; i < parts.size(); ++i)
       add_join_candidate(parts[i]);
@@ -636,10 +646,11 @@ void receive_peer(const game::net::netadr_t &sender,
 
   for (size_t i = 1; i < parts.size() && host_probes.size() < MAX_CANDIDATES;
        ++i) {
-    const auto candidate = network::address_from_string(parts[i]);
+    const game::net::netadr_t candidate =
+        network::address_from_string(parts[i]);
     if (!network::is_connectable_address(candidate))
       continue;
-    const auto duplicate = std::any_of(host_probes.begin(), host_probes.end(),
+    const bool duplicate = std::any_of(host_probes.begin(), host_probes.end(),
                                        [&candidate](const host_probe &probe) {
                                          return network::are_addresses_equal(
                                              probe.candidate, candidate);
@@ -661,7 +672,7 @@ void receive_rejection(const game::net::netadr_t &sender,
 
 void receive_punch(const game::net::netadr_t &sender,
                    const network::data_view &data, game::LocalClientNum_t) {
-  const auto token = payload_string(data);
+  const std::string token = payload_string(data);
   const bool valid_join = joining.active && token == joining.token;
   const bool valid_host = !hosting_token.empty() && token == hosting_token;
   if ((!valid_join && !valid_host) || !network::is_connectable_address(sender))
@@ -674,7 +685,7 @@ void receive_punch(const game::net::netadr_t &sender,
 
 void receive_punch_ack(const game::net::netadr_t &sender,
                        const network::data_view &data, game::LocalClientNum_t) {
-  const auto token = payload_string(data);
+  const std::string token = payload_string(data);
   if (joining.active && token == joining.token &&
       network::is_connectable_address(sender))
     complete_join(sender);
@@ -685,15 +696,15 @@ void receive_friend_presence(const game::net::netadr_t &sender,
                              game::LocalClientNum_t) {
   if (!is_rendezvous(sender))
     return;
-  const auto parts = fields(payload_string(data));
+  const std::vector<std::string> parts = fields(payload_string(data));
   if (parts.size() != 5 || parts[0] != "1" || !valid_token(parts[3]))
     return;
-  const auto steam_id = std::strtoull(parts[2].c_str(), nullptr, 10);
-  const auto endpoint = network::address_from_string(parts[4]);
+  const game::XUID steam_id = std::strtoull(parts[2].c_str(), nullptr, 10);
+  const game::net::netadr_t endpoint = network::address_from_string(parts[4]);
   bool complete{};
   {
     std::lock_guard lock(lookup_mutex);
-    const auto request = lookup_requests.find(parts[1]);
+    const lookupMap_t::iterator request = lookup_requests.find(parts[1]);
     if (request == lookup_requests.end() ||
         !request->second.pending.erase(steam_id)) {
       return;
@@ -715,14 +726,14 @@ void receive_friend_status(const game::net::netadr_t &sender,
                            const network::data_view &data, const bool online) {
   if (!is_rendezvous(sender))
     return;
-  const auto parts = fields(payload_string(data));
+  const std::vector<std::string> parts = fields(payload_string(data));
   if (parts.size() != 3 || parts[0] != "1")
     return;
-  const auto steam_id = std::strtoull(parts[2].c_str(), nullptr, 10);
+  const game::XUID steam_id = std::strtoull(parts[2].c_str(), nullptr, 10);
   bool complete{};
   {
     std::lock_guard lock(lookup_mutex);
-    const auto request = lookup_requests.find(parts[1]);
+    const lookupMap_t::iterator request = lookup_requests.find(parts[1]);
     if (request == lookup_requests.end() ||
         !request->second.pending.erase(steam_id)) {
       return;
@@ -755,7 +766,7 @@ std::string get_host_token() {
 }
 
 std::string get_host_endpoint() {
-  if (const auto mapped = upnp::external_endpoint(); !mapped.empty())
+  if (const std::string mapped = upnp::external_endpoint(); !mapped.empty())
     return mapped;
   if (hosting_token.empty() || !registration_confirmed)
     return {};
@@ -779,7 +790,8 @@ void begin_join(const std::string &token, const std::string &fallback_address,
   joining.active = true;
   joining.friend_id = friend_id;
   joining.token = token;
-  const auto fallback = network::address_from_string(fallback_address);
+  const game::net::netadr_t fallback =
+      network::address_from_string(fallback_address);
   if (network::is_connectable_address(fallback))
     joining.fallback = network::address_to_string(fallback);
   joining.expires = std::chrono::steady_clock::now() + JOIN_TIMEOUT;
@@ -790,25 +802,28 @@ void begin_join(const std::string &token, const std::string &fallback_address,
 
 bool is_lobby_peer(const game::net::netadr_t &address) {
   std::lock_guard lock(peers_mutex);
-  return std::ranges::any_of(lobby_peers, [&address](const auto &peer) {
-    return network::are_addresses_equal(peer.second, address);
-  });
+  return std::ranges::any_of(
+      lobby_peers, [&address](lobbyPeerMap_t::value_type &peer) {
+        return network::are_addresses_equal(peer.second, address);
+      });
 }
 
 bool is_rendezvous(const game::net::netadr_t &sender) {
-  const auto masters = server_list::get_master_servers();
-  return std::ranges::any_of(masters, [&sender](const auto &master) {
-    return sender.addr == master.addr && sender.port == master.port;
-  });
+  const std::vector<game::net::netadr_t> &masters =
+      server_list::get_master_servers();
+  return std::ranges::any_of(
+      masters, [&sender](const game::net::netadr_t &master) {
+        return sender.addr == master.addr && sender.port == master.port;
+      });
 }
 
 void send_invite(const uint64_t steam_id, const std::string &sender_name) {
-  const auto friend_code = auth::get_guid();
+  const game::XUID friend_code = auth::get_guid();
   if (!friend_code || !steam_id)
     return;
-  const auto payload =
+  const std::string payload =
       std::format("1 {} {} {}", steam_id, friend_code, sender_name);
-  for (const auto &master : server_list::get_master_servers())
+  for (const game::net::netadr_t &master : server_list::get_master_servers())
     network::send(master, "friendInvite", payload);
 }
 
@@ -820,10 +835,10 @@ bool set_open_to_friends(const bool enabled) {
   return true;
 }
 
-void refresh_friends(const std::vector<uint64_t> &steam_ids,
+void refresh_friends(const std::vector<game::XUID> &steam_ids,
                      lookup_callback callback) {
-  std::unordered_set<uint64_t> pending;
-  for (const auto steam_id : steam_ids) {
+  std::unordered_set<game::XUID> pending;
+  for (const game::XUID steam_id : steam_ids) {
     if (steam_id)
       pending.insert(steam_id);
   }
@@ -846,7 +861,7 @@ void refresh_friends(const std::vector<uint64_t> &steam_ids,
     lookup_requests.emplace(request,
                             lookup_state{pending, {}, std::move(callback)});
   }
-  for (const auto steam_id : pending)
+  for (const game::XUID steam_id : pending)
     send_rendezvous("friendLookup",
                     utils::string::va("1 %s %llu", request.c_str(), steam_id));
 

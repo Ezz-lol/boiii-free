@@ -38,8 +38,8 @@ void set_server_info_in_console_title() {
 
   const std::string window_text = utils::string::va(
       "%s - BOIII V%s on %s [%zu/%zu] (%zu)", clean_server_name, SHORTVERSION,
-      mapname.data(), getinfo::get_client_count(), game::get_max_client_count(),
-      getinfo::get_bot_count());
+      mapname.data(), getinfo::get_client_count(),
+      +game::get_max_client_count(), getinfo::get_bot_count());
 
   console::set_title(window_text);
 }

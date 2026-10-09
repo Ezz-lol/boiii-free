@@ -26,7 +26,7 @@
 
 namespace auth {
 game::EngineDependentDvar password;
-std::array<game::XUID, 18> client_xuids{};
+game::lobby::LobbyClientPool<game::XUID> client_xuids{};
 std::mutex client_xuids_mutex;
 
 std::string get_hdd_serial() {
@@ -51,7 +51,7 @@ std::string get_hw_profile_guid() {
 std::string get_machine_guid() {
   char guid[256]{};
   DWORD size = sizeof(guid);
-  const auto result = RegGetValueA(
+  const LSTATUS result = RegGetValueA(
       HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Cryptography", "MachineGuid",
       RRF_RT_REG_SZ | RRF_SUBKEY_WOW6464KEY, nullptr, guid, &size);
   if (result != ERROR_SUCCESS || size <= 1) {
@@ -210,7 +210,7 @@ void set_challenge(const game::net::netadr_t &target,
                    game::LocalClientNum_t clientNum) {
 
   {
-    std::lock_guard lock(latest_challenge_mutex);
+    std::scoped_lock lock(latest_challenge_mutex);
 
     // We probably do not need to bother zeroing the latest_challenge bytes
     // first, as if an incomplete challenge has been received, this will cause
@@ -239,7 +239,7 @@ std::string serialize_connect_data(game::ControllerIndex_t controllerIndex,
   std::string challenge;
 
   {
-    std::lock_guard lock(latest_challenge_mutex);
+    std::scoped_lock lock(latest_challenge_mutex);
     challenge = std::string(
         const_cast<const char *>(reinterpret_cast<char *>(latest_challenge)),
         CHALLENGE_LENGTH);
@@ -275,7 +275,7 @@ bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,
          packet_buffer.write("connect ");
          packet_buffer.write(buffer);
 
-         const auto &fragment_packet = packet_buffer.get_buffer();
+         const std::string &fragment_packet = packet_buffer.get_buffer();
 
          game::net::NET_OutOfBandData(sock, adr, fragment_packet.data(),
                                       static_cast<int>(fragment_packet.size()));
@@ -286,23 +286,22 @@ bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,
 void distribute_player_xuid(const game::net::netadr_t &target,
                             const game::ClientNum_t player_index,
                             const game::XUID xuid) {
-  if (player_index < game::CLIENT_INDEX_COUNT) {
+  if (game::valid_client_num(player_index)) {
     utils::byte_buffer buffer{};
-    buffer.write(static_cast<uint32_t>(player_index));
+    buffer.write(player_index);
     buffer.write(xuid);
 
-    static const game::XUID localXuid1 = get_guid(game::CONTROLLER_INDEX_0);
-    static const game::XUID localXuid2 = get_guid(game::CONTROLLER_INDEX_1);
+    const game::XUID localXuid1 = get_guid(game::CONTROLLER_INDEX_0);
+    const game::XUID localXuid2 = get_guid(game::CONTROLLER_INDEX_1);
 
     game::foreach_connected_client(
-        [&](const game::sv::client_s &client, const size_t index) {
+        [&](const game::sv::client_s &client, const game::ClientNum_t index) {
           if (client.xuid != localXuid1 && client.xuid != localXuid2) {
             if (client.address.type != game::net::NA_BOT) {
               network::send(client.address, "playerXuid", buffer.get_buffer());
             }
 
-            if (static_cast<game::ClientNum_t>(index) != player_index &&
-                target.type != game::net::NA_BOT) {
+            if (index != player_index && target.type != game::net::NA_BOT) {
               utils::byte_buffer current_buffer{};
               current_buffer.write(static_cast<uint32_t>(index));
               current_buffer.write(client.xuid);
@@ -324,10 +323,11 @@ void handle_new_player(const game::net::netadr_t &target) {
 
     game::ClientNum_t player_index = game::CLIENT_INDEX_COUNT;
     game::first_connected_client(
-        [&](game::sv::client_s &client, const size_t index) {
+        [&player_index, &target, xuid](game::sv::client_s &client,
+                                       const game::ClientNum_t index) {
           if (client.address == target && client.xuid == 0) {
             client.xuid = xuid;
-            player_index = static_cast<game::ClientNum_t>(index);
+            player_index = index;
             return true;
           }
           return false;
@@ -382,8 +382,10 @@ struct IssuedChallenge {
     return result;
   }
 };
-static concurrent_hash_map<game::net::netadr_t, IssuedChallenge>
-    issued_challenges = {};
+
+typedef concurrent_hash_map<game::net::netadr_t, IssuedChallenge>
+    challengeMap_t;
+static challengeMap_t issued_challenges = {};
 
 thread_local challenge_t challenge_buf = {0};
 const challenge_t &get_challenge(const game::net::netadr_t &target) {
@@ -432,14 +434,15 @@ void send_challenge(const game::net::netadr_t &addr,
 void evict_stale_challenges() {
   std::vector<game::net::netadr_t> evict_addresses;
 
-  issued_challenges.for_each([&evict_addresses](const auto &v) {
-    if (v.second.stale()) {
-      evict_addresses.push_back(v.first);
-    }
-  });
+  issued_challenges.for_each(
+      [&evict_addresses](const challengeMap_t::value_type &v) {
+        if (v.second.stale()) {
+          evict_addresses.push_back(v.first);
+        }
+      });
 
-  for (const game::net::netadr_t addr : evict_addresses) {
-    issued_challenges.erase_if(addr, [](const auto &v) {
+  for (const game::net::netadr_t &addr : evict_addresses) {
+    issued_challenges.erase_if(addr, [](const challengeMap_t::value_type &v) {
       // In case of modification in the interim
       return v.second.stale();
     });
@@ -518,12 +521,12 @@ void handle_player_xuid_packet(const game::net::netadr_t &target,
   if (!game::server_running() && party::is_host(target)) {
     utils::byte_buffer buffer(data);
 
-    const uint32_t player_id = buffer.read<uint32_t>();
+    const game::ClientNum_t clientNum = buffer.read<game::ClientNum_t>();
     const game::XUID xuid = buffer.read<game::XUID>();
 
-    std::lock_guard lock(client_xuids_mutex);
-    if (player_id < client_xuids.size()) {
-      client_xuids[player_id] = xuid;
+    std::scoped_lock lock(client_xuids_mutex);
+    if (game::valid_client_num(clientNum)) {
+      client_xuids[clientNum] = xuid;
     }
   }
 }
@@ -534,56 +537,57 @@ void direct_connect_bots_stub(const game::net::netadr_t address) {
 }
 
 game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
-  static const std::array<game::XUID, 2> guids = {
+  static const game::XUID guids[game::CONTROLLER_INDEX_COUNT] = {
       get_key(game::CONTROLLER_INDEX_0).get_hash(),
       get_key(game::CONTROLLER_INDEX_1).get_hash()};
-  controllerIndex = game::valid_controller_index(controllerIndex)
-                        ? controllerIndex
-                        : game::CONTROLLER_INDEX_0;
-  return guids[static_cast<uint32_t>(controllerIndex)];
+  return guids[game::valid_controller_index(controllerIndex)
+                   ? controllerIndex
+                   : game::CONTROLLER_INDEX_0];
 }
 
 game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
-  if (!game::is_server())
-    return get_client_guid(controllerIndex);
+  static const game::XUID guid = [controllerIndex]() -> game::XUID {
+    if (game::is_client()) {
+      return get_client_guid(controllerIndex);
+    }
 
-  static const game::XUID server_guid = static_cast<game::XUID>(
-      0x110000100000000 |
-      (::utils::cryptography::random::get_integer() & ~0x80000000));
-  return server_guid;
+    static const game::XUID server_guid = static_cast<game::XUID>(
+        0x110000100000000 |
+        (::utils::cryptography::random::get_integer() & ~0x80000000));
+    return server_guid;
+  }();
+  return guid;
 }
 
-game::XUID get_guid(const size_t client_num) {
-  if (client_num >= 18) {
-    return 0;
+game::XUID get_guid(const game::ClientNum_t clientNum) {
+  if (game::valid_client_num(clientNum)) {
+    if (game::server_running()) {
+      game::XUID xuid = 0;
+
+      if (game::access_connected_client(
+              clientNum, [&xuid](const game::sv::client_s &client) {
+                xuid = client.xuid;
+              })) {
+        return xuid;
+      }
+    } else {
+      std::scoped_lock lock(client_xuids_mutex);
+      return client_xuids[clientNum];
+    }
   }
 
-  if (!game::server_running()) {
-    std::lock_guard lock(client_xuids_mutex);
-    return client_xuids[client_num];
-  }
-
-  game::XUID xuid = 0;
-  const auto callback = [&xuid](const game::sv::client_s &client) {
-    xuid = client.xuid;
-  };
-
-  if (!game::access_connected_client(client_num, callback)) {
-    return 0;
-  }
-
-  return xuid;
+  return 0;
 }
 
 void clear_stored_guids() {
-  std::lock_guard lock(client_xuids_mutex);
+  std::scoped_lock lock(client_xuids_mutex);
   for (game::XUID &xuid : client_xuids) {
     xuid = 0;
   }
 }
 
 void clear_stored_challenge() {
-  std::lock_guard lock(latest_challenge_mutex);
+  std::scoped_lock lock(latest_challenge_mutex);
   if (game::cg::clientUIActives->actives[0].connectionState !=
       game::connstate_t::CHALLENGING) {
     memset(latest_challenge, 0, CHALLENGE_LENGTH);
@@ -592,8 +596,7 @@ void clear_stored_challenge() {
 
 utils::hook::detour LiveUser_UserGetXuid_hook;
 bool LiveUser_UserGetXuid_stub(int64_t controllerIndex, game::XUID *xuid) {
-  *xuid = get_guid(static_cast<game::ControllerIndex_t>(
-      static_cast<int32_t>(controllerIndex)));
+  *xuid = get_guid(static_cast<game::ControllerIndex_t>(controllerIndex));
   return true;
 }
 
@@ -667,32 +670,26 @@ struct component final : generic_component {
         game::live::steam::lobby::LiveSteam_Lobby_RequestJoin.offset(0x56));
       p(game::live::steam::lobby::LiveSteamLobby_Pump.offset(0x7D),
         game::live::steam::lobby::LiveSteamLobby_Pump.offset(0xC2));
-      // LiveSteamLobby_GameLobbyJoinRequested_Handle
       p(game::live::steam::lobby::LiveSteamLobby_GameLobbyJoinRequested_Handle
             .offset(0x85),
         game::live::steam::lobby::LiveSteamLobby_GameLobbyJoinRequested_Handle
             .offset(0xC6));
       // XUID_Valid
       p(game::XUID_Valid.offset(0x0), game::XUID_Valid.offset(0x56));
-      // LiveSteam_Friend_AddByID
       p(game::live::steam::friends::LiveSteam_Friend_AddByID.offset(0x28),
         game::live::steam::friends::LiveSteam_Friend_AddByID.offset(0x69));
-      // LiveSteam_Friend_Overlay_ShowFriendByID
       p(game::live::steam::friends::overlay::
             LiveSteam_Friend_Overlay_ShowFriendByID.offset(0x28),
         game::live::steam::friends::overlay::
             LiveSteam_Friend_Overlay_ShowFriendByID.offset(0x69));
-      // LiveSteamLobby_GetLobbyData_WithCallback
       p(game::live::steam::lobby::LiveSteamLobby_GetLobbyData_WithCallback
             .offset(0x65),
         game::live::steam::lobby::LiveSteamLobby_GetLobbyData_WithCallback
             .offset(0xB3));
-      // LiveSteamLobby_GetLobbyDataByIndex_WithCallback
       p(game::live::steam::lobby::
             LiveSteamLobby_GetLobbyDataByIndex_WithCallback.offset(0x6D),
         game::live::steam::lobby::
             LiveSteamLobby_GetLobbyDataByIndex_WithCallback.offset(0xC3));
-      // LiveSteamLobby_GetLobbyDataCount_WithCallback
       p(game::live::steam::lobby::LiveSteamLobby_GetLobbyDataCount_WithCallback
             .offset(0x5D),
         game::live::steam::lobby::LiveSteamLobby_GetLobbyDataCount_WithCallback
@@ -708,20 +705,17 @@ struct component final : generic_component {
       p(game::live::steam::lobby::LiveSteamLobby_GetAndValidateID.offset(0x3E),
         game::live::steam::lobby::LiveSteamLobby_GetAndValidateID.offset(0x6F));
 
-      // LiveSteamServer_GetAuthDataById
       p(game::live::steam::server::LiveSteamServer_GetAuthDataById.offset(0x37),
         game::live::steam::server::LiveSteamServer_GetAuthDataById.offset(
-            0x7F)); // ?
-      // LiveSteamServer_EndAllClientAuthSessions
+            0x7F));
       p(game::live::steam::server::LiveSteamServer_EndAllClientAuthSessions
             .offset(0x42),
         game::live::steam::server::LiveSteamServer_EndAllClientAuthSessions
             .offset(0x85));
-      // LiveSteamServer_SteamServersDisconnected_Handle
       p(game::live::steam::server::
             LiveSteamServer_SteamServersDisconnected_Handle.offset(0x42),
         game::live::steam::server::
-            LiveSteamServer_SteamServersDisconnected_Handle.offset(0x85)); // ?
+            LiveSteamServer_SteamServersDisconnected_Handle.offset(0x85));
 
       LiveUser_UserGetXuid_hook.create(
           game::live::user::LiveUser_UserGetXuid.get(),

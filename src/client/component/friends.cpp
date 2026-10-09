@@ -246,7 +246,8 @@ void record_recent_players() {
   const game::XUID own_id = auth::get_guid();
   const int64_t now = std::time(nullptr);
   std::vector<recent_player> seen;
-  for (size_t index = 0; index < game::get_max_client_count(); ++index) {
+  for (game::ClientNum_t index = game::CLIENT_INDEX_FIRST;
+       index < game::get_max_client_count(); ++index) {
     const game::XUID xuid = auth::get_guid(index);
     char name[64];
     if (xuid < MIN_PLAYER_XUID || xuid >= MIN_BOT_XUID || xuid == own_id ||
