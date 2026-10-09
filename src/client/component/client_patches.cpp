@@ -537,6 +537,7 @@ public:
         return_const<std::numeric_limits<uint32_t>::max()>);
 
     command::add("unmuteall", game::lobby::voice::UnMuteAllClients);
+    command::add("muteall", game::lobby::voice::MuteAllClients);
   }
 };
 } // namespace client_patches
