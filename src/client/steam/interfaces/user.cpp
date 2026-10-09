@@ -40,16 +40,33 @@ bool user::GetUserDataFolder(char *pchBuffer, int32_t cubBuffer) {
 }
 
 void user::StartVoiceRecording() {
+#ifndef NDEBUG
+  game::trace("[Steam][User] Entered StartVoiceRecording");
+#endif
   if (!voice->Recording() && voice->Init()) {
     voice->StartRecording();
   }
 }
 
-void user::StopVoiceRecording() { voice->StopRecording(); }
+void user::StopVoiceRecording() {
+#ifndef NDEBUG
+  game::trace("[Steam][User] Entered StopVoiceRecording");
+#endif
+  voice->StopRecording();
+}
 
 EVoiceResult
 user::GetAvailableVoice(uint32_t *pcbCompressed, uint32_t *pcbUncompressed,
                         uint32_t nUncompressedVoiceDesiredSampleRate) {
+#ifndef NDEBUG
+  game::trace(
+      "[Steam][User] Entered GetAvailableVoice with pcbCompressed: {}@{:p}, "
+      "pcbUncompressed: {}@{:p}, nUncompressedVoiceDesiredSampleRate: {}",
+      pcbCompressed ? *pcbCompressed : 0, static_cast<void *>(pcbCompressed),
+      pcbUncompressed ? *pcbUncompressed : 0,
+      static_cast<void *>(pcbUncompressed),
+      nUncompressedVoiceDesiredSampleRate);
+#endif
 
   if (pcbCompressed) {
     *pcbCompressed = 0;
@@ -69,6 +86,22 @@ EVoiceResult user::GetVoice(bool bWantCompressed, void *pDestBuffer,
                             uint32_t cbUncompressedDestBufferSize,
                             uint32_t *nUncompressBytesWritten,
                             uint32_t nUncompressedVoiceDesiredSampleRate) {
+#ifndef NDEBUG
+  game::trace("[Steam][User] GetVoice entered with bWantCompressed: {}, "
+              "pDestBuffer: {:p}, cbDestBufferSize: {}, nBytesWritten: {}@{}, "
+              "bWantUncompressed: {}, pUncompressedDestBuffer: {:p}, "
+              "cbUncompressedDestBufferSize: {}, nUncompressBytesWritten: "
+              "{}@{}, nUncompressedVoiceDesiredSampleRate: {}",
+              bWantCompressed ? "true" : "false", pDestBuffer, cbDestBufferSize,
+              nBytesWritten ? *nBytesWritten : 0,
+              static_cast<void *>(nBytesWritten),
+              bWantUncompressed ? "true" : "false", pUncompressedDestBuffer,
+              cbUncompressedDestBufferSize,
+              nUncompressBytesWritten ? *nUncompressBytesWritten : 0,
+              static_cast<void *>(nUncompressBytesWritten),
+              nUncompressedVoiceDesiredSampleRate);
+#endif
+
   if (nBytesWritten) {
     *nBytesWritten = 0;
   }
@@ -83,6 +116,15 @@ EVoiceResult user::GetVoice(bool bWantCompressed, void *pDestBuffer,
 EVoiceResult user::DecompressVoice(void *pCompressed, uint32_t cbCompressed,
                                    void *pDestBuffer, uint32_t cbDestBufferSize,
                                    uint32_t *nBytesWritten) {
+#ifndef NDEBUG
+  game::trace("[Steam][User] DecompressVoice entered with pCompressed: {:p}, "
+              "cbCompressed: {}, pDestBuffer: {:p}, cbDestBufferSize: {}, "
+              "nBytesWritten: {}@{:p}",
+              pCompressed, cbCompressed, pDestBuffer, cbDestBufferSize,
+              nBytesWritten ? *nBytesWritten : 0,
+              static_cast<void *>(nBytesWritten));
+#endif
+
   return voice->Decompress(
       pCompressed, cbCompressed, pDestBuffer, cbDestBufferSize, nBytesWritten,
       /*

@@ -20,8 +20,8 @@ inline constexpr auto SAMPLE_RATE = 48000;
 inline constexpr auto RECORDING_CHANNEL_COUNT = 1;
 inline constexpr auto PLAYBACK_CHANNEL_COUNT = 2;
 
-inline constexpr auto ENCODING_BUFFER_SIZE = 8192;
-inline constexpr auto FRAME_SIZE = 960;
+inline constexpr auto ENCODING_BUFFER_SIZE = 0x2000;
+inline constexpr auto FRAME_SIZE = 0x3C0;
 inline constexpr auto MAX_FRAME_SIZE = (FRAME_SIZE * 6);
 inline constexpr auto MAX_DECODED_RECORDING_SIZE =
     (MAX_FRAME_SIZE * RECORDING_CHANNEL_COUNT);
@@ -81,19 +81,19 @@ public:
   Voice() = default;
   ~Voice();
 
-  // Lifecycle operations
+  // Lifecycle
   bool Init();
   void Shutdown();
 
-  // Recording controls
+  // Recording
   bool StartRecording();
   void StopRecording();
 
-  // Playback controls
+  // Playback
   bool StartPlayback();
   void StopPlayback();
 
-  // Voice data retrieval & processing
+  //  Data retrieval, processing
   EVoiceResult GetAvailable(uint32_t *pcbCompressed);
   EVoiceResult GetVoice(bool bWantCompressed, void *pDestBuffer,
                         uint32_t cbDestBufferSize, uint32_t *nBytesWritten);

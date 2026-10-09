@@ -9,20 +9,22 @@ function portaudio.defines()
     "_WIN32=1",
     "WIN64=1",
     "_WIN64=1",
-    "PA_BUILD_SHARED_LIBS=OFF",
-    "PA_BUILD_TESTS=OFF",
-    "PA_BUILD_EXAMPLES=OFF",
-    "PA_ENABLE_DEBUG_OUTPUT=OFF",
-    "PA_USE_SKELETON=OFF",
+    "PA_BUILD_SHARED_LIBS=0",
+    "PA_BUILD_TESTS=0",
+    "PA_BUILD_EXAMPLES=0",
+    "PA_ENABLE_DEBUG_OUTPUT=0",
+    "PA_USE_SKELET1=0",
     -- Windows-specific
-    "PA_USE_ASIO=OFF",
-    "PA_USE_DS=ON",
-    "PA_USE_WMME=ON",
-    "PA_USE_WASAPI=ON",
-    "PA_USE_WDMKS=ON",
-    "PA_USE_WDMKS_DEVICE_INFO=ON",
+    "PA_USE_ASIO=0",
+    "PA_USE_DS=1",
+    "PAWIN_USE_DIRECTSOUNDFULLDUPLEXCREATE=1",
+    "PA_USE_WMME=1",
+    "PA_USE_WASAPI=1",
+    "PA_USE_WDMKS=1",
+    "PAWIN_USE_WDMKS_DEVICE_INFO=1",
+    "PA_USE_WDMKS_DEVICE_INFO=1",
     -- Linux-specific
-    "PA_ALSA_DYNAMIC=OFF",
+    "PA_ALSA_DYNAMIC=0",
   })
 end
 
@@ -75,6 +77,15 @@ function portaudio.project()
 
     -- Windows-specific
     path.join(portaudio.source, "os/win/*.c"),
+
+    -- DirectSound
+    path.join(portaudio.source, "hostapi/dsound/**.c"),
+    -- WASAPI
+    path.join(portaudio.source, "hostapi/wasapi/**.c"),
+    -- WDMKS
+    path.join(portaudio.source, "hostapi/wdmks/**.c"),
+    -- WMME
+    path.join(portaudio.source, "hostapi/wmme/**.c"),
   })
 
   warnings("Off")

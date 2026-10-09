@@ -132,6 +132,9 @@ const char *get_bot_name() {
   current.store((current.load(std::memory_order_acquire) + 1) % names.size(),
                 std::memory_order_release);
   const char *result = names.at(current).name;
+  game::trace(
+      "[Bot][get_bot_name] returning result \"{}\" for current bot index {}",
+      result, current.load(std::memory_order_acquire));
   return result;
 }
 const char *find_clan_name(const std::string &needle) {
@@ -149,6 +152,10 @@ int format_bot_string(char *buffer, [[maybe_unused]] const char *format,
                       int protocol, int net_field_chk, const char *session_mode,
                       int qport) {
 
+  game::trace("[Bot][format_bot_string] Called with name: \"{}\", xuid: "
+              "\"{}\", xnaddr: \"{}\", protocol: {}, net_field_chk: {}, "
+              "session_mode: \"{}\", qport: {}",
+              name, xuid, xnaddr, protocol, net_field_chk, session_mode, qport);
   return sprintf_s(buffer, 0x400, BOT_CONNECT_PACKET_INFOSTRING_FMT, name,
                    find_clan_name(name), xuid, xnaddr, protocol, net_field_chk,
                    session_mode, qport);
@@ -170,6 +177,8 @@ struct component final : generic_component {
     }
 
     command::add("spawnBot", [](const command::params &params) {
+      game::trace("[Bot][spawnBot] called with argc: {}, getinfo::is_host: {}",
+                  params.size(), getinfo::is_host() ? "true" : "false");
       if (getinfo::is_host()) {
         game::ClientNum_t count = game::ClientNum_t::CLIENT_INDEX_1;
         if (params.size() > 1) {
@@ -194,6 +203,8 @@ struct component final : generic_component {
                 for (game::ClientNum_t i =
                          game::ClientNum_t::CLIENT_INDEX_FIRST;
                      i < count && game::sv::SV_AddTestClient(); ++i) {
+                  game::trace("[Bot][spawnBot] Successfully spawned bot {}/{}.",
+                              +i + 1, static_cast<size_t>(count));
                 }
               },
               scheduler::server);

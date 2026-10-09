@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <loader/component_loader.hpp>
 
+#include "command.hpp"
 #include "scheduler.hpp"
 
 #include <game/game.hpp>
@@ -534,6 +535,8 @@ public:
     Com_FPSLimit_hook.create(
         game::com::Com_FPSLimit.get(),
         return_const<std::numeric_limits<uint32_t>::max()>);
+
+    command::add("unmuteall", game::lobby::voice::UnMuteAllClients);
   }
 };
 } // namespace client_patches
