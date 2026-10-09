@@ -282,6 +282,7 @@ staticruntime("On")
 editandcontinue("Off")
 warnings("Extra")
 characterset("ASCII")
+manifest("Off")
 
 if _OPTIONS["dev-build"] then
   defines({ "DEV_BUILD" })
