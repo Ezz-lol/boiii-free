@@ -982,6 +982,20 @@ local function enableMouse(element)
   end)
 end
 
+local function makeHoverable(element, paint)
+  local noop = function() end
+  element.currentState = "DefaultState"
+  element.clipsPerState = { DefaultState = { DefaultClip = noop, Over = noop } }
+  element:registerEventHandler("mouseenter", function()
+    paint(true)
+    return true
+  end)
+  element:registerEventHandler("mouseleave", function()
+    paint(false)
+    return true
+  end)
+end
+
 local function applyFrontendSlice(img, imageName, materialName, sliceW, sliceH)
   if not img then
     return
@@ -1090,31 +1104,15 @@ local function makeActionButton(menu, controller, left, right, top, bottom, labe
   paint(false)
   btn.PaintHover = paint
 
-  local function bindHover(el)
-    if not el then
-      return
-    end
-    el:registerEventHandler("mouseenter", function()
-      paint(true)
-      return true
-    end)
-    el:registerEventHandler("mouseleave", function()
-      paint(false)
-      return true
-    end)
-    el:registerEventHandler("gain_focus", function()
-      paint(true)
-      return false
-    end)
-    el:registerEventHandler("lose_focus", function()
-      paint(false)
-      return false
-    end)
-  end
-  bindHover(btn)
-  bindHover(idle)
-  bindHover(focus)
-  bindHover(text)
+  makeHoverable(btn, paint)
+  btn:registerEventHandler("gain_focus", function()
+    paint(true)
+    return false
+  end)
+  btn:registerEventHandler("lose_focus", function()
+    paint(false)
+    return false
+  end)
 
   if onClick then
     btn:registerEventHandler("leftmouseup", function()
@@ -1518,6 +1516,10 @@ LUI.createMenu.BoiiiWorkshopMenu = function(controller)
         tab.bg:setRGB(1.0, 0.45, 0.0)
         tab.bg:setAlpha(1)
         tab.label:setRGB(0, 0, 0)
+      elseif tab.hovered then
+        tab.bg:setRGB(0.26, 0.26, 0.26)
+        tab.bg:setAlpha(1)
+        tab.label:setRGB(1, 1, 1)
       else
         tab.bg:setRGB(0.12, 0.12, 0.12)
         tab.bg:setAlpha(0.9)
@@ -1550,6 +1552,10 @@ LUI.createMenu.BoiiiWorkshopMenu = function(controller)
     end
     tab:registerEventHandler("leftmouseup", selectTab)
     tab:registerEventHandler("button_action", selectTab)
+    makeHoverable(tab, function(hovered)
+      info.hovered = hovered
+      refreshTabs()
+    end)
     self:addElement(tab)
     table.insert(self.TabButtons, info)
   end
@@ -1583,6 +1589,9 @@ LUI.createMenu.BoiiiWorkshopMenu = function(controller)
   searchField:registerEventHandler("leftmouseup", function()
     openSearchKeyboard(self, searchField, controller)
     return true
+  end)
+  makeHoverable(searchField, function(hovered)
+    searchFieldBg:setRGB(hovered and 0.16 or 0.08, hovered and 0.16 or 0.08, hovered and 0.16 or 0.08)
   end)
   self:addElement(searchField)
   self.SearchBox = searchField
@@ -1658,6 +1667,11 @@ LUI.createMenu.BoiiiWorkshopMenu = function(controller)
     end
     btn:registerEventHandler("leftmouseup", onClick)
     btn:registerEventHandler("button_action", onClick)
+    makeHoverable(btn, function(hovered)
+      local level = hovered and 0.28 or 0.12
+      bg:setRGB(level, level, level)
+      text:setRGB(hovered and 1 or 0.9, hovered and 1 or 0.9, hovered and 1 or 0.9)
+    end)
     self:addElement(btn)
     return btn
   end
@@ -1697,6 +1711,11 @@ LUI.createMenu.BoiiiWorkshopMenu = function(controller)
     end
     btn:registerEventHandler("leftmouseup", handler)
     btn:registerEventHandler("button_action", handler)
+    makeHoverable(btn, function(hovered)
+      local level = hovered and 0.28 or 0.12
+      bg:setRGB(level, level, level)
+      text:setRGB(hovered and 1 or 0.9, hovered and 1 or 0.9, hovered and 1 or 0.9)
+    end)
     self:addElement(btn)
     table.insert(self.QueueWidgets, btn)
     return btn
