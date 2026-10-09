@@ -1104,15 +1104,17 @@ local function makeActionButton(menu, controller, left, right, top, bottom, labe
   paint(false)
   btn.PaintHover = paint
 
-  makeHoverable(btn, paint)
-  btn:registerEventHandler("gain_focus", function()
-    paint(true)
-    return false
-  end)
-  btn:registerEventHandler("lose_focus", function()
-    paint(false)
-    return false
-  end)
+  btn.currentState = "DefaultState"
+  btn.clipsPerState = {
+    DefaultState = {
+      DefaultClip = function()
+        paint(false)
+      end,
+      Focus = function()
+        paint(true)
+      end,
+    },
+  }
 
   if onClick then
     btn:registerEventHandler("leftmouseup", function()
