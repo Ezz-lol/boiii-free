@@ -22,8 +22,8 @@ void LobbyMsgHandler_TraceExec(ControllerIndex_t controllerIndex,
   return Handler(controllerIndex, adr, xuid, msg);
 }
 
-#ifndef HOOK_MSG_HANDLER
-#define HOOK_MSG_HANDLER(table, name)                                          \
+#ifndef TRACE_MSG_HANDLER
+#define TRACE_MSG_HANDLER(table, name)                                         \
   static const LobbyMsg_MsgHandleCallbackPtr table##_##name##_orig =           \
       table->name.function;                                                    \
   static LobbyMsg_MsgHandleCallback &table##_##name##_new =                    \
@@ -32,41 +32,41 @@ void LobbyMsgHandler_TraceExec(ControllerIndex_t controllerIndex,
 #endif
 
 inline void trace_host_client_msg_handlers() {
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, JoinRequest);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, JoinMemberInfo);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, JoinAgreementResponse);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, JoinResponse);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, ServerListInfo);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, PeerToPeerInfo);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, LobbyClientHeartbeat);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, LobbyClientDisconnect);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, LobbyClientReliableData);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, LobbyClientContent);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, LobbyModifiedStats);
-  HOOK_MSG_HANDLER(host_clientMessageHandlers, VoicePacket);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, JoinRequest);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, JoinMemberInfo);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, JoinAgreementResponse);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, JoinResponse);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, ServerListInfo);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, PeerToPeerInfo);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, LobbyClientHeartbeat);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, LobbyClientDisconnect);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, LobbyClientReliableData);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, LobbyClientContent);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, LobbyModifiedStats);
+  TRACE_MSG_HANDLER(host_clientMessageHandlers, VoicePacket);
 }
 
 inline void trace_client_host_msg_handlers() {
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, LobbyStatePrivate);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, LobbyStateGame);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, LobbyHostHeartbeat);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, LobbyHostDisconnect);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, LobbyHostDisconnectClient);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, LobbyHostLeaveWithParty);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, JoinAgreementRequest);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, JoinComplete);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, LobbyMigrateAnnounceHost);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, IngameMigrateTo);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, IngameMigrateNewHost);
-  HOOK_MSG_HANDLER(client_hostMessageHandlers, LobbyClientContent);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, LobbyStatePrivate);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, LobbyStateGame);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, LobbyHostHeartbeat);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, LobbyHostDisconnect);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, LobbyHostDisconnectClient);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, LobbyHostLeaveWithParty);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, JoinAgreementRequest);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, JoinComplete);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, LobbyMigrateAnnounceHost);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, IngameMigrateTo);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, IngameMigrateNewHost);
+  TRACE_MSG_HANDLER(client_hostMessageHandlers, LobbyClientContent);
 }
 
 inline void trace_p2p_msg_handlers() {
-  HOOK_MSG_HANDLER(p2p_messageHandlers, ConnectivityTest);
-  HOOK_MSG_HANDLER(p2p_messageHandlers, MigrateBandwidthTest);
-  HOOK_MSG_HANDLER(p2p_messageHandlers, MigrateStart);
-  HOOK_MSG_HANDLER(p2p_messageHandlers, VoicePacket);
-  HOOK_MSG_HANDLER(p2p_messageHandlers, DemoState);
+  TRACE_MSG_HANDLER(p2p_messageHandlers, ConnectivityTest);
+  TRACE_MSG_HANDLER(p2p_messageHandlers, MigrateBandwidthTest);
+  TRACE_MSG_HANDLER(p2p_messageHandlers, MigrateStart);
+  TRACE_MSG_HANDLER(p2p_messageHandlers, VoicePacket);
+  TRACE_MSG_HANDLER(p2p_messageHandlers, DemoState);
 }
 inline void trace_msg_handlers() {
   trace_host_client_msg_handlers();
