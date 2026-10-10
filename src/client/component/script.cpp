@@ -435,6 +435,15 @@ void for_each_loaded_script(
       });
 }
 
+std::mutex script_paths_mutex;
+std::unordered_map<std::string, std::string> script_paths;
+
+std::string script_path(const std::string &name) {
+  std::scoped_lock lock(script_paths_mutex);
+  const auto it = script_paths.find(name);
+  return it == script_paths.end() ? name : it->second;
+}
+
 void print_loading_script(const std::string &name) {
   const char *type = nullptr;
   if (name.ends_with(".lua")) {
@@ -446,8 +455,8 @@ void print_loading_script(const std::string &name) {
   } else {
     type = "";
   }
-  const char *log = utils::string::va("Loading %s%s'%s'", type,
-                                      type[0] ? " " : "", name.data());
+  const char *log = utils::string::va(
+      "Loading %s%s'%s'", type, type[0] ? " " : "", script_path(name).c_str());
   print_script_log(log);
 }
 
@@ -485,8 +494,9 @@ void load_script(const std::string &name, const std::string &data) {
         [&](concurrent_hash_map<std::string, ScriptParseTree *>::value_type
                 &v) { v.second = parse_tree; })) {
     }
-    const char *log = utils::string::va("Loaded script '%s' (size %llu bytes)",
-                                        name.data(), parse_tree->len);
+    const char *log =
+        utils::string::va("Loaded script '%s' (size %llu bytes)",
+                          script_path(name).c_str(), parse_tree->len);
     print_script_log(log);
   }
 }
@@ -513,8 +523,8 @@ void load_script_file(std::string &data,
         // Strip devblocks before compilation
         const std::string cleaned_source = strip_devblocks(data);
 
-        const char *log = utils::string::va("Compiling %s script '%s'",
-                                            script_type, name.c_str());
+        const char *log = utils::string::va(
+            "Compiling %s script '%s'", script_type, script_path(name).c_str());
         print_script_log(log);
         const scriptInstance_t inst =
             is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
@@ -649,8 +659,8 @@ void queue_script_execution(const std::string &name) {
 void execute_queued_script(const queued_script &script) {
   scr::Scr_LoadScript(script.inst, script.base_name.data());
 
-  print_script_log(
-      utils::string::va("Loaded script '%s' into the VM", script.name.data()));
+  print_script_log(utils::string::va("Loaded script '%s' into the VM",
+                                     script_path(script.name).c_str()));
 
   objFileInfo_t *obj = get_obj_by_name(script.inst, script.name);
   if (obj) {
@@ -723,6 +733,7 @@ void load_scripts_directory(
       if (i != std::string::npos) {
         name.erase(0, i + host_path.length());
       }
+      const std::string path = name;
       if (strip_base.has_value()) {
         std::vector<std::string_view> name_parts =
             utils::string::split(std::string_view(name), '/');
@@ -745,6 +756,11 @@ void load_scripts_directory(
         if (!processed_scripts->insert(key).second) {
           return;
         }
+      }
+
+      if (path != name) {
+        std::scoped_lock lock(script_paths_mutex);
+        script_paths.insert_or_assign(name, path);
       }
 
       if (load) {
@@ -922,6 +938,10 @@ void load_tree(std::filesystem::path tree, bool queue_execution = false) {
 }
 
 void load_scripts() {
+  {
+    std::scoped_lock lock(script_paths_mutex);
+    script_paths.clear();
+  }
   // The "scripts" tree is for overriding stock scripts the game uses
   load_tree("scripts", false);
   // The "custom_scripts" tree is for new scripts we must execute
