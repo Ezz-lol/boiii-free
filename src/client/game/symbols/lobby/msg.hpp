@@ -9,7 +9,7 @@ namespace msg {
 WEAK symbol<LobbyClientHostMsgHandlersTable> client_hostMessageHandlers{
     0x142F9EDA0, 0x14301DE80, 0x140E59160};
 // We, a peer, received a packet from another peer
-WEAK symbol<LobbyP2PMsgHandlersTable> p2p_MessageHandlers{
+WEAK symbol<LobbyP2PMsgHandlersTable> p2p_messageHandlers{
     0x142FA2BA0, 0x143021C90, 0x140E5D360};
 // We, the host, received a packet from client
 WEAK symbol<LobbyHostClientMsgHandlersTable> host_clientMessageHandlers{
@@ -53,7 +53,7 @@ inline LobbyMsgHandler *handler(LobbyModule module, MsgType msgType) {
       return &host_clientMessageHandlers->VoicePacket;
 
     case LobbyModule::PEER_TO_PEER:
-      return &p2p_MessageHandlers->VoicePacket;
+      return &p2p_messageHandlers->VoicePacket;
     default:
       goto invalid;
     }
@@ -81,13 +81,13 @@ inline LobbyMsgHandler *handler(LobbyModule module, MsgType msgType) {
   case MsgType::MIGRATE_NEW_HOST:
     return &client_hostMessageHandlers->IngameMigrateNewHost;
   case MsgType::PEER_TO_PEER_CONNECTIVITY_TEST:
-    return &p2p_MessageHandlers->ConnectivityTest;
+    return &p2p_messageHandlers->ConnectivityTest;
   case MsgType::LOBBY_MIGRATE_TEST:
-    return &p2p_MessageHandlers->MigrateBandwidthTest;
+    return &p2p_messageHandlers->MigrateBandwidthTest;
   case MsgType::MIGRATE_START:
-    return &p2p_MessageHandlers->MigrateStart;
+    return &p2p_messageHandlers->MigrateStart;
   case MsgType::DEMO_STATE:
-    return &p2p_MessageHandlers->DemoState;
+    return &p2p_messageHandlers->DemoState;
 
   invalid:
   default:

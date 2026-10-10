@@ -67,7 +67,28 @@ enum netadrtype_t : int32_t {
   NA_LOOPBACK = 0x2,
   NA_RAWIP = 0x3,
   NA_IP = 0x4,
+  // Does not exist in engine
+  NA_INVALID = -1
 };
+
+#ifndef NDEBUG
+inline constexpr const char *serialize(netadrtype_t type) {
+  switch (type) {
+  case NA_BOT:
+    return "NA_BOT";
+  case NA_BAD:
+    return "NA_BAD";
+  case NA_LOOPBACK:
+    return "NA_LOOPBACK";
+  case NA_RAWIP:
+    return "NA_RAWIP";
+  case NA_IP:
+    return "NA_IP";
+  default:
+    return "NA_INVALID";
+  }
+}
+#endif
 
 enum netsrc_t : int32_t {
   NS_NULL = -1,
@@ -79,6 +100,27 @@ enum netsrc_t : int32_t {
   NS_MAXCLIENTS = 0x4,
   NS_PACKET = 0x5,
 };
+
+#ifndef NDEBUG
+inline constexpr const char *serialize(netsrc_t src) {
+  switch (src) {
+  case NS_CLIENT1:
+    return "NS_CLIENT1";
+  case NS_CLIENT2:
+    return "NS_CLIENT2";
+  case NS_CLIENT3:
+    return "NS_CLIENT3";
+  case NS_CLIENT4:
+    return "NS_CLIENT4";
+  case NS_SERVER:
+    return "NS_SERVER";
+  case NS_PACKET:
+    return "NS_PACKET";
+  default:
+    return "NS_NULL";
+  }
+}
+#endif
 
 constexpr size_t NETADR_STR_BUF_LEN =
     NET_IPV4_STR_BUF_LEN + sizeof(char) /*colon*/ +
@@ -100,6 +142,12 @@ struct netadr_t {
   inline std::string toString() const noexcept {
     return std::format("{}:{}", ipv4.toString(), port);
   }
+
+#ifndef NDEBUG
+  inline std::string serialize() const noexcept {
+    return std::format("{}:{}", ipv4.toString(), port);
+  }
+#endif
 
   inline constexpr ToStringResult
   toString(netadr_str_t &buf, bool terminate = true) const noexcept {

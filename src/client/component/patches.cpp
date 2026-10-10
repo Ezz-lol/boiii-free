@@ -6,7 +6,7 @@
 #include "component/party.hpp"
 #include "component/path.hpp"
 #include "component/script_error.hpp"
-#include "scheduler.hpp"
+
 #include <loader/component_loader.hpp>
 
 #include <game/game.hpp>

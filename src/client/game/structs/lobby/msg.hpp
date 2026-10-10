@@ -14,6 +14,7 @@ namespace msg {
 typedef fastcall_t<void(ControllerIndex_t controllerIndex, net::netadr_t *adr,
                         XUID xuid, LobbyMsg *msg)>
     LobbyMsg_MsgHandleCallback;
+typedef LobbyMsg_MsgHandleCallback *LobbyMsg_MsgHandleCallbackPtr;
 
 enum class MsgType : int32_t {
   NONE = -1,

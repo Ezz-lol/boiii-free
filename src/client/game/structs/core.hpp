@@ -350,6 +350,20 @@ enum ControllerIndex_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(ControllerIndex_t);
 
+#ifndef NDEBUG
+inline constexpr const char *
+serialize(const ControllerIndex_t controllerIndex) {
+  switch (controllerIndex) {
+  case CONTROLLER_INDEX_0:
+    return "CONTROLLER_INDEX_0";
+  case CONTROLLER_INDEX_1:
+    return "CONTROLLER_INDEX_1";
+  default:
+    return "INVALID_CONTROLLER_PORT";
+  }
+}
+#endif
+
 enum LocalClientNum_t : int32_t {
   INVALID_LOCAL_CLIENT = -1,
   LOCAL_CLIENT_0 = 0x0,
