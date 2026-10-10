@@ -66,3 +66,9 @@
 [submodule "deps/portaudio"]
 	path = deps/portaudio
 	url = https://github.com/PortAudio/portaudio
+[submodule "deps/sqlite"]
+	path = deps/sqlite
+	url = https://github.com/rhuijben/sqlite-amalgamation
+[submodule "deps/sqlite_orm"]
+	path = deps/sqlite_orm
+	url = https://github.com/fnc12/sqlite_orm

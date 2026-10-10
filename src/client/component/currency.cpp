@@ -11,6 +11,7 @@
 #include "com.hpp"
 #include "command.hpp"
 #include "currency.hpp"
+#include "local_db.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"
 
@@ -32,7 +33,8 @@ game::EngineDependentDvarMut divinium_per_match, last_divinium_award;
 game::EngineDependentDvarMut max_local_currencies;
 game::EngineDependentDvarMut free_distills, paid_distills, free_distill_expiry;
 utils::hook::detour currency_hook, spend_hook, increment_hook, consume_hook;
-utils::hook::detour inventory_update_hook;
+utils::hook::detour inventory_update_hook, buy_crate_hook, purchase_hook,
+    get_item_hook;
 
 // `bool Loot_RewardIsProcessing(const ControllerIndex_t controllerIndex)`
 // FIXME: this symbol should be moved to the proper namespace and file under
@@ -265,7 +267,358 @@ std::optional<uint32_t> quantity(const stats &data, const gum &item) {
                         : std::nullopt;
 }
 
+// Multiplayer Black Market.
+constexpr int32_t cryptokeys_currency =
+    static_cast<int32_t>(game::lua::InventoryCurrency::MP_CRYPTO_KEYS);
+constexpr int32_t loot_xp_currency =
+    static_cast<int32_t>(game::lua::InventoryCurrency::MP_LOOT_XP);
+// Loot XP per Cryptokey.
+constexpr uint32_t loot_xp_per_key = 100;
+// Seconds of play per Cryptokey, `loot_earnTime` in _globallogic.gsc.
+constexpr uint32_t loot_earn_seconds = 267;
+// Cryptokey cost per crate type (common, rare).
+constexpr std::array<uint32_t, 2> crate_costs{10, 30};
+constexpr uint32_t crate_items = 3;
+// Bonus Cryptokeys from a rare crate.
+constexpr uint32_t rare_bonus_min = 2, rare_bonus_max = 5;
+// Odds per rarity (common, rare, legendary, epic).
+constexpr std::array<uint32_t, 4> common_crate_odds{50, 35, 12, 3};
+constexpr std::array<uint32_t, 4> rare_crate_odds{20, 45, 25, 10};
+
+// Six Pack and Daily Double add crates to a drop item and set a cooldown on a
+// consumable item.
+struct bundle {
+  const char *sku;
+  const char *drop_id;
+  const char *consumable_id;
+  uint32_t crates;
+};
+constexpr bundle six_pack{"loot_sixPack_crate_dwid", "loot_sixPack_drop_id",
+                          "loot_sixPack_consumable_id", 6};
+constexpr bundle daily_double{"loot_dailyDouble_dwid",
+                              "loot_dailyDouble_drop_id",
+                              "loot_dailyDouble_consumable_id", 2};
+constexpr uint32_t bundle_cost = 45;
+constexpr uint32_t bundle_cooldown_seconds = 24 * 60 * 60;
+
+// Loot XP from the server, credited when the player returns to the menu.
+std::optional<uint32_t> server_loot_xp;
+
+uint32_t dvar_id(const char *dvar) {
+  return game::get_dvar_uint(dvar).value_or(0);
+}
+
+uint32_t item_count(uint32_t item_id) {
+  const std::optional<local_db::item> item = local_db::get_item(item_id);
+  return item ? item->quantity : 0;
+}
+
+uint32_t add_loot_xp(uint32_t amount) {
+  uint32_t earned = 0;
+  local_db::transaction([&] {
+    const uint64_t total =
+        static_cast<uint64_t>(local_db::balance(loot_xp_currency)) + amount;
+    const uint32_t keys = local_db::balance(cryptokeys_currency);
+    const uint32_t updated = static_cast<uint32_t>(std::min<uint64_t>(
+        keys + total / loot_xp_per_key, accounting::max_balance));
+    earned = updated - keys;
+    return local_db::set_balance(cryptokeys_currency, updated) &&
+           local_db::set_balance(
+               loot_xp_currency,
+               static_cast<uint32_t>(total % loot_xp_per_key));
+  });
+  return earned;
+}
+
+// Mirrors the balances into the engine, which refreshes the menus showing them.
+bool update_cryptokey_balances(ControllerIndex_t controller) {
+  return LiveInventory_UpdatePlayerBalance(
+             controller, cryptokeys_currency,
+             local_db::balance(cryptokeys_currency)) &&
+         LiveInventory_UpdatePlayerBalance(controller, loot_xp_currency,
+                                           local_db::balance(loot_xp_currency));
+}
+
+void announce_cryptokeys(uint32_t keys) {
+  if (keys) {
+    toast::reward("BLACK MARKET",
+                  keys == 1 ? std::string("+1 Cryptokey")
+                            : utils::string::va("+%u Cryptokeys", keys),
+                  "uie_t7_blackmarket_promo_cryptokeys");
+  }
+}
+
+struct loot_item {
+  uint32_t id;
+  uint32_t rarity;
+  std::string name;
+};
+
+uint32_t rarity_rank(std::string_view rarity) {
+  if (rarity == "common") {
+    return 0;
+  }
+  if (rarity == "rare") {
+    return 1;
+  }
+  if (rarity == "legendary") {
+    return 2;
+  }
+  // epic and the limited editions
+  return 3;
+}
+
+std::vector<loot_item> mp_loot_pool() {
+  std::vector<loot_item> pool;
+  const StringTable *items = table("gamedata/loot/mplootitems.csv");
+  const StringTable *unreleased = table("gamedata/loot/mpunreleasedloot.csv");
+  if (!items) {
+    return pool;
+  }
+  for (int32_t row = 0; row < items->rowCount; ++row) {
+    const char *name = StringTable_GetColumnValueForRow(items, row, 0);
+    const char *id_text = StringTable_GetColumnValueForRow(items, row, 1);
+    const char *category = StringTable_GetColumnValueForRow(items, row, 2);
+    const char *rarity = StringTable_GetColumnValueForRow(items, row, 3);
+    if (!name || !*name || !id_text || !category || !rarity ||
+        std::string_view(category) == "c2" || strlen(name) >= 256) {
+      continue;
+    }
+    const std::string base(name, strcspn(name, ";"));
+    if (unreleased) {
+      const char *full = StringTable_Lookup(unreleased, 0, name, 0);
+      const char *short_name =
+          StringTable_Lookup(unreleased, 0, base.data(), 0);
+      if ((full && *full) || (short_name && *short_name)) {
+        continue;
+      }
+    }
+    uint32_t id = 0;
+    const char *end = id_text + strlen(id_text);
+    const std::from_chars_result parsed = std::from_chars(id_text, end, id);
+    if (id && parsed.ec == std::errc{} && parsed.ptr == end) {
+      pool.push_back({id, rarity_rank(rarity), name});
+    }
+  }
+  return pool;
+}
+
+bool buy_crate(ControllerIndex_t controller, int32_t crate, int32_t currency) {
+  if (!enabled()) {
+    return buy_crate_hook.invoke<bool>(controller, crate, currency);
+  }
+  const bool with_keys = currency == cryptokeys_currency;
+  const bool with_points =
+      currency ==
+      static_cast<int32_t>(game::lua::InventoryCurrency::COD_POINTS);
+  // Crates opened from a Six Pack or Daily Double.
+  uint32_t bundle_drop = 0;
+  if (currency ==
+      static_cast<int32_t>(game::lua::InventoryCurrency::MP_BUNDLE_ITEM)) {
+    if (crate == 0) {
+      bundle_drop = dvar_id(six_pack.drop_id);
+    } else if (crate == game::get_dvar_int("loot_dailyDouble_rare_crate_dwid")
+                            .value_or(-1)) {
+      bundle_drop = dvar_id(daily_double.drop_id);
+      crate = 1;
+    }
+  }
+  if (!valid_controller_index(controller) || crate < 0 ||
+      crate >= static_cast<int32_t>(crate_costs.size()) ||
+      (!with_keys && !with_points && !bundle_drop) ||
+      Loot_RewardIsProcessing(controller)) {
+    return false;
+  }
+  const bool rare = crate == 1;
+  const std::vector<loot_item> pool = mp_loot_pool();
+  if (pool.empty()) {
+    return false;
+  }
+  if (with_points) {
+    const std::optional<int32_t> cost = game::get_dvar_int(
+        rare ? "loot_rareCrate_cpCost" : "loot_commonCrate_cpCost");
+    stats data(controller, false);
+    const std::optional<DDLState> points = player_stat(data, "CODPOINTS");
+    if (!cost || *cost <= 0 || !points) {
+      return false;
+    }
+    const uint32_t balance =
+        std::min(data.get(*points), accounting::max_balance);
+    if (static_cast<uint32_t>(*cost) > balance) {
+      return false;
+    }
+    data.set(*points, balance - *cost);
+    if (!data.commit()) {
+      return false;
+    }
+    LiveInventory_UpdatePlayerBalance(controller, 0, balance - *cost);
+  }
+
+  static std::mt19937 random(std::random_device{}());
+  const std::array<uint32_t, 4> &odds =
+      rare ? rare_crate_odds : common_crate_odds;
+  std::vector<const loot_item *> rolled;
+  uint32_t bonus = 0;
+  const bool bought = local_db::transaction([&] {
+    const uint32_t keys = local_db::balance(cryptokeys_currency);
+    const uint32_t crates_left = bundle_drop ? item_count(bundle_drop) : 0;
+    if ((with_keys && keys < crate_costs[crate]) ||
+        (bundle_drop && !crates_left)) {
+      return false;
+    }
+
+    std::array<std::vector<const loot_item *>, 4> unowned;
+    for (const loot_item &item : pool) {
+      if (!item_count(item.id)) {
+        unowned[item.rarity].push_back(&item);
+      }
+    }
+    const auto roll = [&](uint32_t min_rarity) -> const loot_item * {
+      uint32_t total = 0;
+      for (uint32_t r = min_rarity; r < odds.size(); ++r) {
+        total += unowned[r].empty() ? 0 : odds[r];
+      }
+      if (!total) {
+        return nullptr;
+      }
+      uint32_t pick =
+          std::uniform_int_distribution<uint32_t>(0, total - 1)(random);
+      for (uint32_t r = min_rarity; r < odds.size(); ++r) {
+        if (unowned[r].empty()) {
+          continue;
+        }
+        if (pick >= odds[r]) {
+          pick -= odds[r];
+          continue;
+        }
+        std::vector<const loot_item *> &bucket = unowned[r];
+        const size_t index =
+            std::uniform_int_distribution<size_t>(0, bucket.size() - 1)(random);
+        const loot_item *item = bucket[index];
+        bucket.erase(bucket.begin() + static_cast<ptrdiff_t>(index));
+        return item;
+      }
+      return nullptr;
+    };
+    for (uint32_t i = 0; i < crate_items; ++i) {
+      // A rare crate always has at least one rare or better item.
+      const loot_item *item = rare && i == 0 ? roll(1) : nullptr;
+      if (!item) {
+        item = roll(0);
+      }
+      if (!item) {
+        // Everything is owned: show a duplicate instead of an empty slot.
+        item = &pool[std::uniform_int_distribution<size_t>(0, pool.size() -
+                                                                  1)(random)];
+      }
+      rolled.push_back(item);
+      if (!local_db::set_item(item->id, 1)) {
+        return false;
+      }
+    }
+
+    bonus = rare ? std::uniform_int_distribution<uint32_t>(
+                       rare_bonus_min, rare_bonus_max)(random)
+                 : 0;
+    return local_db::set_balance(
+               cryptokeys_currency,
+               std::min(keys - (with_keys ? crate_costs[crate] : 0) + bonus,
+                        accounting::max_balance)) &&
+           (!bundle_drop || local_db::set_item(bundle_drop, crates_left - 1));
+  });
+  if (!bought) {
+    return false;
+  }
+
+  *game::loot::s_lastResult.get() = {};
+  for (size_t i = 0; i < rolled.size(); ++i) {
+    LootResultItem &entry = game::loot::s_lastResult->granted[i];
+    entry.itemId = rolled[i]->id;
+    entry.itemQuantity = 1;
+    strscpy(entry.itemName, rolled[i]->name);
+    game::loot::s_lastResult->all[i] = entry;
+  }
+  game::loot::s_lastResult->bonusCryptoKeys = static_cast<int32_t>(bonus);
+  game::loot::s_lastResult->result = LootResultType::SUCCESS;
+  game::loot::s_lastResult->isValid = true;
+  update_cryptokey_balances(controller);
+  return true;
+}
+
+void *purchase_skus(ControllerIndex_t controller, uint32_t *skus, int32_t count,
+                    uint32_t *quantities, int32_t currency, bool consume,
+                    void *on_success, void *on_failure) {
+  const bundle *bought = nullptr;
+  if (enabled() && valid_controller_index(controller) && skus && count == 1) {
+    for (const bundle *candidate : {&six_pack, &daily_double}) {
+      const uint32_t sku = dvar_id(candidate->sku);
+      if (sku && skus[0] == sku) {
+        bought = candidate;
+      }
+    }
+  }
+  if (!bought) {
+    return purchase_hook.invoke<void *>(controller, skus, count, quantities,
+                                        currency, consume, on_success,
+                                        on_failure);
+  }
+  const uint32_t drop = dvar_id(bought->drop_id);
+  const uint32_t consumable = dvar_id(bought->consumable_id);
+  const uint32_t now = static_cast<uint32_t>(std::time(nullptr));
+  const bool purchased = local_db::transaction([&] {
+    const uint32_t keys = local_db::balance(cryptokeys_currency);
+    const std::optional<local_db::item> cooldown =
+        local_db::get_item(consumable);
+    if (currency != cryptokeys_currency || !drop || !consumable ||
+        keys < bundle_cost || (cooldown && cooldown->expire_time > now)) {
+      return false;
+    }
+    return local_db::set_balance(cryptokeys_currency, keys - bundle_cost) &&
+           local_db::set_item(drop, item_count(drop) + bought->crates) &&
+           local_db::set_item(consumable, 1, now + bundle_cooldown_seconds);
+  });
+  if (!purchased) {
+    return nullptr;
+  }
+  update_cryptokey_balances(controller);
+  // The menu only checks that the purchase started.
+  static uint8_t started;
+  return &started;
+}
+
+// The menu reads the once a day cooldown from the expiry of the bundle's
+// consumable inventory item.
+struct inventory_item {
+  uint32_t id;
+  uint32_t quantity;
+  uint32_t mod_time;
+  uint32_t expire_time;
+  uint16_t collision_field;
+};
+static_assert(sizeof(inventory_item) == 0x14);
+
+const inventory_item *get_inventory_item(ControllerIndex_t controller,
+                                         uint32_t item_id) {
+  if (enabled() && item_id) {
+    const std::optional<local_db::item> item = local_db::get_item(item_id);
+    if (item && item->expire_time) {
+      static inventory_item entry{};
+      entry = {item_id, item->quantity,
+               item->expire_time - bundle_cooldown_seconds, item->expire_time,
+               0};
+      return &entry;
+    }
+  }
+  return get_item_hook.invoke<const inventory_item *>(controller, item_id);
+}
+
+// The client only accepts Loot XP from public online and arena matches.
+bool accept_server_loot_xp() { return true; }
+
 uint32_t get_currency(ControllerIndex_t controller, int32_t kind) {
+  if (enabled() && (kind == cryptokeys_currency || kind == loot_xp_currency)) {
+    return local_db::balance(kind);
+  }
   if (!enabled() || (kind != 0 && kind != 3)) {
     return currency_hook.invoke<int32_t>(controller, kind);
   }
@@ -362,6 +715,10 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
 
 bool increment_currency(ControllerIndex_t controller, int32_t kind,
                         uint32_t amount) {
+  if (enabled() && kind == loot_xp_currency) {
+    server_loot_xp = server_loot_xp.value_or(0) + amount;
+    return true;
+  }
   if (!enabled() || kind != 3) {
     return increment_hook.invoke<bool>(controller, kind, amount);
   }
@@ -474,6 +831,12 @@ void inventory_update(ControllerIndex_t controller) {
     return;
   }
   inventory_update_hook.invoke<void>(controller);
+  static game::LocalClientPool<bool> keys_restored{};
+  if (!enabled() || !LiveInventory_IsValid(controller)) {
+    keys_restored[controller] = false;
+  } else if (!keys_restored[controller]) {
+    keys_restored[controller] = update_cryptokey_balances(controller);
+  }
   static game::LocalClientPool<bool> restored{};
   static game::LocalClientPool<bool> points_restored{};
   static game::LocalClientPool<StorageFileType> restored_file{};
@@ -562,6 +925,45 @@ void balance_command(const char *name, bool zombies) {
     LiveInventory_UpdatePlayerBalance(controller, zombies ? 3 : 0, *amount);
     toast::success("Currency", utils::string::va("Balance set to %u", *amount));
   });
+}
+
+// Credits the Loot XP of a session when the player returns to the menu, so
+// matches on a server that changes maps add up.
+void award_loot_xp() {
+  static std::optional<std::chrono::steady_clock::time_point> started;
+  const std::chrono::steady_clock::time_point now =
+      std::chrono::steady_clock::now();
+  const game::eModes mode = game::com::Com_SessionMode_GetMode();
+  const bool in_game =
+      game::com::Com_IsInGame() && !game::com::Com_IsRunningUILevel();
+  if (!enabled()) {
+    started.reset();
+    server_loot_xp.reset();
+    return;
+  }
+  if (in_game) {
+    if (!started && mode == game::eModes::MULTIPLAYER &&
+        !game::get_mapname().value_or("").starts_with("zm_")) {
+      started = now;
+    }
+    return;
+  }
+  if (!started && !server_loot_xp) {
+    return;
+  }
+  // Same rate as the ranked reward, for sessions whose server sent none.
+  const int64_t seconds =
+      started ? std::chrono::duration_cast<std::chrono::seconds>(now - *started)
+                    .count()
+              : 0;
+  const uint32_t xp = server_loot_xp.value_or(
+      static_cast<uint32_t>(seconds * loot_xp_per_key / loot_earn_seconds));
+  started.reset();
+  server_loot_xp.reset();
+  if (xp) {
+    announce_cryptokeys(add_loot_xp(xp));
+    update_cryptokey_balances(game::com::Com_ControllerIndexes_GetPrimary());
+  }
 }
 
 void award_match_points() {
@@ -1023,6 +1425,10 @@ std::optional<uint32_t> item_quantity(ControllerIndex_t controller,
   if (!enabled() || !valid_controller_index(controller)) {
     return std::nullopt;
   }
+  if (const std::optional<local_db::item> item =
+          local_db::get_item(inventory_id)) {
+    return item->quantity;
+  }
   const std::optional<uint32_t> free_id =
       /* FIXME: We have this stored in a global. Why are we needlessly looking
          up the dvar by name? This needs to be fixed. */
@@ -1184,9 +1590,38 @@ struct component final : client_component {
     inventory_update_hook.create(game::select(0x141DFDF10, 0x141E0A9A0, 0x0),
                                  inventory_update);
 
+    buy_crate_hook.create(game::loot::Loot_BuyCrate.get(), buy_crate);
+    purchase_hook.create(
+        game::live::inventory::LiveInventory_PurchaseSkus.get(), purchase_skus);
+    get_item_hook.create(game::live::inventory::LiveInventory_GetItem.get(),
+                         get_inventory_item);
+    // `Com_SessionMode_IsOnlineArenaGame` call before `Loot_IncCurrency` in
+    // the Loot XP server command.
+    utils::hook::call(game::select(0x140F7B2E3, 0x140F7B2E3, 0x0),
+                      accept_server_loot_xp);
+
     balance_command("codpoints", false);
     balance_command("divinium", true);
+    command::add("cryptokeys", [](const command::params &args) {
+      if (args.size() == 1) {
+        toast::info("Black Market",
+                    utils::string::va("Cryptokeys: %u",
+                                      local_db::balance(cryptokeys_currency)));
+        return;
+      }
+      const std::optional<uint32_t> amount =
+          accounting::parse_amount(args.get(1));
+      if (args.size() != 2 || !amount ||
+          !local_db::set_balance(cryptokeys_currency, *amount)) {
+        toast::error("Black Market", "Expected an integer from 0 to 9999999.");
+        return;
+      }
+      update_cryptokey_balances(game::com::Com_ControllerIndexes_GetPrimary());
+      toast::success("Black Market",
+                     utils::string::va("Cryptokeys set to %u", *amount));
+    });
     scheduler::loop(award_match_points, scheduler::pipeline::main, 1s);
+    scheduler::loop(award_loot_xp, scheduler::pipeline::main, 1s);
   }
 };
 } // namespace currency
