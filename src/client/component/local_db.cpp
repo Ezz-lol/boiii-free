@@ -11,7 +11,7 @@
 namespace local_db {
 namespace {
 constexpr const char *db_directory = "boiii_players/user";
-constexpr const char *db_file = "boiii_players/user/local.db";
+constexpr const char *db_file = "boiii_players/user/dw.db";
 
 struct balance_row {
   int32_t currency;
