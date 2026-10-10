@@ -1377,8 +1377,6 @@ void set(scriptInstance_t inst, game::ClientNum_t client_num,
   const char *player_name = game::scr::Scr_GetString(inst, name_index);
   if (game::valid_client_num(client_num) && player_name) {
     name::set_name_override(client_num, player_name);
-    name::sync_name_override_to_clients(client_num);
-    name::trigger_client_update(client_num);
   } else {
     Scr_ParamError(inst, name_index, "^1[setname] Invalid arguments\n");
   }
@@ -1418,8 +1416,6 @@ void set(scriptInstance_t inst, game::ClientNum_t client_num,
     return;
   }
   name::set_clan_abbrev_override(client_num, tag);
-  name::sync_clan_abbrev_override_to_clients(client_num);
-  name::trigger_client_update(client_num);
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
@@ -1440,8 +1436,6 @@ void reset(scriptInstance_t inst, game::ClientNum_t client_num) {
     return;
   }
   name::clear_name_override(client_num);
-  name::sync_name_reset_to_clients(client_num);
-  name::trigger_client_update(client_num);
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
@@ -1462,8 +1456,6 @@ void reset(scriptInstance_t inst, game::ClientNum_t client_num) {
     return;
   }
   name::clear_clan_abbrev_override(client_num);
-  name::sync_clan_abbrev_reset_to_clients(client_num);
-  name::trigger_client_update(client_num);
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {

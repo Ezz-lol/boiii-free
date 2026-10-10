@@ -81,15 +81,10 @@ bool cl_get_client_name_stub(const game::LocalClientNum_t localClientNum,
       localClientNum, clientNum, buf, size, add_clan_name);
 
   std::string packed_name(buf);
-  std::optional<std::string> override_name;
-  std::optional<std::string> override_tag;
-
-  if (game::valid_client_num(clientNum)) {
-    if (name::has_name_override(clientNum))
-      override_name = name::get_name_override(clientNum);
-    if (name::has_clan_abbrev_override(clientNum))
-      override_tag = name::get_clan_abbrev_override(clientNum);
-  }
+  const std::optional<std::string> override_name =
+      name::get_name_override(clientNum);
+  const std::optional<std::string> override_tag =
+      name::get_clan_abbrev_override(clientNum);
 
   std::string name_part = packed_name;
   std::string tag_part;

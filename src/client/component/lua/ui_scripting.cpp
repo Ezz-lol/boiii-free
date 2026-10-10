@@ -1063,22 +1063,12 @@ void setup_functions() {
 
   lua["game"]["getclientoverridename"] = function(
       convert_function([](const game::ClientNum_t client_num) -> std::string {
-        if (!game::valid_client_num(client_num) ||
-            !name::has_name_override(client_num)) {
-          return "";
-        }
-
         return name::get_name_override(client_num).value_or("");
       }),
       HksObjectType::TCFUNCTION);
 
   lua["game"]["getclientoverridetag"] = function(
       convert_function([](const game::ClientNum_t client_num) -> std::string {
-        if (!game::valid_client_num(client_num) ||
-            !name::has_clan_abbrev_override(client_num)) {
-          return "";
-        }
-
         return name::get_clan_abbrev_override(client_num).value_or("");
       }),
       HksObjectType::TCFUNCTION);
