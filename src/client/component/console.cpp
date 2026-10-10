@@ -183,6 +183,10 @@ constexpr std::string_view INFO_KEYWORDS[] = {"loading", "loaded", "connecting",
                                               "connected"};
 
 COLORREF get_line_base_color(const std::string_view line) {
+  if (line.starts_with("[WARNING]")) {
+    return get_warning_color();
+  }
+
   if (!line.empty() && line[0] == '[' &&
       line.find('^') == std::string_view::npos) {
     return get_bracket_tag_color();

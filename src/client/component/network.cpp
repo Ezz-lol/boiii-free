@@ -119,7 +119,8 @@ void create_ip_socket() {
   socket_set_blocking(s, false);
 
   const uint32_t address = htonl(INADDR_ANY);
-  uint16_t port = game::port();
+  const uint16_t wanted_port = game::port();
+  uint16_t port = wanted_port;
 
   sockaddr_in server_addr{};
   server_addr.sin_family = AF_INET;
@@ -128,13 +129,28 @@ void create_ip_socket() {
   int32_t retries = 0;
   do {
     server_addr.sin_port = htons(port++);
-    if (++retries > 10)
+    if (++retries > 10) {
+      if (game::is_server()) {
+        printf("[WARNING] Ports %u to %u are all in use, so the server can't "
+               "accept players. Close the other program or change net_port.\n",
+               static_cast<uint32_t>(wanted_port),
+               static_cast<uint32_t>(port - 2));
+      }
       return;
+    }
   } while (bind(s, reinterpret_cast<sockaddr *>(&server_addr),
                 sizeof(server_addr)) == SOCKET_ERROR);
 
   bound_port = port - 1;
   printf("[NET] Socket bound on port %u\n", static_cast<uint32_t>(port - 1));
+  if (game::is_server() && bound_port != wanted_port) {
+    printf("[WARNING] Port %u is already in use, so the server is running on "
+           "port %u instead. Players, port forwarding and admin tools set to "
+           "port %u won't reach it.\n",
+           static_cast<uint32_t>(wanted_port),
+           static_cast<uint32_t>(bound_port.load()),
+           static_cast<uint32_t>(wanted_port));
+  }
 
   if (!game::is_server()) {
     SOCKET *server_socket =
