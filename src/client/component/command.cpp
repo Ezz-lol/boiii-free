@@ -223,6 +223,36 @@ size_t get_registered_command_count() {
   return get_command_map().size();
 }
 
+namespace {
+utils::hook::detour handle_missing_command_hook;
+
+bool is_launch_flag(const char *name) {
+  if (!name || name[0] != '-') {
+    return false;
+  }
+
+  int32_t count = 0;
+  LPWSTR *const argv = CommandLineToArgvW(GetCommandLineW(), &count);
+  if (!argv) {
+    return false;
+  }
+
+  bool found = false;
+  for (int32_t i = 1; i < count && !found; ++i) {
+    found = _stricmp(utils::string::convert(argv[i]).c_str(), name) == 0;
+  }
+  LocalFree(argv);
+  return found;
+}
+
+void handle_missing_command_stub(const char *name,
+                                 const bool fromRemoteConsole) {
+  if (!is_launch_flag(name)) {
+    handle_missing_command_hook.invoke(name, fromRemoteConsole);
+  }
+}
+} // namespace
+
 struct component final : generic_component {
   DEFINE_COMPONENT_NAME("command");
 
@@ -230,6 +260,9 @@ struct component final : generic_component {
     // Disable whitelist
     utils::hook::jump(game::select(0x1420E20E0, 0x1420EE860, 0x1404F9CD0),
                       update_whitelist_stub);
+
+    handle_missing_command_hook.create(
+        game::cmd::Cmd_HandleMissingCommand.get(), handle_missing_command_stub);
 
     add("savegamerprofilestats", [] {});
 

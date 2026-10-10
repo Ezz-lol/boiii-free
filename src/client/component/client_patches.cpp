@@ -435,6 +435,16 @@ template <const IntegralLike auto Val> decltype(Val) return_const() {
 
 utils::hook::detour Com_FPSLimit_hook;
 
+game::EngineDependentDvarMut cl_log_config_strings;
+void register_config_string_print_stub(const game::consoleChannel_e channel,
+                                       const game::consoleLabel_e label,
+                                       const char *fmt, const int32_t index,
+                                       const char *data) {
+  if (cl_log_config_strings && cl_log_config_strings.get_bool()) {
+    game::com::Com_Printf(channel, label, fmt, index, data);
+  }
+}
+
 } // namespace
 
 class component final : public client_component {
@@ -538,6 +548,13 @@ public:
 
     command::add("unmuteall", game::lobby::voice::UnMuteAllClients);
     command::add("muteall", game::lobby::voice::MuteAllClients);
+
+    if (game::is_new_client()) {
+      utils::hook::call(0x1400AAB93_g, register_config_string_print_stub);
+      cl_log_config_strings = game::register_dvar_bool(
+          "cl_logConfigStrings", false, game::DVAR_NONE,
+          "Print every config string the client registers");
+    }
   }
 };
 } // namespace client_patches

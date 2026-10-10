@@ -75,6 +75,42 @@ maptable::MapTable *Com_GetMapTable_Safe(const char *mapTableName) {
   return mapTable;
 }
 
+EngineDependentDvarMut db_log_missing_assets;
+
+bool is_optional_asset(const XAssetType type, const std::string_view name) {
+  switch (type) {
+  case XAssetType::WEAPON:
+  case XAssetType::FX:
+  case XAssetType::TAGFX:
+  case XAssetType::MATERIAL:
+  case XAssetType::CGMEDIA:
+  case XAssetType::NAVVOLUME:
+  case XAssetType::RUMBLE:
+    return true;
+  case XAssetType::RAWFILE:
+    return name.starts_with("gamedata/constbaselines/") ||
+           name.starts_with("vision/");
+  case XAssetType::STRUCTURED_TABLE:
+    return name == "gamedata/tables/common/mod_game_types.json";
+  default:
+    return false;
+  }
+}
+
+utils::hook::detour PrintWaitedError_hook;
+void PrintWaitedError_stub(const XAssetType type, const char *name,
+                           const int32_t waitedMsec) {
+  // Shared scripts and engine code look up assets from every map and mode, so
+  // most of these lookups are expected to fail. They are hidden by default and
+  // can be listed with db_logMissingAssets 1.
+  if (name && is_optional_asset(type, name) &&
+      (!db_log_missing_assets || !db_log_missing_assets.get_bool())) {
+    return;
+  }
+
+  PrintWaitedError_hook.invoke(type, name, waitedMsec);
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("db");
 
@@ -91,6 +127,11 @@ public:
     Com_GametypeSettings_SetGametype_hook.create(
         game::com::gts::Com_GametypeSettings_SetGametype.get(),
         Com_GametypeSettings_SetGametype_GetOrInitGameTypeSettingsDDL);
+
+    PrintWaitedError_hook.create(PrintWaitedError.get(), PrintWaitedError_stub);
+    db_log_missing_assets =
+        register_dvar_bool("db_logMissingAssets", false, DVAR_NONE,
+                           "Print every asset that couldn't be found");
   }
 };
 } // namespace db

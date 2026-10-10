@@ -5,6 +5,7 @@
 #include <resource.hpp>
 
 #include <game/game.hpp>
+#include <game/utils.hpp>
 
 #include <component/command.hpp>
 #include <component/lua/lua_state.hpp>
@@ -952,8 +953,20 @@ void print_message(const char *message) {
   }
 }
 
+constexpr std::string_view DEVELOPER_ONLY_MESSAGES[] = {
+    "failed to find path to goal", " unknown weapon '"};
+
+bool is_hidden_developer_message(const std::string_view message) {
+  return std::ranges::any_of(DEVELOPER_ONLY_MESSAGES,
+                             [&](const std::string_view text) {
+                               return message.find(text) !=
+                                      std::string_view::npos;
+                             }) &&
+         game::get_dvar_int("developer").value_or(0) < 1;
+}
+
 void queue_message(const char *message) {
-  if (!message || !message[0]) {
+  if (!message || !message[0] || is_hidden_developer_message(message)) {
     return;
   }
 

@@ -23,6 +23,8 @@ WEAK symbol<void(const char *cmdName, xcommand_t function,
 WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex,
                  const char *text, bool fromRemoteConsole)>
     Cmd_ExecuteSingleCommand{0x1420E0C00, 0x1420ED380, 0x1404F8890};
+WEAK symbol<void(const char *name, bool fromRemoteConsole)>
+    Cmd_HandleMissingCommand{0x1420E1080, 0x1420ED800, 0x1404F8C20};
 WEAK symbol<void(int localClientNum, ControllerIndex_t localControllerIndex,
                  const char *text_in, int max_tokens, bool evalExpressions,
                  CmdArgs *args)>
