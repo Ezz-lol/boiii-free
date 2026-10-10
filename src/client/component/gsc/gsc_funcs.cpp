@@ -1675,6 +1675,23 @@ void GScr_ExitLevel_RespectRestriction(scriptInstance_t inst) {
   }
 }
 
+BuiltinFunction GScr_SetDvar_orig;
+void GScr_SetDvar_SkipStockCheatDvar(const scriptInstance_t inst) {
+  if (Scr_GetNumParam(inst) > 0 && *game::dvar_cheats &&
+      !game::dvar_cheats->get_bool() &&
+      _stricmp(Scr_GetString(inst, 0), "cg_thirdPersonAngle") == 0) {
+    return;
+  }
+  GScr_SetDvar_orig(inst);
+}
+
+void apply_set_dvar_hook() {
+  GScr_SetDvar_orig =
+      game::scr::builtin::table::common_functions->SetDvar.actionFunc;
+  game::scr::builtin::table::common_functions->SetDvar.actionFunc =
+      GScr_SetDvar_SkipStockCheatDvar;
+}
+
 void apply_exitlevel_hooks() {
   register_builtin(SCRIPTINSTANCE_SERVER, "exitlevel_togglerestrict",
                    gscr_exitlevel_togglerestrict, 0, 1);
@@ -1874,6 +1891,7 @@ struct component final : generic_component {
     apply_hudelem_hooks();
     apply_bgb_hooks();
     apply_exitlevel_hooks();
+    apply_set_dvar_hook();
 
     /*
       In dedicated server, there is no host player.

@@ -92,7 +92,7 @@ void copy_dvar_names_to_pool() {
 }
 
 inline bool is_archive_dvar(game::EngineDependentDvar dvar) {
-  return dvar.debugName() && dvar.flags().archive;
+  return dvar.debugName() && dvar.flags().archive && !dvar.flags().cheat;
 }
 
 void write_archive_dvars() {
@@ -130,6 +130,12 @@ void schedule_dvar_write() {
 
 void dvar_set_variant_stub(game::EngineDependentDvar dvar,
                            game::DvarValue *value, game::DvarSetSource source) {
+  if (dvar.type() == game::dvarType_t::INT && dvar.debugName() &&
+      value->integer() > dvar.domain().integer.max &&
+      std::string_view(dvar.debugName()) == "sv_maxclients") {
+    return;
+  }
+
   dvar_set_variant_hook.invoke(dvar, value, source);
 
   if (initial_config_read && is_archive_dvar(dvar)) {
@@ -147,6 +153,7 @@ void read_archive_dvars() {
                                    filedata.c_str());
     initial_config_read = true;
     scheduler::execute(scheduler::pipeline::dvars_loaded);
+    schedule_dvar_write();
   } else {
     initial_config_read = true;
   }
