@@ -79,6 +79,41 @@ local function allEasterEggsCompleted(controller)
   return true
 end
 
+local function createSettingsDatasource(controller, datasourceName, optionList, currentValue, loopEdges, action)
+  if currentValue == nil then
+    currentValue = 0
+  end
+  DataSources[datasourceName] = DataSourceHelpers.ListSetup(datasourceName, function(ctrl)
+    local listItems = {}
+    for index, optionDef in ipairs(optionList) do
+      table.insert(listItems, {
+        models = {
+          text = optionList[index].name,
+        },
+        properties = {
+          title = optionList[index].title,
+          desc = optionList[index].desc,
+          image = optionList[index].image,
+          value = optionList[index].value,
+          default = optionList[index].default,
+          action = action,
+          selectIndex = optionList[index].value == currentValue,
+          loopEdges = loopEdges,
+          showChangeIndicator = function(props, model, element)
+            return props.default ~= true
+          end,
+        },
+      })
+    end
+    if #listItems > 0 then
+      listItems[1].properties.first = true
+      listItems[#listItems].properties.last = true
+    end
+    return listItems
+  end, nil, nil, nil)
+  return datasourceName
+end
+
 DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", function(controller)
   local optionsTable = {}
 
@@ -109,32 +144,6 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
     end
   end
 
-  local updateMaxCurrencies = function(element, itemModel, controllerIndex, dvarName, param)
-    local oldValue = Engine.DvarInt(nil, dvarName)
-    local newValue = itemModel.value
-    UpdateInfoModels(itemModel)
-    if oldValue == newValue then
-      return
-    end
-    if game.setcurrenciesmaxed(controllerIndex, newValue == 1) then
-      Engine.SetDvar(dvarName, newValue)
-      refreshCurrencyModels(controllerIndex)
-      CoD.OverlayUtility.ShowToast(
-        "BlackMarketEquipped",
-        newValue == 1 and "Local currencies maxed." or "Local currencies cleared.",
-        nil,
-        "uie_t7_icon_codpoints"
-      )
-    else
-      itemModel.value = oldValue
-      UpdateInfoModels(itemModel)
-      LuaUtils.UI_ShowErrorMessageDialog(
-        controllerIndex,
-        "Could not update currencies. Return to the Zombies menu and try again."
-      )
-    end
-  end
-
   local mode = Engine.CurrentSessionMode()
   local isMP = mode == Enum.eModes.MODE_MULTIPLAYER
   local isZM = mode == Enum.eModes.MODE_ZOMBIES
@@ -145,8 +154,54 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
     )
   end
 
+  local function addCurrencyToggle(name, description, currency)
+    local options = {}
+    for value, text in ipairs({ "MENU_DISABLED", "MENU_ENABLED" }) do
+      table.insert(options, { name = Engine.Localize(text), value = value - 1, title = name, desc = description })
+    end
+    local maxed = game.iscurrencymaxed(controller, currency) and 1 or 0
+    options[maxed + 1].default = true
+    table.insert(optionsTable, {
+      models = {
+        name = name,
+        desc = description,
+        optionsDatasource = createSettingsDatasource(
+          controller,
+          "MPStatsSettings_max_currency_" .. currency,
+          options,
+          maxed,
+          false,
+          function(element, itemModel, controllerIndex)
+            UpdateInfoModels(itemModel)
+            local enable = itemModel.value == 1
+            if enable == game.iscurrencymaxed(controllerIndex, currency) then
+              return
+            end
+            if game.setcurrencymaxed(controllerIndex, currency, enable) then
+              refreshCurrencyModels(controllerIndex)
+              CoD.OverlayUtility.ShowToast(
+                "BlackMarketEquipped",
+                name .. (enable and " maxed." or " cleared."),
+                nil,
+                "uie_t7_icon_codpoints"
+              )
+            else
+              LuaUtils.UI_ShowErrorMessageDialog(
+                controllerIndex,
+                "Could not update " .. name .. ". Try again from the menu."
+              )
+            end
+          end
+        ),
+      },
+      properties = {
+        revert = function(element) end,
+      },
+    })
+  end
+
   addToggle("Unlock All Loot", "Unlocks all Black Market loot.", "MPStatsSettings_unlock_loot", "cg_unlockall_loot")
-  if isZM and type(game.resetgobblegums) == "function" and type(game.setcurrenciesmaxed) == "function" then
+  if isZM and type(game.resetgobblegums) == "function" and type(game.setcurrencymaxed) == "function" then
     addToggle(
       "Local Currency",
       "Uses locally saved COD Points, Liquid Divinium, GobbleGums, and Cookbook Distills.",
@@ -160,16 +215,37 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       "MPStatsSettings_unlimited_gobblegums",
       "cg_unlockall_gobblegums"
     )
-    addToggle(
-      "Max Local Currencies",
-      "Sets COD Points, Liquid Divinium, and Cookbook Distills to maximum or zero.",
-      "MPStatsSettings_max_currencies",
-      "cg_max_local_currencies",
-      false,
-      updateMaxCurrencies
+    addCurrencyToggle(
+      "Max COD Points",
+      "Sets COD Points to maximum or zero.",
+      Enum.InventoryCurrency.INVENTORY_CURRENCY_COD_POINTS
+    )
+    addCurrencyToggle(
+      "Max Zombies Currencies",
+      "Sets Liquid Divinium and Cookbook Distills to maximum or zero.",
+      Enum.InventoryCurrency.INVENTORY_CURRENCY_ZM_VIALS
     )
   end
   if isMP then
+    if type(game.setcurrencymaxed) == "function" then
+      addToggle(
+        "Local Currency",
+        "Uses locally saved COD Points and Cryptokeys.",
+        "MPStatsSettings_local_currency",
+        "cg_local_currency",
+        true
+      )
+      addCurrencyToggle(
+        "Max COD Points",
+        "Sets COD Points to maximum or zero.",
+        Enum.InventoryCurrency.INVENTORY_CURRENCY_COD_POINTS
+      )
+      addCurrencyToggle(
+        "Max Cryptokeys",
+        "Sets Cryptokeys to maximum or zero.",
+        Enum.InventoryCurrency.INVENTORY_CURRENCY_MP_CRYPTO_KEYS
+      )
+    end
     addToggle(
       "Unlock All Purchases",
       "All items that need to be purchased with unlock tokens are unlocked.",
@@ -268,41 +344,6 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       title = "Prestige",
       desc = "",
     })
-  end
-
-  local createSettingsDatasource = function(controller, datasourceName, optionList, currentValue, loopEdges, action)
-    if currentValue == nil then
-      currentValue = 0
-    end
-    DataSources[datasourceName] = DataSourceHelpers.ListSetup(datasourceName, function(ctrl)
-      local listItems = {}
-      for index, optionDef in ipairs(optionList) do
-        table.insert(listItems, {
-          models = {
-            text = optionList[index].name,
-          },
-          properties = {
-            title = optionList[index].title,
-            desc = optionList[index].desc,
-            image = optionList[index].image,
-            value = optionList[index].value,
-            default = optionList[index].default,
-            action = action,
-            selectIndex = optionList[index].value == currentValue,
-            loopEdges = loopEdges,
-            showChangeIndicator = function(props, model, element)
-              return props.default ~= true
-            end,
-          },
-        })
-      end
-      if #listItems > 0 then
-        listItems[1].properties.first = true
-        listItems[#listItems].properties.last = true
-      end
-      return listItems
-    end, nil, nil, nil)
-    return datasourceName
   end
 
   if #rankLevels > 0 then
