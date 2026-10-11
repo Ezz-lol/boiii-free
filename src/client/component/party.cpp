@@ -616,12 +616,10 @@ struct component final : client_component {
 
     scheduler::loop(cleanup_queried_servers, scheduler::async, 100ms);
 
-    sv_map_hook.create(
-        game::select(0x1421E98E0, 0x142246430, 0x0),
-        reinterpret_cast<void *>(sv_map_in_mode_stub<&sv_map_hook>));
-    sv_devmap_hook.create(
-        game::select(0x1421E8800, 0x142245350, 0x0),
-        reinterpret_cast<void *>(sv_map_in_mode_stub<&sv_devmap_hook>));
+    sv_map_hook.create(game::sv::SV_Map_f.get(),
+                       sv_map_in_mode_stub<&sv_map_hook>);
+    sv_devmap_hook.create(game::sv::SV_DevMap_f.get(),
+                          sv_map_in_mode_stub<&sv_devmap_hook>);
   }
 
   void pre_destroy() override {

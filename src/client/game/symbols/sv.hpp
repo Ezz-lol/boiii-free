@@ -21,6 +21,8 @@ WEAK symbol<serverStatic_t> svs{0x157679780, 0x1576F8700, 0x14A178280};
 WEAK symbol<serverStaticHeader_t> svsHeader{0x157887680, 0x157906580,
                                             0x14A2CE280};
 
+WEAK symbol<void()> SV_Map_f{0x1421E98E0, 0x142246430, 0x0};
+WEAK symbol<void()> SV_DevMap_f{0x1421E8800, 0x142245350, 0x0};
 WEAK symbol<bool()> SV_Loaded{0x1421F5720, 0x142252250, 0x140535460};
 WEAK symbol<void *()> SV_AddTestClient{0x1421EC3F0, 0x142248F40, 0x14052E3E0};
 WEAK symbol<void(net::netadr_t from)> SV_DirectConnect{0x1421ECD30, 0x142249880,
