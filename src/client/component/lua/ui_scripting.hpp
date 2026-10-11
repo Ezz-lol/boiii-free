@@ -17,6 +17,9 @@ extern std::atomic<bool> unsafe_function_called_message_shown;
 extern std::atomic<bool> unsafe_lua_approved_for_session;
 bool show_unsafe_lua_dialog();
 
+void start_hot_reload(const std::string &path);
+void check_hot_reload();
+
 template <class... Args, std::size_t... I>
 auto wrap_function(const std::function<void(Args...)> &f,
                    std::index_sequence<I...>) {
