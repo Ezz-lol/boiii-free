@@ -364,6 +364,7 @@ flags_to_yaml_array_items() {
 }
 
 FLAG_INDENTATION="   "
+# shellcheck disable=SC2120
 clangd_flag_indent() {
 	local in
 	in="$1"
@@ -372,6 +373,7 @@ clangd_flag_indent() {
 		in="$(cat -)"
 	fi
 
+	# shellcheck disable=SC2001
 	sed "s/^[ \t]*/${FLAG_INDENTATION}/g" <<<"$in"
 }
 
@@ -420,7 +422,16 @@ DEP_INCLUDE_PATHS=(
 	"deps/portaudio/include"
 	"deps/portaudio/src/common"
 	"deps/portaudio/src/os/win"
-
+	"deps/sqlite"
+	"deps/sqlite_orm/include"
+	"deps/xz/src/common"
+	"deps/xz/src/liblzma/common"
+	"deps/xz/src/liblzma/check"
+	"deps/xz/src/liblzma/lz"
+	"deps/xz/src/liblzma/lzma"
+	"deps/xz/src/liblzma/rangecoder"
+	"deps/xz/src/liblzma/delta"
+	"deps/xz/src/liblzma/simple"
 )
 
 NUM_DEP_INCLUDES="${#DEP_INCLUDE_PATHS[@]}"
