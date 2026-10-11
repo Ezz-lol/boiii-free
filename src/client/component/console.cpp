@@ -584,7 +584,7 @@ void update_completion_hint(const std::string &text) {
 }
 
 void collect_registered_commands(std::vector<std::string> &out) {
-  const game::cmd::cmd_function_s *current_function = game::cmd::cmd_functions;
+  const game::cmd::cmd_function_s *current_function = *game::cmd::cmd_functions;
   while (current_function) {
     if (current_function->name && current_function->name[0]) {
       out.emplace_back(current_function->name);

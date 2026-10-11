@@ -8,8 +8,8 @@ namespace cmd {
 // Global game definitions
 constexpr auto CMD_MAX_NESTING = 8;
 
-WEAK symbol<cmd_function_s> cmd_functions{0x15681EFD8, 0x15689DF58,
-                                          0x14946F860};
+WEAK symbol<cmd_function_s *> cmd_functions{0x15681EFD8, 0x15689DF58,
+                                            0x14946F860};
 
 WEAK symbol<void(const char *cmdName, xcommand_t function,
                  cmd_function_s *allocedCmd)>

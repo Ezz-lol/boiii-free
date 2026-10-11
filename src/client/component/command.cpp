@@ -61,7 +61,7 @@ void execute_custom_sv_command() {
 game::CmdArgs *get_cmd_args() { return game::sys::Sys_GetTLS()->cmdArgs; }
 
 void update_whitelist_stub() {
-  game::cmd::cmd_function_s *current_function = game::cmd::cmd_functions;
+  game::cmd::cmd_function_s *current_function = *game::cmd::cmd_functions;
   while (current_function) {
     current_function->autoComplete = 1;
     current_function = current_function->next;

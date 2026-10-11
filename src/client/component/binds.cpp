@@ -152,25 +152,8 @@ void queue_op(pending_op op) {
       scheduler::main, 100ms);
 }
 
-game::cmd::cmd_function_s *get_command_list_head() {
-  game::cmd::cmd_function_s *raw =
-      static_cast<game::cmd::cmd_function_s *>(game::cmd::cmd_functions);
-
-  game::cmd::cmd_function_s *as_pointer =
-      *reinterpret_cast<game::cmd::cmd_function_s **>(raw);
-
-  if (as_pointer &&
-      !IsBadReadPtr(as_pointer, sizeof(game::cmd::cmd_function_s))) {
-    if (as_pointer->name && !IsBadReadPtr(as_pointer->name, 1)) {
-      return as_pointer;
-    }
-  }
-
-  return raw;
-}
-
 game::cmd::cmd_function_s *find_command(const char *name) {
-  game::cmd::cmd_function_s *cmd = get_command_list_head();
+  game::cmd::cmd_function_s *cmd = *game::cmd::cmd_functions;
   int safety = 0;
   while (cmd && safety < 2000) {
     safety++;
