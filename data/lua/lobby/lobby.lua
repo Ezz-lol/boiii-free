@@ -2446,10 +2446,6 @@ LobbyVM.JoinableCheck = function(joinData)
       end
     end
     if Engine.IsZombiesGame() then
-      local privateRankedMatch = false
-      if Dvar.zm_private_rankedmatch:get() then
-        privateRankedMatch = true
-      end
       if LobbyVM.IsInTheaterLobby() then
         return Enum.JoinResult.JOIN_RESULT_JOIN_DISABLED
       elseif
@@ -2457,12 +2453,6 @@ LobbyVM.JoinableCheck = function(joinData)
           and (Engine.IsInGame() or LobbyVM.IsHostLaunching() or Engine.GetCurrentMap() ~= "core_frontend")
       then
         return Enum.JoinResult.JOIN_RESULT_NOT_JOINABLE_SOLO_MODE
-      elseif
-          (Engine.IsInGame() or LobbyVM.IsHostLaunching())
-          and Engine.SessionMode_IsOnlineGame()
-          and privateRankedMatch
-      then
-        return Enum.JoinResult.JOIN_RESULT_NO_JOIN_IN_PROGRESS
       elseif (Engine.IsInGame() or LobbyVM.IsHostLaunching()) and Engine.SessionMode_IsPublicOnlineGame() then
         return Enum.JoinResult.JOIN_RESULT_NO_JOIN_IN_PROGRESS
       end
