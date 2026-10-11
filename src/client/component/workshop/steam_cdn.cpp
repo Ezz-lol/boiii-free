@@ -7,6 +7,7 @@
 #include <utils/io.hpp>
 
 #include <curl/curl.h>
+#include <lzma.h>
 #include <rapidjson/document.h>
 #include <tomcrypt.h>
 #include <winhttp.h>
@@ -15,12 +16,6 @@
 #include <zstd.h>
 
 #pragma comment(lib, "winhttp.lib")
-
-#define _7ZIP_ST
-extern "C" {
-#include "lzma/LzmaDec.c"
-#include "lzma/LzmaDec.h"
-}
 
 namespace workshop {
 namespace {
@@ -309,14 +304,23 @@ std::string make_machine_id() {
 
 bool lzma_decode(const uint8_t *props, const uint8_t *src, size_t src_len,
                  uint8_t *dst, size_t dst_len) {
-  static ISzAlloc alloc{[](ISzAllocPtr, size_t size) { return malloc(size); },
-                        [](ISzAllocPtr, void *address) { free(address); }};
-  SizeT dest_len = dst_len;
-  SizeT source_len = src_len;
-  ELzmaStatus status = LZMA_STATUS_NOT_SPECIFIED;
-  return LzmaDecode(dst, &dest_len, src, &source_len, props, LZMA_PROPS_SIZE,
-                    LZMA_FINISH_END, &status, &alloc) == SZ_OK &&
-         dest_len == dst_len;
+  lzma_filter filters[] = {{LZMA_FILTER_LZMA1EXT, nullptr},
+                           {LZMA_VLI_UNKNOWN, nullptr}};
+  if (lzma_properties_decode(filters, nullptr, props, 5) != LZMA_OK) {
+    return false;
+  }
+
+  auto *options = static_cast<lzma_options_lzma *>(filters[0].options);
+  options->ext_flags = LZMA_LZMA1EXT_ALLOW_EOPM;
+  options->ext_size_low = static_cast<uint32_t>(dst_len);
+  options->ext_size_high = static_cast<uint32_t>(uint64_t{dst_len} >> 32);
+
+  size_t in_pos = 0;
+  size_t out_pos = 0;
+  const lzma_ret result = lzma_raw_buffer_decode(
+      filters, nullptr, src, &in_pos, src_len, dst, &out_pos, dst_len);
+  free(options);
+  return result == LZMA_OK && out_pos == dst_len;
 }
 
 bool decode_chunk(const std::string &depot_key, const std::string &encrypted,

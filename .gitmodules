@@ -72,3 +72,6 @@
 [submodule "deps/sqlite_orm"]
 	path = deps/sqlite_orm
 	url = https://github.com/fnc12/sqlite_orm
+[submodule "deps/xz"]
+	path = deps/xz
+	url = https://github.com/tukaani-project/xz.git
