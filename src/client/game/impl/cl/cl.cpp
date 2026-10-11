@@ -48,6 +48,10 @@ CL_GetLocalClientConnection(LocalClientNum_t localClientNum) {
 }
 
 void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
+  if (!*cl::clientConnections) {
+    return;
+  }
+
   clientConnection_t *clc = CL_GetLocalClientConnection(localClientNum);
 
   ControllerIndex_t controllerIndex =

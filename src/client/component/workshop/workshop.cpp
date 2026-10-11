@@ -171,7 +171,9 @@ std::string resolve_mod_workshop_id(const std::string &mod_name) {
 uint32_t get_xzone_index_by_name(const char *zone_name) {
   XZoneName *g_zoneNames =
       reinterpret_cast<XZoneName *>(xzone::g_zoneNames.get());
-  for (uint32_t zoneIdx = 0; zoneIdx < *(xzone::g_zoneCount.get()); zoneIdx++) {
+  const uint32_t count =
+      std::min<uint32_t>(*xzone::g_zoneCount.get(), xzone::MAX_ZONE_COUNT);
+  for (uint32_t zoneIdx = 0; zoneIdx <= count; zoneIdx++) {
     XZoneName *zoneInfo = &g_zoneNames[zoneIdx];
     if (std::strcmp(zoneInfo->name, zone_name) == 0) {
       return zoneIdx;
@@ -179,6 +181,31 @@ uint32_t get_xzone_index_by_name(const char *zone_name) {
   }
 
   return 0xFFFFFFFF; // Invalid index
+}
+
+bool is_xzone_loaded(const char *zone_name) {
+  const uint32_t zoneIdx = get_xzone_index_by_name(zone_name);
+  return zoneIdx != 0xFFFFFFFF &&
+         reinterpret_cast<XZoneName *>(xzone::g_zoneNames.get())[zoneIdx]
+                 .state == xzone::XZoneState::XZONE_COMPLETE;
+}
+
+bool are_xzones_loading() {
+  const XZoneName *g_zoneNames =
+      reinterpret_cast<XZoneName *>(xzone::g_zoneNames.get());
+  const uint32_t count =
+      std::min<uint32_t>(*xzone::g_zoneCount.get(), xzone::MAX_ZONE_COUNT);
+  for (uint32_t zoneIdx = 0; zoneIdx <= count; zoneIdx++) {
+    switch (g_zoneNames[zoneIdx].state) {
+    case xzone::XZoneState::XZONE_UNLOADING:
+    case xzone::XZoneState::XZONE_LOADING:
+    case xzone::XZoneState::XZONE_LOADED:
+      return true;
+    default:
+      break;
+    }
+  }
+  return false;
 }
 
 bool unload_xzone_by_name(const char *zone_name, bool createDefault,

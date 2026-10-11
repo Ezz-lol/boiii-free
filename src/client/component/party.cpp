@@ -5,6 +5,7 @@
 #include <loader/component_loader.hpp>
 
 #include "auth.hpp"
+#include "command.hpp"
 #include "friends.hpp"
 #include "network.hpp"
 #include "network_password.hpp"
@@ -104,6 +105,102 @@ void launch_mode(const game::eModes mode) {
         game::com::Com_SwitchMode(game::LOCAL_CLIENT_0,
                                   game::com::Com_SessionMode_GetMode(), mode,
                                   6);
+      },
+      scheduler::main);
+}
+
+struct map_mode {
+  game::eModes mode;
+  const char *name;
+  const char *gametype;
+};
+
+std::optional<map_mode> get_map_mode(const std::string_view mapname) {
+  if (mapname.starts_with("zm_")) {
+    return map_mode{game::eModes::ZOMBIES, "zm", "zclassic"};
+  }
+  if (mapname.starts_with("mp_")) {
+    return map_mode{game::eModes::MULTIPLAYER, "mp", "tdm"};
+  }
+  if (mapname.starts_with("cp_")) {
+    return map_mode{game::eModes::CAMPAIGN, "cp", "coop"};
+  }
+  return std::nullopt;
+}
+
+bool is_frontend_ready() {
+  return game::com::Com_IsRunningUILevel() && !workshop::are_xzones_loading() &&
+         game::live::Live_IsDemonwareFetchingDone(game::CONTROLLER_INDEX_FIRST);
+}
+
+bool is_mode_ready(const map_mode &mode) {
+  return game::com::Com_SessionMode_IsMode(mode.mode) &&
+         workshop::is_xzone_loaded(utils::string::va("%s_common", mode.name));
+}
+
+void leave_frontend_gametype(const map_mode &mode) {
+  for (auto *dvar : {&game::g_gametype, &game::sv_gametype}) {
+    if (**dvar && (*dvar)->get_string().value_or("") == "frontend") {
+      (*dvar)->set(mode.gametype);
+    }
+  }
+}
+
+utils::hook::detour sv_map_hook;
+utils::hook::detour sv_devmap_hook;
+
+std::atomic_bool map_launching;
+
+void run_when(const std::function<bool()> &ready, const std::string &text) {
+  scheduler::schedule(
+      [=] {
+        if (!ready()) {
+          return scheduler::cond_continue;
+        }
+        scheduler::once(
+            [=] {
+              game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, text.c_str());
+            },
+            scheduler::main, 4s);
+        return scheduler::cond_end;
+      },
+      scheduler::main, 1s);
+}
+
+template <utils::hook::detour *Hook> void sv_map_in_mode_stub() {
+  std::optional<map_mode> mode;
+  std::string text;
+  {
+    const command::params_sv params{};
+    if (params.size() > 1 && game::is_new_client() &&
+        !game::com::Com_IsInGame()) {
+      mode = get_map_mode(params[1]);
+      text = params.join(0) + "\n";
+    }
+  }
+
+  if (map_launching.exchange(false) || !mode) {
+    Hook->invoke<void>();
+    return;
+  }
+
+  if (!is_frontend_ready()) {
+    run_when(is_frontend_ready, text);
+    return;
+  }
+
+  if (!is_mode_ready(*mode)) {
+    launch_mode(mode->mode);
+    run_when([=] { return is_frontend_ready() && is_mode_ready(*mode); }, text);
+    return;
+  }
+
+  scheduler::once(
+      [=] {
+        game::com::Com_ShutdownUILevel();
+        leave_frontend_gametype(*mode);
+        map_launching = true;
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, text.c_str());
       },
       scheduler::main);
 }
@@ -513,6 +610,13 @@ struct component final : client_component {
     network::on("infoResponse", handle_info_response);
 
     scheduler::loop(cleanup_queried_servers, scheduler::async, 100ms);
+
+    sv_map_hook.create(
+        game::select(0x1421E98E0, 0x142246430, 0x0),
+        reinterpret_cast<void *>(sv_map_in_mode_stub<&sv_map_hook>));
+    sv_devmap_hook.create(
+        game::select(0x1421E8800, 0x142245350, 0x0),
+        reinterpret_cast<void *>(sv_map_in_mode_stub<&sv_devmap_hook>));
   }
 
   void pre_destroy() override {

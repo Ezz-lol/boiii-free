@@ -15,6 +15,9 @@ extern std::atomic<bool> launcher_downloading;
 
 bool is_any_download_active();
 
+bool is_xzone_loaded(const char *zone_name);
+bool are_xzones_loading();
+
 int get_workshop_retry_attempts();
 
 std::string get_usermap_publisher_id(const std::string &folder_name);

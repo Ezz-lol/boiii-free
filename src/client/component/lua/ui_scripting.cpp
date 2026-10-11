@@ -1279,6 +1279,9 @@ void ui_cod_init_stub(const bool frontend) {
     load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
     return;
   }
+  if (!game::is_server() && !game::com::Com_IsInGame()) {
+    return;
+  }
   try_start();
   ui_initialized.store(true, std::memory_order_release);
 }
