@@ -86,18 +86,18 @@ public:
     trace_msg_handlers();
 #endif
 
-    // Always return true for `Com_SessionMode_IsPublicOnlineGame` check in
+    // Always return false for `Com_SessionMode_IsPublicOnlineGame` check in
     // `LobbyHost_IsPartyAllowed`, ensuring that players can always hot-join a
     // lobby and be allowed a slot during runtime
     utils::hook::call(host::party::LobbyHost_IsPartyAllowed.offset(0x9a),
-                      return_const<true>);
+                      return_const<false>);
 
-    // Always return true for `Com_SessionMode_IsPublicOnlineGame` check in
+    // Always return false for `Com_SessionMode_IsPublicOnlineGame` check in
     // `LobbyHost_CanFit`, ensuring that players can always hot-join a
     // lobby and be allowed a slot during runtime
     utils::hook::call(
-        host::LobbyHost_CanFit.offset(game::select_value(0x6e, 0x69, 0x6e)),
-        return_const<true>);
+        host::LobbyHost_CanFit.offset(game::select_value(0x6e, 0x6e, 0x69)),
+        return_const<false>);
   }
 };
 } // namespace lobby

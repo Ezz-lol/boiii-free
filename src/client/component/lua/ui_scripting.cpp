@@ -2039,32 +2039,35 @@ void R_CopyTextureRegionMips_Safe(void *a1, void *a2, uint32_t a3, int32_t a4,
 
 #ifndef NDEBUG
 void print_info(game::consoleLabel_e label, const std::string_view &msg) {
-  game::trace("[Lua][Info] {}", msg);
-  fprintf(stdout, "[Lua][Info] %s\n", msg.data());
+  const char* log = utils::string::va("[Lua][Info][%s] %s", game::serialize(label), msg.data());
+  game::trace("{}", log);
+  fprintf(stdout, "%s\n", log);
   fflush(stdout);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
-                        "%s\n", msg.data());
+                        "%s\n", log);
 }
 
 void print_error(game::consoleLabel_e label, const std::string_view &msg) {
-  game::trace("[Lua][Error] {}", msg);
-  fprintf(stderr, "[Lua][Error] %s\n", msg.data());
+  const char* log = utils::string::va("[Lua][Error][%s] %s", game::serialize(label), msg.data());
+  game::trace("{}", log);
+  fprintf(stderr, "%s\n", log);
   fflush(stderr);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
-                        "%s\n", msg.data());
+                        "%s\n", log);
 }
 
 void print_warning(game::consoleLabel_e label, const std::string_view &msg) {
-  game::trace("[Lua][Warn] {}", msg);
-  fprintf(stdout, "[Lua][Warn] %s\n", msg.data());
+  const char* log = utils::string::va("[Lua][Warn][%s] %s", game::serialize(label), msg.data());
+  game::trace("{}", log);
+  fprintf(stdout, "%s\n", log);
   fflush(stdout);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
-                        "%s\n", msg.data());
+                        "%s\n", log);
 }
 
 std::string concat_string_args(lua_State *s, hksInt32 startIdx = 1) {
   std::string text;
-  for (hksInt32 i = startIdx; i <= lua_gettop(s); ++i) {
+  for (hksInt32 i = startIdx; i <= lua_gettop(s) && lua_isstring(s, i); ++i) {
     text += lua_tostring(s, i);
   }
   return text;
