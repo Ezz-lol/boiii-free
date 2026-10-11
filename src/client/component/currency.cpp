@@ -1041,7 +1041,7 @@ void award_match_points() {
     const uint32_t earned_points = accounting::match_reward(
         seconds, points_per_minute.get_uint(), points_per_match_cap.get_uint());
     const uint32_t earned_vials =
-        playing->zombies && seconds >= 60 ? divinium_per_match.get_uint() : 0;
+        playing->zombies && seconds >= 300 ? divinium_per_match.get_uint() : 0;
     pending = match_reward{*playing, earned_points, earned_vials,
                            earned_points == 0, earned_vials == 0};
     pending->session.started = now;
@@ -1591,10 +1591,10 @@ struct component final : client_component {
     com::on_level_load(invalidate_gum_pool);
     com::on_level_unload(invalidate_gum_pool);
     points_per_minute = game::register_dvar_int(
-        "cg_codpoints_per_minute", 120, 0, 10000, game::DvarFlags{.archive = 1},
+        "cg_codpoints_per_minute", 15, 0, 10000, game::DvarFlags{.archive = 1},
         "Local CoD Points per completed minute of Multiplayer or Zombies play");
     points_per_match_cap = game::register_dvar_int(
-        "cg_currency_award_cap", 5000, 0, 100000, game::DvarFlags{.archive = 1},
+        "cg_currency_award_cap", 1800, 0, 100000, game::DvarFlags{.archive = 1},
         "Maximum local CoD Points awarded per match");
     divinium_per_match = game::register_dvar_int(
         "cg_divinium_per_match", 3, 0, 100, game::DvarFlags{.archive = 1},
