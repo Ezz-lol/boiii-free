@@ -487,6 +487,30 @@ public:
     utils::hook::set<uint8_t>(game::select(0x142232ABC, 0x14228F5DC, 0x0),
                               0xEB);
 
+    // Show bots' ranks on the scoreboard and next to their overhead names.
+    // Bots have no XUID, and custom games aren't public online games.
+    // XUID lookups, only checked for 0
+    utils::hook::call(
+        game::lua::cod::api::Lua_CoD_LuaCall_GetRankIconForClient.offset(0x82),
+        return_const<true>);
+    utils::hook::call(
+        game::lua::cod::api::Lua_CoD_LuaCall_GetRankStringForClient.offset(
+            0x8E),
+        return_const<true>);
+    // `Com_SessionMode_IsPublicOnlineGame` calls
+    utils::hook::call(
+        game::lua::cod::api::Lua_CoD_LuaCall_GetRankIconForClient.offset(0x61),
+        return_const<true>);
+    utils::hook::call(
+        game::lua::cod::api::Lua_CoD_LuaCall_GetRankStringForClient.offset(
+            0x65),
+        return_const<true>);
+    // Overhead names: `Com_SessionMode_IsPublicOnlineGame` call and XUID check
+    utils::hook::call(game::select(0x14069D8BB, 0x14069D8BB, 0x0),
+                      return_const<true>);
+    utils::hook::set<uint8_t>(game::select(0x14069D8D7, 0x14069D8D7, 0x0),
+                              0xEB);
+
     cl_yaw_speed = game::register_dvar_float(
         "cl_yawspeed", 140.0f, std::numeric_limits<float>::min(),
         std::numeric_limits<float>::max(), game::DVAR_NONE,
