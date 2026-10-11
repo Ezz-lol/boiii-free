@@ -34,6 +34,12 @@ std::filesystem::path asset_output() {
 }
 
 #ifndef NDEBUG
+
+bool voice_trace() {
+  static const bool result = utils::flags::has_flag("voice-trace");
+  return result;
+}
+
 static std::filesystem::path tracing;
 static std::once_flag tracing_flag;
 void set_tracing() {

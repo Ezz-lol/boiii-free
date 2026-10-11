@@ -30,6 +30,10 @@ inline void add_debug_profile_arguments() {
       .help("Trace execution of all VM opcode handlers.")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-vct", "-voice-trace", "--voice-trace")
+      .help("Trace execution of all voicechat APIs")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-vd", "-vehicle-debug", "--vehicle-debug")
       .help("Enable vehicle debug dvars.")
       .default_value(false)

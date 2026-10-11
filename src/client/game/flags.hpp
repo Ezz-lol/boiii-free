@@ -14,6 +14,7 @@ std::filesystem::path asset_output();
 #ifndef NDEBUG
 std::filesystem::path tracing_logfile_path();
 std::ofstream &tracing_logfile();
+bool voice_trace();
 #endif
 
 bool disable_loadlib();

@@ -74,9 +74,7 @@ inline void trace_msg_handlers() {
   trace_p2p_msg_handlers();
 }
 #endif
-
 } // namespace
-
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lobby");
 

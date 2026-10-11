@@ -10,7 +10,9 @@ namespace steam {
 namespace voice {
 void Voice::clearCapture() {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][clearCapture] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][clearCapture] entered");
+  }
 #endif
   if (inputStream) {
     Pa_AbortStream(inputStream);
@@ -34,7 +36,9 @@ void Voice::clearCapture() {
 
 void Voice::clearPlayback() {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][clearPlayback] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][clearPlayback] entered");
+  }
 #endif
   if (outputStream) {
     Pa_AbortStream(outputStream);
@@ -67,7 +71,9 @@ Voice::inputCallback(const void *input, void *output, unsigned long frameCount,
                      [[maybe_unused]] PaStreamCallbackFlags statusFlags,
                      void *userData) {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][inputCallback] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][inputCallback] entered");
+  }
 #endif
   Voice *self = static_cast<Voice *>(userData);
   if (input && self && self->state.recording.load(std::memory_order_acquire)) {
@@ -79,8 +85,10 @@ Voice::inputCallback(const void *input, void *output, unsigned long frameCount,
                     encodedBuffer.data(), encodedBuffer.size());
 
 #ifndef NDEBUG
-    game::trace("[Steam][Voice][inputCallback] opus_encode returned result {}",
-                len);
+    if (game::voice_trace()) {
+      game::trace(
+          "[Steam][Voice][inputCallback] opus_encode returned result {}", len);
+    }
 #endif
     if (len > 0) {
       encodedBuffer.resize(static_cast<size_t>(len));
@@ -99,7 +107,9 @@ int32_t Voice::outputCallback(
     [[maybe_unused]] const PaStreamCallbackTimeInfo *timeInfo,
     [[maybe_unused]] PaStreamCallbackFlags statusFlags, void *userData) {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][outputCallback] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][outputCallback] entered");
+  }
 #endif
   Voice *self = static_cast<Voice *>(userData);
   if (self && output) {
@@ -163,7 +173,9 @@ int32_t Voice::outputCallback(
 
 Voice::~Voice() {
 #ifndef NDEBUG
-  game::trace("Voice destructor entered");
+  if (game::voice_trace()) {
+    game::trace("Voice destructor entered");
+  }
 #endif
   clearCapture();
   clearPlayback();
@@ -172,7 +184,9 @@ Voice::~Voice() {
 
 bool Voice::Init() {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][Init] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][Init] entered");
+  }
 #endif
   if (state.initialized.load(std::memory_order_acquire)) {
     return true;
@@ -183,7 +197,9 @@ bool Voice::Init() {
     state.initialized.store(true, std::memory_order_release);
   } else {
 #ifndef NDEBUG
-    game::trace("Pa_Initialize call failed");
+    if (game::voice_trace()) {
+      game::trace("Pa_Initialize call failed");
+    }
 #endif
   }
 
@@ -192,7 +208,9 @@ bool Voice::Init() {
 
 void Voice::Shutdown() {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][Shutdown] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][Shutdown] entered");
+  }
 #endif
   if (state.initialized.exchange(false)) {
     Pa_Terminate();
@@ -201,7 +219,9 @@ void Voice::Shutdown() {
 
 bool Voice::StartRecording() {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][StartRecording] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][StartRecording] entered");
+  }
 #endif
   if (state.recording.load(std::memory_order_acquire)) {
     return true;
@@ -217,10 +237,12 @@ bool Voice::StartRecording() {
       inputParams.device = Pa_GetDefaultInputDevice();
       if (inputParams.device == paNoDevice) {
 #ifndef NDEBUG
-        game::trace(
-            "[Steam][Voice][StartRecording] Pa_GetDefaultInputDevice returned "
-            "device paNoDevice. Pa_GetDeviceCount returned {} devices.",
-            Pa_GetDeviceCount());
+        if (game::voice_trace()) {
+          game::trace("[Steam][Voice][StartRecording] Pa_GetDefaultInputDevice "
+                      "returned device paNoDevice. Pa_GetDeviceCount returned "
+                      "{} devices.",
+                      Pa_GetDeviceCount());
+        }
 #endif
         clearCapture();
       } else {
@@ -239,14 +261,19 @@ bool Voice::StartRecording() {
           return true;
         } else {
 #ifndef NDEBUG
-          game::trace("[Steam][Voice][StartRecording] Pa_StartStream failed");
+          if (game::voice_trace()) {
+            game::trace("[Steam][Voice][StartRecording] Pa_StartStream failed");
+          }
 #endif
           clearCapture();
         }
       }
     } else {
 #ifndef NDEBUG
-      game::trace("[Steam][Voice][StartRecording] opus_encoder_create failed");
+      if (game::voice_trace()) {
+        game::trace(
+            "[Steam][Voice][StartRecording] opus_encoder_create failed");
+      }
 #endif
       clearCapture();
     }
@@ -257,7 +284,9 @@ bool Voice::StartRecording() {
 
 void Voice::StopRecording() {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][StopRecording] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][StopRecording] entered");
+  }
 #endif
   if (state.recording.exchange(false)) {
     clearCapture();
@@ -266,7 +295,9 @@ void Voice::StopRecording() {
 
 bool Voice::StartPlayback() {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][StartPlayback] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][StartPlayback] entered");
+  }
 #endif
   if (!state.playing.load(std::memory_order_acquire)) {
     if (!state.initialized.load(std::memory_order_acquire)) {
@@ -301,7 +332,9 @@ bool Voice::StartPlayback() {
 
 void Voice::StopPlayback() {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][StopPlayback] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][StopPlayback] entered");
+  }
 #endif
   if (state.playing.exchange(false)) {
     clearPlayback();
@@ -310,7 +343,9 @@ void Voice::StopPlayback() {
 
 EVoiceResult Voice::GetAvailable(uint32_t *pcbCompressed) {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][GetAvailableVoice] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][GetAvailableVoice] entered");
+  }
 #endif
   if (pcbCompressed) {
     *pcbCompressed = 0;
@@ -318,22 +353,28 @@ EVoiceResult Voice::GetAvailable(uint32_t *pcbCompressed) {
 
   if (!state.initialized.load(std::memory_order_acquire)) {
 #ifndef NDEBUG
-    game::trace(
-        "[Steam][Voice][GetAvailable] returning k_EVoiceResultNotInitialized");
+    if (game::voice_trace()) {
+      game::trace("[Steam][Voice][GetAvailable] returning "
+                  "k_EVoiceResultNotInitialized");
+    }
 #endif
     return k_EVoiceResultNotInitialized;
   }
   if (!state.recording.load(std::memory_order_acquire)) {
 #ifndef NDEBUG
-    game::trace(
-        "[Steam][Voice][GetAvailable] returning k_EVoiceResultNotRecording");
+    if (game::voice_trace()) {
+      game::trace(
+          "[Steam][Voice][GetAvailable] returning k_EVoiceResultNotRecording");
+    }
 #endif
     return k_EVoiceResultNotRecording;
   }
   if (!pcbCompressed) {
 #ifndef NDEBUG
-    game::trace(
-        "[Steam][Voice][GetAvailable] returning k_EVoiceResultBufferTooSmall");
+    if (game::voice_trace()) {
+      game::trace("[Steam][Voice][GetAvailable] returning "
+                  "k_EVoiceResultBufferTooSmall");
+    }
 #endif
     return k_EVoiceResultBufferTooSmall;
   }
@@ -342,7 +383,10 @@ EVoiceResult Voice::GetAvailable(uint32_t *pcbCompressed) {
 
   if (encodingQueue.empty()) {
 #ifndef NDEBUG
-    game::trace("[Steam][Voice][GetAvailable] returning k_EVoiceResultNoData");
+    if (game::voice_trace()) {
+      game::trace(
+          "[Steam][Voice][GetAvailable] returning k_EVoiceResultNoData");
+    }
 #endif
     return k_EVoiceResultNoData;
   }
@@ -350,7 +394,9 @@ EVoiceResult Voice::GetAvailable(uint32_t *pcbCompressed) {
   uint32_t availableBytes = static_cast<uint32_t>(encodingQueue.front().size());
   *pcbCompressed = availableBytes;
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][GetAvailable] returning k_EVoiceResultOK");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][GetAvailable] returning k_EVoiceResultOK");
+  }
 #endif
   return k_EVoiceResultOK;
 }
@@ -359,11 +405,13 @@ EVoiceResult Voice::GetVoice(bool bWantCompressed, void *pDestBuffer,
                              uint32_t cbDestBufferSize,
                              uint32_t *nBytesWritten) {
 #ifndef NDEBUG
-  game::trace(
-      "[Steam][Voice][GetVoice] called with bWantCompressed: {}, "
-      "pDestBuffer: {:p}, cbDestBufferSize: {}, nBytesWritten: {:X}@{:p}",
-      bWantCompressed ? "true" : "false", pDestBuffer, cbDestBufferSize,
-      nBytesWritten ? *nBytesWritten : 0, static_cast<void *>(nBytesWritten));
+  if (game::voice_trace()) {
+    game::trace(
+        "[Steam][Voice][GetVoice] called with bWantCompressed: {}, "
+        "pDestBuffer: {:p}, cbDestBufferSize: {}, nBytesWritten: {:X}@{:p}",
+        bWantCompressed ? "true" : "false", pDestBuffer, cbDestBufferSize,
+        nBytesWritten ? *nBytesWritten : 0, static_cast<void *>(nBytesWritten));
+  }
 #endif
   if (nBytesWritten) {
     *nBytesWritten = 0;
@@ -371,22 +419,28 @@ EVoiceResult Voice::GetVoice(bool bWantCompressed, void *pDestBuffer,
 
   if (!state.initialized.load(std::memory_order_acquire)) {
 #ifndef NDEBUG
-    game::trace(
-        "[Steam][Voice][GetVoice] returning k_EVoiceResultNotInitialized");
+    if (game::voice_trace()) {
+      game::trace(
+          "[Steam][Voice][GetVoice] returning k_EVoiceResultNotInitialized");
+    }
 #endif
     return k_EVoiceResultNotInitialized;
   }
   if (!state.recording.load(std::memory_order_acquire)) {
 #ifndef NDEBUG
-    game::trace(
-        "[Steam][Voice][GetVoice] returning k_EVoiceResultNotRecording");
+    if (game::voice_trace()) {
+      game::trace(
+          "[Steam][Voice][GetVoice] returning k_EVoiceResultNotRecording");
+    }
 #endif
     return k_EVoiceResultNotRecording;
   }
   if (!pDestBuffer || !nBytesWritten) {
 #ifndef NDEBUG
-    game::trace(
-        "[Steam][Voice][GetVoice] returning k_EVoiceResultBufferTooSmall");
+    if (game::voice_trace()) {
+      game::trace(
+          "[Steam][Voice][GetVoice] returning k_EVoiceResultBufferTooSmall");
+    }
 #endif
     return k_EVoiceResultBufferTooSmall;
   }
@@ -395,7 +449,9 @@ EVoiceResult Voice::GetVoice(bool bWantCompressed, void *pDestBuffer,
 
   if (encodingQueue.empty()) {
 #ifndef NDEBUG
-    game::trace("[Steam][Voice][GetVoice] returning k_EVoiceResultNoData");
+    if (game::voice_trace()) {
+      game::trace("[Steam][Voice][GetVoice] returning k_EVoiceResultNoData");
+    }
 #endif
     return k_EVoiceResultNoData;
   }
@@ -424,13 +480,15 @@ EVoiceResult Voice::GetVoice(bool bWantCompressed, void *pDestBuffer,
   }
 
 #ifndef NDEBUG
-  game::trace(
-      "[Steam][Voice][GetVoice] returning with result: {}. Arg values: "
-      "bWantCompressed: {}, "
-      "pDestBuffer: {:p}, cbDestBufferSize: {}, nBytesWritten: {:X}@{:p}",
-      static_cast<int32_t>(result), bWantCompressed ? "true" : "false",
-      pDestBuffer, cbDestBufferSize, nBytesWritten ? *nBytesWritten : 0,
-      static_cast<void *>(nBytesWritten));
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][GetVoice] returning with result: {}. Arg "
+                "values: bWantCompressed: {}, pDestBuffer: {:p}, "
+                "cbDestBufferSize: {}, nBytesWritten: {:X}@{:p}",
+                static_cast<int32_t>(result),
+                bWantCompressed ? "true" : "false", pDestBuffer,
+                cbDestBufferSize, nBytesWritten ? *nBytesWritten : 0,
+                static_cast<void *>(nBytesWritten));
+  }
 #endif
   return result;
 }
@@ -440,12 +498,14 @@ EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
                                uint32_t *nBytesWritten,
                                [[maybe_unused]] uint32_t nDesiredSampleRate) {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][DecompressVoice] called with pCompressed: {:p}, "
-              "cbCompressed: {}, pDestBuffer: {:p}, cbDestBufferSize: {}, "
-              "nBytesWritten: {}@{:p}, nDesiredSampleRate: {}",
-              pCompressed, cbCompressed, pDestBuffer, cbDestBufferSize,
-              nBytesWritten ? *nBytesWritten : 0,
-              static_cast<void *>(nBytesWritten));
+  if (game::voice_trace()) {
+    game::trace(
+        "[Steam][Voice][DecompressVoice] called with pCompressed: {:p}, "
+        "cbCompressed: {}, pDestBuffer: {:p}, cbDestBufferSize: {}, "
+        "nBytesWritten: {}@{:p}, nDesiredSampleRate: {}",
+        pCompressed, cbCompressed, pDestBuffer, cbDestBufferSize,
+        nBytesWritten ? *nBytesWritten : 0, static_cast<void *>(nBytesWritten));
+  }
 #endif
   if (nBytesWritten) {
     *nBytesWritten = 0;
@@ -474,29 +534,38 @@ EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
 
         if (!pDestBuffer || cbDestBufferSize < bytesRequired) {
 #ifndef NDEBUG
-          game::trace("[Steam][Voice][DecompressVoice] returning "
-                      "k_EVoiceResultBufferTooSmall");
+          if (game::voice_trace()) {
+            game::trace("[Steam][Voice][DecompressVoice] returning "
+                        "k_EVoiceResultBufferTooSmall");
+          }
 #endif
           return k_EVoiceResultBufferTooSmall;
         }
 
         std::memcpy(pDestBuffer, pcmSamples.data(), bytesRequired);
 #ifndef NDEBUG
-        game::trace(
-            "[Steam][Voice][DecompressVoice] returning k_EVoiceResultOK");
+        if (game::voice_trace()) {
+          game::trace("[Steam][Voice][DecompressVoice] returning "
+                      "k_EVoiceResultOK");
+        }
 #endif
         return k_EVoiceResultOK;
       }
     }
 #ifndef NDEBUG
-    game::trace("[Steam][Voice][DecompressVoice] returning "
-                "k_EVoiceResultDataCorrupted");
+    if (game::voice_trace()) {
+      game::trace("[Steam][Voice][DecompressVoice] returning "
+                  "k_EVoiceResultDataCorrupted");
+    }
 #endif
     return k_EVoiceResultDataCorrupted;
   }
 
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][DecompressVoice] returning k_EVoiceResultNoData");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][DecompressVoice] returning "
+                "k_EVoiceResultNoData");
+  }
 #endif
   return k_EVoiceResultNoData;
 }
@@ -504,7 +573,9 @@ EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
 void Voice::QueueAudioPlayback(uint64_t userId, const uint8_t *data,
                                size_t len) {
 #ifndef NDEBUG
-  game::trace("[Steam][Voice][QueueAudioPlayback] entered");
+  if (game::voice_trace()) {
+    game::trace("[Steam][Voice][QueueAudioPlayback] entered");
+  }
 #endif
   if (data && len > 0) {
     std::scoped_lock<std::recursive_mutex> lock(playbackQueueMutex);
@@ -512,5 +583,7 @@ void Voice::QueueAudioPlayback(uint64_t userId, const uint8_t *data,
   }
 }
 
-} // namespace voice
-} // namespace steam
+} // namespace
+  // voice
+} // namespace
+  // steam
