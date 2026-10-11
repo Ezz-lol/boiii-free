@@ -99,21 +99,13 @@ WEAK symbol<int(const ControllerIndex_t controllerIndex,
                 SharedVoiceSessionData *sharedData,
                 cl::voice::ClientVoicePacket_t *voiceData)>
     Voice_GetLocalVoiceData{0x1422BADE0, 0x0, 0x0};
-WEAK symbol<int(ControllerIndex_t controllerIndex,
-                session::LobbySession *lobbySession, XUID xuid, byte *data,
-                int size)>
-    Voice_IncomingVoiceData_Platform{0x1422BB0A0, 0x0, 0x140598B20};
-WEAK symbol<int(ControllerIndex_t controllerIndex, XUID xuid, byte *data,
-                int size)>
-    Voice_IncomingVoiceData_Steam{0x1422BAEA0, 0x0, 0x140598920};
-WEAK symbol<char()> Voice_Init{0x1422BB0FE, 0x0, 0x140598B50};
-WEAK symbol<bool()> Voice_IsChatRestricted{0x1422BB310, 0x0, 0x0};
+
 WEAK symbol<bool(ControllerIndex_t localControllerIndex, LobbyType lobbyType,
                  XUID xuid)>
     Voice_IsXuidTalking{0x141EE5960, 0x0, 0x0};
-WEAK symbol<void()> Voice_Playback{0x1422BB330, 0x0, 0x140598D60};
-WEAK symbol<bool()> Voice_SendVoiceData{0x1413E3BB0, 0x0, 0x0};
-WEAK symbol<void()> Voice_Shutdown{0x1422BB3C6, 0x0, 0x140598DD0};
+
+WEAK symbol<SharedVoiceSessionData *(LobbyType lobbyType)>
+    LobbyClientSession_GetSharedVoiceData{0x141EBF6A0, 0x0, 0x0};
 
 inline void LobbyVoice_UnMuteClient(ControllerIndex_t controllerIndex,
                                     LobbyType lobbyType,

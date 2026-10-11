@@ -20,7 +20,7 @@ end
 -- Converts tags in "vX.X.X" format and given revision number Y to an array of numbers {X,X,X,Y}.
 -- In the case where the format does not work fall back to padding with zeroes and just ending with the revision number.
 -- partscount can be either 3 or 4.
-function vertonumarr(value, vernumber, partscount)
+local function vertonumarr(value, vernumber, partscount)
   local vernum = {}
   for num in string.gmatch(value or "", "%d+") do
     if #vernum < 3 then
@@ -140,7 +140,7 @@ newaction({
     if oldVersion ~= gitDescribeOutputQuoted then
       -- get current git hash and write to version.txt (used by the preliminary updater)
       -- TODO - remove once proper updater and release versioning exists
-      local proc = assert(io.popen("git rev-parse HEAD", "r"))
+      proc = assert(io.popen("git rev-parse HEAD", "r"))
       local gitCommitHash = assert(proc:read("*a")):gsub("%s+", "")
       proc:close()
 

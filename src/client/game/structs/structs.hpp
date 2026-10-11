@@ -50,4 +50,5 @@
 #include "ui/ui.hpp"       // IWYU pragma: export
 #include "user.hpp"        // IWYU pragma: export
 #include "vehicle.hpp"     // IWYU pragma: export
+#include "voice.hpp"       // IWYU pragma: export
 #include "weapon.hpp"      // IWYU pragma: export
