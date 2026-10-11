@@ -47,24 +47,24 @@ private:
   std::recursive_mutex inputMutex;
   PaStream *inputStream{nullptr};
 
-  // Encoder
+  // Encode
   std::queue<std::vector<uint8_t>> encodingQueue;
   OpusEncoder *encoder{nullptr};
 
-  // Playback resources
-  std::recursive_mutex playbackQueueMutex;
-  std::queue<VoicePacket> playbackQueue;
-
-  // Decoder
+  // Decode
   std::recursive_mutex decoderMapMutex;
   decoderMap_t decoderMap;
   PaStream *outputStream{nullptr};
 
-  // Internal teardown helpers
+  // Playback
+  std::recursive_mutex playbackQueueMutex;
+  std::queue<VoicePacket> playbackQueue;
+
+  // Teardown
   void clearCapture();
   void clearPlayback();
 
-  // Audio device stream callback handles
+  // Stream callbacks
   static int32_t inputCallback(const void *input, void *output,
                                unsigned long frameCount,
                                const PaStreamCallbackTimeInfo *timeInfo,
@@ -85,7 +85,7 @@ public:
   bool Init();
   void Shutdown();
 
-  // Recording
+  // Capture
   bool StartRecording();
   void StopRecording();
 
@@ -93,7 +93,7 @@ public:
   bool StartPlayback();
   void StopPlayback();
 
-  //  Data retrieval, processing
+  // Data retrieval
   EVoiceResult GetAvailable(uint32_t *pcbCompressed);
   EVoiceResult GetVoice(bool bWantCompressed, void *pDestBuffer,
                         uint32_t cbDestBufferSize, uint32_t *nBytesWritten);
@@ -101,7 +101,7 @@ public:
                           void *pDestBuffer, uint32_t cbDestBufferSize,
                           uint32_t *nBytesWritten, uint32_t nDesiredSampleRate);
 
-  // Audio stream ingest
+  // Stream ingestion
   void QueueAudioPlayback(uint64_t userId, const uint8_t *data, size_t len);
 
   inline constexpr bool Initialized() const {
