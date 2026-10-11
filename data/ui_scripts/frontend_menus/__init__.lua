@@ -204,6 +204,11 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
 
   addFriendsPartyButton(controller, menuId, buttonTable, isLeader)
 
+  if menuId == LobbyData.UITargets.UI_MPLOBBYONLINECUSTOMGAME.id then
+    utils.AddSpacer(buttonTable)
+    utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.BLACK_MARKET)
+  end
+
   if menuId == LobbyData.UITargets.UI_ZMLOBBYLANGAME.id then
     for _, button in ipairs({
       CoD.LobbyButtons.ZM_BUBBLEGUM_BUFFS,
