@@ -46,8 +46,8 @@
 // 68
 #include "services/bdRichPresence.hpp" // IWYU pragma: export
 // 63
-#include "services/bdEmptyReply.hpp" // IWYU pragma: export
-#include "services/bdUNK63.hpp"      // IWYU pragma: export
+#include "services/bdUNK.hpp"   // IWYU pragma: export
+#include "services/bdUNK63.hpp" // IWYU pragma: export
 // 65
 #include "services/bdUserGroups.hpp" // IWYU pragma: export
 // 71

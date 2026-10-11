@@ -1,9 +1,9 @@
 #pragma once
 
 namespace demonware {
-template <uint8_t Id> class bdEmptyReply final : public service {
+template <uint8_t Id> class bdUNK final : public service {
 public:
-  bdEmptyReply() : service(Id, "bdEmptyReply") {}
+  bdUNK() : service(Id, "bdUNK" + std::to_string(Id)) {}
 
   void exec_task(service_server *server, const std::string &data) override {
     byte_buffer buffer(data);
