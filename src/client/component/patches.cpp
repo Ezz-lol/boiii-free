@@ -2,6 +2,7 @@
 
 #include "component/error_help.hpp"
 #include "component/exception.hpp"
+#include "component/game_event.hpp"
 #include "component/network.hpp"
 #include "component/party.hpp"
 #include "component/path.hpp"
@@ -169,6 +170,54 @@ bool read_client_stats_stub(const game::ClientNum_t client,
       client, buffer, size, max_size, state, context);
   client_stats_network_mode.reset();
   return result;
+}
+
+struct sent_configstrings {
+  int32_t reliable_sequence{};
+  std::unordered_map<std::string, std::string> values;
+};
+
+std::mutex sent_configstrings_mutex;
+std::unordered_map<const game::sv::client_s *, sent_configstrings>
+    sent_configstrings_by_client;
+utils::hook::detour add_server_command_hook;
+
+bool is_repeated_configstring(const game::sv::client_s *client,
+                              const std::string_view command) {
+  const size_t space = command.find(' ', 2);
+  if (!command.starts_with("2 ") || space == std::string_view::npos) {
+    return false;
+  }
+
+  std::lock_guard lock(sent_configstrings_mutex);
+  sent_configstrings &sent = sent_configstrings_by_client[client];
+  if (client->reliableSequence < sent.reliable_sequence) {
+    sent.values.clear();
+  }
+  sent.reliable_sequence = client->reliableSequence;
+
+  const std::string value(command.substr(space + 1));
+  const auto [entry, added] =
+      sent.values.try_emplace(std::string(command.substr(2, space - 2)), value);
+  if (!added && entry->second == value) {
+    return true;
+  }
+  entry->second = value;
+  return false;
+}
+
+void add_server_command_stub(game::sv::client_s *client,
+                             const game::net::svscmd_type type,
+                             const char *command) {
+  if (client && command && is_repeated_configstring(client, command)) {
+    return;
+  }
+  add_server_command_hook.invoke<void>(client, type, command);
+}
+
+void clear_sent_configstrings() {
+  std::lock_guard lock(sent_configstrings_mutex);
+  sent_configstrings_by_client.clear();
 }
 
 utils::hook::detour Sys_WaitForSingleObject_Safe_hook;
@@ -343,6 +392,9 @@ struct component final : generic_component {
           stats_network_mode_stub);
       read_client_stats_hook.create(
           game::live::stats::LiveStats_ReadClientStats, read_client_stats_stub);
+      add_server_command_hook.create(game::sv::SV_AddServerCommand,
+                                     add_server_command_stub);
+      game_event::on_any(clear_sent_configstrings);
     }
     Sys_Error_hook.create(game::sys::Sys_Error, Sys_Error_LogCaller);
 
