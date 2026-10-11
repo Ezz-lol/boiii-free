@@ -61,14 +61,17 @@ struct lobby_request {
   std::string token;
   game::net::netadr_t host{};
   std::chrono::steady_clock::time_point expires;
+  std::function<void()> fallback;
 };
 
 lobby_request lobby_joining;
+std::function<void()> game_join_fallback;
 std::mutex peers_mutex;
 typedef std::unordered_map<std::string, game::net::netadr_t> lobbyPeerMap_t;
 lobbyPeerMap_t lobby_peers;
 utils::hook::detour dw_common_addr_to_netadr_hook;
 utils::hook::detour dw_get_connection_status_hook;
+utils::hook::detour send_join_response_hook;
 
 struct lookup_state {
   std::unordered_set<uint64_t> pending;
@@ -286,6 +289,21 @@ game::lobby::session::HostInfo *lobby_host_info(
   return session ? &session->host.info : nullptr;
 }
 
+void send_join_response_stub(const game::ControllerIndex_t controller,
+                             const game::XUID from, void *request,
+                             int32_t *result) {
+  game::EngineDependentDvarMut ranked =
+      game::Dvar_FindVar("zm_private_rankedmatch");
+  const bool was_ranked = ranked && ranked.get_bool();
+  if (was_ranked) {
+    ranked.set(false);
+  }
+  send_join_response_hook.invoke(controller, from, request, result);
+  if (was_ranked) {
+    ranked.set(true);
+  }
+}
+
 bool hosting_match() {
   return getinfo::is_host() && !game::com::Com_IsRunningUILevel();
 }
@@ -307,14 +325,24 @@ void connect_to(const game::net::netadr_t &endpoint) {
   party::connect(endpoint);
 }
 
-void request_lobby(const game::net::netadr_t &host, const std::string &token) {
+void request_lobby(const game::net::netadr_t &host, const std::string &token,
+                   std::function<void()> fallback = {}) {
   const game::lobby::session::HostInfo *own = lobby_host_info();
-  lobby_joining = {true, token, host, std::chrono::steady_clock::now() + 4s};
+  if (!own) {
+    if (fallback) {
+      fallback();
+      return;
+    }
+    show_error("Open the Multiplayer or Zombies menu first, then join your "
+               "friend again.");
+    return;
+  }
+  lobby_joining = {true, token, host, std::chrono::steady_clock::now() + 4s,
+                   std::move(fallback)};
   network::send(host, "lobbyJoin",
                 token + " " +
-                    (own ? to_hex(own->serializedAdr.addrBuff,
-                                  sizeof(own->serializedAdr.addrBuff))
-                         : "-"));
+                    to_hex(own->serializedAdr.addrBuff,
+                           sizeof(own->serializedAdr.addrBuff)));
 }
 
 void complete_join(const game::net::netadr_t &endpoint) {
@@ -335,6 +363,11 @@ void show_join_failure(const uint16_t port) {
 
 void lobby_join_complete(int32_t, const game::lobby::JoinResult result) {
   using game::lobby::JoinResult;
+  const std::function<void()> fallback = std::exchange(game_join_fallback, {});
+  if (result != JoinResult::SUCCESS && fallback) {
+    fallback();
+    return;
+  }
   std::string message;
   switch (result) {
   case JoinResult::SUCCESS:
@@ -371,6 +404,10 @@ void lobby_join_complete(int32_t, const game::lobby::JoinResult result) {
     break;
   case JoinResult::JOIN_ALREADY_IN_PROGRESS:
     message = "Already joining a lobby. Please wait.";
+    break;
+  case JoinResult::INVALID:
+    message = "Your friend's lobby refused the join. Try again in a few "
+              "seconds.";
     break;
   default:
     message = std::format(
@@ -410,16 +447,41 @@ void join_lobby(const game::net::netadr_t &host,
     name.append(name.empty() ? "" : " ").append(parts[i]);
   utils::string::copy(info.name, name.c_str());
 
+  if (target == game::lobby::LobbyType::GAME) {
+    if (!game_join_fallback) {
+      game_join_fallback = [host] { connect_to(host); };
+    }
+  } else {
+    game_join_fallback = {};
+  }
+
+  const auto fail = [](const std::string &message) {
+    if (const std::function<void()> fallback =
+            std::exchange(game_join_fallback, {})) {
+      fallback();
+    } else if (!message.empty()) {
+      show_error(message);
+    }
+  };
+
   if (game::com::Com_IsInGame() || !lobby_host_info()) {
-    show_error("Leave your current match to join your friend's lobby.");
+    fail("Leave your current match to join your friend's lobby.");
     return;
   }
 
   const std::string &mod = content[0];
   const std::string &map = content[1];
+  const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
+  if (game_join_fallback &&
+      mod != (loaded_mod == "usermaps" ? std::string{} : loaded_mod)) {
+    fail({});
+    return;
+  }
+
   if (!workshop::check_valid_mod_id(mod, {}) ||
       (!map.empty() &&
        !workshop::check_valid_usermap_id(map, content[2], {}, {}))) {
+    game_join_fallback = {};
     if (joining.friend_id) {
       friends::remember_browser_route(joining.friend_id, FRIEND_REJOIN_ROUTE);
       workshop::set_pending_download_reconnect(FRIEND_REJOIN_ROUTE);
@@ -427,7 +489,6 @@ void join_lobby(const game::net::netadr_t &host,
     return;
   }
 
-  const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
   if (mod != (loaded_mod == "usermaps" ? std::string{} : loaded_mod)) {
     workshop::setup_same_mod_as_host(game::LOCAL_CLIENT_0, {}, mod);
     scheduler::once(
@@ -444,12 +505,14 @@ void join_lobby(const game::net::netadr_t &host,
           0,
           game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
           LobbyType::PRIVATE, target, lobby_join_complete)) {
-    show_error("Already joining a lobby. Please wait.");
+    fail("Already joining a lobby. Please wait.");
     return;
   }
-  game::lobby::LobbyJoin_Add(info.xuid, info.name, &info.secId, &info.secKey,
-                             &info.serializedAdr, game::lobby::JoinType::FRIEND,
-                             0);
+  game::lobby::LobbyJoin_Add(
+      info.xuid, info.name, &info.secId, &info.secKey, &info.serializedAdr,
+      target == LobbyType::GAME ? game::lobby::JoinType::PLAYLIST
+                                : game::lobby::JoinType::FRIEND,
+      0);
   game::lobby::LobbyJoin_Finalize();
 }
 
@@ -491,8 +554,13 @@ void update_punching() {
 
   if (lobby_joining.active && now >= lobby_joining.expires) {
     lobby_joining.active = false;
-    printf("[Friends] Your friend's game did not answer\n");
-    show_join_failure(lobby_joining.host.port);
+    if (const std::function<void()> fallback =
+            std::exchange(lobby_joining.fallback, {})) {
+      fallback();
+    } else {
+      printf("[Friends] Your friend's game did not answer\n");
+      show_join_failure(lobby_joining.host.port);
+    }
   }
 
   std::erase_if(host_probes, [now](const host_probe &probe) {
@@ -553,11 +621,14 @@ void receive_lobby_join(const game::net::netadr_t &sender,
                         const network::data_view &data,
                         game::LocalClientNum_t) {
   const std::vector<std::string> parts = fields(payload_string(data));
-  if (parts.size() != 2 || hosting_token.empty() || parts[0] != hosting_token ||
+  if (parts.size() != 2 ||
+      (parts[0] == "match"
+           ? !hosting_match()
+           : hosting_token.empty() || parts[0] != hosting_token) ||
       !network::is_connectable_address(sender))
     return;
 
-  if (hosting_match()) {
+  if (hosting_match() && !lobby_host_info(game::lobby::LobbyType::GAME)) {
     network::send(sender, "lobbyGame", hosting_token);
     return;
   }
@@ -573,17 +644,16 @@ void receive_lobby_join(const game::net::netadr_t &sender,
   add_peer(peer.addrBuff, sender);
   const std::string mod = workshop::get_mod_publisher_id();
   const std::string map(game::get_dvar_string("ui_mapname").value_or(""));
-  network::send(sender, "lobbyHost",
-                std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", hosting_token,
-                            host->xuid,
-                            to_hex(host->serializedAdr.addrBuff,
-                                   sizeof(host->serializedAdr.addrBuff)),
-                            to_hex(&host->secId, sizeof(host->secId)),
-                            to_hex(&host->secKey, sizeof(host->secKey)),
-                            game_lobby ? "game" : "party",
-                            mod == "usermaps" ? std::string{} : mod, map,
-                            workshop::get_usermap_publisher_id(map),
-                            host->name));
+  network::send(
+      sender, "lobbyHost",
+      std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0], host->xuid,
+                  to_hex(host->serializedAdr.addrBuff,
+                         sizeof(host->serializedAdr.addrBuff)),
+                  to_hex(&host->secId, sizeof(host->secId)),
+                  to_hex(&host->secKey, sizeof(host->secKey)),
+                  game_lobby ? "game" : "party",
+                  mod == "usermaps" ? std::string{} : mod, map,
+                  workshop::get_usermap_publisher_id(map), host->name));
 }
 
 bool from_lobby_request(const game::net::netadr_t &sender,
@@ -592,6 +662,7 @@ bool from_lobby_request(const game::net::netadr_t &sender,
       !network::is_connectable_address(sender))
     return false;
   lobby_joining.active = false;
+  game_join_fallback = std::exchange(lobby_joining.fallback, {});
   return true;
 }
 
@@ -607,8 +678,13 @@ void receive_lobby_host(const game::net::netadr_t &sender,
 void receive_lobby_game(const game::net::netadr_t &sender,
                         const network::data_view &data,
                         game::LocalClientNum_t) {
-  if (from_lobby_request(sender, payload_string(data)))
-    connect_to(sender);
+  if (from_lobby_request(sender, payload_string(data))) {
+    const std::function<void()> fallback =
+        std::exchange(game_join_fallback, {});
+    scheduler::once(
+        fallback ? fallback : [sender] { connect_to(sender); },
+        scheduler::main);
+  }
 }
 
 void receive_register_ack(const game::net::netadr_t &sender,
@@ -800,6 +876,11 @@ void begin_join(const std::string &token, const std::string &fallback_address,
   toast::show("Friends", "Joining your friend...", "t7_icon_connect_overlays");
 }
 
+void join_match_lobby(const game::net::netadr_t &host,
+                      std::function<void()> fallback) {
+  request_lobby(host, "match", std::move(fallback));
+}
+
 bool is_lobby_peer(const game::net::netadr_t &address) {
   std::lock_guard lock(peers_mutex);
   return std::ranges::any_of(
@@ -897,6 +978,9 @@ public:
                                            dw_common_addr_to_netadr_stub);
       dw_get_connection_status_hook.create(
           game::dw::dwGetConnectionStatus.get(), dw_get_connection_status_stub);
+      send_join_response_hook.create(
+          game::lobby::msg::LobbyHostMsg_SendJoinResponse.get(),
+          send_join_response_stub);
     }
 
     scheduler::loop(update_punching, scheduler::main, 250ms);

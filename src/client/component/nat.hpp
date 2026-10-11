@@ -20,6 +20,8 @@ std::string get_host_endpoint();
 void begin_join(const std::string &token, const std::string &fallback_address,
                 uint64_t friend_id);
 bool set_open_to_friends(bool enabled);
+void join_match_lobby(const game::net::netadr_t &host,
+                      std::function<void()> fallback);
 bool is_lobby_peer(const game::net::netadr_t &address);
 bool is_rendezvous(const game::net::netadr_t &address);
 void send_invite(uint64_t steam_id, const std::string &sender_name);

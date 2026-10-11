@@ -7,6 +7,7 @@
 #include "auth.hpp"
 #include "command.hpp"
 #include "friends.hpp"
+#include "nat.hpp"
 #include "network.hpp"
 #include "network_password.hpp"
 #include "party.hpp"
@@ -244,9 +245,16 @@ void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
     game::com::Com_SessionMode_SetGameMode(
         game::eGameModes::MATCHMAKING_PLAYLIST);
 
-    connect_to_lobby(
-        game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
-        addr, mapname, gametype, usermap_id, mod_id);
+    const auto connect = [=] {
+      connect_to_lobby(
+          game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
+          addr, mapname, gametype, usermap_id, mod_id);
+    };
+    if (is_connecting_to_dedi) {
+      connect();
+    } else {
+      nat::join_match_lobby(addr, connect);
+    }
 
     return;
   }
