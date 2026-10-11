@@ -28,6 +28,8 @@ lobby_server::lobby_server(std::string name) : tcp_server(std::move(name)) {
   this->register_service<bdRichPresence>();
   this->register_service<bdFacebook>();
   this->register_service<bdUNK63>();
+  this->register_service<bdEmptyReply<55>>();
+  this->register_service<bdEmptyReply<58>>();
   this->register_service<bdUserGroups>();
   this->register_service<bdMarketplace>();
   this->register_service<bdLeague>();
