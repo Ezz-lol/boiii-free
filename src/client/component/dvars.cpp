@@ -131,8 +131,9 @@ void schedule_dvar_write() {
 void dvar_set_variant_stub(game::EngineDependentDvar dvar,
                            game::DvarValue *value, game::DvarSetSource source) {
   if (dvar.type() == game::dvarType_t::INT && dvar.debugName() &&
-      value->integer() > dvar.domain().integer.max &&
-      std::string_view(dvar.debugName()) == "sv_maxclients") {
+      !dvar.domain().contains(value->integer()) &&
+      (std::string_view(dvar.debugName()) == "sv_maxclients" ||
+       std::string_view(dvar.debugName()) == "com_maxclients")) {
     return;
   }
 
