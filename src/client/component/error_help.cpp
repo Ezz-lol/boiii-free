@@ -303,6 +303,39 @@ void Com_Error_ServerTimeout(const char *file, const int32_t line,
   Com_Error_Explained(file, line, code, explain_server_timeout(), fmt);
 }
 
+utils::hook::detour ui_error_popup_hook;
+void ui_error_popup_stub(const game::LocalClientNum_t local_client,
+                         const game::errorCode error_code,
+                         const char *message) {
+  if (message && *message) {
+    printf("[Popup] %s\n", message);
+  }
+  ui_error_popup_hook.invoke<void>(local_client, error_code, message);
+}
+
+void Com_Error_ServerDisconnected(const char *file, const int32_t line,
+                                  const game::errorParm code, const char *fmt,
+                                  const char *message) {
+  const std::string_view text(message);
+  if (text.ends_with(" 57475")) {
+    Com_Error_Explained(
+        file, line, code,
+        "^1The server rejected your player stats.\n^3Fix: ^7Your saved stats "
+        "do not match what the server expects. Join again; if it keeps "
+        "happening, reset your stats for this mode in Stats settings.",
+        fmt, message);
+    return;
+  }
+  if (text.ends_with(" 746")) {
+    Com_Error_Explained(file, line, code,
+                        "^1The server rejected your clan tag.\n^3Fix: ^7Change "
+                        "or clear your clan tag, then join again.",
+                        fmt, message);
+    return;
+  }
+  game::com::Com_Error_(file, line, code, fmt, message);
+}
+
 void Com_Error_MissingBsp(const char *file, const int32_t line,
                           const game::errorParm code, const char *fmt,
                           const char *map) {
@@ -419,6 +452,9 @@ struct component final : generic_component {
                             Com_Error_WithHelp<HELP_CONFIGSTRING_MISMATCH>));
       hook_calls({0x14131FCBD}, {},
                  Com_Error_WithHelp<HELP_RELIABLE_CYCLED_OUT>);
+      hook_calls({0x14134CAE2}, {}, Com_Error_ServerDisconnected);
+      ui_error_popup_hook.create(game::ui::UI_OpenErrorPopupWithMessage,
+                                 ui_error_popup_stub);
     }
 
     hook_calls({0x1414251A9}, {0x1401DA2BE}, Com_Error_ZoneNotFound);

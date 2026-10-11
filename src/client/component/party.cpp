@@ -339,6 +339,7 @@ void handle_connect_query_response(const bool success,
 
   const std::string mapname = info.get("mapname");
   if (mapname == "core_frontend") {
+    printf("Connect failed: The host is in the menus, not in a match.\n");
     toast::show("Friend in menus",
                 "They are not in a match. Ask them to open their party, then "
                 "join from your friends list.",
@@ -452,6 +453,8 @@ void connect_stub(const char *address) {
 
             if (network::is_ip_address(target) &&
                 (target.addr == 0 || target.port == 0)) {
+              printf("Connect failed: Friend is offline or their party is "
+                     "closed\n");
               toast::show("Friend unavailable",
                           "Friend is offline or their party is closed",
                           "t7_icon_connect_overlays");
