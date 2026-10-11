@@ -135,6 +135,42 @@ void sv_execute_client_messages_stub(game::sv::client_s *client,
   game::sv::SV_ExecuteClientMessage(client, msg);
 }
 
+thread_local std::optional<game::eNetworkModes> client_stats_network_mode;
+utils::hook::detour stats_network_mode_hook;
+utils::hook::detour read_client_stats_hook;
+
+game::eNetworkModes stats_network_mode_stub() {
+  return client_stats_network_mode
+             ? *client_stats_network_mode
+             : stats_network_mode_hook.invoke<game::eNetworkModes>();
+}
+
+bool read_client_stats_stub(const game::ClientNum_t client,
+                            const uint32_t *buffer, const int32_t size,
+                            const int32_t max_size, void *state,
+                            void *context) {
+  using game::StorageFileType;
+  bool sent_online = false;
+  bool sent_offline = false;
+  for (uint32_t bit = 0; buffer && bit < 32; ++bit) {
+    const game::live::storage::StorageFileDesc &file =
+        (*game::live::storage::s_storageFileDescs)[bit];
+    if ((buffer[0] & (1u << bit)) &&
+        file.fileType >= StorageFileType::CP_STATS_ONLINE &&
+        file.fileType <= StorageFileType::FR_STATS_OFFLINE) {
+      (file.isOnline ? sent_online : sent_offline) = true;
+    }
+  }
+  if (sent_online != sent_offline) {
+    client_stats_network_mode = sent_online ? game::eNetworkModes::ONLINE
+                                            : game::eNetworkModes::OFFLINE;
+  }
+  const bool result = read_client_stats_hook.invoke<bool>(
+      client, buffer, size, max_size, state, context);
+  client_stats_network_mode.reset();
+  return result;
+}
+
 utils::hook::detour Sys_WaitForSingleObject_Safe_hook;
 void Sys_WaitForSingleObject_Safe(HANDLE *event) {
   if (event != nullptr) {
@@ -300,6 +336,13 @@ struct component final : generic_component {
                           std::string(data.begin(), data.end()));
                     }
                   });
+    }
+    if (game::is_new_client()) {
+      stats_network_mode_hook.create(
+          game::com::Com_SessionMode_GetActiveNetworkMode,
+          stats_network_mode_stub);
+      read_client_stats_hook.create(
+          game::live::stats::LiveStats_ReadClientStats, read_client_stats_stub);
     }
     Sys_Error_hook.create(game::sys::Sys_Error, Sys_Error_LogCaller);
 

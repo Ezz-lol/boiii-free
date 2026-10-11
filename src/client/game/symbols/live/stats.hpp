@@ -11,6 +11,9 @@ WEAK symbol<bool(const ControllerIndex_t controllerIndex,
 WEAK symbol<bool(const ControllerIndex_t controllerIndex,
                  eNetworkModes networkMode)>
     LiveStats_Loadouts_Ready{0x141EA2A00, 0x141EAF490, 0x0};
+WEAK symbol<bool(ClientNum_t clientNum, const uint32_t *buffer, int32_t size,
+                 int32_t maxSize, void *state, void *context)>
+    LiveStats_ReadClientStats{0x142219E10, 0x0, 0x0};
 } // namespace stats
 } // namespace live
 } // namespace game

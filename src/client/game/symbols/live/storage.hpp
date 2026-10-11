@@ -7,6 +7,8 @@
 namespace game {
 namespace live {
 namespace storage {
+WEAK symbol<StorageFileDesc[static_cast<size_t>(StorageFileType::FILE_COUNT)]>
+    s_storageFileDescs{0x1433BBE10, 0x0, 0x0};
 
 WEAK symbol<ddl::DDLContext *(const ControllerIndex_t controllerIndex,
                               const StorageFileType fileType, StorageSlot slot)>

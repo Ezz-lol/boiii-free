@@ -43,6 +43,15 @@ union OnlinePubDataPool {
   onlinePubData data[4];
 };
 ASSERT_SIZE(OnlinePubDataPool, 0x300);
+
+struct StorageFileDesc {
+  StorageFileType fileType;
+  const char *name;
+  uint8_t unk10[0x10];
+  int32_t isOnline;
+  uint8_t unk24[0x54];
+};
+ASSERT_SIZE(StorageFileDesc, 0x78);
 } // namespace storage
 } // namespace live
 } // namespace game
