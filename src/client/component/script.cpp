@@ -656,7 +656,40 @@ void queue_script_execution(const std::string &name) {
        is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER});
 }
 
+std::optional<std::string> find_missing_include(const queued_script &script) {
+  const ScriptParseTree *tree = get_loaded_script(script.name);
+  if (!tree || !tree->buffer) {
+    return std::nullopt;
+  }
+
+  const char *extension =
+      script.inst == SCRIPTINSTANCE_CLIENT ? ".csc" : ".gsc";
+  const auto *base = reinterpret_cast<const char *>(tree->buffer);
+  for (const uint32_t offset : tree->buffer->includes()) {
+    if (offset >= tree->len) {
+      continue;
+    }
+    const std::string name(base + offset,
+                           strnlen(base + offset, tree->len - offset));
+    if (!name.empty() &&
+        !db::xasset::DB_FindXAssetHeader(XAssetType::SCRIPTPARSETREE,
+                                         (name + extension).c_str(), false, 0)
+             .scriptParseTree) {
+      return name;
+    }
+  }
+  return std::nullopt;
+}
+
 void execute_queued_script(const queued_script &script) {
+  if (const std::optional<std::string> missing = find_missing_include(script)) {
+    print_script_log(utils::string::va(
+        "Skipped script '%s' because it needs '%s', which this game mode does "
+        "not have",
+        script_path(script.name).c_str(), missing->c_str()));
+    return;
+  }
+
   scr::Scr_LoadScript(script.inst, script.base_name.data());
 
   print_script_log(utils::string::va("Loaded script '%s' into the VM",

@@ -169,12 +169,14 @@ void run_when(const std::function<bool()> &ready, const std::string &text) {
 
 template <utils::hook::detour *Hook> void sv_map_in_mode_stub() {
   std::optional<map_mode> mode;
+  std::string mapname;
   std::string text;
   {
     const command::params_sv params{};
     if (params.size() > 1 && game::is_new_client() &&
         !game::com::Com_IsInGame()) {
       mode = get_map_mode(params[1]);
+      mapname = params[1];
       text = params.join(0) + "\n";
     }
   }
@@ -198,6 +200,9 @@ template <utils::hook::detour *Hook> void sv_map_in_mode_stub() {
   scheduler::once(
       [=] {
         game::com::Com_ShutdownUILevel();
+        if (!*game::cl::clientConnections) {
+          game::cl::CL_AllocatePerLocalClientMemory(mapname.c_str(), {});
+        }
         leave_frontend_gametype(*mode);
         map_launching = true;
         game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, text.c_str());
