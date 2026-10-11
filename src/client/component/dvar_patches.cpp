@@ -71,20 +71,55 @@ void apply_cheats_setting(EngineDependentDvarMut) {
 
 #ifndef NDEBUG
 inline bool enable_debug_dvars() {
-  static const EngineDependentDvarMut *dependencies[] = {
-      game::g_vehicleDebug.get(), game::g_vehicleDrawSplines.get(),
-      game::g_vehicleDrawPath.get(), game::com_clientfieldsdebug.get()};
-  for (const EngineDependentDvarMut *dependency : dependencies) {
-    if (!*dependency) {
-      return scheduler::cond_continue;
-    }
-  }
 
   if (utils::flags::has_flag("vehicle-debug")) {
+    static constexpr game::symbol<game::EngineDependentDvarMut> dependencies[] =
+        {game::g_vehicleDebug, game::g_vehicleDrawSplines,
+         game::g_vehicleDrawPath, game::com_clientfieldsdebug};
+    for (const game::symbol<game::EngineDependentDvarMut> &dependency :
+         dependencies) {
+      if (!*dependency.get()) {
+        return scheduler::cond_continue;
+      }
+    }
+
     dvar_boolstring_force<"1">(*game::g_vehicleDrawPath);
     dvar_bool_force<true>(*game::g_vehicleDrawSplines);
     dvar_int_force<1>(*game::g_vehicleDebug);
   }
+  if (utils::flags::has_flag("lobby-debug")) {
+
+    static constexpr game::symbol<game::EngineDependentDvarMut> dependencies[] =
+        {game::lobby_showSVDebug,        game::lobbyDebugLogJoins,
+         game::lobbyDebugLogJoinSuccess, game::lobbymsg_prints,
+         game::ui_lobbyDebugVis,         game::ui_lobbyDebugOverlay,
+         game::ui_lobbyDebugSessionSQJ,  game::ui_lobbyDebugVoice};
+    for (const game::symbol<game::EngineDependentDvarMut> &dependency :
+         dependencies) {
+      if (!*dependency.get()) {
+        return scheduler::cond_continue;
+      }
+    }
+    dvar_bool_force<true>(*game::lobby_showSVDebug);
+    dvar_bool_force<true>(*game::lobbyDebugLogJoins);
+    dvar_bool_force<true>(*game::lobbyDebugLogJoinSuccess);
+    dvar_bool_force<true>(*game::lobbymsg_prints);
+    // 0 - 3
+    dvar_int_force<3>(*game::ui_lobbyDebugVis);
+    dvar_bool_force<true>(*game::ui_lobbyDebugOverlay);
+    dvar_bool_force<true>(*game::ui_lobbyDebugSessionSQJ);
+    dvar_bool_force<true>(*game::ui_lobbyDebugVoice);
+  }
+
+  static constexpr game::symbol<game::EngineDependentDvarMut> dependencies[] = {
+      game::com_clientfieldsdebug};
+  for (const game::symbol<game::EngineDependentDvarMut> &dependency :
+       dependencies) {
+    if (!*dependency.get()) {
+      return scheduler::cond_continue;
+    }
+  }
+
   dvar_bool_force<true>(*game::com_clientfieldsdebug);
   return scheduler::cond_end;
 }

@@ -34,6 +34,10 @@ inline void add_debug_profile_arguments() {
       .help("Enable vehicle debug dvars.")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-ld", "-lobby-debug", "--lobby-debug")
+      .help("Enable lobby debug dvars.")
+      .default_value(false)
+      .implicit_value(true);
 }
 #endif
 

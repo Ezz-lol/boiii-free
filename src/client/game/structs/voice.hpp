@@ -2,6 +2,10 @@
 
 #include <cstdint>
 
+#include <windows.h>
+
+#include <mmeapi.h>
+
 #include <dsound.h>
 
 #include <game/structs/macros.hpp>
