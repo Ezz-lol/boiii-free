@@ -537,7 +537,7 @@ void direct_connect_bots_stub(const game::net::netadr_t address) {
 }
 
 game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
-  static const game::XUID guids[game::CONTROLLER_INDEX_COUNT] = {
+  static const game::LocalClientPool<game::XUID> guids = {
       get_key(game::CONTROLLER_INDEX_0).get_hash(),
       get_key(game::CONTROLLER_INDEX_1).get_hash()};
   return guids[game::valid_controller_index(controllerIndex)

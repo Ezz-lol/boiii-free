@@ -1,16 +1,16 @@
 #pragma once
 
-#include "core.hpp"
-#include "db/xasset/core.hpp"
-#include "hunk.hpp"
-#include "level/core.hpp"
-#include "net/net.hpp"
-#include "scr/core.hpp"
-#include "steam.hpp" // IWYU pragma: keep
-#include "vehicle.hpp"
-#include "weapon.hpp"
-#include <cstdint>
+#include <game/structs/core.hpp>
+#include <game/structs/db/xasset/core.hpp>
+#include <game/structs/hunk.hpp>
+#include <game/structs/level/core.hpp>
+#include <game/structs/net/net.hpp>
+#include <game/structs/scr/core.hpp>
+#include <game/structs/steam.hpp> // IWYU pragma: keep
+#include <game/structs/vehicle.hpp>
+#include <game/structs/weapon.hpp>
 
+#include <cstdint>
 namespace game {
 
 namespace level {

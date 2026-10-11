@@ -69,7 +69,9 @@ WEAK symbol<XUID(const userData_t *userdata)> LiveUser_GetLocalXuid{
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
                  const char **disconnectMessage)>
     Live_UserSignedInToLive{0x141E72530, 0x141E7EFC0, 0x0};
-
+WEAK symbol<PartyMemberTalkingState(ControllerIndex_t controllerIndex,
+                                    const XUID xuid)>
+    LiveUser_GetPartyMemberTalkingState{0x141EBA870, 0x0, 0x0};
 } // namespace user
 
 } // namespace live

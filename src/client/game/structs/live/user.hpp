@@ -51,15 +51,16 @@ enum class CONNECTION_STATE : int32_t {
   ABORTED_QUEUE = 0xE,
 };
 
-#pragma pack(push, 1)
-struct userDataPlatform_t {
-  uint8_t _unknown[0x4C];
+enum class PartyMemberTalkingState : int32_t {
+  INVALID = -1,
+  NORMAL = 0x0,
+  TALKING = 0x1,
+  MUTED = 0x2,
 };
 
-#pragma pack(pop)
+PACKED(struct userDataPlatform_t { uint8_t _unknown[0x4C]; });
 
-#pragma pack(push, 1)
-struct userData_t {
+PACKED(struct userData_t {
   XUID xuid;
   char gamertag[32];
   bool isActive;
@@ -80,9 +81,8 @@ struct userData_t {
   char xuidString[48];
   uint8_t _padding183[1];
   userDataPlatform_t platform;
-};
+});
 ASSERT_SIZE(userData_t, 0x1D0);
-#pragma pack(pop)
 
 typedef userData_t *userDataRef;
 

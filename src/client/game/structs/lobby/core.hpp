@@ -40,6 +40,19 @@ enum class LobbyType : int32_t {
 };
 IMPL_ENUM_OPERATORS(LobbyType);
 
+#ifndef NDEBUG
+inline constexpr const char *serialize(const LobbyType lobbyType) {
+  switch (lobbyType) {
+  case LobbyType::PRIVATE:
+    return "LOBBYTYPE_PRIVATE";
+  case LobbyType::GAME:
+    return "LOBBYTYPE_GAME";
+  default:
+    return "LOBBYTYPE_INVALID";
+  }
+}
+#endif
+
 enum class LobbyClientType : int32_t {
   INVALID = -1,
   ALL = 0,

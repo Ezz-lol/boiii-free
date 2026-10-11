@@ -1008,13 +1008,6 @@ enum class prestigeTokenType_e : int32_t {
   COUNT = 3,
 };
 
-enum class eVoipStatus : int32_t {
-  HIDDEN = 0,
-  TALKING = 1,
-  NOTTALKING = 2,
-  MUTED = 3,
-  ENEMY_TALKING = 4,
-};
 enum class objectiveState_t : int32_t {
   EMPTY = 0,
   ACTIVE = 1,

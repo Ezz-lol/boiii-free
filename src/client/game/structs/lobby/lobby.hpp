@@ -6,3 +6,4 @@
 #include "debug.hpp"         // IWYU pragma: export
 #include "msg.hpp"           // IWYU pragma: export
 #include "session.hpp"       // IWYU pragma: export
+#include "voice.hpp"         // IWYU pragma: export

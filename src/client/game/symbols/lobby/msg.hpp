@@ -15,6 +15,23 @@ WEAK symbol<LobbyP2PMsgHandlersTable> p2p_messageHandlers{
 WEAK symbol<LobbyHostClientMsgHandlersTable> host_clientMessageHandlers{
     0x142FA0100, 0x14301F1F0, 0x140E5A5C0};
 
+// Named `LobbyMsg_SendToHost` in engine - override
+WEAK
+    symbol<bool(const ControllerIndex_t controllerIndex,
+                session::LobbySession *lobbySession,
+                voice::Msg_VoicePacket *msgData, net::NetChanMsgType_e channel)>
+        LobbyMsg_SendToHost_Voice{0x141EE4970, 0x0, 0x1404A2290};
+
+inline bool LobbyMsg_SendToHost(ControllerIndex_t controllerIndex,
+                                session::LobbySession *lobbySession,
+                                voice::Msg_VoicePacket *msgData,
+                                net::NetChanMsgType_e channel) {
+  return LobbyMsg_SendToHost_Voice(controllerIndex, lobbySession, msgData,
+                                   channel);
+}
+// Add more `LobbyMsg_SendToHost` overrides here when the corresponding symbol
+// is defined
+
 inline LobbyMsgHandler *handler(LobbyModule module, MsgType msgType) {
   switch (msgType) {
   case MsgType::JOIN_LOBBY:

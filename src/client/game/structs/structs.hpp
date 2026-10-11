@@ -11,7 +11,7 @@
 #include "atomic.hpp"      // IWYU pragma: export
 #include "bg/bg.hpp"       // IWYU pragma: export
 #include "cg.hpp"          // IWYU pragma: export
-#include "cl.hpp"          // IWYU pragma: export
+#include "cl/cl.hpp"       // IWYU pragma: export
 #include "cm.hpp"          // IWYU pragma: export
 #include "cmd.hpp"         // IWYU pragma: export
 #include "core.hpp"        // IWYU pragma: export

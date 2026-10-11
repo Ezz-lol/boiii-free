@@ -17,6 +17,30 @@ enum class connectionType_e : uint32_t {
   WIRELESS = 0x2,
 };
 
+enum class NetChanMsgType_e : int32_t {
+  INVALID_CHANNEL = -1,
+  SNAPSHOT = 0x0,
+  CLIENTMSG = 0x1,
+  VOICE = 0x2,
+  LOBBY_VOICE = 0x3,
+  LOBBYPRIVATE_STATE = 0x4,
+  LOBBYPRIVATE_HEARTBEAT = 0x5,
+  LOBBYPRIVATE_RELIABLE = 0x6,
+  LOBBYPRIVATE_UNRELIABLE = 0x7,
+  LOBBYPRIVATE_MIGRATE = 0x8,
+  LOBBYGAME_STATE = 0x9,
+  LOBBYGAME_HEARTBEAT = 0xA,
+  LOBBYGAME_RELIABLE = 0xB,
+  LOBBYGAME_UNRELIABLE = 0xC,
+  LOBBYGAME_MIGRATE = 0xD,
+  LOBBY_JOIN = 0xE,
+  PTP = 0xF,
+  CLIENT_CONTENT = 0x10,
+  TEST = 0x11,
+  MAX_CHANNELS = 0x12,
+};
+IMPL_ENUM_OPERATORS(NetChanMsgType_e);
+
 constexpr size_t UINT8_STR_BUF_LEN = 3; // Decimal; 0 - 255
 constexpr size_t UINT16_STR_BUF_LEN = sizeof(uint16_t) * UINT8_STR_BUF_LEN;
 constexpr size_t NET_IPV4_STR_BUF_LEN =
@@ -304,8 +328,7 @@ struct netchanMsgConfig_s {
 
 typedef netchanMsgConfig_s netchanMsgConfig_t;
 
-#pragma pack(push, 1)
-struct netchan_t {
+PACKED(struct netchan_t {
   int32_t outgoingSequence;
   netsrc_t sock;
   int32_t incomingSequence;
@@ -315,13 +338,11 @@ struct netchan_t {
   qboolean waitingForAcks;
   netProfileInfo_t prof;
   uint8_t _padding[4];
-};
+});
 ASSERT_SIZE(netchan_t, 0x618);
-#pragma pack(pop)
 
 // Unverified
-#pragma pack(push, 1)
-struct serverInfo_t {
+PACKED(struct serverInfo_t {
   XNADDR xnaddr;
   XNKEY xnkey;
   XNKID xnkid;
@@ -351,9 +372,8 @@ struct serverInfo_t {
   str16_t gameType;
   bool isInGame;
   uint8_t _padding0E1[7];
-};
+});
 ASSERT_SIZE(serverInfo_t, 0xE8);
-#pragma pack(pop)
 
 } // namespace net
 } // namespace game

@@ -429,9 +429,7 @@ void SV_RestartCmd_RotateOrDefault() {
   }
 }
 
-template <const IntegralLike auto Val> decltype(Val) return_const() {
-  return Val;
-}
+template <const auto Val> decltype(Val) return_const() { return Val; }
 
 utils::hook::detour Com_FPSLimit_hook;
 
