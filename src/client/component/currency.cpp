@@ -31,6 +31,7 @@ using namespace game::loot;
 game::EngineDependentDvarMut local_currency;
 game::EngineDependentDvarMut points_per_minute, points_per_match_cap;
 game::EngineDependentDvarMut divinium_per_match, last_divinium_award;
+game::EngineDependentDvarMut max_local_currencies;
 game::EngineDependentDvarMut free_distills, paid_distills, free_distill_expiry;
 utils::hook::detour currency_hook, spend_hook, increment_hook, consume_hook;
 utils::hook::detour inventory_update_hook, buy_crate_hook, purchase_hook,
@@ -1509,75 +1510,41 @@ bool reset_gobblegums(ControllerIndex_t controller) {
   return true;
 }
 
-constexpr int32_t cod_points_currency =
-    static_cast<int32_t>(game::lua::InventoryCurrency::COD_POINTS);
-constexpr int32_t vials_currency =
-    static_cast<int32_t>(game::lua::InventoryCurrency::ZM_VIALS);
-
-std::optional<DDLState> balance_stat(const stats &data, int32_t kind) {
-  return player_stat(data, kind == vials_currency ? "BGB_TOKENS_GAINED"
-                                                  : "CODPOINTS");
-}
-
-uint32_t max_value(const DDLState &state) {
-  return std::min(accounting::max_balance, state.member->rangeLimit);
-}
-
-bool is_currency_maxed(ControllerIndex_t controller, int32_t kind) {
-  if (!valid_controller_index(controller)) {
-    return false;
-  }
-  if (kind == cryptokeys_currency) {
-    return local_db::balance(kind) >= accounting::max_balance;
-  }
-  if (kind != cod_points_currency && kind != vials_currency) {
-    return false;
-  }
-  const stats data(controller, kind == vials_currency);
-  const std::optional<DDLState> balance = balance_stat(data, kind);
-  return balance && get_currency(controller, kind) >= max_value(*balance);
-}
-
-bool set_currency_maxed(ControllerIndex_t controller, int32_t kind,
-                        bool maxed) {
-  if (!valid_controller_index(controller) || game::com::Com_IsInGame()) {
-    return false;
-  }
-  if (kind == cryptokeys_currency) {
-    if (!local_db::set_balance(kind, maxed ? accounting::max_balance : 0)) {
-      return false;
-    }
-    update_cryptokey_balances(controller);
-    return true;
-  }
-  if (kind != cod_points_currency && kind != vials_currency) {
+bool set_currencies_maxed(ControllerIndex_t controller, bool maxed) {
+  if (!enabled() || !valid_controller_index(controller) ||
+      game::com::Com_IsInGame()) {
     return false;
   }
 
-  stats data(controller, kind == vials_currency);
-  const std::optional<DDLState> balance = balance_stat(data, kind);
-  if (!balance) {
-    return false;
-  }
-  const uint32_t value = maxed ? max_value(*balance) : 0;
-  data.set(*balance, value);
-  if (kind == vials_currency) {
-    const std::optional<DDLState> used = player_stat(data, "BGB_TOKENS_USED");
-    const uint32_t distills = maxed ? accounting::max_balance : 0;
-    if (!used) {
-      return false;
-    }
-    data.set(*used, 0);
-    if (!free_distills.set(distills) || !paid_distills.set(distills) ||
-        (!maxed && !free_distill_expiry.set(0))) {
-      return false;
-    }
-  }
-  if (!data.commit()) {
+  const ControllerIndex_t index = controller;
+  stats points_data(index, false);
+  stats vials_data(index, true);
+  const std::optional<DDLState> points = player_stat(points_data, "CODPOINTS");
+  const std::optional<DDLState> gained =
+      player_stat(vials_data, "BGB_TOKENS_GAINED");
+  const std::optional<DDLState> used =
+      player_stat(vials_data, "BGB_TOKENS_USED");
+  if (!points || !gained || !used) {
     return false;
   }
 
-  LiveInventory_UpdatePlayerBalance(controller, kind, value);
+  const uint32_t point_balance =
+      maxed ? std::min(accounting::max_balance, points->member->rangeLimit) : 0;
+  const uint32_t vial_balance =
+      maxed ? std::min(accounting::max_balance, gained->member->rangeLimit) : 0;
+  const uint32_t distill_balance = maxed ? accounting::max_balance : 0;
+  points_data.set(*points, point_balance);
+  vials_data.set(*used, 0);
+  vials_data.set(*gained, vial_balance);
+  if (!points_data.commit() || !vials_data.commit() ||
+      !free_distills.set(distill_balance) ||
+      !paid_distills.set(distill_balance) ||
+      (!maxed && !free_distill_expiry.set(0))) {
+    return false;
+  }
+
+  LiveInventory_UpdatePlayerBalance(index, 0, point_balance);
+  LiveInventory_UpdatePlayerBalance(index, 3, vial_balance);
   return true;
 }
 
@@ -1601,6 +1568,9 @@ struct component final : client_component {
         "Local Liquid Divinium awarded when a Zombies match ends");
     last_divinium_award = game::register_dvar_int(
         "cg_last_divinium_award", 0, 0, 100, game::DvarFlags{}, "");
+    max_local_currencies = game::register_dvar_bool(
+        "cg_max_local_currencies", false, game::DvarFlags{.archive = 1},
+        "Whether local currency balances were last set to maximum");
     free_distills = game::register_dvar_int(
         "cg_free_distills", 0, 0, accounting::max_balance,
         game::DvarFlags{.archive = 1}, "Saved free Newton's Cookbook Distills");

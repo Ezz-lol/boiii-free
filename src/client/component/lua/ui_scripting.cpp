@@ -800,19 +800,12 @@ void setup_functions() {
       }),
       HksObjectType::TCFUNCTION);
 
-  lua["game"]["iscurrencymaxed"] =
+  lua["game"]["setcurrenciesmaxed"] =
       function(convert_function([](const game::ControllerIndex_t controller,
-                                   const int32_t kind) -> bool {
-                 return currency::is_currency_maxed(controller, kind);
+                                   const bool maxed) -> bool {
+                 return currency::set_currencies_maxed(controller, maxed);
                }),
                HksObjectType::TCFUNCTION);
-
-  lua["game"]["setcurrencymaxed"] = function(
-      convert_function([](const game::ControllerIndex_t controller,
-                          const int32_t kind, const bool maxed) -> bool {
-        return currency::set_currency_maxed(controller, kind, maxed);
-      }),
-      HksObjectType::TCFUNCTION);
 
   lua["game"]["savestats"] = function(
       convert_function(
