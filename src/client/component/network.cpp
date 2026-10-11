@@ -185,28 +185,6 @@ void con_restricted_execute_buf_stub(game::LocalClientNum_t local_client_num,
   game::cbuf::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);
 }
 
-uint64_t handle_packet_internal_stub(
-    const game::ControllerIndex_t controller_index,
-    const game::net::netadr_t from_adr, const game::XUID from_xuid,
-    const game::lobby::LobbyType lobby_type, const uint64_t dest_module,
-    game::net::msg::msg_t *msg) {
-  if (from_adr.type != game::net::NA_LOOPBACK && game::is_server() &&
-      !game::server_running()) {
-    return 0;
-  }
-
-  if (from_adr.type != game::net::NA_LOOPBACK &&
-      (game::is_server() || !nat::is_lobby_peer(from_adr))) {
-    return 0;
-  }
-
-  return handle_packet_internal_hook.invoke<bool>(controller_index, from_adr,
-                                                  from_xuid, lobby_type,
-                                                  dest_module, msg)
-             ? 1
-             : 0;
-}
-
 const char *net_adr_to_string_stub(const game::net::netadr_t *address) {
   if (address->type != game::net::NA_RAWIP) {
     return net_adr_to_string_hook.invoke<const char *>(address);
@@ -214,11 +192,6 @@ const char *net_adr_to_string_stub(const game::net::netadr_t *address) {
   static thread_local game::net::netadr_str_t buffer{};
   address->toString(buffer);
   return buffer;
-}
-
-int32_t bind_stub(SOCKET /*s*/, const sockaddr * /*addr*/,
-                  int32_t /*namelen*/) {
-  return 0;
 }
 
 void com_error_oob_stub(const char *file, int32_t line, game::errorParm code,
@@ -266,9 +239,6 @@ sockaddr_in convert_to_sockaddr(const game::net::netadr_t &address) {
 
 void send_data(const game::net::netadr_t &address, const void *data,
                const size_t length) {
-  // game::net::NET_SendPacket(game::net::NS_CLIENT1, static_cast<int>(size),
-  // data, &address);
-
   const sockaddr_in to = convert_to_sockaddr(address);
   sendto(*game::net::ip_socket, static_cast<const char *>(data),
          static_cast<int>(length), 0, reinterpret_cast<const sockaddr *>(&to),
@@ -449,14 +419,9 @@ struct component final : generic_component {
         game::select(0x14211A3B0, 0x142172E70, 0x140515800),
         net_adr_to_string_stub);
 
-    // Kill lobby system
-    handle_packet_internal_hook.create(
-        game::select(0x141EEB860, 0x141EF7FE0, 0x1404A5B90),
-        &handle_packet_internal_stub);
-
     // Don't let the game bind sockets anymore
-    utils::hook::set(game::select(0x15AA6A38C, 0x15AAE9344, 0x14B4BD828),
-                     bind_stub);
+    // utils::hook::set(game::select(0x15AA6A38C, 0x15AAE9344, 0x14B4BD828),
+    //                  bind_stub);
 
     // Set cl_maxpackets to 100
     utils::hook::set<uint8_t>(

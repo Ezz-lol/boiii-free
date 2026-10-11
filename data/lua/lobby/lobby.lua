@@ -2343,32 +2343,6 @@ LobbyVM.JoinableCheck = function(joinData)
   local joinResponse = joinData.joinResponse
   local currentMenuTarget = LobbyData.GetCurrentMenuTarget()
   if
-      Engine.IsDedicatedServer() == false
-      and Engine.IsProcessingJoin() == true
-      and currentMenuTarget.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME
-      and (
-        currentMenuTarget.lobbyMode == Enum.LobbyMode.LOBBY_MODE_PUBLIC
-        or currentMenuTarget.lobbyMode == Enum.LobbyMode.LOBBY_MODE_ARENA
-      )
-  then
-    if
-        currentMenuTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_CP
-        and Engine.DvarBool(nil, "cpProcessingJoinCheck")
-    then
-      return Enum.JoinResult.JOIN_RESULT_VM_FAILURE_1
-    elseif
-        currentMenuTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_MP
-        and Engine.DvarBool(nil, "mpProcessingJoinCheck")
-    then
-      return Enum.JoinResult.JOIN_RESULT_VM_FAILURE_1
-    elseif
-        currentMenuTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
-        and Engine.DvarBool(nil, "zmProcessingJoinCheck")
-    then
-      return Enum.JoinResult.JOIN_RESULT_VM_FAILURE_1
-    end
-  end
-  if
       Engine.IsInGame()
       or LobbyVM.IsHostLaunching()
       or Engine.GetCurrentMap() ~= "core_frontend"
@@ -2453,8 +2427,6 @@ LobbyVM.JoinableCheck = function(joinData)
           and (Engine.IsInGame() or LobbyVM.IsHostLaunching() or Engine.GetCurrentMap() ~= "core_frontend")
       then
         return Enum.JoinResult.JOIN_RESULT_NOT_JOINABLE_SOLO_MODE
-      elseif (Engine.IsInGame() or LobbyVM.IsHostLaunching()) and Engine.SessionMode_IsPublicOnlineGame() then
-        return Enum.JoinResult.JOIN_RESULT_NO_JOIN_IN_PROGRESS
       end
     end
     if LuaUtils.isPC and LobbyVM.CheckStarterPack(joinRequest) then

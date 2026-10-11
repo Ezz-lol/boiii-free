@@ -15,10 +15,6 @@ WEAK symbol<LobbyP2PMsgHandlersTable> p2p_messageHandlers{
 WEAK symbol<LobbyHostClientMsgHandlersTable> host_clientMessageHandlers{
     0x142FA0100, 0x14301F1F0, 0x140E5A5C0};
 
-WEAK symbol<void(ControllerIndex_t controllerIndex, XUID fromXuid,
-                 void *joinRequest, int32_t *joinResult)>
-    LobbyHostMsg_SendJoinResponse{0x141ED4340, 0x0, 0x0};
-
 // Named `LobbyMsg_SendToHost` in engine - override
 WEAK
     symbol<bool(const ControllerIndex_t controllerIndex,

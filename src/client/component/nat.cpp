@@ -289,21 +289,6 @@ game::lobby::session::HostInfo *lobby_host_info(
   return session ? &session->host.info : nullptr;
 }
 
-void send_join_response_stub(const game::ControllerIndex_t controller,
-                             const game::XUID from, void *request,
-                             int32_t *result) {
-  game::EngineDependentDvarMut ranked =
-      game::Dvar_FindVar("zm_private_rankedmatch");
-  const bool was_ranked = ranked && ranked.get_bool();
-  if (was_ranked) {
-    ranked.set(false);
-  }
-  send_join_response_hook.invoke(controller, from, request, result);
-  if (was_ranked) {
-    ranked.set(true);
-  }
-}
-
 bool hosting_match() {
   return getinfo::is_host() && !game::com::Com_IsRunningUILevel();
 }
@@ -978,9 +963,6 @@ public:
                                            dw_common_addr_to_netadr_stub);
       dw_get_connection_status_hook.create(
           game::dw::dwGetConnectionStatus.get(), dw_get_connection_status_stub);
-      send_join_response_hook.create(
-          game::lobby::msg::LobbyHostMsg_SendJoinResponse.get(),
-          send_join_response_stub);
     }
 
     scheduler::loop(update_punching, scheduler::main, 250ms);
