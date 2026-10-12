@@ -2,6 +2,7 @@
 
 #include <game/game.hpp>
 #include <game/ui_scripting/execution.hpp>
+#include <game/utils.hpp>
 
 #include <component/currency.hpp>
 #include <component/discord.hpp>
@@ -10,12 +11,14 @@
 #include <component/getinfo.hpp>
 #include <component/lua/lua_state.hpp>
 #include <component/name.hpp>
+#include <component/scheduler.hpp>
 #include <component/toast.hpp>
 #include <component/workshop/workshop.hpp>
 #include <loader/component_loader.hpp>
 
 #include <steam/interfaces/matchmaking_servers.hpp>
 #include <steam/steam.hpp>
+#include <steam/voice.hpp>
 
 #include <utils/http.hpp>
 #include <utils/string.hpp>
@@ -79,6 +82,17 @@ std::string time_ago(const int64_t timestamp) {
   if (minutes < 1440)
     return std::format("{}h ago", minutes / 60);
   return std::format("{}d ago", minutes / 1440);
+}
+
+luaReturnCount_e getvoiceinputdevices(lua_State *luaVM) {
+  return call(luaVM, []() -> table {
+    table devices = table();
+    int index = 1;
+    for (const std::string &name : steam::voice::InputDevices()) {
+      devices.set(index++, name);
+    }
+    return devices;
+  });
 }
 
 luaReturnCount_e getfriendcount(lua_State *luaVM) {
@@ -700,9 +714,21 @@ public:
                                   isserverlistrefreshing>(),
         lua_state::luaL_LoggedReg<"game", "getrawserverinfo",
                                   getrawserverinfo>(),
+        lua_state::luaL_LoggedReg<"game", "getvoiceinputdevices",
+                                  getvoiceinputdevices>(),
         {nullptr, nullptr},
     };
     lua_state::register_library("game", GameLibrary);
+
+    if (game::is_client()) {
+      scheduler::once(
+          [] {
+            game::register_dvar_string("voice_input_device", "",
+                                       game::DVAR_ARCHIVE,
+                                       "Microphone used for voice chat");
+          },
+          scheduler::main);
+    }
   }
 };
 } // namespace game_lua

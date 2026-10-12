@@ -2,12 +2,59 @@
 
 #include "voice.hpp"
 
-#ifndef NDEBUG
 #include <game/game.hpp>
-#endif
+#include <game/utils.hpp>
 
 namespace steam {
 namespace voice {
+namespace {
+std::string selected_input_device() {
+  return std::string(game::get_dvar_string("voice_input_device").value_or(""));
+}
+
+std::vector<PaDeviceIndex> input_device_indices() {
+  PaHostApiIndex host_api = Pa_HostApiTypeIdToHostApiIndex(paDirectSound);
+  if (host_api < 0) {
+    host_api = Pa_GetDefaultHostApi();
+  }
+  const PaHostApiInfo *host_info = Pa_GetHostApiInfo(host_api);
+  std::vector<PaDeviceIndex> indices;
+  for (PaDeviceIndex i = 0; i < Pa_GetDeviceCount(); ++i) {
+    const PaDeviceInfo *info = Pa_GetDeviceInfo(i);
+    if (info && info->hostApi == host_api && info->maxInputChannels > 0 &&
+        (!host_info || i != host_info->defaultInputDevice)) {
+      indices.push_back(i);
+    }
+  }
+  return indices;
+}
+
+PaDeviceIndex find_input_device(const std::string &name) {
+  for (const PaDeviceIndex i : input_device_indices()) {
+    if (name == Pa_GetDeviceInfo(i)->name) {
+      return i;
+    }
+  }
+  return Pa_GetDefaultInputDevice();
+}
+} // namespace
+
+std::vector<std::string> InputDevices() {
+  std::vector<std::string> devices;
+  if (Pa_Initialize() != paNoError) {
+    return devices;
+  }
+  for (const PaDeviceIndex i : input_device_indices()) {
+    devices.emplace_back(Pa_GetDeviceInfo(i)->name);
+  }
+  Pa_Terminate();
+  return devices;
+}
+
+bool Voice::InputDeviceChanged() const {
+  return selected_input_device() != inputDevice;
+}
+
 void Voice::clearCapture() {
 #ifndef NDEBUG
   if (game::voice_trace()) {
@@ -94,6 +141,9 @@ Voice::inputCallback(const void *input, void *output, unsigned long frameCount,
       encodedBuffer.resize(static_cast<size_t>(len));
       {
         std::scoped_lock<std::recursive_mutex> lock(self->inputMutex);
+        while (self->encodingQueue.size() >= MAX_QUEUED_FRAMES) {
+          self->encodingQueue.pop();
+        }
         self->encodingQueue.emplace(std::move(encodedBuffer));
       }
     }
@@ -234,7 +284,8 @@ bool Voice::StartRecording() {
 
     if (encoder && err == OPUS_OK) {
       PaStreamParameters inputParams{};
-      inputParams.device = Pa_GetDefaultInputDevice();
+      inputDevice = selected_input_device();
+      inputParams.device = find_input_device(inputDevice);
       if (inputParams.device == paNoDevice) {
 #ifndef NDEBUG
         if (game::voice_trace()) {
@@ -470,7 +521,7 @@ EVoiceResult Voice::GetVoice(bool bWantCompressed, void *pDestBuffer,
   } else {
     result = Decompress(encodedVoice.data(),
                         static_cast<uint32_t>(encodedVoice.size()), pDestBuffer,
-                        cbDestBufferSize, &bytesWritten, SAMPLE_RATE);
+                        cbDestBufferSize, &bytesWritten, 0, SAMPLE_RATE);
   }
 
   *nBytesWritten = bytesWritten;
@@ -495,7 +546,7 @@ EVoiceResult Voice::GetVoice(bool bWantCompressed, void *pDestBuffer,
 
 EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
                                void *pDestBuffer, uint32_t cbDestBufferSize,
-                               uint32_t *nBytesWritten,
+                               uint32_t *nBytesWritten, uint64_t stream,
                                uint32_t nDesiredSampleRate) {
 #ifndef NDEBUG
   if (game::voice_trace()) {
@@ -520,17 +571,19 @@ EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
         *std::ranges::find_if(decodeRates, [outputRate](const uint32_t rate) {
           return rate >= outputRate || rate == SAMPLE_RATE;
         });
+    std::scoped_lock<std::recursive_mutex> lock(decoderMapMutex);
     int32_t err = OPUS_OK;
-    OpusDecoder *decoder = opus_decoder_create(
-        static_cast<opus_int32>(decodeRate), RECORDING_CHANNEL_COUNT, &err);
+    OpusDecoder *&decoder = decoderMap[stream];
+    if (!decoder) {
+      decoder = opus_decoder_create(static_cast<opus_int32>(decodeRate),
+                                    RECORDING_CHANNEL_COUNT, &err);
+    }
     if (decoder && err == OPUS_OK) {
       std::vector<opus_int16> pcmSamples(MAX_DECODED_RECORDING_SIZE);
       int32_t decFrameCount =
           opus_decode(decoder, static_cast<const uint8_t *>(pCompressed),
                       static_cast<opus_int32>(cbCompressed), pcmSamples.data(),
                       MAX_FRAME_SIZE, 0);
-
-      opus_decoder_destroy(decoder);
 
       if (decFrameCount >= 0) {
         const uint32_t outputCount = static_cast<uint32_t>(

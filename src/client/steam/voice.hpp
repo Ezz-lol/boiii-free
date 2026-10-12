@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -22,11 +23,14 @@ inline constexpr auto PLAYBACK_CHANNEL_COUNT = 2;
 
 inline constexpr auto ENCODING_BUFFER_SIZE = 0x2000;
 inline constexpr auto FRAME_SIZE = 0x3C0;
+inline constexpr auto MAX_QUEUED_FRAMES = 5;
 inline constexpr auto MAX_FRAME_SIZE = (FRAME_SIZE * 6);
 inline constexpr auto MAX_DECODED_RECORDING_SIZE =
     (MAX_FRAME_SIZE * RECORDING_CHANNEL_COUNT);
 inline constexpr auto MAX_DECODED_PLAYBACK_SIZE =
     (MAX_FRAME_SIZE * PLAYBACK_CHANNEL_COUNT);
+
+std::vector<std::string> InputDevices();
 
 struct VoicePacket {
   uint64_t userId{0};
@@ -46,6 +50,7 @@ private:
   // Capture
   std::recursive_mutex inputMutex;
   PaStream *inputStream{nullptr};
+  std::string inputDevice;
 
   // Encode
   std::queue<std::vector<uint8_t>> encodingQueue;
@@ -88,6 +93,7 @@ public:
   // Capture
   bool StartRecording();
   void StopRecording();
+  bool InputDeviceChanged() const;
 
   // Playback
   bool StartPlayback();
@@ -99,7 +105,8 @@ public:
                         uint32_t cbDestBufferSize, uint32_t *nBytesWritten);
   EVoiceResult Decompress(const void *pCompressed, uint32_t cbCompressed,
                           void *pDestBuffer, uint32_t cbDestBufferSize,
-                          uint32_t *nBytesWritten, uint32_t nDesiredSampleRate);
+                          uint32_t *nBytesWritten, uint64_t stream,
+                          uint32_t nDesiredSampleRate);
 
   // Stream ingestion
   void QueueAudioPlayback(uint64_t userId, const uint8_t *data, size_t len);

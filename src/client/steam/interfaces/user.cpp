@@ -81,7 +81,10 @@ user::GetAvailableVoice(uint32_t *pcbCompressed, uint32_t *pcbUncompressed,
     *pcbUncompressed = 0;
   }
 
-  StartVoiceRecording();
+  if (voice->Recording() && voice->InputDeviceChanged()) {
+    voice->StopRecording();
+    StartVoiceRecording();
+  }
   return voice->GetAvailable(pcbCompressed);
 }
 
@@ -116,7 +119,6 @@ EVoiceResult user::GetVoice(bool bWantCompressed, void *pDestBuffer,
   if (nUncompressBytesWritten) {
     *nUncompressBytesWritten = 0;
   }
-  StartVoiceRecording();
   return voice->GetVoice(bWantCompressed, pDestBuffer, cbDestBufferSize,
                          nBytesWritten);
 }
@@ -137,6 +139,7 @@ EVoiceResult user::DecompressVoice(void *pCompressed, uint32_t cbCompressed,
 
   return voice->Decompress(
       pCompressed, cbCompressed, pDestBuffer, cbDestBufferSize, nBytesWritten,
+      reinterpret_cast<uint64_t>(pCompressed),
       /*
          TODO: should this be `GetVoiceOptimalSampleRate()` ? 11025 is used
          inline by all Steam emulators I could find, in this variation of
