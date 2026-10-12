@@ -250,11 +250,7 @@ void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
           game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
           addr, mapname, gametype, usermap_id, mod_id);
     };
-    if (is_connecting_to_dedi) {
-      connect();
-    } else {
-      nat::join_match_lobby(addr, connect);
-    }
+    nat::join_match_lobby(addr, connect);
 
     return;
   }

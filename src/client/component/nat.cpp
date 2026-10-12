@@ -289,6 +289,11 @@ game::lobby::session::HostInfo *lobby_host_info(
   return session ? &session->host.info : nullptr;
 }
 
+bool is_lobby_address(const game::net::netadr_t &address) {
+  return network::is_connectable_address(address) ||
+         (network::is_ip_address(address) && address.ipv4.a == 127);
+}
+
 bool hosting_match() {
   return getinfo::is_host() && !game::com::Com_IsRunningUILevel();
 }
@@ -610,7 +615,7 @@ void receive_lobby_join(const game::net::netadr_t &sender,
       (parts[0] == "match"
            ? !hosting_match()
            : hosting_token.empty() || parts[0] != hosting_token) ||
-      !network::is_connectable_address(sender))
+      !is_lobby_address(sender))
     return;
 
   if (hosting_match() && !lobby_host_info(game::lobby::LobbyType::GAME)) {
@@ -644,7 +649,7 @@ void receive_lobby_join(const game::net::netadr_t &sender,
 bool from_lobby_request(const game::net::netadr_t &sender,
                         const std::string &token) {
   if (!lobby_joining.active || token != lobby_joining.token ||
-      !network::is_connectable_address(sender))
+      !is_lobby_address(sender))
     return false;
   lobby_joining.active = false;
   game_join_fallback = std::exchange(lobby_joining.fallback, {});
@@ -863,7 +868,16 @@ void begin_join(const std::string &token, const std::string &fallback_address,
 
 void join_match_lobby(const game::net::netadr_t &host,
                       std::function<void()> fallback) {
-  request_lobby(host, "match", std::move(fallback));
+  const auto deadline = std::chrono::steady_clock::now() + 20s;
+  scheduler::schedule(
+      [=] {
+        if (!lobby_host_info() && std::chrono::steady_clock::now() < deadline) {
+          return scheduler::cond_continue;
+        }
+        request_lobby(host, "match", fallback);
+        return scheduler::cond_end;
+      },
+      scheduler::main, 250ms);
 }
 
 bool is_lobby_peer(const game::net::netadr_t &address) {
@@ -934,11 +948,25 @@ void refresh_friends(const std::vector<game::XUID> &steam_ids,
   scheduler::once([request] { finish_lookup(request); }, scheduler::main, 2s);
 }
 
-class component final : public client_component {
+class component final : public generic_component {
   DEFINE_COMPONENT_NAME("nat");
 
 public:
   void post_unpack() override {
+    if (game::is_legacy_client()) {
+      return;
+    }
+
+    dw_common_addr_to_netadr_hook.create(game::dw::dwCommonAddrToNetadr.get(),
+                                         dw_common_addr_to_netadr_stub);
+    dw_get_connection_status_hook.create(game::dw::dwGetConnectionStatus.get(),
+                                         dw_get_connection_status_stub);
+    network::on("lobbyJoin", receive_lobby_join);
+
+    if (game::is_server()) {
+      return;
+    }
+
     scheduler::once(
         [] {
           game::register_dvar_bool("nat_open", false, game::DVAR_NONE,
@@ -954,16 +982,8 @@ public:
     network::on("friendPresence", receive_friend_presence);
     network::on("friendOffline", receive_friend_offline);
     network::on("friendOnline", receive_friend_online);
-    network::on("lobbyJoin", receive_lobby_join);
     network::on("lobbyHost", receive_lobby_host);
     network::on("lobbyGame", receive_lobby_game);
-
-    if (!game::is_legacy_client()) {
-      dw_common_addr_to_netadr_hook.create(game::dw::dwCommonAddrToNetadr.get(),
-                                           dw_common_addr_to_netadr_stub);
-      dw_get_connection_status_hook.create(
-          game::dw::dwGetConnectionStatus.get(), dw_get_connection_status_stub);
-    }
 
     scheduler::loop(update_punching, scheduler::main, 250ms);
     scheduler::loop(update_hosting, scheduler::main, REGISTER_INTERVAL);
