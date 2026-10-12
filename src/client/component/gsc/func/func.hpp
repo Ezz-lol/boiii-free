@@ -10,11 +10,6 @@ using namespace game::scr;
 using namespace game::scr::var;
 using namespace game::scr::builtin;
 
-extern std::unordered_map<uint8_t *, uint8_t *> function_replacements;
-extern std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
-    client_dvar_changes;
-extern std::atomic_bool detours_enabled;
-
 namespace custom_builtins {
 template <typename Def> struct CustomBuiltinMap {
   std::unordered_map<ScrVarCanonicalName_t, Def> map;
@@ -1344,5 +1339,20 @@ inline void push(scriptInstance_t inst, const std::vector<Prim> &&arr) {
     Scr_AddArray(inst);
   }
 }
+
+// Add template overloads for other types (e.g. bool, string) as needed.
+template <const auto Value> void Scr_Return(scriptInstance_t inst) {
+  push(inst, Value);
+}
+
+// Method variant.
+// Add template overloads for other types (e.g. bool, string) as needed.
+template <const auto Value>
+void ScrCmd_Return(scriptInstance_t inst,
+                   [[maybe_unused]] scr_entref_t *entref) {
+  push(inst, Value);
+}
+
+void Scr_StubFunc([[maybe_unused]] scriptInstance_t inst);
 
 } // namespace gsc

@@ -20,6 +20,9 @@ struct script_frame {
   std::string source;
 };
 
+uint8_t *find_export_address(const std::string &script_name,
+                             const std::string &func_name,
+                             int expected_params = -1);
 std::vector<script_frame> get_script_frames(scriptInstance_t inst,
                                             const uint8_t *pos = nullptr);
 std::vector<std::string> get_script_callstack(scriptInstance_t inst,

@@ -6,6 +6,7 @@
 
 #include <component/dump.hpp>
 #include <component/game_event.hpp>
+#include <component/gsc/func/replacefunc.hpp>
 #include <component/gsc/gsc_compiler.hpp>
 #include <component/mod_previews.hpp>
 #include <component/scheduler.hpp>
@@ -55,10 +56,6 @@ template <> struct hash<TreeDirectory> {
   }
 };
 } // namespace std
-
-namespace gsc_funcs {
-void add_detour(uint8_t *target_addr, uint8_t *replacement_addr);
-}
 
 namespace script {
 
@@ -357,7 +354,7 @@ void apply_pending_detours() {
           d.replace_script, d.replace_func_hash, d.replace_params);
 
       if (target.address && replace.address) {
-        gsc_funcs::add_detour(target.address, replace.address);
+        gsc::func::replacefunc::add_detour(target.address, replace.address);
       } else {
         if (!target.script_loaded || !replace.script_loaded) {
           remaining_detours.push_back(d);

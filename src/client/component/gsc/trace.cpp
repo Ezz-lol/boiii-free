@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 #ifndef NDEBUG
 
-#include "gsc_funcs.hpp"
+#include "func/func.hpp"
 
 #include <utils/flags.hpp>
 

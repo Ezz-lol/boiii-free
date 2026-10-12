@@ -5,7 +5,7 @@
 #include <cstring>
 #include <game/game.hpp>
 
-#include "component/gsc/gsc_funcs.hpp"
+#include "component/gsc/func/func.hpp"
 
 namespace gsc_compiler {
 namespace {

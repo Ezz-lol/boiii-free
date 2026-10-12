@@ -1,13 +1,21 @@
 #include <std_include.hpp>
 
-#include "gsc_funcs.hpp"
-#include "loader/component_loader.hpp"
 #include "vm.hpp"
+
+#include "loader/component_loader.hpp"
+
 #include <game/impl/scr/vm/op.hpp>
+
+#include "func/replacefunc.hpp"
+
 #include <utils/string.hpp>
 
 namespace gsc {
 namespace vm {
+
+using namespace game;
+using namespace game::scr;
+using namespace game::scr::var;
 
 inline void flush_stack(scriptInstance_t inst,
                         volatile vm::function_stack_t *fs,
@@ -104,12 +112,14 @@ flush_exec_err(scriptInstance_t inst, volatile vm::function_stack_t *fs,
 inline bool try_redirect(scriptInstance_t inst,
                          volatile vm::function_stack_t *fs) {
   if (inst == SCRIPTINSTANCE_SERVER &&
-      gsc::detours_enabled.load(std::memory_order_acquire)) {
+      gsc::func::replacefunc::detours_enabled.load(std::memory_order_acquire)) {
     // Step behind the opcode in bytecode. Bytecode position increments past the
     // opcode just prior to execution in `VM_Execute`.
-    uint8_t *redirected = fs->pos - sizeof(op::OP_TYPE);
-    if (gsc::function_replacements.contains(redirected)) {
-      fs->pos = gsc::function_replacements[redirected];
+    const uintptr_t redirected =
+        reinterpret_cast<uintptr_t>(fs->pos) - sizeof(op::OP_TYPE);
+    if (gsc::func::replacefunc::function_replacements.contains(redirected)) {
+      fs->pos = reinterpret_cast<uint8_t *>(
+          gsc::func::replacefunc::function_replacements[redirected]);
       return true;
     }
   }
