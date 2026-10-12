@@ -6,6 +6,7 @@
 #include "core.hpp"          // IWYU pragma: export
 #include "debug.hpp"         // IWYU pragma: export
 #include "host/host.hpp"     // IWYU pragma: export
+#include "join.hpp"          // IWYU pragma: export
 #include "msg.hpp"           // IWYU pragma: export
 #include "p2p.hpp"           // IWYU pragma: export
 #include "reservation.hpp"   // IWYU pragma: export

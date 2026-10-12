@@ -351,8 +351,8 @@ void show_join_failure(const uint16_t port) {
       port ? port : local_port()));
 }
 
-void lobby_join_complete(int32_t, const game::lobby::JoinResult result) {
-  using game::lobby::JoinResult;
+void lobby_join_complete(int32_t, const game::lobby::join::JoinResult result) {
+  using game::lobby::join::JoinResult;
   const std::function<void()> fallback = std::exchange(game_join_fallback, {});
   if (result != JoinResult::SUCCESS && fallback) {
     fallback();
@@ -491,19 +491,19 @@ void join_lobby(const game::net::netadr_t &host,
 
   add_peer(info.serializedAdr.addrBuff, host);
   using game::lobby::LobbyType;
-  if (!game::lobby::LobbyJoin_Begin(
+  if (!game::lobby::join::LobbyJoin_Begin(
           0,
           game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
           LobbyType::PRIVATE, target, lobby_join_complete)) {
     fail("Already joining a lobby. Please wait.");
     return;
   }
-  game::lobby::LobbyJoin_Add(
+  game::lobby::join::LobbyJoin_Add(
       info.xuid, info.name, &info.secId, &info.secKey, &info.serializedAdr,
-      target == LobbyType::GAME ? game::lobby::JoinType::PLAYLIST
-                                : game::lobby::JoinType::FRIEND,
+      target == LobbyType::GAME ? game::lobby::join::JoinType::PLAYLIST
+                                : game::lobby::join::JoinType::FRIEND,
       0);
-  game::lobby::LobbyJoin_Finalize();
+  game::lobby::join::LobbyJoin_Finalize();
 }
 
 void update_punching() {

@@ -15,8 +15,8 @@ namespace party {
       !Com_SessionMode_IsPublicOnlineGame()
       || (!is_client() && MatchmakingHopper_IsParked())`
 */
-WEAK symbol<JoinResult(const ControllerIndex_t controllerIndex,
-                       const LobbyType lobbyType, int32_t memberCount)>
+WEAK symbol<join::JoinResult(const ControllerIndex_t controllerIndex,
+                             const LobbyType lobbyType, int32_t memberCount)>
     LobbyHost_IsPartyAllowed{0x141ECC7F0, 0x141ED9200, 0x14048AAE0};
 
 } // namespace party

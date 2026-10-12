@@ -208,7 +208,10 @@ struct client_s {
   XUID xuid;
   char __pad3[0xB5D84];
   int32_t guid;
-  char __pad4[0x8];
+  scr::var::ScrVarIndex_t scriptId;
+  bool isSplitscreenClient;
+  bool isSecondScreenClient;
+  char __pad4[0x2];
   bool bIsTestClient;
   char __pad5[3];
   int32_t serverId;

@@ -457,15 +457,6 @@ enum class LobbyListComparisonType : int32_t {
   NOT_EQUAL = 3,
 };
 
-enum class JoinType : int32_t {
-  NORMAL = 0,
-  PLAYLIST = 1,
-  FRIEND = 2,
-  INVITE = 3,
-  PARTY = 4,
-  GROUPS = 5,
-  COUNT = 6,
-};
 enum class JoinResult : int32_t {
   INVALID = 0,
   SUCCESS = 1,
