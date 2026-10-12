@@ -20,6 +20,7 @@ std::string get_host_endpoint();
 void begin_join(const std::string &token, const std::string &fallback_address,
                 uint64_t friend_id);
 bool set_open_to_friends(bool enabled);
+std::string joinable_lobby();
 void join_match_lobby(const game::net::netadr_t &host,
                       std::function<void()> fallback);
 bool is_lobby_peer(const game::net::netadr_t &address);

@@ -232,39 +232,52 @@ bool ensure_networkmode_online() {
   return false;
 }
 
-void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
-                                         const game::eModes mode,
-                                         const std::string &mapname,
-                                         const std::string &gametype,
-                                         const std::string &usermap_id,
-                                         const std::string &mod_id,
-                                         const bool was_retried = false) {
-
-  const bool was_online = ensure_networkmode_online();
-  if (was_online && game::com::Com_SessionMode_IsMode(mode)) {
+void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
+                     const std::string &mapname, const std::string &gametype,
+                     const std::string &usermap_id, const std::string &mod_id,
+                     const std::string &lobby) {
+  const auto connect = [=] {
     game::com::Com_SessionMode_SetGameMode(
         game::eGameModes::MATCHMAKING_PLAYLIST);
-
-    const auto connect = [=] {
+    const auto connect_direct = [=] {
       connect_to_lobby(
           game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
           addr, mapname, gametype, usermap_id, mod_id);
     };
-    nat::join_match_lobby(addr, connect);
+    if (lobby.empty()) {
+      connect_direct();
+      return;
+    }
+    nat::join_match_lobby(addr, lobby == "party" ? [] {
+      printf("Connect failed: Could not join their party.\n");
+      toast::show("Connect failed", "Could not join their party",
+                  "t7_icon_connect_overlays");
+    } : std::function<void()>(connect_direct));
+  };
 
+  if (ensure_networkmode_online() && game::com::Com_SessionMode_IsMode(mode)) {
+    connect();
     return;
   }
 
-  if (!was_retried) {
-    scheduler::once(
-        [=] {
-          connect_to_lobby_with_mode_internal(addr, mode, mapname, gametype,
-                                              usermap_id, mod_id, true);
-        },
-        scheduler::main, 5s);
-
-    launch_mode(mode);
-  }
+  launch_mode(mode);
+  const auto deadline = std::chrono::steady_clock::now() + 15s;
+  scheduler::schedule(
+      [=] {
+        if (ensure_networkmode_online() &&
+            game::com::Com_SessionMode_IsMode(mode)) {
+          connect();
+          return scheduler::cond_end;
+        }
+        if (std::chrono::steady_clock::now() < deadline) {
+          return scheduler::cond_continue;
+        }
+        printf("Connect failed: Could not switch to the server's game mode.\n");
+        toast::show("Connect failed", "Could not switch to the server's mode",
+                    "t7_icon_connect_overlays");
+        return scheduler::cond_end;
+      },
+      scheduler::main, 250ms);
 }
 
 void handle_connect_query_response(const bool success,
@@ -342,7 +355,8 @@ void handle_connect_query_response(const bool success,
   }
 
   const std::string mapname = info.get("mapname");
-  if (mapname == "core_frontend") {
+  const std::string lobby = info.get("lobby");
+  if (mapname == "core_frontend" && lobby != "party") {
     printf("Connect failed: The host is in the menus, not in a match.\n");
     toast::show("Friend in menus",
                 "They are not in a match. Ask them to open their party, then "
@@ -395,8 +409,8 @@ void handle_connect_query_response(const bool success,
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
                                              base_uri) &&
             workshop::check_valid_mod_id(mod_id, workshop_id)) {
-          connect_to_lobby_with_mode_internal(target, mode, mapname, gametype,
-                                              usermap_id, mod_id);
+          connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
+                          lobby);
         } else {
           const char *msg = utils::string::va(
               "Missing or invalid workshop/map dependencies for server %s.",
@@ -564,16 +578,6 @@ void query_server(const game::net::netadr_t &host, query_callback callback) {
   get_server_queries().access([&](std::vector<server_query> &server_queries) {
     server_queries.emplace_back(std::move(query));
   });
-}
-
-void connect_to_lobby_with_mode(const game::net::netadr_t &addr,
-                                const game::eModes mode,
-                                const std::string &mapname,
-                                const std::string &gametype,
-                                const std::string &usermap_id,
-                                const std::string &mod_id) {
-  connect_to_lobby_with_mode_internal(addr, mode, mapname, gametype, usermap_id,
-                                      mod_id, false);
 }
 
 game::net::netadr_t

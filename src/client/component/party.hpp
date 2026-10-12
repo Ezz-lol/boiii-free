@@ -30,11 +30,5 @@ std::string get_server_hostname();
 int get_server_max_clients();
 void clear_server_info();
 
-void connect_to_lobby_with_mode(const game::net::netadr_t &addr,
-                                game::eModes mode, const std::string &mapname,
-                                const std::string &gametype,
-                                const std::string &usermap_id,
-                                const std::string &mod_id);
-
 game::net::netadr_t get_connect_host();
 } // namespace party

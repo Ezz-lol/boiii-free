@@ -6,6 +6,7 @@
 #include <steam/steam.hpp>
 
 #include "auth.hpp"
+#include "nat.hpp"
 #include "network.hpp"
 #include "network_password.hpp"
 #include "scheduler.hpp"
@@ -140,6 +141,7 @@ struct component final : generic_component {
                                game::com::Com_SessionMode_GetGameMode())));
       info.set("sv_running", game::server_running() ? "1" : "0");
       info.set("dedicated", game::is_server() ? "1" : "0");
+      info.set("lobby", nat::joinable_lobby());
       info.set("hc",
                std::to_string(game::com::gts::Com_GametypeSettings_GetUInt(
                    "hardcoremode", false)));

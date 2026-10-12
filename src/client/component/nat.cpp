@@ -613,7 +613,7 @@ void receive_lobby_join(const game::net::netadr_t &sender,
   const std::vector<std::string> parts = fields(payload_string(data));
   if (parts.size() != 2 ||
       (parts[0] == "match"
-           ? !hosting_match()
+           ? joinable_lobby().empty()
            : hosting_token.empty() || parts[0] != hosting_token) ||
       !is_lobby_address(sender))
     return;
@@ -866,6 +866,16 @@ void begin_join(const std::string &token, const std::string &fallback_address,
   toast::show("Friends", "Joining your friend...", "t7_icon_connect_overlays");
 }
 
+std::string joinable_lobby() {
+  if (game::is_server()) {
+    return "";
+  }
+  if (hosting_match()) {
+    return lobby_host_info(game::lobby::LobbyType::GAME) ? "game" : "";
+  }
+  return open_to_friends && lobby_host_info() ? "party" : "";
+}
+
 void join_match_lobby(const game::net::netadr_t &host,
                       std::function<void()> fallback) {
   const auto deadline = std::chrono::steady_clock::now() + 20s;
@@ -948,7 +958,7 @@ void refresh_friends(const std::vector<game::XUID> &steam_ids,
   scheduler::once([request] { finish_lookup(request); }, scheduler::main, 2s);
 }
 
-class component final : public generic_component {
+class component final : public client_component {
   DEFINE_COMPONENT_NAME("nat");
 
 public:
@@ -962,10 +972,6 @@ public:
     dw_get_connection_status_hook.create(game::dw::dwGetConnectionStatus.get(),
                                          dw_get_connection_status_stub);
     network::on("lobbyJoin", receive_lobby_join);
-
-    if (game::is_server()) {
-      return;
-    }
 
     scheduler::once(
         [] {
