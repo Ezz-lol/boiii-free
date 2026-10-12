@@ -127,11 +127,12 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       return
     end
     Engine.SetDvar(dvarName, itemModel.value)
-    if dvarName == "cg_unlockall_loot" then
-      Engine.SetDvar("ui_enableAllHeroes", itemModel.value)
-      if itemModel.value == 1 then
-        Engine.SetDvar("cg_unlockall_gobblegums", 1)
-      end
+    if dvarName == "cg_unlockall_loot" or dvarName == "cg_unlockall_blackjack" then
+      local blackjack = Dvar.cg_unlockall_loot:get() == true or Dvar.cg_unlockall_blackjack:get() == true
+      Engine.SetDvar("ui_enableAllHeroes", blackjack and 1 or 0)
+    end
+    if dvarName == "cg_unlockall_loot" and itemModel.value == 1 then
+      Engine.SetDvar("cg_unlockall_gobblegums", 1)
     end
     if dvarName == "cg_local_currency" then
       refreshCurrencyModels(controllerIndex)
@@ -284,6 +285,12 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       "MPStatsSettings_unlockall_specialists_outfits",
       "cg_unlockall_specialists_outfits"
     )
+    addToggle(
+      "Unlock Blackjack",
+      "Blackjack can be used without a Mercenary Contract.",
+      "MPStatsSettings_unlock_blackjack",
+      "cg_unlockall_blackjack"
+    )
   end
   if isZM then
     addToggle(
@@ -422,7 +429,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
   return optionsTable
 end)
 
-if Dvar.cg_unlockall_loot:get() == true then
+if Dvar.cg_unlockall_loot:get() == true or Dvar.cg_unlockall_blackjack:get() == true then
   Engine.SetDvar("ui_enableAllHeroes", 1)
 end
 

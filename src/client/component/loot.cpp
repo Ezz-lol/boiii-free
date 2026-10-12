@@ -21,6 +21,7 @@ game::EngineDependentDvarMut dvar_cg_unlockall_camos_and_reticles;
 game::EngineDependentDvarMut dvar_cg_unlockall_calling_cards;
 game::EngineDependentDvarMut dvar_cg_unlockall_specialists_outfits;
 game::EngineDependentDvarMut dvar_cg_unlockall_cac_slots;
+game::EngineDependentDvarMut dvar_cg_unlockall_blackjack;
 
 utils::hook::detour loot_getitemquantity_hook;
 utils::hook::detour liveinventory_getitemquantity_hook;
@@ -81,6 +82,11 @@ uint32_t liveinventory_getitemquantity_stub(
 bool liveinventory_areextraslotspurchased_stub(
     const game::ControllerIndex_t controller_index) {
   if (dvar_cg_unlockall_cac_slots.get_bool()) {
+    return true;
+  }
+
+  // Item id for extra CaC slots, bought from the store with local currency
+  if (currency::item_quantity(controller_index, 99003).value_or(0)) {
     return true;
   }
 
@@ -244,6 +250,9 @@ struct component final : generic_component {
     dvar_cg_unlockall_cac_slots = game::register_dvar_bool(
         "cg_unlockall_cac_slots", false, game::DvarFlags{.archive = 1},
         "Unlocks all Create a Class Slots");
+    dvar_cg_unlockall_blackjack = game::register_dvar_bool(
+        "cg_unlockall_blackjack", false, game::DvarFlags{.archive = 1},
+        "Unlocks Blackjack without a Mercenary Contract");
 
     command::add("unlockall", [](const command::params &) {
       if (game::com::Com_IsInGame()) {
@@ -440,7 +449,8 @@ struct component final : generic_component {
 
     scheduler::once(
         []() {
-          if (dvar_cg_unlockall_loot.get_bool()) {
+          if (dvar_cg_unlockall_loot.get_bool() ||
+              dvar_cg_unlockall_blackjack.get_bool()) {
             game::ui_enableAllHeroes->set(true);
           }
         },

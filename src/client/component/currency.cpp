@@ -564,6 +564,75 @@ bool buy_crate(ControllerIndex_t controller, int32_t crate, int32_t currency) {
   return true;
 }
 
+// COD Points prices of store items by SKU, from the store's purchase
+// confirmation. The SKU is also the inventory item it grants.
+std::unordered_map<uint32_t, uint32_t> store_prices;
+
+// Specialist outfits from the store (SKUs 90083 to 90091) also unlock the item
+// the Specialist menu checks (90047, 90049, ... 90063).
+constexpr uint32_t first_outfit_sku = 90083, last_outfit_sku = 90091;
+constexpr uint32_t first_outfit_item = 90047;
+
+std::optional<uint32_t> outfit_sku(uint32_t item_id) {
+  const uint32_t offset = item_id - first_outfit_item;
+  if (item_id < first_outfit_item || offset % 2 ||
+      offset / 2 > last_outfit_sku - first_outfit_sku) {
+    return std::nullopt;
+  }
+  return first_outfit_sku + offset / 2;
+}
+
+bool buy_store_item(ControllerIndex_t controller, uint32_t sku, uint32_t cost) {
+  stats data(controller, false);
+  const std::optional<DDLState> points = player_stat(data, "CODPOINTS");
+  if (!points || item_count(sku)) {
+    return false;
+  }
+  const uint32_t balance = std::min(data.get(*points), accounting::max_balance);
+  if (cost > balance) {
+    return false;
+  }
+  data.set(*points, balance - cost);
+  if (!local_db::transaction(
+          [&] { return local_db::set_item(sku, 1) && data.commit(); })) {
+    return false;
+  }
+  LiveInventory_UpdatePlayerBalance(controller, 0, balance - cost);
+  return true;
+}
+
+// The Specialist menu activates contracts counted by this stat.
+bool buy_blackjack_contract(ControllerIndex_t controller) {
+  const uint32_t cost = dvar_value(game::blackjack_contract_ck_cost);
+  stats data(controller, false);
+  const std::optional<DDLState> contracts =
+      data.find({"blackjack_contract_count"});
+  if (!cost || !contracts) {
+    return false;
+  }
+  return local_db::transaction([&] {
+           const uint32_t keys = local_db::balance(cryptokeys_currency);
+           if (keys < cost) {
+             return false;
+           }
+           data.set(*contracts, data.get(*contracts) + 1);
+           return local_db::set_balance(cryptokeys_currency, keys - cost) &&
+                  data.commit();
+         }) &&
+         update_cryptokey_balances(controller);
+}
+
+// Pays for purchases that Demonware completes without charging or granting
+// anything. False when the player can't afford it.
+bool pay_for_sku(ControllerIndex_t controller, uint32_t sku) {
+  if (sku == dvar_value(game::blackjack_contract_dwid)) {
+    return buy_blackjack_contract(controller);
+  }
+  const auto price = store_prices.find(sku);
+  return price == store_prices.end() ||
+         buy_store_item(controller, sku, price->second);
+}
+
 void *purchase_skus(ControllerIndex_t controller, uint32_t *skus, int32_t count,
                     uint32_t *quantities, int32_t currency, bool consume,
                     void *on_success, void *on_failure) {
@@ -574,6 +643,9 @@ void *purchase_skus(ControllerIndex_t controller, uint32_t *skus, int32_t count,
       if (sku && skus[0] == sku) {
         bought = candidate;
       }
+    }
+    if (!bought && !pay_for_sku(controller, skus[0])) {
+      return nullptr;
     }
   }
   if (!bought) {
@@ -1153,6 +1225,14 @@ std::optional<uint32_t> add_cod_points(ControllerIndex_t controller,
   return updated;
 }
 
+bool set_store_price(uint32_t sku, uint32_t cost) {
+  if (!sku || !cost) {
+    return false;
+  }
+  store_prices[sku] = cost;
+  return true;
+}
+
 bool purchase_vials(ControllerIndex_t controller, uint32_t cost,
                     uint32_t amount) {
   if (!enabled() || !valid_controller_index(controller) || !cost || !amount ||
@@ -1447,6 +1527,10 @@ std::optional<uint32_t> item_quantity(ControllerIndex_t controller,
   if (const std::optional<local_db::item> item =
           local_db::get_item(inventory_id)) {
     return item->quantity;
+  }
+  if (const std::optional<uint32_t> sku = outfit_sku(inventory_id);
+      sku && item_count(*sku)) {
+    return 1;
   }
   const std::optional<uint32_t> free_id =
       /* FIXME: We have this stored in a global. Why are we needlessly looking

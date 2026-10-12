@@ -130,6 +130,30 @@ PurchaseProduct = function(menu, element, controller)
   )
 end
 
+-- Outfits, contracts, camo packs and extra slots bought with COD Points: the
+-- client charges the price shown in the store's purchase confirmation.
+local confirmedPrice
+local originalCreateOverlay = CoD.OverlayUtility.CreateOverlay
+CoD.OverlayUtility.CreateOverlay = function(...)
+  confirmedPrice = nil
+  for i = 1, select("#", ...) do
+    local data = select(i, ...)
+    if type(data) == "table" and data.purchaseSource then
+      confirmedPrice = tonumber(data.itemCODPointCost)
+    end
+  end
+  return originalCreateOverlay(...)
+end
+
+local originalPurchaseDWSKU = Engine.PurchaseDWSKU
+Engine.PurchaseDWSKU = function(controller, sku, ...)
+  if confirmedPrice and tonumber(sku) and type(game.setstoreprice) == "function" then
+    game.setstoreprice(tonumber(sku), confirmedPrice)
+  end
+  confirmedPrice = nil
+  return originalPurchaseDWSKU(controller, sku, ...)
+end
+
 local purchaseVialsOverlay = CoD.OverlayUtility.Overlays.PurchaseVialsConfirmation
 local originalVialsList = purchaseVialsOverlay.listDatasource
 
