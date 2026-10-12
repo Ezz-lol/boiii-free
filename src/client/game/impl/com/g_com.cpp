@@ -9,7 +9,7 @@
   object generated from one of these "com.cpp" objects to its final ".o" output,
   due to its prior, erroneous removal.
 
-  As such, we have to rename this header to some other name than "com.cpp" to
+  As such, we have to rename this file to some other name than "com.cpp" to
   circumvent this bug. "g_com.cpp" was selected to specify that this header
   pertains to the game's `COM_`-prefixed functions - not Windows COM.
 
@@ -63,7 +63,7 @@ const char *Com_GetBuildID_Impl() {
   return build_id;
 }
 
-const char *Com_GetBuildStringField_Impl(BuildStringField field) {
+const char *Com_GetBuildStringField_Impl(const BuildStringField field) {
 
   switch (field) {
   case BuildStringField::MAJOR_VERSION:

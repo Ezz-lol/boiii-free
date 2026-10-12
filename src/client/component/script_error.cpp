@@ -6,7 +6,7 @@
 
 #include <loader/component_loader.hpp>
 
-#include <component/gsc/gsc_emitter.hpp>
+#include <component/gsc/compiler/emitter.hpp>
 
 #include <game/game.hpp>
 #include <game/impl/scr/gdb.hpp>
@@ -18,7 +18,7 @@ namespace script_error {
 namespace {
 using namespace game;
 using namespace game::scr;
-using namespace gsc_compiler;
+using namespace gsc::compiler;
 
 constexpr ScrVarCanonicalName_t EMPTY_NAMESPACE = builtin::fnv1a("");
 constexpr ScrVarCanonicalName_t SYS_NAMESPACE = builtin::SYS_NS_HASH;

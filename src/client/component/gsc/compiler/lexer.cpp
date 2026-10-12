@@ -1,8 +1,9 @@
 #include <std_include.hpp>
 
-#include "gsc_lexer.hpp"
+#include "lexer.hpp"
 
-namespace gsc_compiler {
+namespace gsc {
+namespace compiler {
 namespace {
 struct lexer_state {
   const std::string &source;
@@ -751,4 +752,5 @@ lexer_result tokenize(const std::string &source) {
 
   return result;
 }
-} // namespace gsc_compiler
+} // namespace compiler
+} // namespace gsc

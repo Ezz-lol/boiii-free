@@ -1,10 +1,11 @@
 #include <std_include.hpp>
 
-#include "gsc_lexer.hpp"
-#include "gsc_parser.hpp"
+#include "lexer.hpp"
+#include "parser.hpp"
 #include <stdexcept>
 
-namespace gsc_compiler {
+namespace gsc {
+namespace compiler {
 namespace {
 struct parser_state {
   const std::vector<token> &tokens;
@@ -1346,4 +1347,5 @@ parse_result parse(const std::vector<token> &tokens) {
 
   return result;
 }
-} // namespace gsc_compiler
+} // namespace compiler
+} // namespace gsc

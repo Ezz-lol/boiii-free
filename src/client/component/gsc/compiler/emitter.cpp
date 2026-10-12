@@ -1,13 +1,14 @@
 #include <std_include.hpp>
 
-#include "gsc_emitter.hpp"
+#include "emitter.hpp"
 #include <algorithm>
 #include <cstring>
 #include <game/game.hpp>
 
 #include "component/gsc/func/func.hpp"
 
-namespace gsc_compiler {
+namespace gsc {
+namespace compiler {
 namespace {
 using namespace game;
 using namespace game::scr;
@@ -1279,7 +1280,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     break;
 
   case node_type::n_expression_stmt: {
-    std::shared_ptr<gsc_compiler::ast_node> &expr = node->children[0];
+    std::shared_ptr<ast_node> &expr = node->children[0];
 
     if (expr->type == node_type::n_call) {
       std::string call_name = std::string(expr->value.c_str());
@@ -2246,4 +2247,5 @@ emitter_result emit(scriptInstance_t inst, const ast_ptr &root,
 
   return result;
 }
-} // namespace gsc_compiler
+} // namespace compiler
+} // namespace gsc

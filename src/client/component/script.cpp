@@ -6,8 +6,8 @@
 
 #include <component/dump.hpp>
 #include <component/game_event.hpp>
+#include <component/gsc/compiler/compiler.hpp>
 #include <component/gsc/func/replacefunc.hpp>
-#include <component/gsc/gsc_compiler.hpp>
 #include <component/mod_previews.hpp>
 #include <component/scheduler.hpp>
 #include <loader/component_loader.hpp>
@@ -525,8 +525,8 @@ void load_script_file(std::string &data,
         print_script_log(log);
         const scriptInstance_t inst =
             is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
-        gsc_compiler::compile_result result =
-            gsc_compiler::compile(inst, cleaned_source, name);
+        gsc::compiler::compile_result result =
+            gsc::compiler::compile(inst, cleaned_source, name);
         if (result.success) {
 
           // Store hash-to-name+line map from this compilation
@@ -574,7 +574,7 @@ void load_script_file(std::string &data,
                 utils::string::ends_with(replace_base, ".csc"))
               replace_base = replace_base.substr(0, replace_base.size() - 4);
 
-            for (gsc_compiler::replacefunc_entry &rf : result.replacefuncs) {
+            for (gsc::compiler::replacefunc_entry &rf : result.replacefuncs) {
               const std::string replace_script =
                   rf.replace_script.empty() ? replace_base : rf.replace_script;
               pending_detours.access(
@@ -592,7 +592,7 @@ void load_script_file(std::string &data,
               "^1*********************%s COMPILE ERROR*********************",
               script_type);
           print_script_log(err_header);
-          for (const gsc_compiler::compile_error &err : result.errors) {
+          for (const gsc::compiler::compile_error &err : result.errors) {
             const char *file_log =
                 utils::string::va("^1  File:    ^5%s", err.file.data());
             print_script_log(file_log);

@@ -1,11 +1,12 @@
 #pragma once
 
-#include "gsc.hpp"
+#include <component/gsc/gsc.hpp>
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace gsc_compiler {
+namespace gsc {
+namespace compiler {
 struct compile_error {
   std::string message;
   std::string file;
@@ -36,4 +37,5 @@ struct compile_result {
 compile_result compile(game::scr::scriptInstance_t inst,
                        const std::string &source,
                        const std::string &source_name);
-} // namespace gsc_compiler
+} // namespace compiler
+} // namespace gsc

@@ -45,27 +45,6 @@ template <typename T> int get_client_count(T *client_states) {
   return count;
 }
 
-size_t get_client_count() {
-  size_t count = 0;
-  game::foreach_connected_client(
-      [&count](const game::sv::client_s &) { ++count; });
-
-  return count;
-}
-
-size_t get_bot_count() {
-  size_t count = 0;
-
-  game::foreach_connected_client(
-      [&count](const game::sv::client_s &, const size_t index) {
-        if (game::sv::SV_IsTestClient(static_cast<game::ClientNum_t>(index))) {
-          ++count;
-        }
-      });
-
-  return count;
-}
-
 bool is_host() { return game::server_running(); }
 
 struct component final : generic_component {
@@ -130,8 +109,8 @@ struct component final : generic_component {
       info.set("xuid", utils::string::va("%llX", auth::get_guid()));
       info.set("mapname", game::get_mapname().value_or(""));
       info.set("isPrivate", game::password().value_or("").empty() ? "0" : "1");
-      info.set("clients", std::to_string(get_client_count()));
-      info.set("bots", std::to_string(get_bot_count()));
+      info.set("clients", std::to_string(game::connected_client_count()));
+      info.set("bots", std::to_string(game::test_client_count()));
       info.set("sv_maxclients", std::to_string(+game::get_max_client_count()));
       info.set("protocol", std::to_string(PROTOCOL));
       info.set("sub_protocol", std::to_string(SUB_PROTOCOL));

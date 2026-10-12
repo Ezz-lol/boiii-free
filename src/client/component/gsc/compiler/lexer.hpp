@@ -3,7 +3,8 @@
 #include <string>
 #include <vector>
 
-namespace gsc_compiler {
+namespace gsc {
+namespace compiler {
 enum class token_type {
   // literals
   t_string,
@@ -134,4 +135,5 @@ struct lexer_result {
 };
 
 lexer_result tokenize(const std::string &source);
-} // namespace gsc_compiler
+} // namespace compiler
+} // namespace gsc

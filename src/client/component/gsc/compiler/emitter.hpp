@@ -1,10 +1,11 @@
 #pragma once
 
-#include "gsc.hpp"
-#include "gsc_compiler.hpp"
-#include "gsc_parser.hpp"
+#include "compiler.hpp"
+#include "parser.hpp"
+#include <component/gsc/gsc.hpp>
 
-namespace gsc_compiler {
+namespace gsc {
+namespace compiler {
 
 // Import flags (FunctionFlags | CallFlags combined in one byte)
 enum import_flags : uint8_t {
@@ -40,4 +41,5 @@ struct emitter_result {
 
 emitter_result emit(game::scr::scriptInstance_t inst, const ast_ptr &root,
                     const std::string &script_name);
-} // namespace gsc_compiler
+} // namespace compiler
+} // namespace gsc

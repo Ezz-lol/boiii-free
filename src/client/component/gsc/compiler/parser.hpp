@@ -1,9 +1,10 @@
 #pragma once
 
-#include "gsc_lexer.hpp"
+#include "lexer.hpp"
 #include <memory>
 
-namespace gsc_compiler {
+namespace gsc {
+namespace compiler {
 // AST node types
 enum class node_type {
   n_script,         // root: includes, namespace, functions
@@ -100,4 +101,5 @@ struct parse_result {
 };
 
 parse_result parse(const std::vector<token> &tokens);
-} // namespace gsc_compiler
+} // namespace compiler
+} // namespace gsc

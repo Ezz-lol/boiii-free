@@ -1,9 +1,9 @@
 #include <std_include.hpp>
 
-#include "gsc_compiler.hpp"
-#include "gsc_emitter.hpp"
-#include "gsc_lexer.hpp"
-#include "gsc_parser.hpp"
+#include "compiler.hpp"
+#include "emitter.hpp"
+#include "lexer.hpp"
+#include "parser.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -13,7 +13,8 @@
 #include <unordered_set>
 #include <utils/nt.hpp>
 
-namespace gsc_compiler {
+namespace gsc {
+namespace compiler {
 namespace {
 std::string try_read_file(const std::filesystem::path &path) {
   std::error_code ec;
@@ -129,7 +130,8 @@ std::string preprocess_impl(const std::string &source,
     if (!line.empty() && line.back() == '\r')
       line.pop_back();
 
-    // Backslash line continuation - count joined lines to preserve line numbers
+    // Backslash line continuation - count joined lines to preserve line
+    // numbers
     int32_t continuation_count = 0;
     while (!line.empty() && line.back() == '\\') {
       line.pop_back();
@@ -166,7 +168,8 @@ std::string preprocess_impl(const std::string &source,
         return rest.substr(start, i - start);
       };
 
-      // Conditional compilation directives must be processed even when skipping
+      // Conditional compilation directives must be processed even when
+      // skipping
       if (trimmed.substr(0, 6) == "#ifdef") {
         std::string macro = extract_directive_arg(trimmed, 6);
         bool defined = is_macro_defined(macro);
@@ -215,7 +218,8 @@ std::string preprocess_impl(const std::string &source,
         continue;
       }
 
-      // All other directives are skipped when inside a false conditional block
+      // All other directives are skipped when inside a false conditional
+      // block
       if (is_skipping()) {
         output += "\n";
         for (int32_t ci = 0; ci < continuation_count; ci++)
@@ -526,7 +530,8 @@ std::string preprocess(const std::string &source, const std::string &filename,
   func_defines["REGISTER_SYSTEM_EX"] = {
       {"__sys", "__func_init_preload", "__func_init_postload", "__reqs"},
       "function autoexec __init__sytem__() { "
-      "system::register(__sys,__func_init_preload,__func_init_postload,__reqs);"
+      "system::register(__sys,__func_init_preload,__func_init_postload,__"
+      "reqs);"
       " }"};
 
   func_defines["IS_TRUE"] = {{"__a"}, "( isdefined( __a ) && __a )"};
@@ -857,4 +862,5 @@ compile_result compile(game::scr::scriptInstance_t inst,
   result.replacefuncs = std::move(emit_result.replacefuncs);
   return result;
 }
-} // namespace gsc_compiler
+} // namespace compiler
+} // namespace gsc
