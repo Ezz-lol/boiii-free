@@ -98,6 +98,13 @@ public:
     utils::hook::call(
         host::LobbyHost_CanFit.offset(game::select_value(0x6e, 0x6e, 0x69)),
         return_const<false>);
+
+    if (game::is_new_client()) {
+      for (const size_t offset : {0xa4, 0x26d}) {
+        utils::hook::call(host::LobbyHost_HandleJoinRequest.offset(offset),
+                          return_const<LobbyNetworkMode::LIVE>);
+      }
+    }
   }
 };
 } // namespace lobby
