@@ -731,6 +731,37 @@ struct component final : generic_component {
     for (const std::pair<uintptr_t, uintptr_t> &patch : patches) {
       utils::hook::jump(patch.first, patch.second);
     }
+
+    command::add("localXuid", [](const command::params &params) {
+      game::ControllerIndex_t controllerIndex =
+          game::ControllerIndex_t::CONTROLLER_INDEX_0;
+      if (params.size() > 1) {
+        const std::optional<int32_t> parseResult = try_parse_int(params[1]);
+        if (parseResult.has_value()) {
+          const game::ControllerIndex_t parsed =
+              static_cast<game::ControllerIndex_t>(parseResult.value());
+          if (game::valid_controller_index(parsed)) {
+            controllerIndex = parsed;
+          }
+        }
+      }
+
+      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                            game::consoleLabel_e::DEFAULT, "%016X\n",
+                            get_guid(controllerIndex));
+    });
+
+    command::add("lobbyXuids", []() {
+      for (game::ClientNum_t i = game::ClientNum_t::CLIENT_INDEX_FIRST;
+           i < game::CLIENT_INDEX_COUNT; ++i) {
+        const game::XUID xuid = get_guid(i);
+        if (xuid != 0) {
+          game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                                game::consoleLabel_e::DEFAULT, "%llu. %016X\n",
+                                i, xuid);
+        }
+      }
+    });
   }
 };
 } // namespace auth
