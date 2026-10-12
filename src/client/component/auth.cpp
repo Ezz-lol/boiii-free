@@ -29,6 +29,17 @@ game::EngineDependentDvar password;
 game::lobby::LobbyClientPool<game::XUID> client_xuids{};
 std::mutex client_xuids_mutex;
 
+std::optional<int32_t> try_parse_int(const std::string_view &str) {
+  int32_t value = 0;
+
+  const char *first = str.data();
+  const char *last = str.data() + str.size();
+
+  auto [ptr, ec] = std::from_chars(first, last, value);
+
+  return ec == std::errc{} && ptr == last ? std::optional(value) : std::nullopt;
+}
+
 std::string get_hdd_serial() {
   DWORD serial{};
   if (!GetVolumeInformationA("C:\\", nullptr, 0, &serial, nullptr, nullptr,
