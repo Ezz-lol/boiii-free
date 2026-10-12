@@ -46,6 +46,8 @@ WEAK symbol<eNetworkModes()> Com_SessionMode_GetNetworkMode{
     0x1420EA680, 0x1420F6E00, 0x1405003A0};
 WEAK symbol<eNetworkModes()> Com_SessionMode_GetActiveNetworkMode{0x1420EA6C0,
                                                                   0x0, 0x0};
+WEAK symbol<eNetworkModes(eNetworkModes networkMode)>
+    Com_SessionMode_ToActiveNetworkMode{0x1420EA690, 0x0, 0x0};
 WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{
     0x1420EAE30, 0x1420F75B0, 0x140500B80};
 WEAK symbol<void(eGameModes mode)> Com_SessionMode_SetGameMode{

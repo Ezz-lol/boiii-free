@@ -136,39 +136,52 @@ void sv_execute_client_messages_stub(game::sv::client_s *client,
   game::sv::SV_ExecuteClientMessage(client, msg);
 }
 
-thread_local std::optional<game::eNetworkModes> client_stats_network_mode;
-utils::hook::detour stats_network_mode_hook;
+thread_local const uint32_t *client_stats = nullptr;
+utils::hook::detour active_network_mode_hook;
+utils::hook::detour to_active_network_mode_hook;
 utils::hook::detour read_client_stats_hook;
 
-game::eNetworkModes stats_network_mode_stub() {
-  return client_stats_network_mode
-             ? *client_stats_network_mode
-             : stats_network_mode_hook.invoke<game::eNetworkModes>();
-}
-
-bool read_client_stats_stub(const game::ClientNum_t client,
-                            const uint32_t *buffer, const int32_t size,
-                            const int32_t max_size, void *state,
-                            void *context) {
+std::optional<game::eNetworkModes> client_stats_network_mode() {
+  if (!client_stats) {
+    return std::nullopt;
+  }
   using game::StorageFileType;
   bool sent_online = false;
   bool sent_offline = false;
-  for (uint32_t bit = 0; buffer && bit < 32; ++bit) {
+  for (uint32_t slot = 0; slot < 32; ++slot) {
     const game::live::storage::StorageFileDesc &file =
-        (*game::live::storage::s_storageFileDescs)[bit];
-    if ((buffer[0] & (1u << bit)) &&
+        (*game::live::storage::s_storageFileDescs)[slot];
+    if ((client_stats[0] & (1u << slot)) &&
         file.fileType >= StorageFileType::CP_STATS_ONLINE &&
         file.fileType <= StorageFileType::FR_STATS_OFFLINE) {
       (file.isOnline ? sent_online : sent_offline) = true;
     }
   }
-  if (sent_online != sent_offline) {
-    client_stats_network_mode = sent_online ? game::eNetworkModes::ONLINE
-                                            : game::eNetworkModes::OFFLINE;
+  if (sent_online == sent_offline) {
+    return std::nullopt;
   }
+  return sent_online ? game::eNetworkModes::ONLINE
+                     : game::eNetworkModes::OFFLINE;
+}
+
+game::eNetworkModes active_network_mode_stub() {
+  return client_stats_network_mode().value_or(
+      active_network_mode_hook.invoke<game::eNetworkModes>());
+}
+
+game::eNetworkModes
+to_active_network_mode_stub(const game::eNetworkModes network_mode) {
+  return client_stats_network_mode().value_or(
+      to_active_network_mode_hook.invoke<game::eNetworkModes>(network_mode));
+}
+
+bool read_client_stats_stub(const game::ClientNum_t client, uint32_t *buffer,
+                            const int32_t key, const int32_t max_size,
+                            void *state, void *context) {
+  client_stats = buffer;
   const bool result = read_client_stats_hook.invoke<bool>(
-      client, buffer, size, max_size, state, context);
-  client_stats_network_mode.reset();
+      client, buffer, key, max_size, state, context);
+  client_stats = nullptr;
   return result;
 }
 
@@ -387,9 +400,12 @@ struct component final : generic_component {
                   });
     }
     if (game::is_new_client()) {
-      stats_network_mode_hook.create(
+      active_network_mode_hook.create(
           game::com::Com_SessionMode_GetActiveNetworkMode,
-          stats_network_mode_stub);
+          active_network_mode_stub);
+      to_active_network_mode_hook.create(
+          game::com::Com_SessionMode_ToActiveNetworkMode,
+          to_active_network_mode_stub);
       read_client_stats_hook.create(
           game::live::stats::LiveStats_ReadClientStats, read_client_stats_stub);
       add_server_command_hook.create(game::sv::SV_AddServerCommand,
