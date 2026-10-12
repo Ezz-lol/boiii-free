@@ -2342,35 +2342,6 @@ LobbyVM.JoinableCheck = function(joinData)
   local joinRequest = joinData.joinRequest
   local joinResponse = joinData.joinResponse
   local currentMenuTarget = LobbyData.GetCurrentMenuTarget()
-  if
-      Engine.IsInGame()
-      or LobbyVM.IsHostLaunching()
-      or Engine.GetCurrentMap() ~= "core_frontend"
-      or Engine.SessionMode_IsPublicOnlineGame()
-  then
-    local sessionClients =
-        Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
-    local neededDLCBits = LobbyVM.GetNeededDLCBits()
-    Engine.PrintInfo(
-      Enum.consoleLabel.LABEL_LOBBY,
-      "Incoming client dlc bits are "
-      .. joinRequest.dlcBits
-      .. " while our needed bits are "
-      .. neededDLCBits
-      .. "\n"
-    )
-    if Engine.IsZombiesGame() then
-      joinRequest.dlcBits = LuaUtils.UpdateZMDLCBits(joinRequest.dlcBits)
-    end
-    if not LobbyVM.CheckDLCBit(joinRequest.dlcBits, neededDLCBits) then
-      Engine.PrintWarning(Enum.consoleLabel.LABEL_LOBBY, "Rejecting client due to incompatible dlc bits.\n")
-      if LobbyVM.CheckDLCBit(neededDLCBits, Enum.ContentFlagBits.CONTENT_DLC6) then
-        return Enum.JoinResult.JOIN_RESULT_BAD_MPHD_BITS
-      else
-        return Enum.JoinResult.JOIN_RESULT_BAD_DLC_BITS
-      end
-    end
-  end
   if joinResponse.response == Enum.JoinResult.JOIN_RESULT_SUCCESS then
     if Engine.IsMultiplayerGame() then
       if LuaUtils.IsArenaMode() then
