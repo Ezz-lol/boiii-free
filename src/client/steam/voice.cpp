@@ -496,7 +496,7 @@ EVoiceResult Voice::GetVoice(bool bWantCompressed, void *pDestBuffer,
 EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
                                void *pDestBuffer, uint32_t cbDestBufferSize,
                                uint32_t *nBytesWritten,
-                               [[maybe_unused]] uint32_t nDesiredSampleRate) {
+                               uint32_t nDesiredSampleRate) {
 #ifndef NDEBUG
   if (game::voice_trace()) {
     game::trace(
@@ -512,9 +512,17 @@ EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
   }
 
   if (pCompressed && cbCompressed) {
+    const uint32_t outputRate =
+        nDesiredSampleRate ? nDesiredSampleRate : SAMPLE_RATE;
+    static constexpr std::array<uint32_t, 5> decodeRates{8000, 12000, 16000,
+                                                         24000, SAMPLE_RATE};
+    const uint32_t decodeRate =
+        *std::ranges::find_if(decodeRates, [outputRate](const uint32_t rate) {
+          return rate >= outputRate || rate == SAMPLE_RATE;
+        });
     int32_t err = OPUS_OK;
-    OpusDecoder *decoder =
-        opus_decoder_create(SAMPLE_RATE, RECORDING_CHANNEL_COUNT, &err);
+    OpusDecoder *decoder = opus_decoder_create(
+        static_cast<opus_int32>(decodeRate), RECORDING_CHANNEL_COUNT, &err);
     if (decoder && err == OPUS_OK) {
       std::vector<opus_int16> pcmSamples(MAX_DECODED_RECORDING_SIZE);
       int32_t decFrameCount =
@@ -525,8 +533,10 @@ EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
       opus_decoder_destroy(decoder);
 
       if (decFrameCount >= 0) {
-        uint32_t bytesRequired = static_cast<uint32_t>(
-            decFrameCount * RECORDING_CHANNEL_COUNT * sizeof(opus_int16));
+        const uint32_t outputCount = static_cast<uint32_t>(
+            static_cast<uint64_t>(decFrameCount) * outputRate / decodeRate);
+        const uint32_t bytesRequired = static_cast<uint32_t>(
+            outputCount * RECORDING_CHANNEL_COUNT * sizeof(opus_int16));
 
         if (nBytesWritten) {
           *nBytesWritten = bytesRequired;
@@ -542,7 +552,18 @@ EVoiceResult Voice::Decompress(const void *pCompressed, uint32_t cbCompressed,
           return k_EVoiceResultBufferTooSmall;
         }
 
-        std::memcpy(pDestBuffer, pcmSamples.data(), bytesRequired);
+        opus_int16 *output = static_cast<opus_int16 *>(pDestBuffer);
+        for (uint32_t i = 0; i < outputCount; ++i) {
+          const double position =
+              static_cast<double>(i) * decodeRate / outputRate;
+          const uint32_t index = static_cast<uint32_t>(position);
+          const int32_t current = pcmSamples[index];
+          const int32_t next = index + 1 < static_cast<uint32_t>(decFrameCount)
+                                   ? pcmSamples[index + 1]
+                                   : current;
+          output[i] = static_cast<opus_int16>(current + (next - current) *
+                                                            (position - index));
+        }
 #ifndef NDEBUG
         if (game::voice_trace()) {
           game::trace("[Steam][Voice][DecompressVoice] returning "
