@@ -59,9 +59,8 @@ ASSERT_SIZE(playerTeamState_t, 4);
 
   Verify and adjust as needed prior to usage.
 */
-#pragma pack(push, 1)
 constexpr uint32_t CLIENTSESSION_T_SIZE = 0x540;
-struct clientSession_t {
+PACKED(struct clientSession_t {
   sessionState_t sessionState;
   ClientNum_t forceSpectatorClient;
   int32_t isInKillcam;
@@ -96,13 +95,12 @@ struct clientSession_t {
      Correct as needed.
   */
   int32_t scoreboardColumnCache[51];
-};
+});
 ASSERT_OFFSET(clientSession_t, localClient, 0xF4);
 ASSERT_OFFSET(clientSession_t, _padding14, 0x14);
 ASSERT_OFFSET(clientSession_t, cs, 0x138);
 ASSERT_OFFSET(clientSession_t, maxHealth, 0x108);
 ASSERT_SIZE(clientSession_t, CLIENTSESSION_T_SIZE);
-#pragma pack(pop)
 
 /*
   Almost entirely unverified  as of initial definition, except for
@@ -110,8 +108,7 @@ ASSERT_SIZE(clientSession_t, CLIENTSESSION_T_SIZE);
 
   Verify and adjust as needed prior to usage.
 */
-#pragma pack(push, 1)
-struct gclient_s {
+PACKED(struct gclient_s {
   playerState_t ps;
   playerState_t lastPlayerPS;
   uint8_t _padding16ACC[4];
@@ -181,16 +178,13 @@ struct gclient_s {
   uint8_t _padding171F6[2];
   int32_t lastStand;
   int32_t lastStandTime;
-};
+});
 typedef gclient_s gclient_t;
 // FIXME: correct size is 0x171F0. This struct needs to be corrected.
 ASSERT_SIZE(gclient_s, 0x17200);
 ASSERT_OFFSET(gclient_s, sess, 0x16AD0);
 
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct SpawnVar {
+PACKED(struct SpawnVar {
   bool spawnVarsValid;
   uint8_t _padding01[3];
   uint32_t numSpawnVars;
@@ -198,9 +192,8 @@ struct SpawnVar {
   uint32_t numSpawnVarChars;
   char spawnVarChars[2048];
   char spawnVarTypes[100];
-};
+});
 ASSERT_SIZE(SpawnVar, 0xEB0);
-#pragma pack(pop)
 
 struct archivedEntity_t;
 
@@ -221,8 +214,7 @@ static const uint32_t GENTITY_SND_WAIT_OFFSET = 0x3D4;
 struct gentity_s;
 typedef gentity_s gentity_t;
 
-#pragma pack(push, 1)
-struct flame_timed_damage_t {
+PACKED(struct flame_timed_damage_t {
   gentity_t *attacker;
   int32_t damage;
   float damageDuration;
@@ -230,9 +222,8 @@ struct flame_timed_damage_t {
   int32_t start_timestamp;
   int32_t end_timestamp;
   int32_t lastupdate_timestamp;
-};
+});
 ASSERT_SIZE(flame_timed_damage_t, 0x20);
-#pragma pack(pop)
 
 struct item_ent_t {
   uint32_t ammoCount;
@@ -241,8 +232,7 @@ struct item_ent_t {
 };
 ASSERT_SIZE(item_ent_t, 0x10);
 
-#pragma pack(push, 1)
-struct trigger_ent_t {
+PACKED(struct trigger_ent_t {
   int32_t threshold;
   int32_t accumulate;
   int32_t timestamp;
@@ -257,9 +247,8 @@ struct trigger_ent_t {
   uint8_t playerPrompts[4];
   bool requireAllPlayers;
   uint8_t _padding33[1];
-};
+});
 ASSERT_SIZE(trigger_ent_t, 0x34);
-#pragma pack(pop)
 
 struct mover_slidedata_t {
   vec3_t mins;
@@ -289,8 +278,7 @@ struct corpse_ent_t {
   int32_t deathAnimStartTime;
 };
 
-#pragma pack(push, 1)
-struct missile_ent_t {
+PACKED(struct missile_ent_t {
   vec3_t predictLandPos;
   int32_t predictLandTime;
   int32_t timestamp;
@@ -331,9 +319,8 @@ struct missile_ent_t {
   float grenadeWobbleCycle;
   float grenadeCurve;
   int32_t destructibleBounceCount;
-};
+});
 ASSERT_SIZE(missile_ent_t, 0x68);
-#pragma pack(pop)
 
 struct blend_ent_t {
   vec3_t pos;
@@ -357,23 +344,20 @@ struct spawner_ent_t {
   int32_t timestamp;
 };
 
-#pragma pack(push, 1)
-struct zbarrier_piece_t {
+PACKED(struct zbarrier_piece_t {
   uint8_t state;
   uint8_t scalar;
   uint8_t nextState;
   uint8_t _padding03[1];
   int32_t startTime;
-};
+});
 ASSERT_SIZE(zbarrier_piece_t, 0x8);
-#pragma pack(pop)
 
 struct zbarrier_ent_t {
   zbarrier_piece_t pieces[6];
 };
 
-#pragma pack(push, 1)
-struct tagInfo_t {
+PACKED(struct tagInfo_t {
   gentity_t *parent;
   gentity_t *next;
   scr::ScrString_t name;
@@ -386,19 +370,15 @@ struct tagInfo_t {
   vec3_t axis[4];
   vec3_t parentInvAxis[4];
   uint8_t _padding7C[4];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct EntityModelAttachment {
+PACKED(struct EntityModelAttachment {
   modelNameIndex_t model;
   uint8_t _padding02[2];
   scr::ScrString_t tag;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct gentity_s {
+PACKED(struct gentity_s {
   entityState_t s;
   entityShared_t r;
   gclient_t *client;
@@ -477,8 +457,7 @@ struct gentity_s {
   uint8_t _padding4F1[7];
 
   inline constexpr bool dead() const noexcept { return health <= 0; }
-};
-#pragma pack(pop)
+});
 
 constexpr uint32_t GENTITY_POOL_LEN = 2048;
 struct gentity_pool {

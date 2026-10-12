@@ -1855,7 +1855,7 @@ inline void register_lui_commands() {
     // Find the mod's content folder from the workshop pool
     std::string mod_content_path;
     for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
-      const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
+      const game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[i];
       if (mod_data->publisherId == mod_id || mod_data->internalName == mod_id) {
         mod_content_path = mod_data->absolutePathContentDirectory;
         break;

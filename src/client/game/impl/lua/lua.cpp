@@ -9,7 +9,7 @@ uint32_t Mods_Lists_GetInfoEntries_Slice_Impl(ZoneType zoneType,
                                               int32_t sliceLen,
                                               hks::lua_State *luaState) {
   int32_t endIdx;
-  ugc::ExtendedWorkshopDataPool *pool;
+  ugc::ExtendedUGCPool *pool;
   switch (zoneType) {
   case ZoneType::MOD:
     endIdx = ugc::modsPool.count;
@@ -35,7 +35,7 @@ uint32_t Mods_Lists_GetInfoEntries_Slice_Impl(ZoneType zoneType,
   lua_createtable(luaState, sliceLen, 0);
   for (int32_t i = sliceStart, key = 0; i < endIdx; i++, key++) {
     Lua_BeginTable(key, luaState);
-    ugc::WorkshopData *data = &pool->data[i];
+    ugc::UGCItem *data = &pool->data[i];
     Lua_SetTableString("name", data->title, luaState);
     Lua_SetTableString("internalName", data->internalName, luaState);
     Lua_SetTableString("description", data->description, luaState);

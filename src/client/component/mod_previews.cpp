@@ -170,7 +170,7 @@ luaReturnCount_e delete_mod(lua_State *luaVM) {
     error = "Unload mods before deleting one.";
   } else if (ugc_name) {
     for (uint32_t i = 0; i < game::ugc::modsPool.count; i++) {
-      const game::ugc::WorkshopData &mod = game::ugc::modsPool.data[i];
+      const game::ugc::UGCItem &mod = game::ugc::modsPool.data[i];
       if (std::string_view(mod.publisherId) != ugc_name) {
         continue;
       }

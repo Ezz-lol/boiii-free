@@ -25,28 +25,26 @@
 namespace game {
 namespace ugc {
 
-OptionalWorkshopDataRef UGC_GetModByPublisherId(const char *publisherId) {
-  return publisherId ? modsPool.find([publisherId](WorkshopData &mod) {
+OptionalUGCItemRef UGC_GetModByPublisherId(const char *publisherId) {
+  return publisherId ? modsPool.find([publisherId](UGCItem &mod) {
     return strcmp(mod.publisherId, publisherId) == 0;
   })
                      : std::nullopt;
 }
 
-OptionalWorkshopDataRef UGC_GetUsermapByPublisherId(const char *publisherId) {
-  return publisherId ? usermapsPool.find([publisherId](WorkshopData &usermap) {
+OptionalUGCItemRef UGC_GetUsermapByPublisherId(const char *publisherId) {
+  return publisherId ? usermapsPool.find([publisherId](UGCItem &usermap) {
     return strcmp(usermap.publisherId, publisherId) == 0;
   })
                      : std::nullopt;
 }
 
-WorkshopData *UGC_GetByPublisherId_Impl(ZoneType zoneType,
-                                        const char *publisherId) {
+UGCItem *UGC_GetByPublisherId_Impl(ZoneType zoneType, const char *publisherId) {
   switch (zoneType) {
   case ZoneType::MOD:
-    return UGC_UnwrapOptionalWorkshopData(UGC_GetModByPublisherId(publisherId));
+    return UGC_UnwrapOptionalUGCItem(UGC_GetModByPublisherId(publisherId));
   case ZoneType::USERMAP:
-    return UGC_UnwrapOptionalWorkshopData(
-        UGC_GetUsermapByPublisherId(publisherId));
+    return UGC_UnwrapOptionalUGCItem(UGC_GetUsermapByPublisherId(publisherId));
   default:
     return nullptr;
   }
@@ -64,17 +62,17 @@ uint32_t UGC_GetCount_Impl(ZoneType zoneType) {
 }
 
 bool UGC_VerifyModVersion(const char *publisherId, uint32_t version) {
-  OptionalWorkshopDataRef mod = UGC_GetModByPublisherId(publisherId);
+  OptionalUGCItemRef mod = UGC_GetModByPublisherId(publisherId);
   return mod.has_value() && mod->get().version == version;
 }
 bool UGC_VerifyUsermapVersion(const char *publisherId, uint32_t version) {
-  OptionalWorkshopDataRef usermap = UGC_GetUsermapByPublisherId(publisherId);
+  OptionalUGCItemRef usermap = UGC_GetUsermapByPublisherId(publisherId);
   return usermap.has_value() && usermap->get().version == version;
 }
 
 bool UGC_VerifyVersion_Impl(ZoneType zoneType, const char *publisherId,
                             uint32_t version) {
-  WorkshopData *ugc = UGC_GetByPublisherId_Impl(zoneType, publisherId);
+  UGCItem *ugc = UGC_GetByPublisherId_Impl(zoneType, publisherId);
   return ugc && ugc->version == version;
 }
 
@@ -86,8 +84,7 @@ UGCHash UGC_Hash(const char *str) {
              : UGC_HASH_NULLPTR;
 }
 
-inline void UGC_LoadPool_Patches(ExtendedWorkshopDataPool *pool,
-                                 ZoneType zoneType) {
+inline void UGC_LoadPool_Patches(ExtendedUGCPool *pool, ZoneType zoneType) {
 
   if (zoneType == ZoneType::MOD) {
     workshop::supplement_mods_from_disk();
@@ -98,7 +95,7 @@ inline void UGC_LoadPool_Patches(ExtendedWorkshopDataPool *pool,
 
   workshop::supplement_ugc_from_workshop(zoneType);
 
-  for (WorkshopData &ugc : pool->iter()) {
+  for (UGCItem &ugc : pool->iter()) {
     if (ugc.internalName[0] &&
         (zoneType == ZoneType::USERMAP ||
          std::strcmp(ugc.internalName, "usermaps") != 0) &&
@@ -108,7 +105,7 @@ inline void UGC_LoadPool_Patches(ExtendedWorkshopDataPool *pool,
   }
 }
 
-void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
+void UGC_LoadPool_Impl(ExtendedUGCPool *pool, ZoneType zoneType) {
 
   const char *cwd = sys::Sys_Cwd();
   const char *ugcContentContainerDirname;
@@ -137,7 +134,7 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
        fileList[fileIdx] && fileList[fileIdx][0];
        ++fileIdx, ++pool->count) {
     fs::Path ugcDirname = fileList[fileIdx];
-    WorkshopData *entry = &pool->data[pool->count];
+    UGCItem *entry = &pool->data[pool->count];
 
     strscpy(entry->title, ugcDirname);
     strscpy(entry->internalName, ugcDirname);
@@ -287,9 +284,9 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
       publisherId ? publisherId : "NULL", reloadFS ? "true" : "false");
 #endif
   UGC_LoadPools_Impl();
-  WorkshopData genMod{};
-  WorkshopData *mod =
-      UGC_UnwrapOptionalWorkshopData(UGC_GetModByPublisherId(publisherId));
+  UGCItem genMod{};
+  UGCItem *mod =
+      UGC_UnwrapOptionalUGCItem(UGC_GetModByPublisherId(publisherId));
   if (mod == nullptr) {
     if (UGC_DownloadModByPublisherId(publisherId)) {
       return;
@@ -326,8 +323,8 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
 }
 
 void UGC_SetMapPreviewImageByPublisherId_Impl(const char *publisherId) {
-  const OptionalWorkshopDataRef usermap =
-      publisherId ? usermapsPool.find([publisherId](WorkshopData &usermap) {
+  const OptionalUGCItemRef usermap =
+      publisherId ? usermapsPool.find([publisherId](UGCItem &usermap) {
         return strcmp(usermap.publisherId, publisherId) == 0 ||
                strcmp(usermap.internalName, publisherId) == 0;
       })
@@ -369,7 +366,7 @@ void UGC_SetMapLoadingImage_Impl() {
           .image;
   if (loadingImage && active_usermap->publisherId[0]) {
     char pathBuf[272];
-    OptionalWorkshopDataRef usermap =
+    OptionalUGCItemRef usermap =
         UGC_GetUsermapByPublisherId(active_usermap->publisherId);
     if (usermap.has_value() && usermap->get().absolutePathZoneFiles[0]) {
       snprintf(pathBuf, sizeof(pathBuf), "%s/%s/%s%s",
@@ -402,7 +399,7 @@ inline void *GetPrimaryHSteamPipe() {
 
 class ModsUGCDetailsCallback : steam::CCallbackBase {
 public:
-  WorkshopData *result;
+  UGCItem *result;
   // Incomplete
 };
 
@@ -410,10 +407,10 @@ class ModsUGCDetailsCallbackResult
     : steam::CCallResult<ModsUGCDetailsCallback,
                          steam::SteamUGCRequestUGCDetailsResult_t> {
 public:
-  void Set(SteamAPICall_t hApiCall, WorkshopData *result) {
+  void Set(SteamAPICall_t hApiCall, UGCItem *result) {
 
     typedef thiscallPtr_t<void(ModsUGCDetailsCallbackResult * _this,
-                               SteamAPICall_t hApiCall, WorkshopData * result)>
+                               SteamAPICall_t hApiCall, UGCItem * result)>
         SetFunc;
 
     SetFunc setImpl = reinterpret_cast<SetFunc>(
@@ -466,7 +463,7 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
                 (doc.HasMember("Type") && doc["Type"].IsString())
                     ? doc["Type"].GetString()
                     : "";
-            ExtendedWorkshopDataPool *targetPool = nullptr;
+            ExtendedUGCPool *targetPool = nullptr;
             ZoneType zoneType;
 
             if (strcmp(typeString, "map") == 0) {
@@ -483,7 +480,7 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
 
             if (targetPool &&
                 targetPool->count < EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
-              WorkshopData *newUgcEntry = &targetPool->data[targetPool->count];
+              UGCItem *newUgcEntry = &targetPool->data[targetPool->count];
               targetPool->count++;
 
               if (doc.HasMember("Title") && doc["Title"].IsString()) {
@@ -540,10 +537,10 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
   }
 }
 
-WorkshopData *UGC_LoadUsermapByPublisherId_Impl(const char *publisherId) {
+UGCItem *UGC_LoadUsermapByPublisherId_Impl(const char *publisherId) {
 
-  WorkshopData *usermap =
-      UGC_UnwrapOptionalWorkshopData(UGC_GetUsermapByPublisherId(publisherId));
+  UGCItem *usermap =
+      UGC_UnwrapOptionalUGCItem(UGC_GetUsermapByPublisherId(publisherId));
   // PATCH: load asset pool configuration from zone tree
   if (usermap) {
     UGC_LoadItem_PrepareAssetPool(usermap->absolutePathZoneFiles);
@@ -563,9 +560,9 @@ int32_t UGC_ZoneSourcePath_Impl(const char *name, const char *extension,
                          extension);
   }
   default: {
-    const WorkshopData *data = UGC_GetByPublisherId_Impl(zoneType, publisherId);
+    const UGCItem *data = UGC_GetByPublisherId_Impl(zoneType, publisherId);
 
-    // Fall back to publisherId if WorkshopData is invalid or internalName is
+    // Fall back to publisherId if UGCItem is invalid or internalName is
     // empty
     const char *targetDir =
         data && data->internalName[0] ? data->internalName : publisherId;

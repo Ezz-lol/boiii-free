@@ -6,19 +6,18 @@
 
 namespace game {
 namespace ugc {
-WEAK symbol<BuiltinWorkshopDataPool> builtinModsPool{0x15670E1F0, 0x15678D170,
-                                                     0x14933EAE0};
-extern ExtendedWorkshopDataPool modsPool;
+WEAK symbol<BuiltinUGCPool> builtinModsPool{0x15670E1F0, 0x15678D170,
+                                            0x14933EAE0};
+extern ExtendedUGCPool modsPool;
 
-WEAK symbol<BuiltinWorkshopDataPool> builtinUsermapsPool{
-    0x156734600, 0x1567B3580, 0x149364EE8};
-extern ExtendedWorkshopDataPool usermapsPool;
+WEAK symbol<BuiltinUGCPool> builtinUsermapsPool{0x156734600, 0x1567B3580,
+                                                0x149364EE8};
+extern ExtendedUGCPool usermapsPool;
 
 WEAK symbol<bool()> UGC_ActiveMod_Loaded{0x1420C88A0, 0x1420D5020, 0x0};
 WEAK symbol<const char *()> UGC_ActiveMod_PublisherId{0x1420CAF00, 0x1420D7680,
                                                       0x1404E3230};
-WEAK symbol<void(LocalClientNum_t localClientNum, WorkshopData *mod,
-                 bool reloadFS)>
+WEAK symbol<void(LocalClientNum_t localClientNum, UGCItem *mod, bool reloadFS)>
     UGC_LoadMod{0x1420CA3D0, 0x1420D6B50, 0x1404E29E0};
 WEAK symbol<void(LocalClientNum_t localClientNum, const char *publisherId,
                  bool reloadFS)>
@@ -26,10 +25,10 @@ WEAK symbol<void(LocalClientNum_t localClientNum, const char *publisherId,
 WEAK symbol<bool(LocalClientNum_t localClientNum)> UGC_ModLoad_TryComplete{
     0x1420CA660, 0x1420D6DE0, 0x0};
 
-WEAK symbol<WorkshopData> active_usermap{0x15675AA20, 0x1567D99A0, 0x14938B2F0};
+WEAK symbol<UGCItem> active_usermap{0x15675AA20, 0x1567D99A0, 0x14938B2F0};
 WEAK symbol<ActiveMod> active_mod{0x15670DD20, 0x15678CCA0, 0x14933E610};
 
-WEAK symbol<WorkshopData *(ZoneType zoneType, const char *publisherId)>
+WEAK symbol<UGCItem *(ZoneType zoneType, const char *publisherId)>
     UGC_GetByPublisherId{0x1420C99A0, 0x1420D6120, 0x1404E21D0};
 WEAK symbol<uint32_t(ZoneType zoneType)> UGC_GetCount{0x1420C9BE0, 0x1420D6360,
                                                       0x1404E2290};
@@ -49,13 +48,13 @@ WEAK symbol<void(bool usermaps, bool mods)> UGC_LoadManifests{
 WEAK symbol<void()> UGC_LoadPools{0x1420C9F40, 0x1420D66C0, 0x1404E25C0};
 WEAK symbol<void()> UGC_LoadUsermapsPool{0x1420CA010, 0x1420D6790, 0x1404E2690};
 WEAK symbol<void()> UGC_LoadModsPool{0x1420C9F60, 0x1420D66E0, 0x1404E2640};
-WEAK symbol<void(ExtendedWorkshopDataPool *pool, ZoneType zoneType)>
-    UGC_LoadPool{0x1420C9CB0, 0x1420D6430, 0x1404E2360};
+WEAK symbol<void(ExtendedUGCPool *pool, ZoneType zoneType)> UGC_LoadPool{
+    0x1420C9CB0, 0x1420D6430, 0x1404E2360};
 WEAK symbol<void(const char *publisherId)> UGC_SetMapPreviewImageByPublisherId{
     0x1420CAC20, 0x1420D73A0, 0x1404E2FB0};
-WEAK symbol<WorkshopData *(const char *publisherId)>
-    UGC_LoadUsermapByPublisherId{0x1420C8F80, 0x1420D5700, 0x1404E18B0};
-WEAK symbol<void(WorkshopData *usermap)> UGC_SetActiveUsermap{
+WEAK symbol<UGCItem *(const char *publisherId)> UGC_LoadUsermapByPublisherId{
+    0x1420C8F80, 0x1420D5700, 0x1404E18B0};
+WEAK symbol<void(UGCItem *usermap)> UGC_SetActiveUsermap{
     0x1420C8DE0, 0x1420D5560, 0x1404E1740};
 WEAK symbol<void(EngineDependentDvarMut fs_game)> UGC_ModChange_ProcessQueued{
     0x1420C96B0, 0x1420D5E30, 0x1404E1FB0};

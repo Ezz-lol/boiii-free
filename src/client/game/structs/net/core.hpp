@@ -272,6 +272,24 @@ enum class clientState_t : int32_t {
   PRIMED = 0x4,    // gamestate has been sent, but client hasn't sent a usercmd
   ACTIVE = 0x5,    // client is fully in game
 };
+inline constexpr const char *serialize(const clientState_t state) {
+  switch (state) {
+  case clientState_t::FREE:
+    return "CLIENT_STATE_FREE";
+  case clientState_t::ZOMBIE:
+    return "CLIENT_STATE_ZOMBIE";
+  case clientState_t::RECONNECTING:
+    return "CLIENT_STATE_RECONNECTING";
+  case clientState_t::CONNECTED:
+    return "CLIENT_STATE_CONNECTED";
+  case clientState_t::PRIMED:
+    return "CLIENT_STATE_PRIMED";
+  case clientState_t::ACTIVE:
+    return "CLIENT_STATE_ACTIVE";
+  default:
+    return "CLIENT_STATE_INVALID";
+  }
+}
 IMPL_ENUM_OPERATORS(clientState_t);
 
 struct netProfilePacket_t {

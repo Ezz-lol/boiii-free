@@ -82,7 +82,7 @@ int write_pubid_to_file(std::string pubID) {
 }
 
 void read_json_for_id(std::filesystem::path path) {
-  const auto json_str = utils::io::read_file(path);
+  const std::string json_str = utils::io::read_file(path);
 
   if (json_str.empty()) {
     printf("[ WorkshopID ] workshop.json has not been found in folder \n");
@@ -90,7 +90,7 @@ void read_json_for_id(std::filesystem::path path) {
   }
 
   rapidjson::Document doc;
-  const rapidjson::ParseResult parse_result = doc.Parse(json_str);
+  const rapidjson::ParseResult parse_result = doc.Parse(json_str.data());
 
   if (parse_result.IsError() || !doc.IsObject()) {
     printf("[ WorkshopID ] Unable to parse workshop.json from folder \n");
@@ -116,7 +116,7 @@ bool read_json_for_folder_name(std::filesystem::path path,
   }
 
   rapidjson::Document doc;
-  const rapidjson::ParseResult parse_result = doc.Parse(json_str);
+  const rapidjson::ParseResult parse_result = doc.Parse(json_str.data());
 
   if (parse_result.IsError() || !doc.IsObject()) {
     printf("[ FolderName ] Unable to parse workshop.json from folder \n");

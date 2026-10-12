@@ -5,8 +5,7 @@
 namespace game {
 namespace ugc {
 
-inline WorkshopData *
-UGC_UnwrapOptionalWorkshopData(OptionalWorkshopDataRef ref) {
+inline UGCItem *UGC_UnwrapOptionalUGCItem(OptionalUGCItemRef ref) {
   if (ref.has_value()) {
     return &ref.value().get();
   }
@@ -14,8 +13,7 @@ UGC_UnwrapOptionalWorkshopData(OptionalWorkshopDataRef ref) {
   return nullptr;
 }
 
-inline const WorkshopData *
-UGC_UnwrapOptionalWorkshopData(OptionalConstWorkshopDataRef ref) {
+inline const UGCItem *UGC_UnwrapOptionalUGCItem(OptionalConstUGCItemRef ref) {
   if (ref.has_value()) {
     return &ref.value().get();
   }
@@ -23,10 +21,9 @@ UGC_UnwrapOptionalWorkshopData(OptionalConstWorkshopDataRef ref) {
   return nullptr;
 }
 
-OptionalWorkshopDataRef UGC_GetModByPublisherId(const char *publisherId);
-OptionalWorkshopDataRef UGC_GetUsermapByPublisherId(const char *publisherId);
-WorkshopData *UGC_GetByPublisherId_Impl(ZoneType zoneType,
-                                        const char *publisherId);
+OptionalUGCItemRef UGC_GetModByPublisherId(const char *publisherId);
+OptionalUGCItemRef UGC_GetUsermapByPublisherId(const char *publisherId);
+UGCItem *UGC_GetByPublisherId_Impl(ZoneType zoneType, const char *publisherId);
 inline uint32_t UGC_GetModCount() { return modsPool.count; }
 inline uint32_t UGC_GetUsermapCount() { return usermapsPool.count; }
 uint32_t UGC_GetCount_Impl(ZoneType zoneType);
@@ -35,7 +32,7 @@ bool UGC_VerifyUsermapVersion(const char *publisherId, uint32_t version);
 bool UGC_VerifyVersion_Impl(ZoneType zoneType, const char *publisherId,
                             uint32_t version);
 UGCHash UGC_Hash(const char *str);
-void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType);
+void UGC_LoadPool_Impl(ExtendedUGCPool *pool, ZoneType zoneType);
 void UGC_LoadModsPool_Impl();
 void UGC_LoadUsermapsPool_Impl();
 void UGC_LoadPools_Impl();
@@ -45,7 +42,7 @@ void UGC_SetMapPreviewImageByPublisherId_Impl(const char *publisherId);
 void UGC_SetMapLoadingImage_Impl();
 void UGC_LoadManifest_Impl(bool usermaps, bool mods,
                            steam::PublishedFileId_t publisherId);
-WorkshopData *UGC_LoadUsermapByPublisherId_Impl(const char *publisherId);
+UGCItem *UGC_LoadUsermapByPublisherId_Impl(const char *publisherId);
 
 int32_t UGC_ZoneSourcePath_Impl(const char *name, const char *extension,
                                 int32_t size, char *buf, ZoneType zoneType,

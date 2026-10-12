@@ -418,10 +418,6 @@ struct component final : generic_component {
         game::select(0x14211A3B0, 0x142172E70, 0x140515800),
         net_adr_to_string_stub);
 
-    // Don't let the game bind sockets anymore
-    // utils::hook::set(game::select(0x15AA6A38C, 0x15AAE9344, 0x14B4BD828),
-    //                  bind_stub);
-
     // Set cl_maxpackets to 100
     utils::hook::set<uint8_t>(
         game::select(0x1412ff362, 0x1412FF342, 0x140177A32), 100 - 15);

@@ -11,7 +11,7 @@ namespace ugc {
 typedef uint32_t UGCHash;
 typedef str<260> UGCPath;
 
-struct WorkshopData {
+struct UGCItem {
   // Field is called "name" in lua table
   str<100> title;
   name_t internalName;
@@ -33,14 +33,12 @@ struct WorkshopData {
   UGCHash publisherIdHash;
   ZoneType type;
 
-  inline void clear() {
-    memset(static_cast<void *>(this), 0, sizeof(WorkshopData));
-  }
+  inline void clear() { memset(static_cast<void *>(this), 0, sizeof(UGCItem)); }
 
 #ifndef NDEBUG
   inline std::string serialize() {
     return std::format(
-        "WorkshopData {{ \"title\": \"{}\", \"internalName\": \"{}\", "
+        "UGCItem {{ \"title\": \"{}\", \"internalName\": \"{}\", "
         "\"publisherId\": \"{}\", \"description\": \"{}\", "
         "\"contentPathToZoneFiles\": \"{}\", \"absolutePathContentDirectory\": "
         "\"{}\", \"absolutePathZoneFiles\", \"{}\", \"version\": {}, "
@@ -51,8 +49,8 @@ struct WorkshopData {
   }
 #endif
 };
-ASSERT_CPP03_POD(WorkshopData);
-ASSERT_SIZE(WorkshopData, 0x4C8);
+ASSERT_CPP03_POD(UGCItem);
+ASSERT_SIZE(UGCItem, 0x4C8);
 
 enum class ModLoadState : uint32_t {
   IDLE = 0x0,
@@ -61,34 +59,33 @@ enum class ModLoadState : uint32_t {
 };
 IMPL_ENUM_OPERATORS(ModLoadState);
 
-struct ActiveMod : WorkshopData {
+struct ActiveMod : UGCItem {
   ModLoadState loadState;
   uint8_t _padding4CC[4];
 };
 ASSERT_SIZE(ActiveMod, 0x4D0);
 
-typedef std::optional<std::reference_wrapper<WorkshopData>>
-    OptionalWorkshopDataRef;
+typedef std::optional<std::reference_wrapper<UGCItem>> OptionalUGCItemRef;
 
-typedef std::optional<std::reference_wrapper<const WorkshopData>>
-    OptionalConstWorkshopDataRef;
+typedef std::optional<std::reference_wrapper<const UGCItem>>
+    OptionalConstUGCItemRef;
 
-template <const uint32_t POOL_SIZE> struct WorkshopDataPool {
+template <const uint32_t POOL_SIZE> struct UGCPool {
   uint32_t count;
   uint8_t _padding04[4];
-  WorkshopData data[POOL_SIZE];
+  UGCItem data[POOL_SIZE];
 
   inline void clear() {
-    memset(static_cast<void *>(this), 0, sizeof(WorkshopDataPool<POOL_SIZE>));
+    memset(static_cast<void *>(this), 0, sizeof(UGCPool<POOL_SIZE>));
   }
 
   struct Iterator {
     using iterator_concept = std::contiguous_iterator_tag;
     using iterator_category = std::random_access_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = WorkshopData;
-    using pointer = WorkshopData *;
-    using reference = WorkshopData &;
+    using value_type = UGCItem;
+    using pointer = UGCItem *;
+    using reference = UGCItem &;
 
     Iterator() = default;
 
@@ -117,9 +114,9 @@ template <const uint32_t POOL_SIZE> struct WorkshopDataPool {
     using iterator_concept = std::contiguous_iterator_tag;
     using iterator_category = std::random_access_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = WorkshopData;
-    using pointer = WorkshopData *;
-    using reference = const WorkshopData &;
+    using value_type = UGCItem;
+    using pointer = UGCItem *;
+    using reference = const UGCItem &;
 
     ConstIterator() = default;
 
@@ -170,44 +167,39 @@ template <const uint32_t POOL_SIZE> struct WorkshopDataPool {
   }
 
   template <typename Predicate>
-  OptionalConstWorkshopDataRef find(Predicate predicate) const noexcept {
+  OptionalConstUGCItemRef find(Predicate predicate) const noexcept {
     ConstIterable it = iter();
     const std::ranges::borrowed_iterator_t<ConstIterable &> result =
         std::ranges::find_if(it, predicate);
-    return result == it.end() ? std::nullopt
-                              : OptionalConstWorkshopDataRef(*result);
+    return result == it.end() ? std::nullopt : OptionalConstUGCItemRef(*result);
   }
 
   template <typename Predicate>
-  OptionalWorkshopDataRef find(Predicate predicate) noexcept {
+  OptionalUGCItemRef find(Predicate predicate) noexcept {
     Iterable it = iter();
     const std::ranges::borrowed_iterator_t<Iterable &> result =
         std::ranges::find_if(it, predicate);
-    return result == it.end() ? std::nullopt : OptionalWorkshopDataRef(*result);
+    return result == it.end() ? std::nullopt : OptionalUGCItemRef(*result);
   }
 };
 
-template <const uint32_t POOL_SIZE>
-struct ClientWorkshopDataPool : WorkshopDataPool<POOL_SIZE> {
+template <const uint32_t POOL_SIZE> struct ClientUGCPool : UGCPool<POOL_SIZE> {
   LocalClientPool<ui::UIModelIndex> listModels;
   uint8_t _padding[4];
 };
 
 constexpr uint32_t BUILTIN_WORKSHOP_DATA_POOL_SIZE = 128;
-typedef WorkshopDataPool<BUILTIN_WORKSHOP_DATA_POOL_SIZE>
-    BuiltinWorkshopDataPool;
-ASSERT_SIZE(BuiltinWorkshopDataPool, 0x26408);
-typedef ClientWorkshopDataPool<BUILTIN_WORKSHOP_DATA_POOL_SIZE>
-    BuiltinClientWorkshopDataPool;
-ASSERT_SIZE(BuiltinClientWorkshopDataPool, 0x26410);
+typedef UGCPool<BUILTIN_WORKSHOP_DATA_POOL_SIZE> BuiltinUGCPool;
+ASSERT_SIZE(BuiltinUGCPool, 0x26408);
+typedef ClientUGCPool<BUILTIN_WORKSHOP_DATA_POOL_SIZE> BuiltinClientUGCPool;
+ASSERT_SIZE(BuiltinClientUGCPool, 0x26410);
 
 constexpr uint32_t EXTENDED_WORKSHOP_DATA_POOL_SIZE = 8192;
-typedef ClientWorkshopDataPool<EXTENDED_WORKSHOP_DATA_POOL_SIZE>
-    ExtendedWorkshopDataPool;
+typedef ClientUGCPool<EXTENDED_WORKSHOP_DATA_POOL_SIZE> ExtendedUGCPool;
 constexpr uint32_t EXTENDED_WORKSHOP_DATA_POOL_STRUCT_SIZE =
-    sizeof(ExtendedWorkshopDataPool);
+    sizeof(ExtendedUGCPool);
 
-typedef WorkshopData *SteamUGCRequestDetailsResult_t;
+typedef UGCItem *SteamUGCRequestDetailsResult_t;
 
 } // namespace ugc
 } // namespace game

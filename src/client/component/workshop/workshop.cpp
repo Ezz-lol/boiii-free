@@ -104,7 +104,7 @@ void queue_dlc_popup(const std::string &mapname) {
 
 bool has_mod(const std::string &pub_id) {
   for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
-    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
+    const game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[i];
     if (mod_data->publisherId == pub_id || mod_data->internalName == pub_id) {
       return true;
     }
@@ -115,7 +115,7 @@ bool has_mod(const std::string &pub_id) {
 
 std::string resolve_mod_workshop_id(const std::string &mod_name) {
   for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
-    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
+    const game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[i];
     if (mod_data->internalName == mod_name &&
         utils::string::is_numeric(mod_data->publisherId)) {
       return mod_data->publisherId;
@@ -243,7 +243,7 @@ void CL_SetupForNewServerMap_stub(game::LocalClientNum_t localClientNum,
   CL_SetupForNewServerMap_hook.invoke(localClientNum, map, gametype);
 }
 
-void load_workshop_data(game::ugc::WorkshopData *item) {
+void load_workshop_data(game::ugc::UGCItem *item) {
   const char *base_path = item->absolutePathZoneFiles;
   const char *path = utils::string::va("%s/workshop.json", base_path);
   const std::string json_str = utils::io::read_file(path);
@@ -255,7 +255,7 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
   }
 
   rapidjson::Document doc;
-  const rapidjson::ParseResult parse_result = doc.Parse(json_str);
+  const rapidjson::ParseResult parse_result = doc.Parse(json_str.data());
 
   if (parse_result.IsError() || !doc.IsObject()) {
     printf("[ Workshop ] Unable to parse workshop.json from folder:\n%s\n",
@@ -277,7 +277,7 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
   item->publisherIdHash = game::ugc::UGC_Hash(item->publisherId);
 }
 
-void populate_workshop_paths(game::ugc::WorkshopData *item,
+void populate_workshop_paths(game::ugc::UGCItem *item,
                              const std::filesystem::path &content_folder,
                              const game::ZoneType type) {
   item->clear();
@@ -324,7 +324,7 @@ void supplement_mods_from_disk() {
       continue;
     }
 
-    game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[count];
+    game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[count];
     populate_workshop_paths(mod_data, entry.path(), game::ZoneType::MOD);
     load_workshop_data(mod_data);
     ++count;
@@ -354,14 +354,14 @@ void supplement_usermaps_from_disk() {
     const std::string folder = entry.path().filename().string();
     if (std::any_of(game::ugc::usermapsPool.data,
                     game::ugc::usermapsPool.data + count,
-                    [&](const game::ugc::WorkshopData &existing) {
+                    [&](const game::ugc::UGCItem &existing) {
                       return folder == existing.publisherId ||
                              folder == existing.internalName;
                     })) {
       continue;
     }
 
-    game::ugc::WorkshopData *map_data = &game::ugc::usermapsPool.data[count++];
+    game::ugc::UGCItem *map_data = &game::ugc::usermapsPool.data[count++];
     populate_workshop_paths(map_data, entry.path(), game::ZoneType::USERMAP);
     load_workshop_data(map_data);
   }
@@ -392,7 +392,7 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
 
   const char *ugc_dirname;
   const char *ugc_type_str;
-  game::ugc::ExtendedWorkshopDataPool *pool;
+  game::ugc::ExtendedUGCPool *pool;
   switch (zoneType) {
   case game::ZoneType::USERMAP:
     ugc_dirname = "usermaps";
@@ -434,7 +434,7 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
       continue;
     }
 
-    game::ugc::WorkshopData *ugc_data = &pool->data[count];
+    game::ugc::UGCItem *ugc_data = &pool->data[count];
 
     ugc_data->clear();
     utils::string::copy(ugc_data->absolutePathContentDirectory,
@@ -484,7 +484,7 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
 }
 
 utils::hook::detour UGC_LoadUsermapByPublisherId_hook;
-game::ugc::WorkshopData *
+game::ugc::UGCItem *
 UGC_LoadUsermapByPublisherId_HandleInternalName(const char *maybePublisherId) {
   std::string publisherId = maybePublisherId;
   if (!utils::string::is_numeric(maybePublisherId)) {
@@ -540,7 +540,7 @@ std::string get_mod_resized_name() {
   std::string mod_name = loaded_mod_id;
 
   for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
-    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
+    const game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[i];
 
     if (mod_data->publisherId == loaded_mod_id) {
       mod_name = mod_data->title;
@@ -557,8 +557,7 @@ std::string get_mod_resized_name() {
 
 std::string get_usermap_publisher_id(const std::string &zone_name) {
   for (uint32_t i = 0; i < game::ugc::usermapsPool.count; ++i) {
-    const game::ugc::WorkshopData *usermap_data =
-        &game::ugc::usermapsPool.data[i];
+    const game::ugc::UGCItem *usermap_data = &game::ugc::usermapsPool.data[i];
     if (usermap_data->internalName == zone_name) {
       if (!utils::string::is_numeric(usermap_data->publisherId)) {
         printf("[ Workshop ] WARNING: The publisherId is not numerical. You "
@@ -1075,7 +1074,7 @@ void com_error_missing_map_stub(const char *file, int line,
 #ifndef NDEBUG
 utils::hook::detour UGC_LoadMod_hook;
 void UGC_LoadMod_LogFirst(game::LocalClientNum_t localClientNum,
-                          game::ugc::WorkshopData *mod, bool reloadFS) {
+                          game::ugc::UGCItem *mod, bool reloadFS) {
   const std::string mod_str = mod ? mod->serialize() : "NULL";
   game::trace(
       "UGC_LoadMod called with localClientNum: {}, mod: {}, reloadFS: {}",
@@ -1207,7 +1206,7 @@ public:
           }
 
           for (size_t i = 0; i < game::ugc::modsPool.count; ++i) {
-            const game::ugc::WorkshopData *data = &game::ugc::modsPool.data[i];
+            const game::ugc::UGCItem *data = &game::ugc::modsPool.data[i];
             if (std::string_view(data->internalName) == mod ||
                 std::string_view(data->publisherId) == mod) {
               return game::ugc::UGC_LoadModByPublisherId_Impl(

@@ -66,7 +66,7 @@ struct workshop_info {
 };
 workshop_info get_steam_workshop_info(const std::string &workshop_id);
 
-void load_workshop_data(game::ugc::WorkshopData *item);
+void load_workshop_data(game::ugc::UGCItem *item);
 void supplement_mods_from_disk();
 void supplement_usermaps_from_disk();
 void supplement_ugc_from_workshop(game::ZoneType zoneType);

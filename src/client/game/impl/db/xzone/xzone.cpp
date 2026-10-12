@@ -10,7 +10,7 @@ namespace xzone {
 
 bool DB_CheckModXFile_Impl(const char *fastfileName) {
   if (ugc::active_mod->publisherId[0]) {
-    ugc::OptionalWorkshopDataRef mod =
+    ugc::OptionalUGCItemRef mod =
         ugc::UGC_GetModByPublisherId(ugc::active_mod->publisherId);
     char file_path[0x100];
     if (mod.has_value() && mod->get().absolutePathZoneFiles[0]) {

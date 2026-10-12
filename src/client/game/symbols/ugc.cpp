@@ -5,7 +5,7 @@
 
 namespace game {
 namespace ugc {
-ExtendedWorkshopDataPool modsPool{};
-ExtendedWorkshopDataPool usermapsPool{};
+ExtendedUGCPool modsPool{};
+ExtendedUGCPool usermapsPool{};
 } // namespace ugc
 } // namespace game

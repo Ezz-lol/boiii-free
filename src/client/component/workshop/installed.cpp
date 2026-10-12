@@ -109,9 +109,9 @@ void invalidate_cache() {
 }
 
 bool is_loaded_by_game(const installed_item &item) {
-  const game::ugc::WorkshopData *active = item.kind == "Mod"
-                                              ? game::ugc::active_mod.get()
-                                              : game::ugc::active_usermap.get();
+  const game::ugc::UGCItem *active = item.kind == "Mod"
+                                         ? game::ugc::active_mod.get()
+                                         : game::ugc::active_usermap.get();
   return (active->publisherId[0] && (item.id == active->publisherId ||
                                      item.folder == active->publisherId)) ||
          (active->internalName[0] && item.folder == active->internalName);
