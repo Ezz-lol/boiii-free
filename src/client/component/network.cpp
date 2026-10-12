@@ -6,7 +6,6 @@
 #include <loader/component_loader.hpp>
 
 #include "command.hpp"
-#include "nat.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
 
