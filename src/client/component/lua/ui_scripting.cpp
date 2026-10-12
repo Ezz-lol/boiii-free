@@ -18,7 +18,6 @@
 #include <component/script.hpp>
 #include <component/toast.hpp>
 
-
 #include "utils/pe.hpp"
 #include <utils/finally.hpp>
 #include <utils/flags.hpp>
@@ -2039,7 +2038,8 @@ void R_CopyTextureRegionMips_Safe(void *a1, void *a2, uint32_t a3, int32_t a4,
 
 #ifndef NDEBUG
 void print_info(game::consoleLabel_e label, const std::string_view &msg) {
-  const char* log = utils::string::va("[Lua][Info][%s] %s", game::serialize(label), msg.data());
+  const char *log = utils::string::va("[Lua][Info][%s] %s",
+                                      game::serialize(label), msg.data());
   game::trace("{}", log);
   fprintf(stdout, "%s\n", log);
   fflush(stdout);
@@ -2048,7 +2048,8 @@ void print_info(game::consoleLabel_e label, const std::string_view &msg) {
 }
 
 void print_error(game::consoleLabel_e label, const std::string_view &msg) {
-  const char* log = utils::string::va("[Lua][Error][%s] %s", game::serialize(label), msg.data());
+  const char *log = utils::string::va("[Lua][Error][%s] %s",
+                                      game::serialize(label), msg.data());
   game::trace("{}", log);
   fprintf(stderr, "%s\n", log);
   fflush(stderr);
@@ -2057,7 +2058,8 @@ void print_error(game::consoleLabel_e label, const std::string_view &msg) {
 }
 
 void print_warning(game::consoleLabel_e label, const std::string_view &msg) {
-  const char* log = utils::string::va("[Lua][Warn][%s] %s", game::serialize(label), msg.data());
+  const char *log = utils::string::va("[Lua][Warn][%s] %s",
+                                      game::serialize(label), msg.data());
   game::trace("{}", log);
   fprintf(stdout, "%s\n", log);
   fflush(stdout);
