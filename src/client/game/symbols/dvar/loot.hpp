@@ -42,4 +42,10 @@ WEAK symbol<EngineDependentDvarMut> loot_dailyDouble_rare_crate_dwid{
     0x151271570, 0x1512F04E0, 0x0};
 WEAK symbol<EngineDependentDvarMut> loot_dailyDouble_cooloffSeconds{
     0x151271578, 0x1512F04E8, 0x0};
+
+// Registered by `LiveInventory_Init`.
+WEAK symbol<EngineDependentDvarMut> blackjack_contract_dwid{0x15114E460,
+                                                            0x1511CD3E0, 0x0};
+WEAK symbol<EngineDependentDvarMut> blackjack_contract_ck_cost{
+    0x15114E468, 0x1511CD3E8, 0x0};
 } // namespace game

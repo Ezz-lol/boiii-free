@@ -218,6 +218,12 @@ luaReturnCount_e purchasecodpoints(lua_State *luaVM) {
               });
 }
 
+luaReturnCount_e setstoreprice(lua_State *luaVM) {
+  return call(luaVM, [](const uint32_t sku, const uint32_t cost) -> bool {
+    return currency::set_store_price(sku, cost);
+  });
+}
+
 luaReturnCount_e ismodrawfile(lua_State *luaVM) {
   return call(luaVM, is_mod_rawfile);
 }
@@ -619,6 +625,7 @@ public:
         lua_state::luaL_LoggedReg<"game", "ishost", ishost>(),
         lua_state::luaL_LoggedReg<"game", "purchasecodpoints",
                                   purchasecodpoints>(),
+        lua_state::luaL_LoggedReg<"game", "setstoreprice", setstoreprice>(),
         lua_state::luaL_LoggedReg<"game", "ismodrawfile", ismodrawfile>(),
         lua_state::luaL_LoggedReg<"game", "purchasevials", purchasevials>(),
         lua_state::luaL_LoggedReg<"game", "purchasedistills",

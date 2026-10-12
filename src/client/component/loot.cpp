@@ -84,6 +84,11 @@ bool liveinventory_areextraslotspurchased_stub(
     return true;
   }
 
+  // Item id for extra CaC slots, bought from the store with local currency
+  if (currency::item_quantity(controller_index, 99003).value_or(0)) {
+    return true;
+  }
+
   return liveinventory_areextraslotspurchased_hook.invoke<bool>(
       controller_index);
 }
