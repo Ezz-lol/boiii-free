@@ -237,19 +237,19 @@ LobbyVM.OnClientAdded = function(clientData)
     Engine.AddLobbyClientExtracam(clientData.xuid)
   end
   if
-      lobbyModule == Enum.LobbyModule.LOBBY_MODULE_CLIENT
-      and not Engine.IsLocalClient(xuid)
-      and not Engine.IsInGame()
+    lobbyModule == Enum.LobbyModule.LOBBY_MODULE_CLIENT
+    and not Engine.IsLocalClient(xuid)
+    and not Engine.IsInGame()
   then
     LobbyVM.PlaySound(LobbyData.Sounds.ClientsAddedToLobby, 500)
   end
   if
-      LuaUtils.isPS4 == true
-      and Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE == Engine.GetLobbyNetworkMode()
-      and lobbyModule == Enum.LobbyModule.LOBBY_MODULE_CLIENT
-      and lobbyType == Enum.LobbyType.LOBBY_TYPE_PRIVATE
-      and Engine.IsLocalClient(xuid)
-      and not Engine.IsInGame()
+    LuaUtils.isPS4 == true
+    and Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE == Engine.GetLobbyNetworkMode()
+    and lobbyModule == Enum.LobbyModule.LOBBY_MODULE_CLIENT
+    and lobbyType == Enum.LobbyType.LOBBY_TYPE_PRIVATE
+    and Engine.IsLocalClient(xuid)
+    and not Engine.IsInGame()
   then
     local controller = Engine.GetControllerForXuid(xuid)
     if Engine.NotifyPsPlusAsyncMultiplay ~= nil then
@@ -277,9 +277,9 @@ LobbyVM.OnClientRemoved = function(clientData)
     Engine.RemoveLobbyClientExtracam(clientData.xuid)
   end
   if
-      lobbyModule == Enum.LobbyModule.LOBBY_MODULE_CLIENT
-      and not Engine.IsLocalClient(xuid)
-      and not Engine.IsInGame()
+    lobbyModule == Enum.LobbyModule.LOBBY_MODULE_CLIENT
+    and not Engine.IsLocalClient(xuid)
+    and not Engine.IsInGame()
   then
     LobbyVM.PlaySound(LobbyData.Sounds.ClientsRemovedFromLobby, 500)
   end
@@ -436,8 +436,8 @@ LobbyVM.OnDisconnect = function(disconnectData)
     end
   elseif disconnectClient == Enum.LobbyDisconnectClient.LOBBY_DISCONNECT_CLIENT_HOSTRELOAD then
     if
-        Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_PRIVATE)
-        and not Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME)
+      Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_PRIVATE)
+      and not Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME)
     then
       Lobby.ProcessQueue.AddToQueue(
         "ReloadGameLobby",
@@ -552,14 +552,14 @@ LobbyVM.OnComError = function(comErrorData)
   Engine.SetModelValue(Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.hideMenusForGameStart"), 0)
   LuaUtils.LogQoS("lobby_error", comErrorData)
   if
-      errorCode == Enum.errorCode.ERROR_SOFTRESTART
-      or errorCode == Enum.errorCode.ERROR_SOFTRESTART_KEEPDW
-      or errorCode == Enum.errorCode.ERROR_SOFTRESTART_SILENT
+    errorCode == Enum.errorCode.ERROR_SOFTRESTART
+    or errorCode == Enum.errorCode.ERROR_SOFTRESTART_KEEPDW
+    or errorCode == Enum.errorCode.ERROR_SOFTRESTART_SILENT
   then
     return
   elseif
-      Engine.GetLobbyNetworkMode() == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE
-      and not Engine.IsSignedInToDemonware(controller)
+    Engine.GetLobbyNetworkMode() == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE
+    and not Engine.IsSignedInToDemonware(controller)
   then
     LobbyVM.ErrorShutdown(comErrorData)
   end
@@ -567,20 +567,20 @@ LobbyVM.OnComError = function(comErrorData)
     Lobby.Stats.OnServerTimeout(controller)
   end
   if
-      errorCode == Enum.errorCode.ERROR_UI
-      or errorCode == Enum.errorCode.ERROR_DISCONNECT
-      or errorCode == Enum.errorCode.ERROR_FATAL
-      or errorCode == Enum.errorCode.ERROR_DROP
-      or errorCode == Enum.errorCode.ERROR_SOFTRESTART_KEEPDW
-      or errorCode == Enum.errorCode.ERROR_SOFTRESTART_SILENT
+    errorCode == Enum.errorCode.ERROR_UI
+    or errorCode == Enum.errorCode.ERROR_DISCONNECT
+    or errorCode == Enum.errorCode.ERROR_FATAL
+    or errorCode == Enum.errorCode.ERROR_DROP
+    or errorCode == Enum.errorCode.ERROR_SOFTRESTART_KEEPDW
+    or errorCode == Enum.errorCode.ERROR_SOFTRESTART_SILENT
   then
     return
   elseif
-      errorCode == Enum.errorCode.ERROR_NONE
-      or errorCode == Enum.errorCode.ERROR_LUA
-      or errorCode == Enum.errorCode.ERROR_FROM_STARTUP
-      or errorCode == Enum.errorCode.ERROR_LOCALIZATION
-      or errorCode == Enum.errorCode.ERROR_SERVERDISCONNECT
+    errorCode == Enum.errorCode.ERROR_NONE
+    or errorCode == Enum.errorCode.ERROR_LUA
+    or errorCode == Enum.errorCode.ERROR_FROM_STARTUP
+    or errorCode == Enum.errorCode.ERROR_LOCALIZATION
+    or errorCode == Enum.errorCode.ERROR_SERVERDISCONNECT
   then
     LuaUtils.UI_ShowErrorMessageDialog(controller, errorMsg)
     return
@@ -591,10 +591,10 @@ LobbyVM.OnComError = function(comErrorData)
   end
   error(
     "LobbyVM.OnError - Unhandled COM_ERROR: "
-    .. LobbyVM.ComErrorCodeToString(errorCode)
-    .. ", Message: "
-    .. errorMsg
-    .. ".\n"
+      .. LobbyVM.ComErrorCodeToString(errorCode)
+      .. ", Message: "
+      .. errorMsg
+      .. ".\n"
   )
 end
 
@@ -750,7 +750,7 @@ end
 
 LobbyVM.OnLimitedItemPromoUpdate = function(promoData)
   local itemCountModel =
-      Engine.CreateModel(Engine.CreateModel(Engine.GetGlobalModel(), "LimitedItemPromo"), "itemCount")
+    Engine.CreateModel(Engine.CreateModel(Engine.GetGlobalModel(), "LimitedItemPromo"), "itemCount")
   local itemCount = promoData.count
   local overrideCount = Engine.DvarInt(nil, "loot_limitedItemPromo_override_count")
   if overrideCount > -1 then
@@ -822,9 +822,9 @@ LobbyVM.OnInitializeStats = function(statsData)
     if itemStats then
       for itemIndex = 1, 255, 1 do
         if
-            Engine.ItemIndexValid(itemIndex, Enum.eModes.MODE_MULTIPLAYER)
-            and Engine.GetItemUnlockLevel(itemIndex, Enum.eModes.MODE_MULTIPLAYER) == 0
-            and not Engine.ItemIndexIsBlackMarket(itemIndex, Enum.eModes.MODE_MULTIPLAYER)
+          Engine.ItemIndexValid(itemIndex, Enum.eModes.MODE_MULTIPLAYER)
+          and Engine.GetItemUnlockLevel(itemIndex, Enum.eModes.MODE_MULTIPLAYER) == 0
+          and not Engine.ItemIndexIsBlackMarket(itemIndex, Enum.eModes.MODE_MULTIPLAYER)
         then
           itemStats[itemIndex].markedOld:set(1)
         end
@@ -838,9 +838,9 @@ LobbyVM.OnInitializeStats = function(statsData)
     if itemStats then
       for itemIndex = 1, 255, 1 do
         if
-            Engine.ItemIndexValid(itemIndex, Enum.eModes.MODE_ZOMBIES)
-            and Engine.GetItemUnlockLevel(itemIndex, Enum.eModes.MODE_ZOMBIES) == 0
-            and Engine.GetDLCNameForItem(itemIndex, Enum.eModes.MODE_ZOMBIES) == nil
+          Engine.ItemIndexValid(itemIndex, Enum.eModes.MODE_ZOMBIES)
+          and Engine.GetItemUnlockLevel(itemIndex, Enum.eModes.MODE_ZOMBIES) == 0
+          and Engine.GetDLCNameForItem(itemIndex, Enum.eModes.MODE_ZOMBIES) == nil
         then
           itemStats[itemIndex].markedOld:set(1)
         end
@@ -880,7 +880,7 @@ LobbyVM.OnInitializeLoadouts = function(loadoutData)
     cacLoadouts = cacLoadouts.cacLoadouts
     LobbyVM.SetDefaultShowcaseWeapon(cacLoadouts, Enum.eModes.MODE_MULTIPLAYER)
     local equippedHero =
-        Engine.GetEquippedHeroForCACType(controller, Enum.eModes.MODE_MULTIPLAYER, Enum.CACType.CAC_TYPE_MP_OFFLINE)
+      Engine.GetEquippedHeroForCACType(controller, Enum.eModes.MODE_MULTIPLAYER, Enum.CACType.CAC_TYPE_MP_OFFLINE)
     if equippedHero then
       local heroWeaponIndex = Engine.GetLoadoutItemIndexForHero(
         Enum.eModes.MODE_MULTIPLAYER,
@@ -902,7 +902,7 @@ LobbyVM.OnInitializeLoadouts = function(loadoutData)
     LobbyVM.SetDefaultShowcaseWeapon(customMatchCacLoadouts, Enum.eModes.MODE_MULTIPLAYER)
     LobbyVM.SetDefaultShowcaseWeapon(leagueCacLoadouts, Enum.eModes.MODE_MULTIPLAYER)
     local equippedHero =
-        Engine.GetEquippedHeroForCACType(controller, Enum.eModes.MODE_MULTIPLAYER, Enum.CACType.CAC_TYPE_MP_PUBLIC)
+      Engine.GetEquippedHeroForCACType(controller, Enum.eModes.MODE_MULTIPLAYER, Enum.CACType.CAC_TYPE_MP_PUBLIC)
     if equippedHero then
       local heroWeaponIndex = Engine.GetLoadoutItemIndexForHero(
         Enum.eModes.MODE_MULTIPLAYER,
@@ -924,9 +924,9 @@ LobbyVM.OnInitializeLoadouts = function(loadoutData)
           cacLoadouts.characters[i].itemList.helmet.items[0].markedOld:set(1)
         end
         if
-            cacLoadouts.characters[i].tauntMarkedOld
-            and cacLoadouts.characters[i].tauntMarkedOld.first_place
-            and cacLoadouts.characters[i].tauntMarkedOld.first_place.markedOld
+          cacLoadouts.characters[i].tauntMarkedOld
+          and cacLoadouts.characters[i].tauntMarkedOld.first_place
+          and cacLoadouts.characters[i].tauntMarkedOld.first_place.markedOld
         then
           cacLoadouts.characters[i].tauntMarkedOld.first_place.markedOld[0]:set(1)
         end
@@ -1048,8 +1048,8 @@ end
 LobbyVM.MatchmakingPriorityQuit = function(event)
   local uiTarget = LobbyData:UITargetFromId(LobbyData.GetLobbyNav())
   if
-      uiTarget.id == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
-      or uiTarget.id == LobbyData.UITargets.UI_DOALOBBYONLINEPUBLICGAME.id
+    uiTarget.id == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
+    or uiTarget.id == LobbyData.UITargets.UI_DOALOBBYONLINEPUBLICGAME.id
   then
     Lobby.MatchmakingPriority.AddHost(event.hostSecId, Enum.JoinType.JOIN_TYPE_PLAYLIST)
   end
@@ -1081,11 +1081,7 @@ LobbyVM.GoForward = function(params)
   local forwardFunc = Lobby.Process.GetForwardFunc(currentTarget, nextTarget)
   if forwardFunc == nil then
     error(
-      "LobbyVM: No forward process function found to move from '"
-      .. currentTarget.name
-      .. "' to '"
-      .. navToMenu
-      .. "'."
+      "LobbyVM: No forward process function found to move from '" .. currentTarget.name .. "' to '" .. navToMenu .. "'."
     )
   end
   local forwardProcess = forwardFunc(controller, currentTarget, nextTarget)
@@ -1094,22 +1090,14 @@ LobbyVM.GoForward = function(params)
       local managePartyLeaveProcess = Lobby.Process.ManagePartyLeave(controller)
       Lobby.Process.AppendProcess(managePartyLeaveProcess, forwardProcess)
       Lobby.ProcessQueue.AddToQueue(
-        "GoForward from '"
-        .. currentTarget.name
-        .. "' menu to '"
-        .. nextTarget.name
-        .. "' menu AND ManagePartyLeave",
+        "GoForward from '" .. currentTarget.name .. "' menu to '" .. nextTarget.name .. "' menu AND ManagePartyLeave",
         managePartyLeaveProcess
       )
     else
       local reloadPrivateLobbyProcess = Lobby.Process.ReloadPrivateLobby(controller, Engine.GetLobbyNetworkMode())
       Lobby.Process.AppendProcess(reloadPrivateLobbyProcess, forwardProcess)
       Lobby.ProcessQueue.AddToQueue(
-        "GoForward from '"
-        .. currentTarget.name
-        .. "' menu to '"
-        .. nextTarget.name
-        .. "' menu AND PartyMemberLeave",
+        "GoForward from '" .. currentTarget.name .. "' menu to '" .. nextTarget.name .. "' menu AND PartyMemberLeave",
         reloadPrivateLobbyProcess
       )
     end
@@ -1159,9 +1147,9 @@ end
 LobbyVM.InGameJoin = function(joinData, leaveImmediately)
   LobbyVM.AutoJoin.data = joinData
   if
-      joinData.migrating ~= nil
-      and joinData.migrating == false
-      and Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) == true
+    joinData.migrating ~= nil
+    and joinData.migrating == false
+    and Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) == true
   then
     if leaveImmediately == true then
       LobbyVM.AutoJoin.leaveServerImmediately = true
@@ -1187,8 +1175,8 @@ LobbyVM.GetJoinProcess = function(params)
     Engine.PrintInfo(Enum.consoleLabel.LABEL_LOBBY, "LobbyVM: Trying to Join lobby we are already part of\n")
     return nil
   elseif
-      not LuaUtils.isPC
-      and (Engine.IsCpStillDownloading() or Engine.IsMpStillDownloading() or Engine.IsZmStillDownloading())
+    not LuaUtils.isPC
+    and (Engine.IsCpStillDownloading() or Engine.IsMpStillDownloading() or Engine.IsZmStillDownloading())
   then
     Engine.PrintInfo(
       Enum.consoleLabel.LABEL_LOBBY,
@@ -1396,10 +1384,7 @@ LobbyVM.UpdateUI = function(params)
   Engine.SetLobbyUIScreen(target.id)
   Engine.SetModelValue(Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.lobbyMode", true), target.lobbyMode)
   Engine.SetModelValue(Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.lobbyMainMode", true), target.mainMode)
-  Engine.SetModelValue(
-    Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.lobbyGameMode", true),
-    target.eGameModes
-  )
+  Engine.SetModelValue(Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.lobbyGameMode", true), target.eGameModes)
   Engine.SetModelValue(
     Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.room", true),
     roomNameMapping(target.room)
@@ -1423,12 +1408,12 @@ LobbyVM.CheckDLCBit = function(dlcBits, requiredBit)
     dlcBits = dlcBits | Enum.ContentFlagBits.CONTENT_DLC1
   end
   if
-      Engine.DvarInt(nil, "ui_freeDLCPC") == 1
-      and dlcBits & Enum.ContentFlagBits.CONTENT_DLCPC == Enum.ContentFlagBits.CONTENT_DLCPC
+    Engine.DvarInt(nil, "ui_freeDLCPC") == 1
+    and (dlcBits & Enum.ContentFlagBits.CONTENT_DLCPC) == Enum.ContentFlagBits.CONTENT_DLCPC
   then
     return true
   else
-    return dlcBits & requiredBit == requiredBit
+    return (dlcBits & requiredBit) == requiredBit
   end
 end
 
@@ -1493,35 +1478,23 @@ LobbyVM.CheckNeedInstallUGC = function(ugcInfo, caller)
   if ugcInfo then
     if ugcInfo.ugcType == LuaEnums.MODS_BASE_PATH then
       if LobbyVM.OnModUpdate({
-            ugcInfo = ugcInfo,
-          }) then
+        ugcInfo = ugcInfo,
+      }) then
         Engine.PrintWarning(
           Enum.consoleLabel.LABEL_LOBBY,
-          "Caller: "
-          .. caller
-          .. ", ugcType: "
-          .. ugcInfo.ugcType
-          .. ": "
-          .. ugcInfo.ugcName
-          .. " not installed yet.\n"
+          "Caller: " .. caller .. ", ugcType: " .. ugcInfo.ugcType .. ": " .. ugcInfo.ugcName .. " not installed yet.\n"
         )
         return true
       end
     elseif
-        ugcInfo.ugcType == LuaEnums.USERMAP_BASE_PATH
-        and LobbyVM.OnUsermapUpdate({
-          ugcInfo = ugcInfo,
-        }, true)
+      ugcInfo.ugcType == LuaEnums.USERMAP_BASE_PATH
+      and LobbyVM.OnUsermapUpdate({
+        ugcInfo = ugcInfo,
+      }, true)
     then
       Engine.PrintWarning(
         Enum.consoleLabel.LABEL_LOBBY,
-        "Caller: "
-        .. caller
-        .. ", ugcType: "
-        .. ugcInfo.ugcType
-        .. ": "
-        .. ugcInfo.ugcName
-        .. " not installed yet.\n"
+        "Caller: " .. caller .. ", ugcType: " .. ugcInfo.ugcType .. ": " .. ugcInfo.ugcName .. " not installed yet.\n"
       )
       return true
     end
@@ -1543,17 +1516,17 @@ LobbyVM.HostLaunchPump = function(params)
         Engine.PrintWarning(
           Enum.consoleLabel.LABEL_LOBBYHOST,
           "LobbyVM.LaunchGameExec: Not enough players ("
-          .. tostring(clientCount)
-          .. "/"
-          .. tostring(Dvar.party_minplayers:get())
-          .. "), restart timer.\n"
+            .. tostring(clientCount)
+            .. "/"
+            .. tostring(Dvar.party_minplayers:get())
+            .. "), restart timer.\n"
         )
         shouldRestartTimer = true
       end
     end
     if Dvar.tu9_hostLaunchCheckUnbalancedTeams:get() == true and true == CoDShared.IsGametypeTeamBased() then
       local sessionClients =
-          Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
+        Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
       if sessionClients ~= nil then
         local alliesCount = 0
         local axisCount = 0
@@ -1569,10 +1542,10 @@ LobbyVM.HostLaunchPump = function(params)
           Engine.PrintWarning(
             Enum.consoleLabel.LABEL_LOBBYHOST,
             "LobbyVM.LaunchGameExec: Teams are not balanced (teamAlliesCount: "
-            .. tostring(alliesCount)
-            .. "/teamAxisCount: "
-            .. tostring(axisCount)
-            .. "), restart timer.\n"
+              .. tostring(alliesCount)
+              .. "/teamAxisCount: "
+              .. tostring(axisCount)
+              .. "), restart timer.\n"
           )
           shouldRestartTimer = true
         end
@@ -1599,9 +1572,9 @@ LobbyVM.HostLaunchPump = function(params)
   if Engine.DvarBool(nil, "ffotdtempfixHostLaunchPump") then
     if not Engine.IsDedicatedServer() then
       if
-          LobbyVM.hostLaunch.fadeToBlack == false
-          and nil ~= LobbyVM.hostLaunch.fadeToBlackTime
-          and Engine.milliseconds() > LobbyVM.hostLaunch.fadeToBlackTime
+        LobbyVM.hostLaunch.fadeToBlack == false
+        and nil ~= LobbyVM.hostLaunch.fadeToBlackTime
+        and Engine.milliseconds() > LobbyVM.hostLaunch.fadeToBlackTime
       then
         LobbyVM.hostLaunch.fadeToBlack = true
         Engine.SetModelValue(Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.hideMenusForGameStart"), 1)
@@ -1624,7 +1597,7 @@ LobbyVM.HostLaunchPump = function(params)
   elseif params.ugcInfo and LobbyVM.CheckNeedInstallUGC(params.ugcInfo, "LobbyVM.HostLaunchPump") then
     return false
   elseif
-      not params.hasAllClientsGotLatestStateMsg or Engine.milliseconds() < LobbyVM.hostLaunch.waitForClientAckTime
+    not params.hasAllClientsGotLatestStateMsg or Engine.milliseconds() < LobbyVM.hostLaunch.waitForClientAckTime
   then
     return false
   elseif not Engine.IsDedicatedServer() then
@@ -1673,8 +1646,8 @@ LobbyVM.CheckAdvertizeSteamServer = function()
   else
     local currentMenuTarget = LobbyData.GetCurrentMenuTarget()
     if
-        currentMenuTarget.mainMode ~= Enum.LobbyMainMode.LOBBY_MAINMODE_MP
-        and currentMenuTarget.mainMode ~= Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
+      currentMenuTarget.mainMode ~= Enum.LobbyMainMode.LOBBY_MAINMODE_MP
+      and currentMenuTarget.mainMode ~= Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
     then
       return false
     elseif currentMenuTarget.lobbyType ~= Enum.LobbyType.LOBBY_TYPE_GAME then
@@ -1684,18 +1657,18 @@ LobbyVM.CheckAdvertizeSteamServer = function()
     else
       local lobbyUIScreen = Engine.GetLobbyUIScreen()
       if
-          lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYMAIN.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MODESELECT.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_FRLOBBYONLINEGAME.id
+        lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYMAIN.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MODESELECT.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_FRLOBBYONLINEGAME.id
       then
         return false
       elseif
-          Engine.GetProfileVarInt(Engine.GetPrimaryController(), "party_privacyStatus")
-          == Enum.PartyPrivacy.PARTY_PRIVACY_CLOSED
+        Engine.GetProfileVarInt(Engine.GetPrimaryController(), "party_privacyStatus")
+        == Enum.PartyPrivacy.PARTY_PRIVACY_CLOSED
       then
         return false
       else
@@ -1713,8 +1686,8 @@ LobbyVM.CheckInitSteamServer = function()
   else
     local currentMenuTarget = LobbyData.GetCurrentMenuTarget()
     if
-        currentMenuTarget.mainMode ~= Enum.LobbyMainMode.LOBBY_MAINMODE_MP
-        and currentMenuTarget.mainMode ~= Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
+      currentMenuTarget.mainMode ~= Enum.LobbyMainMode.LOBBY_MAINMODE_MP
+      and currentMenuTarget.mainMode ~= Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
     then
       return false
     elseif currentMenuTarget.lobbyType ~= Enum.LobbyType.LOBBY_TYPE_GAME then
@@ -1724,13 +1697,13 @@ LobbyVM.CheckInitSteamServer = function()
     else
       local lobbyUIScreen = Engine.GetLobbyUIScreen()
       if
-          lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYMAIN.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MODESELECT.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_FRLOBBYONLINEGAME.id
+        lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYMAIN.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MODESELECT.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_FRLOBBYONLINEGAME.id
       then
         return false
       else
@@ -1743,20 +1716,20 @@ end
 LobbyVM.GetNeededDLCBits = function()
   local lobbyUIScreen = Engine.GetLobbyUIScreen()
   if
-      lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.id
-      or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
-      or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id
+    lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.id
+    or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
+    or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id
   then
     return Lobby.Matchmaking.GetMapPackBits(
       Engine.GetDLCBitsForLobby(Enum.LobbyType.LOBBY_TYPE_GAME),
       Engine.GetPlaylistID()
     )
   elseif
-      lobbyUIScreen == LobbyData.UITargets.UI_MODESELECT.id
-      or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYMAIN.id
-      or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINE.id
-      or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENA.id
-      or lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
+    lobbyUIScreen == LobbyData.UITargets.UI_MODESELECT.id
+    or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYMAIN.id
+    or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINE.id
+    or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENA.id
+    or lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
   then
     return 0
   end
@@ -1772,20 +1745,19 @@ LobbyVM.DLCMapCheck = function(params)
   local dlcBits = Engine.GetDLCBits()
   local neededDLCBits = LobbyVM.GetNeededDLCBits()
   if
-      neededDLCBits == Enum.dlcIndex_t.CONTENT_DEV_MAP_INDEX
-      or neededDLCBits == Enum.dlcIndex_t.CONTENT_USERMAP_INDEX
+    neededDLCBits == Enum.dlcIndex_t.CONTENT_DEV_MAP_INDEX or neededDLCBits == Enum.dlcIndex_t.CONTENT_USERMAP_INDEX
   then
     return true
   elseif not LobbyVM.CheckDLCBit(dlcBits, neededDLCBits) then
     Engine.PrintWarning(
       Enum.consoleLabel.LABEL_LOBBYCLIENT,
       "Leaving game because map '"
-      .. mapName
-      .. "' is in contentpack '"
-      .. neededDLCBits
-      .. "' but our dlcbits is '"
-      .. dlcBits
-      .. "'.\n"
+        .. mapName
+        .. "' is in contentpack '"
+        .. neededDLCBits
+        .. "' but our dlcbits is '"
+        .. dlcBits
+        .. "'.\n"
     )
     local controller = Engine.GetPrimaryController()
     local lobbyClientEndAction = Lobby.Actions.LobbyClientEnd(Enum.LobbyType.LOBBY_TYPE_GAME)
@@ -1862,9 +1834,7 @@ LobbyVM.ClientLaunchPump = function(params)
     return false
   elseif params.modInfo and LobbyVM.CheckNeedInstallUGC(params.modInfo.ugcInfo, "LobbyVM.ClientLaunchPump") then
     return false
-  elseif
-      params.usermapInfo and LobbyVM.CheckNeedInstallUGC(params.usermapInfo.ugcInfo, "LobbyVM.ClientLaunchPump")
-  then
+  elseif params.usermapInfo and LobbyVM.CheckNeedInstallUGC(params.usermapInfo.ugcInfo, "LobbyVM.ClientLaunchPump") then
     return false
   elseif Engine.IsWaitingForDatabase() then
     return false
@@ -1930,8 +1900,8 @@ end
 LobbyVM.OnCanBroadcastHostInfo = function(event)
   local uiTarget = LobbyData:UITargetFromId(LobbyData.GetLobbyNav())
   if
-      uiTarget.id == LobbyData.UITargets.UI_FRLOBBYONLINEGAME.id
-      or uiTarget.id == LobbyData.UITargets.UI_FRLOBBYLANGAME.id
+    uiTarget.id == LobbyData.UITargets.UI_FRLOBBYONLINEGAME.id
+    or uiTarget.id == LobbyData.UITargets.UI_FRLOBBYLANGAME.id
   then
     return false
   else
@@ -2141,14 +2111,12 @@ LobbyVM.JoinResultToString = function(joinResult, includeDebugPrefix)
     result.debug = result.debug .. "JOIN_RESULT_SPLITSCREEN_NOT_ALLOWED"
     result.errorMsg = "MENU_SPLITSCREEN_NOT_ALLOWED"
   elseif
-      Engine.DvarBool(0, "probation_public_enabled")
-      and joinResult == Enum.JoinResult.JOIN_RESULT_IN_PUBLIC_PROBATION
+    Engine.DvarBool(0, "probation_public_enabled") and joinResult == Enum.JoinResult.JOIN_RESULT_IN_PUBLIC_PROBATION
   then
     result.debug = result.debug .. "JOIN_RESULT_IN_PUBLIC_PROBATION"
     result.errorMsg = "MENU_JOIN_DENIED_PUBLIC_PROBATION"
   elseif
-      Engine.DvarBool(0, "probation_league_enabled")
-      and joinResult == Enum.JoinResult.JOIN_RESULT_IN_ARENA_PROBATION
+    Engine.DvarBool(0, "probation_league_enabled") and joinResult == Enum.JoinResult.JOIN_RESULT_IN_ARENA_PROBATION
   then
     result.debug = result.debug .. "JOIN_RESULT_IN_ARENA_PROBATION"
     result.errorMsg = "MENU_JOIN_DENIED_ARENA_PROBATION"
@@ -2247,18 +2215,18 @@ LobbyVM.CheckStarterPack = function(lobbyInfo)
     end
     local currentMenuTarget = LobbyData.GetCurrentMenuTarget()
     if
-        Engine.GetLobbyNetworkMode() ~= Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE
-        and currentMenuTarget.id ~= LobbyData.UITargets.UI_FRLOBBYLANGAME.id
+      Engine.GetLobbyNetworkMode() ~= Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE
+      and currentMenuTarget.id ~= LobbyData.UITargets.UI_FRLOBBYLANGAME.id
     then
       return true
     elseif
-        currentMenuTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_CP
-        or currentMenuTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
+      currentMenuTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_CP
+      or currentMenuTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
     then
       return true
     elseif
-        currentMenuTarget.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME
-        and currentMenuTarget.lobbyMode == Enum.LobbyMode.LOBBY_MODE_CUSTOM
+      currentMenuTarget.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME
+      and currentMenuTarget.lobbyMode == Enum.LobbyMode.LOBBY_MODE_CUSTOM
     then
       return true
     end
@@ -2346,17 +2314,15 @@ LobbyVM.JoinableCheck = function(joinData)
     if Engine.IsMultiplayerGame() then
       if LuaUtils.IsArenaMode() then
         if
-            (
-              (Engine.GetGametypeSetting("pregameItemVoteEnabled") == 1)
-              or Engine.GetGametypeSetting("pregameDraftEnabled") == 1
-            )
-            and Engine.IsInGame()
-            and Engine.SessionMode_IsPublicOnlineGame()
+          (
+            (Engine.GetGametypeSetting("pregameItemVoteEnabled") == 1)
+            or Engine.GetGametypeSetting("pregameDraftEnabled") == 1
+          )
+          and Engine.IsInGame()
+          and Engine.SessionMode_IsPublicOnlineGame()
         then
           return Enum.JoinResult.JOIN_RESULT_NO_JOIN_IN_PROGRESS
-        elseif
-            joinData.joinRequest.splitscreenClients ~= nil and joinData.joinRequest.splitscreenClients > 0
-        then
+        elseif joinData.joinRequest.splitscreenClients ~= nil and joinData.joinRequest.splitscreenClients > 0 then
           return Enum.JoinResult.JOIN_RESULT_SPLITSCREEN_NOT_ALLOWED
         elseif Lobby.Timer.LobbyIsLocked() then
           return Enum.JoinResult.JOIN_RESULT_NO_JOIN_IN_PROGRESS
@@ -2365,13 +2331,13 @@ LobbyVM.JoinableCheck = function(joinData)
         end
         local timerStatus = Lobby.Timer.GetTimerStatus()
         if
-            timerStatus == Lobby.Timer.LOBBY_STATUS.POST_GAME
-            or timerStatus == Lobby.Timer.LOBBY_STATUS.FIND_NEW_LOBBY
+          timerStatus == Lobby.Timer.LOBBY_STATUS.POST_GAME
+          or timerStatus == Lobby.Timer.LOBBY_STATUS.FIND_NEW_LOBBY
         then
           return Enum.JoinResult.JOIN_RESULT_NO_JOIN_IN_PROGRESS
         elseif
-            Engine.DvarBool(0, "probation_league_enabled")
-            and currentMenuTarget.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME
+          Engine.DvarBool(0, "probation_league_enabled")
+          and currentMenuTarget.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME
         then
           for memberIndex, member in pairs(joinRequest.members) do
             if member.arenaProbation > 0 then
@@ -2380,8 +2346,8 @@ LobbyVM.JoinableCheck = function(joinData)
           end
         end
       elseif
-          Engine.DvarBool(0, "probation_public_enabled")
-          and currentMenuTarget.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME
+        Engine.DvarBool(0, "probation_public_enabled")
+        and currentMenuTarget.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME
       then
         for memberIndex, member in pairs(joinRequest.members) do
           if member.publicProbation > 0 then
@@ -2394,8 +2360,8 @@ LobbyVM.JoinableCheck = function(joinData)
       if LobbyVM.IsInTheaterLobby() then
         return Enum.JoinResult.JOIN_RESULT_JOIN_DISABLED
       elseif
-          LobbyData.UITargets.UI_ZMLOBBYONLINE.id == Engine.GetLobbyUIScreen()
-          and (Engine.IsInGame() or LobbyVM.IsHostLaunching() or Engine.GetCurrentMap() ~= "core_frontend")
+        LobbyData.UITargets.UI_ZMLOBBYONLINE.id == Engine.GetLobbyUIScreen()
+        and (Engine.IsInGame() or LobbyVM.IsHostLaunching() or Engine.GetCurrentMap() ~= "core_frontend")
       then
         return Enum.JoinResult.JOIN_RESULT_NOT_JOINABLE_SOLO_MODE
       end
@@ -2405,11 +2371,7 @@ LobbyVM.JoinableCheck = function(joinData)
     elseif LuaUtils.isPC then
       if not joinData.isLocalRequest and Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) then
         local serverPassword = Engine.LiveSteamServer_GetServerPassword()
-        if
-            serverPassword
-            and string.len(serverPassword) > 0
-            and joinData.joinRequest.password ~= serverPassword
-        then
+        if serverPassword and string.len(serverPassword) > 0 and joinData.joinRequest.password ~= serverPassword then
           return Enum.JoinResult.JOIN_RESULT_INVALID_PASSWORD
         end
       end
@@ -2467,11 +2429,11 @@ LobbyVM.GameLobbyGameServerDataUpdate = function(serverData)
   if Lobby.ProcessQueue.IsQueueEmpty() == true then
     local lobbyUIScreen = Engine.GetLobbyUIScreen()
     if
-        (
-          lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
-          or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id
-        ) and LobbyVM.DLCMapCheck(serverData) == false
+      (
+        lobbyUIScreen == LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
+        or lobbyUIScreen == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id
+      ) and LobbyVM.DLCMapCheck(serverData) == false
     then
       return
     end
@@ -2483,10 +2445,10 @@ LobbyVM.GameLobbyGameServerDataUpdate = function(serverData)
   local kickerText = ""
   local playlistInfo = Engine.GetPlaylistInfoByID(playlistID)
   if
-      playlistInfo
-      and playlistInfo.playlist
-      and playlistInfo.playlist.category
-      and playlistInfo.playlist.category == Engine.GetPlaylistCategoryIdByName("hardcore")
+    playlistInfo
+    and playlistInfo.playlist
+    and playlistInfo.playlist.category
+    and playlistInfo.playlist.category == Engine.GetPlaylistCategoryIdByName("hardcore")
   then
     kickerText = "MENU_RULES_HARDCORE"
   end
@@ -2502,10 +2464,10 @@ LobbyVM.PrivateLobbyServerDataUpdate = function(serverData)
   local kickerText = ""
   local playlistInfo = Engine.GetPlaylistInfoByID(playlistID)
   if
-      playlistInfo
-      and playlistInfo.playlist
-      and playlistInfo.playlist.category
-      and playlistInfo.playlist.category == Engine.GetPlaylistCategoryIdByName("hardcore")
+    playlistInfo
+    and playlistInfo.playlist
+    and playlistInfo.playlist.category
+    and playlistInfo.playlist.category == Engine.GetPlaylistCategoryIdByName("hardcore")
   then
     kickerText = "MENU_RULES_HARDCORE"
   end
@@ -2539,10 +2501,7 @@ end
 LobbyVM.OnDediQosReady = function()
   local qosResults = Engine.GetDediQosResultsByType(Lobby.Matchmaking.DatacenterType.ANY)
   if qosResults.numResults == 0 then
-    Engine.PrintWarning(
-      Enum.consoleLabel.LABEL_LOBBY,
-      "Engine told us results were ready, but no results available\n"
-    )
+    Engine.PrintWarning(Enum.consoleLabel.LABEL_LOBBY, "Engine told us results were ready, but no results available\n")
   else
     servers = qosResults.pingResults
     for serverIndex, server in ipairs(servers) do
@@ -2606,7 +2565,7 @@ end
 
 LobbyVM.OnIsFeatureBanned = function(featureBanData)
   local isBanned, banInfo =
-      Lobby.Anticheat.CheckIsFeatureBannedForIndex(featureBanData.controller, featureBanData.feature)
+    Lobby.Anticheat.CheckIsFeatureBannedForIndex(featureBanData.controller, featureBanData.feature)
   return isBanned
 end
 
@@ -2688,8 +2647,8 @@ LobbyVM.GetRecentItemTags = function(controller, itemCategory)
   recentItems = {}
   for _, lootItem in ipairs(lootItems) do
     if
-        CoDShared.GetLootItemCategory(lootItem.id) == itemCategory
-        and CoDShared.GetLootItemVersion(lootItem.id) <= lootVersion
+      CoDShared.GetLootItemCategory(lootItem.id) == itemCategory
+      and CoDShared.GetLootItemVersion(lootItem.id) <= lootVersion
     then
       table.insert(recentItems, lootItem.id)
     end
@@ -2739,8 +2698,8 @@ LobbyVM.GetLootItemList = function(controller, itemCategory)
   end
   for _, lootItem in ipairs(lootItems) do
     if
-        CoDShared.GetLootItemCategory(lootItem.id) == itemCategory
-        and CoDShared.GetLootItemVersion(lootItem.id) <= lootVersion
+      CoDShared.GetLootItemCategory(lootItem.id) == itemCategory
+      and CoDShared.GetLootItemVersion(lootItem.id) <= lootVersion
     then
       table.insert(itemList, lootItem.id)
     end
@@ -2761,9 +2720,9 @@ LobbyVM.OnBuyCrate = function(crateData)
   local rank = ' "Rank": [], '
   local excludeTag = ' "ExcludeTag": [], '
   local inventoryVersion = ' "InventoryVersion": [ '
-      .. Dvar.loot_mpItemVersions:get()
-      .. Dvar.loot_limitedTimeItemVersions:get()
-      .. " ] "
+    .. Dvar.loot_mpItemVersions:get()
+    .. Dvar.loot_limitedTimeItemVersions:get()
+    .. " ] "
   if Engine.DvarString(nil, "loot_useClientDupes") == "1" then
     local useExcludeTag = false
     local excludeCategory = ""
@@ -2820,8 +2779,8 @@ LobbyVM.OnSpendVials = function(vialData)
   local highestAvailableDLC = Engine.DvarInt(nil, "tu9_highestAvailableDLC")
   for _, dlcInfo in ipairs(LobbyVM.DLCInfo) do
     if
-        dlcInfo.dlcIndex <= highestAvailableDLC
-        or dlcInfo.dlcPackName == "dlc5"
+      dlcInfo.dlcIndex <= highestAvailableDLC
+      or dlcInfo.dlcPackName == "dlc5"
         and (Dvar.loot_forceEnableZCGumsInFactory:get() == 1 or Dvar.loot_forceEnableZCGumsInFactory:get() == "1")
     then
       inventoryVersion = inventoryVersion .. ", " .. dlcInfo.inventoryVersion .. " "
@@ -2848,10 +2807,10 @@ LobbyVM.OnInventoryFetched = function(inventoryData)
   local hasTeamMatrix = false
   for _, itemName in ipairs(teamMatrixItems) do
     if
-        Engine.GetInventoryItemQuantity(
-          inventoryData.controller,
-          tonumber(Engine.TableLookup(nil, inventoryTable, nameColumn, itemName, quantityColumn))
-        ) > 0
+      Engine.GetInventoryItemQuantity(
+        inventoryData.controller,
+        tonumber(Engine.TableLookup(nil, inventoryTable, nameColumn, itemName, quantityColumn))
+      ) > 0
     then
       Engine.SetProfileVar(inventoryData.controller, itemName, "1")
       hasTeamMatrix = true
@@ -2869,7 +2828,7 @@ LobbyVM.CheckSpecialPlaylistRules = function(controller)
       Engine.ComError(Enum.errorCode.ERROR_DROP, "PLATFORM_PARTYCHATNOTALLOWED")
     end
     local sessionClients =
-        Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
+      Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
     for _, client in ipairs(sessionClients.sessionClients) do
       if client.isInPlatformPartyChat == true then
         Engine.KickClient(
@@ -2922,7 +2881,7 @@ LobbyVM.LobbyMonitor = function()
   elseif monitorMode == 2 then
     Engine.SetSessionStatus(Enum.LobbyType.LOBBY_TYPE_PRIVATE, Enum.SessionStatus.SESSION_STATUS_ERROR)
     local sessionClients =
-        Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
+      Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
     for _, client in ipairs(sessionClients.sessionClients) do
       if client.isHost == false and client.isLocal == false then
         Engine.KickClient(
@@ -2942,12 +2901,12 @@ LobbyVM.IngameMonitor = function()
   if not Engine.IsInGame() then
     return
   elseif
-      (Engine.IsDedicatedServer() or CoDShared.IsLobbyMode(Enum.LobbyMode.LOBBY_MODE_PUBLIC))
-      and Dvar.partyChatDisallowed:get()
-      and Engine.IsLobbyHostActive(Enum.LobbyType.LOBBY_TYPE_GAME)
+    (Engine.IsDedicatedServer() or CoDShared.IsLobbyMode(Enum.LobbyMode.LOBBY_MODE_PUBLIC))
+    and Dvar.partyChatDisallowed:get()
+    and Engine.IsLobbyHostActive(Enum.LobbyType.LOBBY_TYPE_GAME)
   then
     local sessionClients =
-        Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
+      Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
     local hostControllerIndex = Engine.GetLobbyHostControllerIndex(Enum.LobbyType.LOBBY_TYPE_GAME)
     for _, client in ipairs(sessionClients.sessionClients) do
       if client.isInPlatformPartyChat == true then
