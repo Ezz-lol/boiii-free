@@ -98,7 +98,8 @@ PACKED(struct DynEntityDef {
     return std::format(
         "{{ \"pose\": {}, \"xModel\": {:p}, \"destroyedxModel\": {:p}, "
         "\"brushModel\": {}, \"physicsBrushModel\": {}, \"destroyFx\": {}, "
-        "\"destroySound\": 0x{:08X}, \"rattleFx\": {}, \"rattleSound\": 0x{:08X}, "
+        "\"destroySound\": 0x{:08X}, \"rattleFx\": {}, \"rattleSound\": "
+        "0x{:08X}, "
         "\"splashUpFx\": {}, \"physPreset\": {:p}, \"physConstraints\": {}, "
         "\"health\": {}, \"flags\": 0x{:08X}, \"contents\": 0x{:08X}, "
         "\"targetname\": 0x{:08X}, \"target\": 0x{:08X} }}",

@@ -34,7 +34,8 @@ struct XPakEntryInfo {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": {}, "
+        "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": "
+        "{}, "
         "\"compressed\": {}, \"valid\": {}, \"adjacentLeftType\": {}, "
         "\"adjacentRightType\": {}, "
         "\"adjacentLeft\": {}, \"adjacentRight\": {}, \"padding\": {} }}",

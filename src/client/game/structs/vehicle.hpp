@@ -340,8 +340,9 @@ PACKED(struct VehicleEngineSound {
   float params[7];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {}, \"alias\": 0x{:08X}, \"params\": {} }}",
-                       ::serialize(name), alias, ::serialize(params));
+    return std::format(
+        "{{ \"name\": {}, \"alias\": 0x{:08X}, \"params\": {} }}",
+        ::serialize(name), alias, ::serialize(params));
   }
 });
 ASSERT_SIZE(VehicleEngineSound, 0x28);
@@ -2868,10 +2869,10 @@ PACKED(struct VehicleGunnerTags {
   BoneIndex flash[4];
 
   inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"turretParent\": 0x{:04X}, \"turret\": 0x{:04X}, \"barrel\": 0x{:04X}, "
-        "\"aim\": 0x{:04X}, \"flash\": {} }}",
-        turretParent, turret, barrel, aim, ::serialize(flash));
+    return std::format("{{ \"turretParent\": 0x{:04X}, \"turret\": 0x{:04X}, "
+                       "\"barrel\": 0x{:04X}, "
+                       "\"aim\": 0x{:04X}, \"flash\": {} }}",
+                       turretParent, turret, barrel, aim, ::serialize(flash));
   }
 });
 ASSERT_SIZE(VehicleGunnerTags, 0x10);
@@ -2888,13 +2889,14 @@ PACKED(struct VehicleTags {
   BoneIndex entryPoints[5];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"player\": 0x{:04X}, \"popout\": 0x{:04X}, \"body\": "
-                       "{:04X}, \"eye\": 0x{:04X}, "
-                       "\"turretTags\": {}, \"gunnerTags\": {}, \"wheel\": {}, "
-                       "\"seats\": {}, \"entryPoints\": {} }}",
-                       player, popout, body, eye, turretTags.serialize(),
-                       ::serialize(gunnerTags), ::serialize(wheel),
-                       ::serialize(seats), ::serialize(entryPoints));
+    return std::format(
+        "{{ \"player\": 0x{:04X}, \"popout\": 0x{:04X}, \"body\": "
+        "{:04X}, \"eye\": 0x{:04X}, "
+        "\"turretTags\": {}, \"gunnerTags\": {}, \"wheel\": {}, "
+        "\"seats\": {}, \"entryPoints\": {} }}",
+        player, popout, body, eye, turretTags.serialize(),
+        ::serialize(gunnerTags), ::serialize(wheel), ::serialize(seats),
+        ::serialize(entryPoints));
   }
 });
 ASSERT_SIZE(VehicleTags, 0x84);

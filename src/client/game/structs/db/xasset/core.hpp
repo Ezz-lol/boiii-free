@@ -1180,7 +1180,8 @@ struct XPakEntryInfo {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": {}, "
+        "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": "
+        "{}, "
         "\"compressed\": {}, \"valid\": {}, \"adjacentLeftType\": {}, "
         "\"adjacentRightType\": {}, \"adjacentLeft\": {}, \"adjacentRight\": "
         "{} }}",
@@ -1338,20 +1339,20 @@ struct CamoMaterial {
   vec_t specOffset;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"replaceFlags\": 0x{:04X}, \"numBaseMaterials\": {}, "
-                       "\"baseMaterials\": {:p}, "
-                       "\"camoMaterial\": {:p}, \"translationX\": {}, "
-                       "\"translationY\": {}, \"scaleX\": {}, "
-                       "\"scaleY\": {}, \"rotation\": {}, \"normalBlend\": {}, "
-                       "\"glossBlend\": {}, "
-                       "\"albedoTint\": {}, \"glossRange\": {}, \"specColor\": "
-                       "{}, \"specOffset\": {} }}",
-                       replaceFlags, numBaseMaterials,
-                       reinterpret_cast<const void *>(baseMaterials),
-                       reinterpret_cast<const void *>(camoMaterial),
-                       translationX, translationY, scaleX, scaleY, rotation,
-                       normalBlend, glossBlend, albedoTint.serialize(),
-                       glossRange.serialize(), specColor, specOffset);
+    return std::format(
+        "{{ \"replaceFlags\": 0x{:04X}, \"numBaseMaterials\": {}, "
+        "\"baseMaterials\": {:p}, "
+        "\"camoMaterial\": {:p}, \"translationX\": {}, "
+        "\"translationY\": {}, \"scaleX\": {}, "
+        "\"scaleY\": {}, \"rotation\": {}, \"normalBlend\": {}, "
+        "\"glossBlend\": {}, "
+        "\"albedoTint\": {}, \"glossRange\": {}, \"specColor\": "
+        "{}, \"specOffset\": {} }}",
+        replaceFlags, numBaseMaterials,
+        reinterpret_cast<const void *>(baseMaterials),
+        reinterpret_cast<const void *>(camoMaterial), translationX,
+        translationY, scaleX, scaleY, rotation, normalBlend, glossBlend,
+        albedoTint.serialize(), glossRange.serialize(), specColor, specOffset);
   }
 };
 
@@ -1643,10 +1644,10 @@ struct ManagedNotetrack_t {
   };
 
   inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"elemType\": 0x{:08X}, \"param1\": 0x{:08X}, \"param2\": 0x{:08X}, "
-        "\"startTime\": {} }}",
-        elemType, param1, param2, startTime);
+    return std::format("{{ \"elemType\": 0x{:08X}, \"param1\": 0x{:08X}, "
+                       "\"param2\": 0x{:08X}, "
+                       "\"startTime\": {} }}",
+                       elemType, param1, param2, startTime);
   }
 };
 

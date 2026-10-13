@@ -152,7 +152,8 @@ struct XPakEntryInfo {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": {}, "
+        "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": "
+        "{}, "
         "\"compressed\": {}, \"valid\": {}, \"adjacentLeftType\": {}, "
         "\"adjacentRightType\": {}, "
         "\"adjacentLeft\": {}, \"adjacentRight\": {}, \"padding\": {} }}",
@@ -190,9 +191,10 @@ struct _GUID {
   uint8_t Data4[8];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"Data1\": 0x{:08X}, \"Data2\": 0x{:04X}, \"Data3\": "
-                       "{:04X}, \"Data4\": {} }}",
-                       Data1, Data2, Data3, ::serialize(Data4));
+    return std::format(
+        "{{ \"Data1\": 0x{:08X}, \"Data2\": 0x{:04X}, \"Data3\": "
+        "{:04X}, \"Data4\": {} }}",
+        Data1, Data2, Data3, ::serialize(Data4));
   }
 };
 #pragma pack(pop)
@@ -540,7 +542,8 @@ struct GfxImage {
         "\"fallbackLevel\": {}, "
         "\"streaming\": {}, \"pixels\": {:p}, \"fallbackPixels\": {:p}, "
         "\"totalSize\": {}, "
-        "\"fallbackSize\": {}, \"format\": {}, \"name\": {}, \"hash\": 0x{:08X} "
+        "\"fallbackSize\": {}, \"format\": {}, \"name\": {}, \"hash\": "
+        "0x{:08X} "
         "}}",
         ::serialize(streamedParts), streamedPartCount,
         game::gfx::serialize(semantic), static_cast<uint32_t>(mapType),
@@ -686,8 +689,8 @@ union GfxSimpleBuffer {
   uint64_t m_packed;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"m_data\": 0x{:010X}, \"m_size\": 0x{:06X} }}", m_data,
-                       m_size);
+    return std::format("{{ \"m_data\": 0x{:010X}, \"m_size\": 0x{:06X} }}",
+                       m_data, m_size);
   }
 };
 
@@ -849,7 +852,8 @@ struct PostfxConstant {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"anm\": {}, \"channels\": 0x{:08X}, \"delay\": {}, \"end_clr\": {}, "
+        "{{ \"anm\": {}, \"channels\": 0x{:08X}, \"delay\": {}, \"end_clr\": "
+        "{}, "
         "\"end\": {}, \"scriptVectorIndex\": {}, \"start_clr\": {}, \"start\": "
         "{}, "
         "\"angle\": {}, \"scriptVectorName\": {} }}",

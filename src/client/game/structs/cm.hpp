@@ -502,7 +502,8 @@ PACKED(struct trace_t {
         "\"cflags\": "
         "{:08X}, "
         "\"brushType\": {}, \"brushId\": {}, \"hitType\": {}, \"hitId\": {}, "
-        "\"modelIndex\": {}, \"subModelBoneIndex\": {}, \"partName\": 0x{:08X}, "
+        "\"modelIndex\": {}, \"subModelBoneIndex\": {}, \"partName\": "
+        "0x{:08X}, "
         "\"boneIndex\": {}, \"partGroup\": {}, \"allsolid\": {}, "
         "\"startsolid\": {}, "
         "\"walkable\": {}, \"staticModel\": {:p}, \"hitPartition\": {} }}",
