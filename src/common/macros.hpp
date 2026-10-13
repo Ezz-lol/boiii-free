@@ -254,7 +254,12 @@ template <typename T>
 concept SerializablePtr = !std::is_reference_v<T> && std::is_pointer_v<T> &&
                           Serializable<strip_pointer_t<T>>;
 
-inline constexpr const char *serialize(const bool val) {
+// Require bool argument in template rather than in argument type to ensure this
+// is an _explicit_ boolean argument, and not a value implicitly casted to
+// boolean
+template <typename T>
+  requires(std::same_as<T, bool>)
+inline constexpr const char *serialize(const T val) {
   return val ? "true" : "false";
 }
 
@@ -271,15 +276,29 @@ template <Serializable T> inline std::string serialize(const T &ptr) {
 }
 
 template <typename T>
+  requires(std::is_integral_v<T> && !std::is_same_v<T, char> &&
+           !std::is_same_v<T, bool>)
+inline std::string serialize(const T *const(&val)) {
+  return val ? std::format("0x{:X}", *val) : "NULL";
+}
+
+template <typename T>
+  requires(std::floating_point<T> && !std::is_same_v<T, char> &&
+           !std::is_same_v<T, bool>)
+inline std::string serialize(const T *const(&val)) {
+  return val ? std::to_string(*val) : "NULL";
+}
+
+template <typename T>
   requires(std::is_integral_v<T> && !std::is_enum_v<T> &&
            !std::is_same_v<T, bool> && !std::is_same_v<T, char>)
 inline std::string serialize(const T *arr, const size_t N) {
   std::string result = "[";
   if (N && arr) {
-    result += std::format("{:X}", arr[0]);
+    result += std::format("0x{:X}", arr[0]);
 
     for (size_t i = 1; i < N; ++i) {
-      result += std::format(", {:X}", arr[i]);
+      result += std::format(", 0x{:X}", arr[i]);
     }
   }
   result += "]";
@@ -292,11 +311,11 @@ template <typename T>
 inline std::string serialize(const T *const *const arr, const size_t N) {
   std::string result = "[";
   if (N && arr && arr[0]) {
-    result += std::format("{:X}", *arr[0]);
+    result += std::format("0x{:X}", *arr[0]);
 
     for (size_t i = 1; i < N; ++i) {
       if (arr[i]) {
-        result += std::format(", {:X}", *arr[i]);
+        result += std::format(", 0x{:X}", *arr[i]);
       }
     }
   }
@@ -326,10 +345,10 @@ template <typename T>
 inline std::string serialize(const T *arr, const size_t N) {
   std::string result = "[";
   if (N && arr) {
-    result += std::format("{}", serialize(arr[0]));
+    result += std::format("{}", arr[0]);
 
     for (size_t i = 1; i < N; ++i) {
-      result += std::format(", {}", serialize(arr[i]));
+      result += std::format(", {}", arr[i]);
     }
   }
   result += "]";

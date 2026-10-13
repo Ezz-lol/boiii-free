@@ -1014,16 +1014,17 @@ PACKED(struct CamoMaterialChannel {
   uint8_t _padding44[4];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"replaceFlags\": {:04X}, \"camoMaterial\": {}, "
+    return std::format("{{ \"replaceFlags\": 0x{:04X}, \"camoMaterial\": {:p}, "
                        "\"translationX\": {}, "
                        "\"translationY\": {}, \"scaleX\": {}, \"scaleY\": {}, "
                        "\"rotation\": {}, "
                        "\"normalBlend\": {}, \"glossBlend\": {}, "
                        "\"albedoTint\": {}, \"detailMap\": {:p}, "
                        "\"detailHeight\": {}, \"detailScale\": {} }}",
-                       replaceFlags, ::serialize(camoMaterial), translationX,
-                       translationY, scaleX, scaleY, rotation, normalBlend,
-                       glossBlend, albedoTint.serialize(),
+                       replaceFlags,
+                       reinterpret_cast<const void *>(camoMaterial),
+                       translationX, translationY, scaleX, scaleY, rotation,
+                       normalBlend, glossBlend, albedoTint.serialize(),
                        reinterpret_cast<const void *>(detailMap), detailHeight,
                        detailScale.serialize());
   }
@@ -1034,8 +1035,8 @@ struct CamoBaseMaterial {
   gfx::GfxImage *mask;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"material\": {}, \"mask\": {:p} }}",
-                       ::serialize(material),
+    return std::format("{{ \"material\": {:p}, \"mask\": {:p} }}",
+                       reinterpret_cast<const void *>(material),
                        reinterpret_cast<const void *>(mask));
   }
 };
@@ -1050,7 +1051,7 @@ PACKED(struct CamoMaterial {
 
   inline std::string serialize() const noexcept {
     return std::format("{{ \"numBaseMaterials\": {}, \"baseMaterials\": {}, "
-                       "\"activeChannels\": {:04X}, "
+                       "\"activeChannels\": 0x{:04X}, "
                        "\"camoMaterialChannels\": {} }}",
                        numBaseMaterials,
                        ::serialize(baseMaterials, numBaseMaterials),
@@ -1234,7 +1235,7 @@ PACKED(struct WeaponAttachmentUnique {
         "{}, "
         "\"modHudIcon\": {}, \"attachmentImage\": {}, \"attachmentType\": {}, "
         "\"siblingLink\": {}, \"childLink\": {}, "
-        "\"combinedAttachmentTypeMask\": {}, "
+        "\"combinedAttachmentTypeMask\": 0x{:016X}, "
         "\"szAltWeaponName\": {}, \"altWeaponIndex\": {}, "
         "\"szDualWieldWeaponName\": {}, "
         "\"dualWieldWeaponIndex\": {}, \"hideTags\": {:p}, "
@@ -1277,9 +1278,9 @@ PACKED(struct WeaponAttachmentUnique {
         "\"rotateStopSound\": {}, \"rotateStopSoundPlayer\": {}, "
         "\"effectOverrides\": {}, \"viewFlashEffect\": {}, "
         "\"worldFlashEffect\": {}, \"vViewFlashOffset\": {}, "
-        "\"vWorldFlashOffset\": {}, \"tracerType\": {}, "
-        "\"enemyTracerType\": {}, \"laserTypeViewModel\": {}, "
-        "\"laserTypeWorld\": {}, \"adsDofStart\": {}, "
+        "\"vWorldFlashOffset\": {}, \"tracerType\": {:p}, "
+        "\"enemyTracerType\": {:p}, \"laserTypeViewModel\": {:p}, "
+        "\"laserTypeWorld\": {:p}, \"adsDofStart\": {}, "
         "\"adsDofEnd\": {}, \"iAmmoIndex\": {}, \"iClipIndex\": {}, "
         "\"bOverrideLeftHandIK\": {}, "
         "\"bOverrideLeftHandProneIK\": {}, \"ikLeftHandOffset\": {}, "
@@ -1310,7 +1311,7 @@ PACKED(struct WeaponAttachmentUnique {
         ::serialize(szInternalName), ::serialize(szDisplayName),
         ::serialize(szDisplayDesc), ::serialize(modHudIcon),
         ::serialize(attachmentImage), game::weapon::serialize(attachmentType),
-        siblingLink, childLink, ::serialize(combinedAttachmentTypeMask),
+        siblingLink, childLink, combinedAttachmentTypeMask,
         ::serialize(szAltWeaponName), altWeaponIndex,
         ::serialize(szDualWieldWeaponName), dualWieldWeaponIndex,
         reinterpret_cast<const void *>(hideTags),
@@ -1355,10 +1356,12 @@ PACKED(struct WeaponAttachmentUnique {
         ::serialize(rotateStopSound), ::serialize(rotateStopSoundPlayer),
         effectOverrides, ::serialize(viewFlashEffect),
         ::serialize(worldFlashEffect), vViewFlashOffset.serialize(),
-        vWorldFlashOffset.serialize(), ::serialize(tracerType),
-        ::serialize(enemyTracerType), ::serialize(laserTypeViewModel),
-        ::serialize(laserTypeWorld), adsDofStart, adsDofEnd, iAmmoIndex,
-        iClipIndex, ::serialize(bOverrideLeftHandIK),
+        vWorldFlashOffset.serialize(),
+        reinterpret_cast<const void *>(tracerType),
+        reinterpret_cast<const void *>(enemyTracerType),
+        reinterpret_cast<const void *>(laserTypeViewModel),
+        reinterpret_cast<const void *>(laserTypeWorld), adsDofStart, adsDofEnd,
+        iAmmoIndex, iClipIndex, ::serialize(bOverrideLeftHandIK),
         ::serialize(bOverrideLeftHandProneIK), ikLeftHandOffset.serialize(),
         ikLeftHandRotation.serialize(), ikLeftHandProneOffset.serialize(),
         ikLeftHandProneRotation.serialize(), iCanDoQuickToss,
@@ -2289,7 +2292,7 @@ struct __attribute__((aligned(4))) WeaponAttachment {
         "\"mmsInScope\": {}, \"mmsFOV\": {}, "
         "\"mmsAspect\": {}, \"mmsMaxDist\": {}, \"clipSizeScale\": {}, "
         "\"iClipSize\": {}, "
-        "\"stackFire\": {:08X}, \"stackFireSpread\": {}, "
+        "\"stackFire\": 0x{:08X}, \"stackFireSpread\": {}, "
         "\"stackFireAccuracyDecay\": {}, "
         "\"luiReticle\": {}, \"perks\": {}, \"customFloat0\": {}, "
         "\"customFloat1\": {}, "
@@ -3583,7 +3586,7 @@ PACKED(struct WeaponDobjInfo {
 
     inline std::string serialize() const noexcept {
       return std::format("{{ \"slot\": {}, \"weapon\": {}, \"target\": {:p}, "
-                         "\"dobjModelMask\": {:08X} }}",
+                         "\"dobjModelMask\": 0x{:08X} }}",
                          WeaponDobjInfo::serialize(slot), weapon.serialize(),
                          static_cast<bool>(weapon) ? (const void *)weapDef
                                                    : (const void *)attachment,
@@ -3749,7 +3752,7 @@ PACKED(struct visWeapon_s {
   uint8_t _padding0C[4];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"weapon\": {}, \"streamerOptions\": {:08X} }}",
+    return std::format("{{ \"weapon\": {}, \"streamerOptions\": 0x{:08X} }}",
                        weapon.serialize(), streamerOptions);
   }
 });

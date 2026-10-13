@@ -162,7 +162,8 @@ PACKED(struct clientSession_t {
         "\"killCamEntity\": {}, \"killCamTargetEntity\": {}, "
         "\"killCamWeapon\": {}, "
         "\"killCamMod\": {}, \"killCamFlag\": {}, \"archiveTime\": {}, "
-        "\"scriptPersId\": {}, \"connected\": {}, \"cmd\": {}, \"oldcmd\": {}, "
+        "\"scriptPersId\": 0x{:08X}, \"connected\": {}, \"cmd\": {}, \"oldcmd\": "
+        "{}, "
         "\"localClient\": {}, \"predictItemPickup\": {}, \"newnetname\": {}, "
         "\"maxHealth\": {}, \"enterTime\": {}, \"teamState\": {}, "
         "\"voteCount\": {}, "
@@ -170,10 +171,10 @@ PACKED(struct clientSession_t {
         "\"noSpectate\": {}, "
         "\"teamInfo\": {}, \"cs\": {}, \"psOffsetTime\": {}, "
         "\"scoreboardColumnCache\": {} }}",
-        game::level::serialize(sessionState), ::serialize(forceSpectatorClient),
-        isInKillcam, killCamEntity, killCamTargetEntity,
-        killCamWeapon.serialize(), killCamMod, killCamFlag, archiveTime,
-        ::serialize(scriptPersId), game::level::serialize(connected),
+        game::level::serialize(sessionState),
+        game::serialize(forceSpectatorClient), isInKillcam, killCamEntity,
+        killCamTargetEntity, killCamWeapon.serialize(), killCamMod, killCamFlag,
+        archiveTime, scriptPersId, game::level::serialize(connected),
         cmd.serialize(), oldcmd.serialize(), ::serialize(localClient),
         ::serialize(predictItemPickup), ::serialize(newnetname), maxHealth,
         enterTime, teamState.serialize(), voteCount, teamVoteCount,
@@ -267,7 +268,7 @@ PACKED(struct gclient_s {
   inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"ps\": {}, \"lastPlayerPS\": {}, \"sess\": {}, "
-        "\"spectatorClient\": {}, \"flags\": {:08X}, \"lastCmdTime\": {}, "
+        "\"spectatorClient\": {}, \"flags\": 0x{:08X}, \"lastCmdTime\": {}, "
         "\"button_bits\": {}, \"oldbutton_bits\": {}, \"latched_button_bits\": "
         "{}, \"button_bitsSinceLastFrame\": {}, \"fGunPitch\": {}, "
         "\"fGunYaw\": {}, \"damage_blood\": {}, \"damage_from\": {}, "
@@ -291,10 +292,10 @@ PACKED(struct gclient_s {
         "\"previouslyBeganWeaponRaise\": {}, \"previouslySprinting\": {}, "
         "\"hasSpyplane\": {}, \"hasSatellite\": {}, \"revive\": {}, "
         "\"reviveTime\": {}, \"disallowVehicleUsage\": {}, "
-        "\"attachShieldTagName\": {:04X}, \"lastStand\": {}, "
+        "\"attachShieldTagName\": 0x{:04X}, \"lastStand\": {}, "
         "\"lastStandTime\": {} }}",
         ps.serialize(), lastPlayerPS.serialize(), sess.serialize(),
-        ::serialize(spectatorClient), flags, lastCmdTime,
+        game::serialize(spectatorClient), flags, lastCmdTime,
         button_bits.serialize(), oldbutton_bits.serialize(),
         latched_button_bits.serialize(), button_bitsSinceLastFrame.serialize(),
         fGunPitch, fGunYaw, damage_blood, damage_from.serialize(),
@@ -357,7 +358,7 @@ struct gentity_snd_wait {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"notifyString\": {:08X}, \"index\": {}, \"stoppable\": {}, "
+        "{{ \"notifyString\": 0x{:08X}, \"index\": {}, \"stoppable\": {}, "
         "\"basetime\": {}, \"duration\": {} }}",
         notifyString, index, ::serialize(stoppable), basetime, duration);
   }
@@ -380,15 +381,7 @@ PACKED(struct flame_timed_damage_t {
   int32_t end_timestamp;
   int32_t lastupdate_timestamp;
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"attacker\": {}, \"damage\": {}, \"damageDuration\": {}, "
-        "\"damageInterval\": {}, \"start_timestamp\": {}, \"end_timestamp\": "
-        "{}, "
-        "\"lastupdate_timestamp\": {} }}",
-        ::serialize(attacker), damage, damageDuration, damageInterval,
-        start_timestamp, end_timestamp, lastupdate_timestamp);
-  }
+  std::string serialize() const noexcept;
 });
 ASSERT_SIZE(flame_timed_damage_t, 0x20);
 
@@ -426,7 +419,7 @@ PACKED(struct trigger_ent_t {
         "{{ \"threshold\": {}, \"accumulate\": {}, \"timestamp\": {}, "
         "\"singleUserEntIndex\": {}, \"perk\": {}, \"exposureIndex\": {}, "
         "\"exposureLerpToLighter\": {}, \"exposureLerpToDarker\": {}, "
-        "\"exposureFeather\": {}, \"flags\": {:04X}, \"playerPrompts\": {}, "
+        "\"exposureFeather\": {}, \"flags\": 0x{:04X}, \"playerPrompts\": {}, "
         "\"requireAllPlayers\": {} }}",
         threshold, accumulate, timestamp, singleUserEntIndex, perk,
         exposureIndex, exposureLerpToLighter, exposureLerpToDarker,
@@ -529,23 +522,23 @@ PACKED(struct missile_ent_t {
   int32_t destructibleBounceCount;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"predictLandPos\": {}, \"predictLandTime\": {}, "
-                       "\"timestamp\": {}, "
-                       "\"time\": {}, \"timeOfBirth\": {}, \"travelDist\": {}, "
-                       "\"surfaceNormal\": {}, "
-                       "\"forcedDud\": {}, \"rolling\": {}, \"flags\": {:02X}, "
-                       "\"antilagTimeOffset\": {}, "
-                       "\"timeAlive\": {}, \"curvature\": {}, "
-                       "\"targetOffset\": {}, \"effectIndex\": {}, "
-                       "\"grenadeWobbleCycle\": {}, \"grenadeCurve\": {}, "
-                       "\"destructibleBounceCount\": {} }}",
-                       predictLandPos.serialize(), predictLandTime, timestamp,
-                       time, timeOfBirth, travelDist, surfaceNormal.serialize(),
-                       static_cast<bool>(forcedDud), static_cast<bool>(rolling),
-                       flags, antilagTimeOffset, timeAlive,
-                       curvature.serialize(), targetOffset.serialize(),
-                       effectIndex, grenadeWobbleCycle, grenadeCurve,
-                       destructibleBounceCount);
+    return std::format(
+        "{{ \"predictLandPos\": {}, \"predictLandTime\": {}, "
+        "\"timestamp\": {}, "
+        "\"time\": {}, \"timeOfBirth\": {}, \"travelDist\": {}, "
+        "\"surfaceNormal\": {}, "
+        "\"forcedDud\": {}, \"rolling\": {}, \"flags\": 0x{:02X}, "
+        "\"antilagTimeOffset\": {}, "
+        "\"timeAlive\": {}, \"curvature\": {}, "
+        "\"targetOffset\": {}, \"effectIndex\": {}, "
+        "\"grenadeWobbleCycle\": {}, \"grenadeCurve\": {}, "
+        "\"destructibleBounceCount\": {} }}",
+        predictLandPos.serialize(), predictLandTime, timestamp, time,
+        timeOfBirth, travelDist, surfaceNormal.serialize(),
+        static_cast<bool>(forcedDud), static_cast<bool>(rolling), flags,
+        antilagTimeOffset, timeAlive, curvature.serialize(),
+        targetOffset.serialize(), effectIndex, grenadeWobbleCycle, grenadeCurve,
+        destructibleBounceCount);
   }
 });
 ASSERT_SIZE(missile_ent_t, 0x68);
@@ -628,17 +621,7 @@ PACKED(struct tagInfo_t {
   vec3_t parentInvAxis[4];
   uint8_t _padding7C[4];
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"parent\": {}, \"next\": {}, \"name\": {:08X}, "
-        "\"blendToParent\": {}, "
-        "\"blendOnlyYaw\": {}, \"collisionPhysics\": {}, \"index\": {}, "
-        "\"axis\": {}, \"parentInvAxis\": {} }}",
-        ::serialize(parent), ::serialize(next), name,
-        ::serialize(blendToParent), ::serialize(blendOnlyYaw),
-        ::serialize(collisionPhysics), ::serialize(index), ::serialize(axis),
-        ::serialize(parentInvAxis));
-  }
+  std::string serialize() const noexcept;
 });
 
 PACKED(struct EntityModelAttachment {
@@ -647,8 +630,8 @@ PACKED(struct EntityModelAttachment {
   scr::ScrString_t tag;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"model\": {}, \"tag\": {:08X} }}",
-                       ::serialize(model), tag);
+    return std::format("{{ \"model\": 0x{:04X}, \"tag\": 0x{:08X} }}", model,
+                       tag);
   }
 });
 
@@ -731,61 +714,7 @@ PACKED(struct gentity_s {
   uint8_t _padding4F1[7];
 
   inline constexpr bool dead() const noexcept { return health <= 0; }
-
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"s\": {}, \"r\": {}, \"client\": {}, \"actor\": {}, "
-        "\"sentient\": {:p}, \"destructible\": {}, \"vehicle\": {}, "
-        "\"bot\": {}, "
-        "\"model\": {}, \"physicsObject\": {}, \"takedamage\": {}, "
-        "\"active\": {}, \"nopickup\": {}, \"handler\": {}, \"avoidHandle\": "
-        "{}, \"classname\": {:08X}, \"target\": {:08X}, \"targetname\": "
-        "{:08X}, \"script_noteworthy\": {:08X}, "
-        "\"animname\": {:08X}, \"script_animname\": {:08X}, "
-        "\"attachIgnoreCollision\": {:08X}, "
-        "\"spawnflags\": {:08X}, \"flags\": {:08X}, \"eventTime\": {}, "
-        "\"freeAfterEvent\": {}, "
-        "\"unlinkAfterEvent\": {}, \"clipmask\": {:08X}, \"processedFrame\": "
-        "{}, \"parent\": {}, "
-        "\"nextthink\": {}, \"health\": {}, \"maxHealth\": {}, \"damage\": "
-        "{}, "
-        "\"flame_timed_damage\": {}, \"last_timed_radius_damage\": {}, "
-        "\"count\": {}, "
-        "\"activator\": {}, \"missileTargetEnt\": {}, \"snd_wait\": {}, "
-        "\"tagChildren\": {:p}, "
-        "\"tagInfo\": {:p}, \"scripted\": {}, \"attachments\": {}, "
-        "\"pAnimTree\": {}, "
-        "\"disconnectedLinks\": {}, \"iDisconnectTime\": {}, \"physObjId\": "
-        "{}, \"nextFree\": {:p}, "
-        "\"birthTime\": {}, \"ikPlayerclipTerrainTime\": {}, "
-        "\"ikDisableTerrainMappingTime\": {}, "
-        "\"shieldAttachmentIndex\": {:08X}, \"delayedFire\": {}, "
-        "\"havokObj\": "
-        "{:p}, "
-        "\"instancePoseHandle\": {:016X}, \"teleportTime\": {}, "
-        "\"debugRenderTime\": {}, \"tmodeTimeOut\": {} }}",
-        s.serialize(), r.serialize(), ::serialize(client), ::serialize(actor),
-        reinterpret_cast<const void *>(sentient), ::serialize(destructible),
-        ::serialize(vehicle), ::serialize(bot), ::serialize(model),
-        ::serialize(physicsObject), ::serialize(takedamage),
-        ::serialize(active), ::serialize(nopickup), ::serialize(handler),
-        ::serialize(avoidHandle), classname, target, targetname,
-        script_noteworthy, animname, script_animname, attachIgnoreCollision,
-        spawnflags, flags, eventTime, freeAfterEvent.serialize(),
-        unlinkAfterEvent.serialize(), clipmask, processedFrame,
-        parent.serialize(), nextthink, health, maxHealth, damage,
-        ::serialize(flame_timed_damage), last_timed_radius_damage, count,
-        ::serialize(activator), missileTargetEnt.serialize(),
-        snd_wait.serialize(), reinterpret_cast<const void *>(tagChildren),
-        reinterpret_cast<const void *>(tagInfo), ::serialize(scripted),
-        ::serialize(attachments), ::serialize(pAnimTree), disconnectedLinks,
-        iDisconnectTime, ::serialize(physObjId),
-        reinterpret_cast<const void *>(nextFree), birthTime,
-        ikPlayerclipTerrainTime, ikDisableTerrainMappingTime,
-        shieldAttachmentIndex, delayedFire.serialize(),
-        reinterpret_cast<const void *>(havokObj), instancePoseHandle,
-        teleportTime, debugRenderTime, tmodeTimeOut);
-  }
+  std::string serialize() const noexcept;
 });
 
 constexpr uint32_t GENTITY_POOL_LEN = 2048;

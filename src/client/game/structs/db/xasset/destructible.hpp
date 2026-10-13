@@ -32,6 +32,8 @@ PACKED(struct DestructibleStage {
   const char *loopSound;
   db::xasset::xmodel::XModelPtr spawnModel[3];
   db::xasset::phys::PhysPreset *physPreset;
+
+  std::string serialize() const noexcept;
 });
 ASSERT_SIZE(DestructibleStage, 0x78);
 
@@ -55,6 +57,23 @@ PACKED(struct DestructiblePiece {
   scr::ScrString_t enableLabel;
   XPartBits hideBones;
   uint8_t _padding1CC[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"stages\": {}, \"parentPiece\": {}, \"parentDamagePercent\": {}, "
+        "\"bulletDamageScale\": {}, \"explosiveDamageScale\": {}, "
+        "\"meleeDamageScale\": {}, "
+        "\"impactDamageScale\": {}, \"entityDamageTransfer\": {}, "
+        "\"physConstraints\": {:p}, "
+        "\"health\": {}, \"damageSound\": {}, \"burnEffect\": {:p}, "
+        "\"burnSound\": {}, "
+        "\"enableLabel\": 0x{:08X}, \"hideBones\": {} }}",
+        ::serialize(stages), parentPiece, parentDamagePercent,
+        bulletDamageScale, explosiveDamageScale, meleeDamageScale,
+        impactDamageScale, entityDamageTransfer, (const void *)physConstraints,
+        health, ::serialize(damageSound), (const void *)burnEffect,
+        ::serialize(burnSound), enableLabel, ::serialize(hideBones));
+  }
 });
 ASSERT_SIZE(DestructiblePiece, 0x3C8);
 
@@ -67,6 +86,8 @@ PACKED(struct DestructibleDef {
   DestructiblePiece *pieces;
   qboolean clientOnly;
   qboolean syncBaseHealthWithEntity;
+
+  std::string serialize() const noexcept;
 });
 // Verified
 ASSERT_SIZE(DestructibleDef, 0x30);

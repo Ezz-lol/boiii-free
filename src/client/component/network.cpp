@@ -56,7 +56,7 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
       fprintf(stderr, "[Network] handle_command error: %s\n", e.what());
       fflush(stderr);
 #ifndef NDEBUG
-      game::trace("[Network] handle_command error: {}\n", e.what());
+      game::trace("[Network] handle_command error: {}", e.what());
 #endif
 
     } catch (...) {
@@ -347,6 +347,29 @@ int32_t net_sendpacket_stub(const game::net::netsrc_t sock,
                 reinterpret_cast<sockaddr *>(&address), sizeof(address));
 }
 
+template <game::forEachClientIterator_t &ForEachClientIterator>
+void client_listing_command(const command::params &params) {
+  std::string completeListing = "{ ";
+  size_t listed = 0;
+  ForEachClientIterator([&completeListing,
+                         &listed](const game::sv::client_s &cl,
+                                  game::ClientNum_t index) {
+    if (listed) {
+      completeListing += ", ";
+    }
+    completeListing += std::format("{}: {}", serialize(index), cl.serialize());
+    listed++;
+  });
+
+  completeListing += " }";
+  fprintf(stdout, "%s\n", completeListing.c_str());
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
+                        game::consoleLabel::DEFAULT, "%s\n",
+                        completeListing.c_str());
+  game::trace("{}", completeListing);
+  fflush(stdout);
+}
+
 struct component final : generic_component {
   DEFINE_COMPONENT_NAME("network");
 
@@ -398,15 +421,15 @@ struct component final : generic_component {
       utils::hook::call(0x14018E698_g, cl_dispatch_connectionless_packet_stub);
     } else {
       // Truncate error string to make sure there are no buffer overruns later
-      utils::hook::call(game::select(0x14134d226, 0x14134D206, 0x0),
+      utils::hook::call(game::select(0x14134D226, 0x14134D206, 0x0),
                         com_error_oob_stub);
 
       // intercept command handling (client-side OOB dispatch)
-      utils::hook::call(game::select(0x14134d166, 0x14134D146, 0x0),
+      utils::hook::call(game::select(0x14134D166, 0x14134D146, 0x0),
                         utils::hook::assemble(handle_command_stub));
 
       // Disable `echo` command in `CL_DispatchConnectionlessPacket`
-      utils::hook::set<uint8_t>(game::select(0x14134d11b, 0x14134D0FB, 0x0),
+      utils::hook::set<uint8_t>(game::select(0x14134D11B, 0x14134D0FB, 0x0),
                                 0xEB);
     }
 
@@ -422,47 +445,13 @@ struct component final : generic_component {
     utils::hook::set<uint8_t>(
         game::select(0x1412ff362, 0x1412FF342, 0x140177A32), 100 - 15);
 
-    command::add("listBots", [](const command::params &params) {
-      game::foreach_test_client(
-          [](const game::sv::client_s &cl, game::ClientNum_t index) {
-            const std::string botListing =
-                std::format("[{}] {}", serialize(index), cl.serialize());
-            fprintf(stdout, "%s\n", botListing.c_str());
-            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
-                                  game::consoleLabel::DEFAULT, "%s\n",
-                                  botListing.c_str());
-            game::trace("{}", botListing);
-            fflush(stdout);
-          });
-    });
+    command::add("listBots", client_listing_command<game::foreach_test_client>);
 
-    command::add("listConnected", [](const command::params &params) {
-      game::foreach_connected_client(
-          [](const game::sv::client_s &cl, game::ClientNum_t index) {
-            const std::string listing =
-                std::format("[{}] {}", serialize(index), cl.serialize());
-            fprintf(stdout, "%s\n", listing.c_str());
-            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
-                                  game::consoleLabel::DEFAULT, "%s\n",
-                                  listing.c_str());
-            game::trace("{}", listing);
-            fflush(stdout);
-          });
-    });
+    command::add("listConnected",
+                 client_listing_command<game::foreach_connected_client>);
 
-    command::add("listActive", [](const command::params &params) {
-      game::foreach_active_client(
-          [](const game::sv::client_s &cl, game::ClientNum_t index) {
-            const std::string listing =
-                std::format("[{}] {}", serialize(index), cl.serialize());
-            fprintf(stdout, "%s\n", listing.c_str());
-            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
-                                  game::consoleLabel::DEFAULT, "%s\n",
-                                  listing.c_str());
-            game::trace("{}", listing);
-            fflush(stdout);
-          });
-    });
+    command::add("listActive",
+                 client_listing_command<game::foreach_active_client>);
   }
 };
 } // namespace network

@@ -2168,7 +2168,7 @@ PACKED(struct objective_t {
         "\"colorSetColor\": {}, \"objIconSize\": {}, \"objOwnerNum\": {}, "
         "\"name\": {}, "
         "\"teamMask\": {}, \"progress\": {}, \"clientUseMask\": {}, "
-        "\"gamemodeFlags\": {:04X}, "
+        "\"gamemodeFlags\": 0x{:04X}, "
         "\"objTeamNum\": {}, \"syncFlag\": {}, \"uiModels\": {} }}",
         game::serialize(objState), origin.serialize(), entNum, color,
         colorSetColor, objIconSize.serialize(), objOwnerNum, name, teamMask,
@@ -2303,7 +2303,7 @@ struct animationNumber_t {
   };
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"index\": {:04X}, \"toggle\": {} }}", index,
+    return std::format("{{ \"index\": 0x{:04X}, \"toggle\": {} }}", index,
                        ::serialize(static_cast<bool>(toggle)));
   }
 };

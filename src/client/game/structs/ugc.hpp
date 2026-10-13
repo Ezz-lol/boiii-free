@@ -41,8 +41,8 @@ struct UGCItem {
         "{{ \"title\": \"{}\", \"internalName\": \"{}\", \"publisherId\": "
         "\"{}\", \"description\": \"{}\", \"contentPathToZoneFiles\": \"{}\", "
         "\"absolutePathContentDirectory\": \"{}\", \"absolutePathZoneFiles\", "
-        "\"{}\", \"version\": {}, \"publisherIdInteger\": {:016X}, "
-        "\"publisherIdHash\": {:08X}, \"type\": {} }}",
+        "\"{}\", \"version\": {}, \"publisherIdInteger\": 0x{:016X}, "
+        "\"publisherIdHash\": 0x{:08X}, \"type\": {} }}",
         title, internalName, publisherId, description, contentPathToZoneFiles,
         absolutePathContentDirectory, absolutePathZoneFiles, version,
         publisherIdInteger, publisherIdHash, ::game::serialize(type));
@@ -81,8 +81,8 @@ struct ActiveMod : UGCItem {
         "{{ \"title\": \"{}\", \"internalName\": \"{}\", \"publisherId\": "
         "\"{}\", \"description\": \"{}\", \"contentPathToZoneFiles\": \"{}\", "
         "\"absolutePathContentDirectory\": \"{}\", \"absolutePathZoneFiles\", "
-        "\"{}\", \"version\": {}, \"publisherIdInteger\": {:016X}, "
-        "\"publisherIdHash\": {:08X}, \"type\": {}, \"loadState\": {} }}",
+        "\"{}\", \"version\": {}, \"publisherIdInteger\": 0x{:016X}, "
+        "\"publisherIdHash\": 0x{:08X}, \"type\": {}, \"loadState\": {} }}",
         title, internalName, publisherId, description, contentPathToZoneFiles,
         absolutePathContentDirectory, absolutePathZoneFiles, version,
         publisherIdInteger, publisherIdHash, ::game::serialize(type),

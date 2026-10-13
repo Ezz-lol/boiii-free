@@ -27,7 +27,7 @@ PACKED(struct DynEntityServer {
   int health;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"flags\": {:04X}, \"health\": {} }}", flags,
+    return std::format("{{ \"flags\": 0x{:04X}, \"health\": {} }}", flags,
                        health);
   }
 });
@@ -42,7 +42,7 @@ struct DynEntityColl {
   inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"sector\": {}, \"nextEntInSector\": {}, \"linkMins\": {}, "
-        "\"linkMaxs\": {}, \"contents\": {:08X} }}",
+        "\"linkMaxs\": {}, \"contents\": 0x{:08X} }}",
         sector, nextEntInSector, linkMins.serialize(), linkMaxs.serialize(),
         contents);
   }
@@ -62,7 +62,7 @@ PACKED(struct DynEntityClient {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"physObjId\": {:p}, \"flags\": {:04X}, \"health\": {}, "
+        "{{ \"physObjId\": {:p}, \"flags\": 0x{:04X}, \"health\": {}, "
         "\"burnTime\": {}, \"fadeTime\": {}, \"physicsStartTime\": {}, "
         "\"fxHandles\": {}, \"numFxHandles\": {} }}",
         reinterpret_cast<const void *>(physObjId), flags, health, burnTime,
@@ -98,14 +98,14 @@ PACKED(struct DynEntityDef {
     return std::format(
         "{{ \"pose\": {}, \"xModel\": {:p}, \"destroyedxModel\": {:p}, "
         "\"brushModel\": {}, \"physicsBrushModel\": {}, \"destroyFx\": {}, "
-        "\"destroySound\": {}, \"rattleFx\": {}, \"rattleSound\": {}, "
+        "\"destroySound\": 0x{:08X}, \"rattleFx\": {}, \"rattleSound\": 0x{:08X}, "
         "\"splashUpFx\": {}, \"physPreset\": {:p}, \"physConstraints\": {}, "
-        "\"health\": {}, \"flags\": {:08X}, \"contents\": {:08X}, "
-        "\"targetname\": {:08X}, \"target\": {:08X} }}",
+        "\"health\": {}, \"flags\": 0x{:08X}, \"contents\": 0x{:08X}, "
+        "\"targetname\": 0x{:08X}, \"target\": 0x{:08X} }}",
         pose.serialize(), reinterpret_cast<const void *>(xModel),
         reinterpret_cast<const void *>(destroyedxModel), brushModel,
-        physicsBrushModel, ::serialize(destroyFx), ::serialize(destroySound),
-        ::serialize(rattleFx), ::serialize(rattleSound),
+        physicsBrushModel, ::serialize(destroyFx), destroySound,
+        ::serialize(rattleFx), rattleSound,
         ::serialize(reinterpret_cast<const uintptr_t *const>(splashUpFx),
                     std::size(splashUpFx)),
         reinterpret_cast<const void *>(physPreset),

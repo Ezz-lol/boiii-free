@@ -6,7 +6,8 @@
 #include <utils/byte_buffer.hpp>
 #include <utils/concurrency.hpp>
 
-#include "../component/network.hpp"
+#include <component/network.hpp>
+
 #include "structs/structs.hpp"
 
 namespace game::fragment_handler {

@@ -162,7 +162,7 @@ union VehicleFlags {
         "\"stunned\": {}, \"needs_unpause\": {}, "
         "\"needs_entities_wheels_collision\": {}, "
         "\"needs_wheel_setup\": {}, \"boosting\": {}, \"animscripted\": {}, "
-        "\"reserved_b18_31\": {:08X} }}",
+        "\"reserved_b18_31\": 0x{:08X} }}",
         paused, initialized, script_control, debug_render, reserved_b4,
         reserved_b5, players_vehicle, attached_path, driving_path,
         actuator_disabled, in_water, disable_stabilizers, stunned,
@@ -340,9 +340,8 @@ PACKED(struct VehicleEngineSound {
   float params[7];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": \"{}\", \"alias\": {}, \"params\": {} }}",
-                       name ? name : "", ::serialize(alias),
-                       ::serialize(params));
+    return std::format("{{ \"name\": {}, \"alias\": 0x{:08X}, \"params\": {} }}",
+                       ::serialize(name), alias, ::serialize(params));
   }
 });
 ASSERT_SIZE(VehicleEngineSound, 0x28);
@@ -476,7 +475,7 @@ PACKED(struct GraphFloat {
   float scale;
   DevGraph devguiGraph; // TODO: is this used in release?
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": \"{}\", \"knots\": {}, \"knotCount\": {}, "
+    return std::format("{{ \"name\": {}, \"knots\": {}, \"knotCount\": {}, "
                        "\"scale\": {}, \"devguiGraph\": {} }}",
                        name, ::serialize(knots), knotCount, scale,
                        devguiGraph.serialize());
@@ -499,13 +498,12 @@ PACKED(struct AircraftPreset {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"presetName\": \"{}\", \"maxSpeedVol\": {}, \"minVol\": {}, "
+        "{{ \"presetName\": {}, \"maxSpeedVol\": {}, \"minVol\": {}, "
         "\"maxVol\": {}, \"maxSpeedPitch\": {}, \"minPitch\": {}, "
-        "\"maxPitch\": {}, "
-        "\"xAxis\": {}, \"yAxis\": {}, \"zAxis\": {} }}",
-        presetName ? presetName : "", maxSpeedVol, minVol, maxVol,
-        maxSpeedPitch, minPitch, maxPitch, ::serialize(xAxis),
-        ::serialize(yAxis), ::serialize(zAxis));
+        "\"maxPitch\": {}, \"xAxis\": {}, \"yAxis\": {}, \"zAxis\": {} }}",
+        ::serialize(presetName), maxSpeedVol, minVol, maxVol, maxSpeedPitch,
+        minPitch, maxPitch, ::serialize(xAxis), ::serialize(yAxis),
+        ::serialize(zAxis));
   }
 });
 ASSERT_SIZE(AircraftPreset, 0x28);
@@ -522,10 +520,10 @@ PACKED(struct AircraftSound {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"presetName\": \"{}\", \"preset\": {}, \"aliasName\": \"{}\", "
-        "\"alias\": {}, \"tagName\": \"{}\" }}",
-        presetName ? presetName : "", ::serialize(preset),
-        aliasName ? aliasName : "", ::serialize(alias), tagName ? tagName : "");
+        "{{ \"presetName\": {}, \"preset\": {}, \"aliasName\": {}, "
+        "\"alias\": 0x{:08X}, \"tagName\": {} }}",
+        ::serialize(presetName), ::serialize(preset), ::serialize(aliasName),
+        alias, ::serialize(tagName));
   }
 });
 ASSERT_SIZE(AircraftSound, 0x30);
@@ -536,9 +534,8 @@ PACKED(struct VehicleSurfaceSound {
   uint8_t _padding0C[4];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"surfaceSoundName\": \"{}\", \"alias\": {} }}",
-                       surfaceSoundName ? surfaceSoundName : "",
-                       ::serialize(alias));
+    return std::format("{{ \"surfaceSoundName\": {}, \"alias\": 0x{:08X} }}",
+                       ::serialize(surfaceSoundName), alias);
   }
 });
 ASSERT_SIZE(VehicleSurfaceSound, 0x10);
@@ -551,8 +548,8 @@ PACKED(struct VehicleDriveBySound {
   uint8_t _padding14[4];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"apex\": {}, \"name\": \"{}\", \"alias\": {} }}",
-                       apex, name ? name : "", ::serialize(alias));
+    return std::format("{{ \"apex\": {}, \"name\": {}, \"alias\": 0x{:08X} }}",
+                       apex, ::serialize(name), alias);
   }
 });
 
@@ -569,11 +566,11 @@ PACKED(struct VehicleSoundDef {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": \"{}\", \"engine\": {}, \"engineGraph\": {:p}, "
+        "{{ \"name\": {}, \"engine\": {}, \"engineGraph\": {:p}, "
         "\"driveBySoundRadius\": {}, \"driveBySounds\": {}, "
         "\"aircraftPresets\": {}, \"aircraftSounds\": {}, \"surfaceSounds\": "
         "{} }}",
-        name ? name : "", engine.serialize(), (const void *)engineGraph,
+        ::serialize(name), engine.serialize(), (const void *)engineGraph,
         ::serialize(driveBySoundRadius), ::serialize(driveBySounds),
         ::serialize(aircraftPresets), ::serialize(aircraftSounds),
         ::serialize(surfaceSounds));
@@ -621,9 +618,9 @@ PACKED(struct VehicleFxDef {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": \"{}\", \"type\": {}, \"treadFx\": {}, "
+        "{{ \"name\": {}, \"type\": {}, \"treadFx\": {}, "
         "\"peelFx\": {}, \"skidFx\": {} }}",
-        name ? name : "", game::vehicle::serialize(type),
+        ::serialize(name), game::vehicle::serialize(type),
         ::serialize<uintptr_t>(
             reinterpret_cast<const uintptr_t *const>(treadFx),
             std::size(treadFx)),
@@ -1229,9 +1226,11 @@ PACKED(struct VehicleDef {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"type\": {}, \"scriptVehicleType\": {}, "
-        "\"archeType\": {}, "
-        "\"scoreType\": {}, \"playerDrivenVersion\": {}, \"category\": {}, "
+        "{{ \"name\": {}, \"type\": {}, "
+        "\"scriptVehicleType\": 0x{:08X}, "
+        "\"archeType\": 0x{:08X}, "
+        "\"scoreType\": 0x{:08X}, \"playerDrivenVersion\": 0x{:08X}, "
+        "\"category\": {}, "
         "\"nonstick\": {}, "
         "\"remoteControl\": {}, \"bulletDamage\": {}, \"armorPiercingDamage\": "
         "{}, "
@@ -1258,7 +1257,7 @@ PACKED(struct VehicleDef {
         "\"lodNoCull\": {}, \"thirdPersonCameraSpringDistance\": {}, "
         "\"thirdPersonCameraSpringTime\": {}, "
         "\"thirdPersonCameraHandbrakeTurnRateInc\": {}, "
-        "\"cameraRollFraction\": {}, \"cameraTag\": {}, "
+        "\"cameraRollFraction\": {}, \"cameraTag\": 0x{:08X}, "
         "\"tagPlayerOffset\": {}, \"cameraMinFOV\": {}, \"cameraMaxFOV\": {}, "
         "\"cameraMinFOVSpeed\": {}, "
         "\"cameraMaxFOVSpeed\": {}, \"blurMin\": {}, \"blurMax\": {}, "
@@ -1304,7 +1303,7 @@ PACKED(struct VehicleDef {
         "\"animSet\": {}, \"scriptedAnimationEntry\": {}, \"mantleAngles\": "
         "{}, \"extraWheelTags\": {}, "
         "\"rotorArmTags\": {}, \"rotorArmFlapType\": {}, "
-        "\"rotorArmFlapInfluence\": {}, \"driverHideTag\": {}, "
+        "\"rotorArmFlapInfluence\": {}, \"driverHideTag\": 0x{:08X}, "
         "\"driverOtherHideTags\": {}, \"attachmentModels\": {}, "
         "\"attachmentTags\": {}, \"deathAttachmentModels\": {}, "
         "\"deathAttachmentTags\": {}, \"targetingImmunePerk\": {}, "
@@ -1312,10 +1311,11 @@ PACKED(struct VehicleDef {
         "\"aimAssistMaxs\": {}, \"tracerOffset\": {}, \"model\": {}, "
         "\"viewModel\": {}, \"deathModel\": {}, "
         "\"enemyModel\": {}, \"modelSwapDelay\": {}, \"exhaustFx\": {}, "
-        "\"exhaustFxTag1\": {}, \"exhaustFxTag2\": {}, "
-        "\"surfaceFx\": {}, \"deathFx\": {}, \"deathFxTag\": {}, "
+        "\"exhaustFxTag1\": 0x{:08X}, \"exhaustFxTag2\": 0x{:08X}, "
+        "\"surfaceFx\": {}, \"deathFx\": {}, \"deathFxTag\": 0x{:08X}, "
         "\"deathFxSound\": {}, \"lightFx\": {}, "
-        "\"lightFxTag\": {}, \"radiusDamageMin\": {}, \"radiusDamageMax\": {}, "
+        "\"lightFxTag\": {}, \"radiusDamageMin\": {}, \"radiusDamageMax\": "
+        "{}, "
         "\"radiusDamageRadius\": {}, "
         "\"shootShock\": {}, \"deathQuakeScale\": {}, \"deathQuakeDuration\": "
         "{}, \"deathQuakeRadius\": {}, "
@@ -1327,8 +1327,9 @@ PACKED(struct VehicleDef {
         "\"boostDurationMin\": {}, \"boostRecoveryScalar\": {}, "
         "\"boostSpeedIncrease\": {}, \"addToCompass\": {}, "
         "\"addToCompassEnemy\": {}, \"addToCompassEnemyFiring\": {}, "
-        "\"compassIcon\": {}, \"compassIconMaterial\": {}, \"compassIconTag\": "
-        "{}, \"compassScale\": {}, "
+        "\"compassIcon\": {}, \"compassIconMaterial\": {:p}, "
+        "\"compassIconTag\": "
+        "{:08X}, \"compassScale\": {}, "
         "\"steerAxisName\": {}, \"steerAxis\": {}, \"gasAxisName\": {}, "
         "\"gasAxis\": {}, \"gasButtonName\": {}, "
         "\"gasButton\": {}, \"reverseBrakeButtonName\": {}, "
@@ -1347,7 +1348,7 @@ PACKED(struct VehicleDef {
         "{}, \"minHeight\": {}, "
         "\"maxHeight\": {}, \"lightCollisionSpeed\": {}, "
         "\"lightCollisionRumble\": {}, \"heavyCollisionSpeed\": {}, "
-        "\"heavyCollisionRumble\": {}, \"jumpLandingRumble\": {}, "
+        "\"heavyCollisionRumble\": {:p}, \"jumpLandingRumble\": {:p}, "
         "\"noDirectionalDamage\": {}, "
         "\"fakeBodyStabilizer\": {}, \"turnInPlace\": {}, "
         "\"alwaysDriveForward\": {}, \"smallVehicleCollision\": {}, "
@@ -1397,19 +1398,19 @@ PACKED(struct VehicleDef {
         "\"joltIntensity\": {}, \"nitrousVehParams\": {}, "
         "\"doFootSteps\": {}, \"ignoreVortices\": {}, \"isSentient\": {}, "
         "\"isPathfinder\": {}, "
-        "\"scriptBundleSettings\": {}, \"vehicleRidersBundle\": {}, "
-        "\"vehicleRidersRobotBundle\": {}, "
-        "\"assassinationBundle\": {}, \"animStateMachine\": {}, "
+        "\"scriptBundleSettings\": {:p}, \"vehicleRidersBundle\": {:p}, "
+        "\"vehicleRidersRobotBundle\": {:p}, "
+        "\"assassinationBundle\": {:p}, "
+        "\"animStateMachine\": {}, "
         "\"animSelectorTable\": {}, \"animMappingTable\": {}, "
         "\"antenna\": {}, \"csvInclude\": {}, \"customFloat0\": {}, "
         "\"customFloat1\": {}, \"customFloat2\": {}, "
         "\"customBool0\": {}, \"customBool1\": {}, \"customBool2\": {}, "
         "\"vehicleFootstepTable\": {}, "
-        "\"vehicleFootstepFXTable\": {}, \"destructibleDef\": {}, "
+        "\"vehicleFootstepFXTable\": {:p}, \"destructibleDef\": {:p}, "
         "\"tacticalModeIcon\": {}, \"tacticalModeHeight\": {} }}",
-        ::serialize(name), game::vehicle::serialize(type),
-        ::serialize(scriptVehicleType), ::serialize(archeType),
-        ::serialize(scoreType), ::serialize(playerDrivenVersion),
+        ::serialize(name), game::vehicle::serialize(type), scriptVehicleType,
+        archeType, scoreType, playerDrivenVersion,
         game::vehicle::serialize(category), nonstick.serialize(),
         remoteControl.serialize(), bulletDamage.serialize(),
         armorPiercingDamage.serialize(), grenadeDamage.serialize(),
@@ -1429,10 +1430,10 @@ PACKED(struct VehicleDef {
         cameraAlwaysAutoCenter.serialize(), cameraAutoCenterLerpRate,
         cameraAutoCenterMaxLerpRate, lodNoCull.serialize(),
         thirdPersonCameraSpringDistance, thirdPersonCameraSpringTime,
-        thirdPersonCameraHandbrakeTurnRateInc, cameraRollFraction,
-        ::serialize(cameraTag), tagPlayerOffset.serialize(), cameraMinFOV,
-        cameraMaxFOV, cameraMinFOVSpeed, cameraMaxFOVSpeed, blurMin, blurMax,
-        blurMinSpeed, blurMaxSpeed, blurInnerRadius, blurOuterRadius,
+        thirdPersonCameraHandbrakeTurnRateInc, cameraRollFraction, cameraTag,
+        tagPlayerOffset.serialize(), cameraMinFOV, cameraMaxFOV,
+        cameraMinFOVSpeed, cameraMaxFOVSpeed, blurMin, blurMax, blurMinSpeed,
+        blurMaxSpeed, blurInnerRadius, blurOuterRadius,
         killcamCollision.serialize(), killcamDist, killcamZDist, killcamMinDist,
         killcamZTargetOffset, killcamFOV, killcamNearBlur, killcamNearBlurStart,
         killcamNearBlurEnd, killcamFarBlur, killcamFarBlurStart,
@@ -1461,7 +1462,7 @@ PACKED(struct VehicleDef {
         animType, ::serialize(animSet), scriptedAnimationEntry.serialize(),
         ::serialize(mantleAngles), ::serialize(extraWheelTags),
         ::serialize(rotorArmTags), ::serialize(rotorArmFlapType),
-        ::serialize(rotorArmFlapInfluence), ::serialize(driverHideTag),
+        ::serialize(rotorArmFlapInfluence), driverHideTag,
         ::serialize(driverOtherHideTags),
         ::serialize(reinterpret_cast<const uintptr_t *const>(attachmentModels),
                     std::size(attachmentModels)),
@@ -1474,9 +1475,8 @@ PACKED(struct VehicleDef {
         aimAssistMaxs.serialize(), ::serialize(tracerOffset),
         ::serialize(model), ::serialize(viewModel), ::serialize(deathModel),
         ::serialize(enemyModel), modelSwapDelay, ::serialize(exhaustFx),
-        ::serialize(exhaustFxTag1), ::serialize(exhaustFxTag2),
-        ::serialize(surfaceFx), ::serialize(deathFx), ::serialize(deathFxTag),
-        ::serialize(deathFxSound),
+        exhaustFxTag1, exhaustFxTag2, ::serialize(surfaceFx),
+        ::serialize(deathFx), deathFxTag, ::serialize(deathFxSound),
         ::serialize(reinterpret_cast<const uintptr_t *const>(lightFx),
                     std::size(lightFx)),
         ::serialize(lightFxTag), radiusDamageMin, radiusDamageMax,
@@ -1487,11 +1487,11 @@ PACKED(struct VehicleDef {
         boostDuration, boostDurationMin, boostRecoveryScalar,
         boostSpeedIncrease, addToCompass.serialize(),
         addToCompassEnemy.serialize(), addToCompassEnemyFiring.serialize(),
-        ::serialize(compassIcon), ::serialize(compassIconMaterial),
-        ::serialize(compassIconTag), compassScale, ::serialize(steerAxisName),
-        steerAxis, ::serialize(gasAxisName), gasAxis,
-        ::serialize(gasButtonName), gasButton,
-        ::serialize(reverseBrakeButtonName), reverseBrakeButton,
+        ::serialize(compassIcon),
+        reinterpret_cast<const void *>(compassIconMaterial), compassIconTag,
+        compassScale, ::serialize(steerAxisName), steerAxis,
+        ::serialize(gasAxisName), gasAxis, ::serialize(gasButtonName),
+        gasButton, ::serialize(reverseBrakeButtonName), reverseBrakeButton,
         ::serialize(handBrakeButtonName), handBrakeButton,
         ::serialize(attackButtonName), attackButton,
         ::serialize(attackSecondaryButtonName), attackSecondaryButton,
@@ -1505,8 +1505,10 @@ PACKED(struct VehicleDef {
         isFourWheelSteering.serialize(),
         isMiddleWheelSteeringEnabled.serialize(), useCollmap.serialize(),
         radius, minHeight, maxHeight, lightCollisionSpeed,
-        ::serialize(lightCollisionRumble), heavyCollisionSpeed,
-        ::serialize(heavyCollisionRumble), ::serialize(jumpLandingRumble),
+        reinterpret_cast<const void *>(lightCollisionRumble),
+        heavyCollisionSpeed,
+        reinterpret_cast<const void *>(heavyCollisionRumble),
+        reinterpret_cast<const void *>(jumpLandingRumble),
         noDirectionalDamage.serialize(), fakeBodyStabilizer.serialize(),
         turnInPlace.serialize(), alwaysDriveForward.serialize(),
         smallVehicleCollision.serialize(), vehHelicopterBoundsRadius,
@@ -1547,16 +1549,19 @@ PACKED(struct VehicleDef {
         joltVehicleDriver.serialize(), joltMaxTime, joltTime, joltWaves,
         joltIntensity, nitrousVehParams.serialize(), doFootSteps.serialize(),
         ignoreVortices.serialize(), isSentient.serialize(),
-        isPathfinder.serialize(), ::serialize(scriptBundleSettings),
-        ::serialize(vehicleRidersBundle), ::serialize(vehicleRidersRobotBundle),
-        ::serialize(assassinationBundle), ::serialize(animStateMachine),
-        ::serialize(animSelectorTable), ::serialize(animMappingTable),
-        ::serialize(antenna), ::serialize(csvInclude), customFloat0,
-        customFloat1, customFloat2, customBool0.serialize(),
-        customBool1.serialize(), customBool2.serialize(),
-        ::serialize(vehicleFootstepTable), ::serialize(vehicleFootstepFXTable),
-        ::serialize(destructibleDef), ::serialize(tacticalModeIcon),
-        tacticalModeHeight);
+        isPathfinder.serialize(),
+        reinterpret_cast<const void *>(scriptBundleSettings),
+        reinterpret_cast<const void *>(vehicleRidersBundle),
+        reinterpret_cast<const void *>(vehicleRidersRobotBundle),
+        reinterpret_cast<const void *>(assassinationBundle),
+        ::serialize(animStateMachine), ::serialize(animSelectorTable),
+        ::serialize(animMappingTable), ::serialize(antenna),
+        ::serialize(csvInclude), customFloat0, customFloat1, customFloat2,
+        customBool0.serialize(), customBool1.serialize(),
+        customBool2.serialize(), ::serialize(vehicleFootstepTable),
+        reinterpret_cast<const void *>(vehicleFootstepFXTable),
+        reinterpret_cast<const void *>(destructibleDef),
+        ::serialize(tacticalModeIcon), tacticalModeHeight);
   }
 });
 ASSERT_OFFSET(VehicleDef, useHeliBoneControllers, 0x188);
@@ -1653,7 +1658,7 @@ public:
         "\"m_stopped_time\": {}, "
         "\"m_braking_time\": {}, \"m_stuck_time\": {}, \"m_stuck_position\": "
         "{}, "
-        "\"m_cmd\": {}, \"m_cmd_viewangles\": {}, \"m_pm_flags\": {:016X}, "
+        "\"m_cmd\": {}, \"m_cmd_viewangles\": {}, \"m_pm_flags\": 0x{:016X}, "
         "\"m_cmd_valid\": {}, \"m_stop_at_goal\": {}, \"m_jump_held_time\": "
         "{}, "
         "\"m_stick_off_wall_time\": {}, \"m_last_jump_normal\": {}, "
@@ -1741,7 +1746,7 @@ PACKED(struct NitrousVehicleController_cl {
         "\"m_stopped_time\": {}, "
         "\"m_braking_time\": {}, \"m_stuck_time\": {}, \"m_stuck_position\": "
         "{}, "
-        "\"m_cmd\": {}, \"m_pm_flags\": {:016X}, \"m_cmd_valid\": {}, "
+        "\"m_cmd\": {}, \"m_pm_flags\": 0x{:016X}, \"m_cmd_valid\": {}, "
         "\"m_stop_at_goal\": {}, \"m_jump_held_time\": {}, "
         "\"m_stick_off_wall_time\": {}, "
         "\"m_last_jump_normal\": {}, \"m_jump_input\": {}, "
@@ -2027,6 +2032,86 @@ PACKED(struct NitrousVehicle {
   float m_min_turning_radius;
   uint32_t m_state_flags;
   uint8_t _padding91C[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"m_phys_user_data\": {:p}, \"m_wheel_state\": {}, "
+        "\"m_wheel_orig_relpo\": {}, "
+        "\"m_wheel_damage\": {}, \"m_wheel_surf_types\": {}, \"m_wheel_yaw\": "
+        "{}, "
+        "\"m_steer_factor\": {}, \"m_steer_scale\": {}, \"m_parameter\": {:p}, "
+        "\"m_throttle\": {}, \"m_brake\": {}, \"m_hand_brake\": {}, "
+        "\"m_script_brake\": {}, "
+        "\"m_boost_start_time\": {}, \"m_boost_time_pool\": {}, "
+        "\"m_forward_vel\": {}, "
+        "\"m_ground_vel\": {}, \"m_last_known_velocity\": {}, "
+        "\"m_hand_brake_friction_time\": {}, "
+        "\"m_owner\": {:p}, \"m_entnum\": {}, \"m_vehicle_def\": {:p}, "
+        "\"m_xmodel\": {:p}, "
+        "\"m_orientation_constraint\": {:p}, \"m_vpc\": {:p}, \"m_flags\": {}, "
+        "\"m_notify_flags\": 0x{:08X}, "
+        "\"m_server_notify_flags\": 0x{:08X}, \"m_collision_hitp\": {}, "
+        "\"m_collision_hitn\": {}, "
+        "\"m_collision_intensity\": {}, \"m_collision_stype\": {}, "
+        "\"m_collision_entnum\": {}, "
+        "\"m_fake_rpm\": {}, \"m_current_side_fric_scale\": {}, "
+        "\"m_current_fwd_fric_scale\": {}, "
+        "\"m_stuck_time\": {}, \"m_mat\": {}, \"mVehicleController\": {}, "
+        "\"m_num_colliding_wheels\": {}, "
+        "\"m_lastNetworkTime\": {}, \"m_lastErrorReductionTime\": {}, "
+        "\"m_networkErrorOrigin\": {}, "
+        "\"m_networkErrorAngles\": {}, \"m_trackDistAccumLeftInches\": {}, "
+        "\"m_trackDistAccumRightInches\": {}, "
+        "\"m_sfx_state_flags\": 0x{:08X}, \"m_speed_scale\": {}, "
+        "\"m_drivepath_scale\": {}, \"m_accel_scale\": {}, "
+        "\"m_throttle_held_down\": {}, \"m_throttle_time_started\": {}, "
+        "\"m_last_all_wheel_contact_was_wall\": {}, "
+        "\"m_is_being_drop_deployed\": {}, \"m_last_origin\": {}, "
+        "\"m_last_angles\": {}, \"m_buoyancyOffset\": {}, "
+        "\"m_mover_info\": {}, \"m_mutex\": {}, \"id\": {}, \"refcount\": {}, "
+        "\"m_wheels\": {:p}, "
+        "\"m_desired_speed_factor\": {}, \"m_acceleration_factor\": {}, "
+        "\"m_power_braking_factor\": {}, "
+        "\"m_braking_factor\": {}, \"m_coasting_factor\": {}, "
+        "\"m_reference_wheel_radius\": {}, "
+        "\"m_steer_current_angle\": {}, \"m_steer_max_angle\": {}, "
+        "\"m_steer_speed\": {}, "
+        "\"m_steer_front_pt_loc\": {}, \"m_steer_front_back_length\": {}, "
+        "\"m_min_turning_radius\": {}, "
+        "\"m_state_flags\": 0x{:08X} }}",
+        reinterpret_cast<const void *>(m_phys_user_data),
+        ::serialize(m_wheel_state), ::serialize(m_wheel_orig_relpo),
+        ::serialize(m_wheel_damage), ::serialize(m_wheel_surf_types),
+        ::serialize(m_wheel_yaw), m_steer_factor, m_steer_scale,
+        reinterpret_cast<const void *>(m_parameter), m_throttle, m_brake,
+        m_hand_brake, m_script_brake, m_boost_start_time, m_boost_time_pool,
+        m_forward_vel, m_ground_vel.serialize(),
+        m_last_known_velocity.serialize(), m_hand_brake_friction_time,
+        reinterpret_cast<const void *>(m_owner), m_entnum,
+        reinterpret_cast<const void *>(m_vehicle_def),
+        reinterpret_cast<const void *>(m_xmodel),
+        reinterpret_cast<const void *>(m_orientation_constraint),
+        reinterpret_cast<const void *>(m_vpc), ::serialize(m_flags),
+        m_notify_flags, m_server_notify_flags, m_collision_hitp.serialize(),
+        m_collision_hitn.serialize(), m_collision_intensity, m_collision_stype,
+        m_collision_entnum, m_fake_rpm, m_current_side_fric_scale,
+        m_current_fwd_fric_scale, m_stuck_time, m_mat.serialize(),
+        mVehicleController.serialize(), m_num_colliding_wheels,
+        m_lastNetworkTime, m_lastErrorReductionTime,
+        m_networkErrorOrigin.serialize(), m_networkErrorAngles.serialize(),
+        m_trackDistAccumLeftInches, m_trackDistAccumRightInches,
+        m_sfx_state_flags, m_speed_scale, m_drivepath_scale, m_accel_scale,
+        m_throttle_held_down, ::serialize(m_throttle_time_started),
+        ::serialize(m_last_all_wheel_contact_was_wall),
+        ::serialize(m_is_being_drop_deployed), m_last_origin.serialize(),
+        m_last_angles.serialize(), m_buoyancyOffset, ::serialize(m_mover_info),
+        ::serialize(m_mutex), id, refcount, (const void *)m_wheels,
+        m_desired_speed_factor, m_acceleration_factor, m_power_braking_factor,
+        m_braking_factor, m_coasting_factor, m_reference_wheel_radius,
+        m_steer_current_angle, m_steer_max_angle, m_steer_speed,
+        m_steer_front_pt_loc.serialize(), m_steer_front_back_length,
+        m_min_turning_radius, m_state_flags);
+  }
 });
 ASSERT_OFFSET(NitrousVehicle, m_flags, 0x2F8);
 ASSERT_OFFSET(NitrousVehicle, m_vehicle_def, 0x2D8);
@@ -2069,15 +2154,14 @@ PACKED(struct vehicle_node_t {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"target\": {}, \"target2\": {}, "
+        "{{ \"name\": 0x{:08X}, \"target\": 0x{:08X}, \"target2\": 0x{:08X}, "
         "\"script_linkname\": {}, "
-        "\"script_noteworthy\": {}, \"index\": {}, \"flags\": {:08X}, "
+        "\"script_noteworthy\": 0x{:08X}, \"index\": {}, \"flags\": 0x{:08X}, "
         "\"speed\": {}, "
         "\"lookAhead\": {}, \"origin\": {}, \"angles\": {}, \"radius\": {}, "
         "\"tension\": {}, \"splineNode\": {} }}",
-        ::serialize(name), ::serialize(target), ::serialize(target2),
-        ::serialize(script_linkname), ::serialize(script_noteworthy), index,
-        flags, speed, lookAhead, origin.serialize(), angles.serialize(), radius,
+        name, target, target2, script_linkname, script_noteworthy, index, flags,
+        speed, lookAhead, origin.serialize(), angles.serialize(), radius,
         tension, splineNode.serialize());
   }
 });
@@ -2147,7 +2231,7 @@ public:
         "\"origin_on_spline\": {}, "
         "\"angles_on_spline\": {}, \"lookPos_on_spline\": {}, "
         "\"use_spline_speed\": {}, "
-        "\"manualSpeed\": {}, \"switchNode\": {}, \"flags\": {:08X}, "
+        "\"manualSpeed\": {}, \"switchNode\": {}, \"flags\": 0x{:08X}, "
         "\"customGoalLength\": {}, "
         "\"customGoalDir\": {}, \"aiGoalPos\": {}, \"path_type\": {}, "
         "\"startNodeIdx\": {}, "
@@ -2730,7 +2814,7 @@ PACKED(struct VehicleTurret {
   inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"fireTime\": {}, \"fireBarrel\": {}, \"barrelOffset\": {}, "
-        "\"flags\": {:08X}, \"heatVal\": {}, \"turretOnTargetRange\": {}, "
+        "\"flags\": 0x{:08X}, \"heatVal\": {}, \"turretOnTargetRange\": {}, "
         "\"weaponShotCount\": {}, \"accuracy\": {}, \"turretState\": {} }}",
         fireTime, fireBarrel, barrelOffset, flags, heatVal, turretOnTargetRange,
         weaponShotCount, accuracy, game::vehicle::serialize(turretState));
@@ -2785,10 +2869,9 @@ PACKED(struct VehicleGunnerTags {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"turretParent\": {}, \"turret\": {}, \"barrel\": {}, "
-        "\"aim\": {}, \"flash\": {} }}",
-        ::serialize(turretParent), ::serialize(turret), ::serialize(barrel),
-        ::serialize(aim), ::serialize(flash));
+        "{{ \"turretParent\": 0x{:04X}, \"turret\": 0x{:04X}, \"barrel\": 0x{:04X}, "
+        "\"aim\": 0x{:04X}, \"flash\": {} }}",
+        turretParent, turret, barrel, aim, ::serialize(flash));
   }
 });
 ASSERT_SIZE(VehicleGunnerTags, 0x10);
@@ -2805,13 +2888,13 @@ PACKED(struct VehicleTags {
   BoneIndex entryPoints[5];
 
   inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"player\": {}, \"popout\": {}, \"body\": {}, \"eye\": {}, "
-        "\"turretTags\": {}, \"gunnerTags\": {}, \"wheel\": {}, "
-        "\"seats\": {}, \"entryPoints\": {} }}",
-        ::serialize(player), ::serialize(popout), ::serialize(body),
-        ::serialize(eye), turretTags.serialize(), ::serialize(gunnerTags),
-        ::serialize(wheel), ::serialize(seats), ::serialize(entryPoints));
+    return std::format("{{ \"player\": 0x{:04X}, \"popout\": 0x{:04X}, \"body\": "
+                       "{:04X}, \"eye\": 0x{:04X}, "
+                       "\"turretTags\": {}, \"gunnerTags\": {}, \"wheel\": {}, "
+                       "\"seats\": {}, \"entryPoints\": {} }}",
+                       player, popout, body, eye, turretTags.serialize(),
+                       ::serialize(gunnerTags), ::serialize(wheel),
+                       ::serialize(seats), ::serialize(entryPoints));
   }
 });
 ASSERT_SIZE(VehicleTags, 0x84);
@@ -2974,7 +3057,7 @@ PACKED(struct vehicle_cache_t {
         "{{ \"lastOrigin\": {}, \"lastAngles\": {}, \"hit_indices\": {}, "
         "\"hit_sflags\": {}, \"hit_normals\": {}, \"hit_fractions\": {}, "
         "\"hit_type\": {}, \"hit_id\": {}, \"proximity_data\": {}, "
-        "\"wheel_mask\": {:08X} }}",
+        "\"wheel_mask\": 0x{:08X} }}",
         lastOrigin.serialize(), lastAngles.serialize(),
         ::serialize(hit_indices), ::serialize(hit_sflags),
         ::serialize(hit_normals), ::serialize(hit_fractions),
@@ -3080,7 +3163,7 @@ PACKED(struct vehicle_t {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"pathOffsetFlags\": {:08X}, \"pathOffsetTransform\": {}, "
+        "{{ \"pathOffsetFlags\": 0x{:08X}, \"pathOffsetTransform\": {}, "
         "\"pathFixedOffset\": {}, \"pathVariableOffset\": {}, "
         "\"entNum\": {}, \"defIndex\": {}, \"flags\": {}, \"moveState\": {}, "
         "\"turret\": {}, \"turretRotScale\": {}, \"jitter\": {}, "
@@ -3162,9 +3245,9 @@ PACKED(struct PlayerVehicleState {
         "{{ \"origin\": {}, \"angles\": {}, \"velocity\": {}, "
         "\"angVelocity\": {}, \"tilt\": {}, \"tiltVelocity\": {}, "
         "\"targetHeightDelta\": {}, \"lastGroundHeight\": {}, "
-        "\"entity\": {}, \"flags\": {:08X}, \"fullPhysics\": {}, "
+        "\"entity\": {}, \"flags\": 0x{:08X}, \"fullPhysics\": {}, "
         "\"focusEntNum\": {}, \"focusEntTime\": {}, \"focusAngleOffset\": "
-        "{}, \"playerHeightMapsActive\": {:08X}, \"boostTimeLeft\": {}, "
+        "{}, \"playerHeightMapsActive\": 0x{:08X}, \"boostTimeLeft\": {}, "
         "\"dogfightDesiredLocation\": {}, \"jitterEndTime\": {}, "
         "\"jitterAccel\": {}, \"drivableDuration\": {}, "
         "\"drivableEndTime\": {}, \"weaponOverheating\": {}, "
@@ -3277,7 +3360,7 @@ PACKED(struct VehicleState {
         "\"previousAngles\": {}, \"bodyVelocity\": {}, \"tilt\": {}, "
         "\"tiltVelocity\": {}, \"mins\": {}, \"maxs\": {}, "
         "\"targetHeightDelta\": {}, \"lastGroundHeight\": {}, "
-        "\"clipmask\": {:08X}, \"groundNormal\": {} }}",
+        "\"clipmask\": 0x{:08X}, \"groundNormal\": {} }}",
         entity, origin.serialize(), angles.serialize(), velocity.serialize(),
         angVelocity.serialize(), previousOrigin.serialize(),
         previousAngles.serialize(), bodyVelocity.serialize(), tilt.serialize(),

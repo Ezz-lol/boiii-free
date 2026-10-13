@@ -415,7 +415,8 @@ PACKED(struct LerpEntityState {
   uint8_t _paddingCC[4];
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"eFlags\": {:08X}, \"eFlags2\": {:08X}, \"pos\": {}, \"apos\": "
+        "{{ \"eFlags\": 0x{:08X}, \"eFlags2\": 0x{:08X}, \"pos\": {}, "
+        "\"apos\": "
         "{}, \"u\": {}, \"useCount\": {}, \"clientFields\": {} }}",
         eFlags, eFlags2, pos.serialize(), apos.serialize(), u.serialize(),
         useCount, ::serialize(clientFields));
@@ -429,9 +430,9 @@ PACKED(struct clientLinkInfo_t {
   uint8_t flags;
 
   inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"parentEnt\": {:04X}, \"tagIndex\": {:02X}, \"flags\": {:02X} }}",
-        parentEnt, tagIndex, flags);
+    return std::format("{{ \"parentEnt\": 0x{:04X}, \"tagIndex\": 0x{:02X}, "
+                       "\"flags\": 0x{:02X} }}",
+                       parentEnt, tagIndex, flags);
   }
 });
 
@@ -485,9 +486,10 @@ PACKED(union entityStateUn3 {
   uint32_t soundTag;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"hintString\": {:08X}, \"vehicleXModel\": {:08X}, "
-                       "\"secondBcAlias\": {:08X}, \"soundTag\": {:08X} }}",
-                       hintString, vehicleXModel, secondBcAlias, soundTag);
+    return std::format(
+        "{{ \"hintString\": 0x{:08X}, \"vehicleXModel\": 0x{:08X}, "
+        "\"secondBcAlias\": 0x{:08X}, \"soundTag\": 0x{:08X} }}",
+        hintString, vehicleXModel, secondBcAlias, soundTag);
   }
 });
 
@@ -500,11 +502,11 @@ PACKED(union entityStateIndex {
   BoneIndex bone;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"brushModel\": {:04X}, \"triggerModel\": {:04X}, "
-                       "\"xmodel\": {:04X}, \"primaryLight\": {:04X}, "
-                       "\"probe\": {:04X}, \"boneIndex\": {:04X} }}",
-                       brushmodel, triggerModel, xmodel, primaryLight, probe,
-                       bone);
+    return std::format(
+        "{{ \"brushModel\": 0x{:04X}, \"triggerModel\": 0x{:04X}, "
+        "\"xmodel\": 0x{:04X}, \"primaryLight\": 0x{:04X}, "
+        "\"probe\": 0x{:04X}, \"boneIndex\": 0x{:04X} }}",
+        brushmodel, triggerModel, xmodel, primaryLight, probe, bone);
   }
 });
 
@@ -517,8 +519,8 @@ PACKED(union entityStateUn1 {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"scale\": {}, \"eventParm2\": {:02X}, \"helicopterStage\": {}, "
-        "\"destructibleid\": {:02X}, \"chainMeleeCounter\": {} }}",
+        "{{ \"scale\": {}, \"eventParm2\": 0x{:02X}, \"helicopterStage\": {}, "
+        "\"destructibleid\": 0x{:02X}, \"chainMeleeCounter\": {} }}",
         scale, eventParm2, helicopterStage, destructibleid, chainMeleeCounter);
   }
 });
@@ -2334,11 +2336,11 @@ PACKED(struct entityState_s {
         "\"solid\": {}, \"renderOptions\": {}, "
         "\"attachmentCosmeticVariantIndexes\": {}, \"animState\": {}, \"un2\": "
         "{}, \"un3\": {}, \"partBits\": {}, \"clientLinkInfo\": {}, "
-        "\"clientMask\": {}, \"teamMask\": {:02X}, \"events\": {}, "
+        "\"clientMask\": {}, \"teamMask\": 0x{:02X}, \"events\": {}, "
         "\"eventParms\": {}, \"eType\": {}, \"team\": {}, \"owner\": {}, "
         "\"groundEntityNum\": {}, \"index\": {}, \"otherEntityNum\": {}, "
         "\"attackerEntityNum\": {}, \"enemyModel\": {}, \"weapon\": {}, "
-        "\"lastStandPrevWeapon\": {}, \"targetName\": {:08X}, "
+        "\"lastStandPrevWeapon\": {}, \"targetName\": 0x{:08X}, "
         "\"spawnVarIndex\": {}, \"animtreeIndex\": {}, \"animScripted\": {}, "
         "\"eventSequence\": {}, \"surfType\": {}, \"clientNum\": {}, "
         "\"iHeadIcon\": {}, \"un1\": {}, \"previousEventSequence\": {} }}",
@@ -2352,7 +2354,7 @@ PACKED(struct entityState_s {
         attackerEntityNum, enemyModel, weapon.serialize(),
         lastStandPrevWeapon.serialize(), targetname, spawnVarIndex,
         animtreeIndex, animScripted.serialize(), eventSequence, surfType,
-        ::serialize(clientNum), iHeadIcon, un1.serialize(),
+        game::serialize(clientNum), iHeadIcon, un1.serialize(),
         previousEventSequence);
   }
 });
@@ -2388,7 +2390,7 @@ PACKED(struct entityShared_t {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"linked\": {}, \"bmodel\": {}, \"svFlags\": {:04X}, \"inuse\": "
+        "{{ \"linked\": {}, \"bmodel\": {}, \"svFlags\": 0x{:04X}, \"inuse\": "
         "{}, \"broadcastTime\": {}, \"mins\": {}, \"maxs\": {}, \"contents\": "
         "{:08X}, \"absmin\": {}, \"absmax\": {}, \"currentOrigin\": {}, "
         "\"currentAngles\": {}, \"ownerNum\": {}, \"eventTime\": {} }}",
@@ -2433,7 +2435,7 @@ struct playerViewAngleState_s {
   vec2_t goalAngles;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"flags\": {:08X}, \"time\": {}, \"startTimeMs\": "
+    return std::format("{{ \"flags\": 0x{:08X}, \"time\": {}, \"startTimeMs\": "
                        "{}, \"durationMs\": {}, \"easeMode\": {}, "
                        "\"startAngles\": {}, \"goalAngles\": {} }}",
                        flags, time, startTimeMs, durationMs,
@@ -2732,7 +2734,7 @@ PACKED(struct TRMState {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"yaw\": {}, \"ledgeYaw\": {}, \"timer\": {}, \"flags\": {:08X}, "
+        "{{ \"yaw\": {}, \"ledgeYaw\": {}, \"timer\": {}, \"flags\": 0x{:08X}, "
         "\"animIndex\": {}, \"moveVec\": {}, \"animTimeScale\": {}, "
         "\"restoreAngles\": {}, \"doublejumpEndedTime\": {} }}",
         yaw, ledgeYaw, timer, flags, game::level::serialize(animIndex),
@@ -2759,7 +2761,7 @@ PACKED(struct JukeState {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"startTime\": {}, \"jukeYaw\": {}, \"flags\": {:08X} }}",
+        "{{ \"startTime\": {}, \"jukeYaw\": {}, \"flags\": 0x{:08X} }}",
         startTime, jukeYaw, flags);
   }
 });
@@ -2771,7 +2773,7 @@ PACKED(struct SlamState {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"startTime\": {}, \"slamYaw\": {}, \"flags\": {:08X} }}",
+        "{{ \"startTime\": {}, \"slamYaw\": {}, \"flags\": 0x{:08X} }}",
         startTime, slamYaw, flags);
   }
 });
@@ -2807,7 +2809,7 @@ PACKED(struct SlideState {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"slideAngleOffsets\": {}, \"flags\": {:08X}, \"slideTime\": {}, "
+        "{{ \"slideAngleOffsets\": {}, \"flags\": 0x{:08X}, \"slideTime\": {}, "
         "\"slideOutDuration\": {}, \"subsequentCount\": {}, \"slideType\": {} "
         "}}",
         slideAngleOffsets.serialize(), flags, slideTime, slideOutDuration,
@@ -2900,7 +2902,7 @@ struct playerGadgetState_t {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"gadgetPlayerStateFlags\": {:08X}, \"gadgetLastUsedTime\": {}, "
+        "{{ \"gadgetPlayerStateFlags\": 0x{:08X}, \"gadgetLastUsedTime\": {}, "
         "\"gadgetFlickerTime\": {}, \"gadgetEntNum\": {}, \"gadgetPressTime\": "
         "{}, "
         "\"gadgetActivateTime\": {}, \"gadgetPowerRemaining\": {}, "
@@ -2927,7 +2929,7 @@ struct WallRunState {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"startTimeMs\": {}, \"endTimeMs\": {}, \"flags\": {:04X}, "
+        "{{ \"startTimeMs\": {}, \"endTimeMs\": {}, \"flags\": 0x{:04X}, "
         "\"normal\": {}, \"startHeight\": {}, \"verticality\": {}, "
         "\"rollFrac\": {}, \"timeLastInputReceived\": {}, \"lastShotMs\": {} "
         "}}",
@@ -2965,7 +2967,7 @@ struct AnimMovement {
     return std::format(
         "{{ \"startOrigin\": {}, \"originErrorNormal\": {}, \"timer\": {}, "
         "\"originErrorDistance\": {}, \"startYaw\": {}, \"errorYaw\": {}, "
-        "\"timeScale\": {}, \"targetFlags\": {:08X}, \"flags\": {:08X}, "
+        "\"timeScale\": {}, \"targetFlags\": 0x{:08X}, \"flags\": 0x{:08X}, "
         "\"lerpTime\": {} }}",
         startOrigin.serialize(), originErrorNormal.serialize(), timer,
         originErrorDistance, startYaw, errorYaw, timeScale, targetFlags, flags,
@@ -2999,9 +3001,9 @@ struct PlayerWeaponLock {
   int32_t subtarget;
 
   inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"lockFlags\": {:08X}, \"targetEntNum\": {}, \"subtarget\": {} }}",
-        lockFlags, targetEntNum, subtarget);
+    return std::format("{{ \"lockFlags\": 0x{:08X}, \"targetEntNum\": {}, "
+                       "\"subtarget\": {} }}",
+                       lockFlags, targetEntNum, subtarget);
   }
 };
 ASSERT_SIZE(PlayerWeaponLock, 0xC);
@@ -3068,8 +3070,9 @@ struct clientCmdAngles_t {
   int16_t yaw;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"time\": {}, \"pitch\": {:04X}, \"yaw\": {:04X} }}",
-                       time, pitch, yaw);
+    return std::format(
+        "{{ \"time\": {}, \"pitch\": 0x{:04X}, \"yaw\": 0x{:04X} }}", time,
+        pitch, yaw);
   }
 };
 ASSERT_SIZE(clientCmdAngles_t, 0x8);
@@ -3337,23 +3340,25 @@ PACKED(struct playerState_s {
     json.reserve(6144); // Preallocate buffer to avoid reallocations
 
     json += std::format(
-        "{{ \"clientNum\": {}, \"commandTime\": {}, \"pm_type\": {:08X}, "
-        "\"bobCycle\": {}, \"pm_flags\": {:016X}, \"weapFlags\": {:016X}, "
-        "\"otherFlags\": {:08X}, \"pm_time\": {}, \"loopSound\": {}, "
+        "{{ \"clientNum\": {}, \"commandTime\": {}, \"pm_type\": 0x{:08X}, "
+        "\"bobCycle\": {}, \"pm_flags\": 0x{:016X}, \"weapFlags\": 0x{:016X}, "
+        "\"otherFlags\": 0x{:08X}, \"pm_time\": {}, \"loopSound\": {}, "
         "\"roleIndex\": {}, \"level\": {}, \"origin\": {}, \"velocity\": {}, "
-        "\"remoteEyesEnt\": {:08X}, \"remoteEyesTagname\": {}, \"handState\": "
-        "{}, \"movementState\": {:08X}, \"movementTime\": {}, "
+        "\"remoteEyesEnt\": 0x{:08X}, \"remoteEyesTagname\": {}, "
+        "\"handState\": "
+        "{}, \"movementState\": 0x{:08X}, \"movementTime\": {}, "
         "\"weaponIdleTime\": {}, \"grenadeTimeLeft\": {}, "
         "\"throwBackGrenadeOwner\": {}, \"throwBackGrenadeTimeLeft\": {}, "
         "\"weaponRestrictKickTime\": {}, \"mountAvailable\": {}, "
         "\"bThirdPerson\": {}, \"foliageSoundTime\": {}, \"gravity\": {}, "
         "\"leanf\": {}, \"speed\": {}, \"delta_angles\": {}, "
         "\"viewAngleState\": {}, \"groundEntityNum\": {}, \"moverEntityNum\": "
-        "{}, \"moverTimestamp\": {}, \"groundType\": {:08X}, \"jumpTime\": {}, "
-        "\"jumpOriginZ\": {}, \"moveType\": {:08X}, \"playerAnims\": {}, "
+        "{}, \"moverTimestamp\": {}, \"groundType\": 0x{:08X}, \"jumpTime\": "
+        "{}, "
+        "\"jumpOriginZ\": {}, \"moveType\": 0x{:08X}, \"playerAnims\": {}, "
         "\"animScripted\": {}, \"damageTimer\": {}, \"damageDuration\": {}, "
-        "\"dmgDirection\": {}, \"dmgType\": {:08X}, \"corpseIndex\": {}, "
-        "\"movementDir\": {}, \"eFlags\": {:08X}, \"eFlags2\": {:08X}, "
+        "\"dmgDirection\": {}, \"dmgType\": 0x{:08X}, \"corpseIndex\": {}, "
+        "\"movementDir\": {}, \"eFlags\": 0x{:08X}, \"eFlags2\": 0x{:08X}, "
         "\"playerLens\": {}, \"vehicleState\": {}",
         game::serialize(clientNum), commandTime, pm_type, bobCycle, pm_flags,
         weapFlags, otherFlags, pm_time, loopSound.serialize(), roleIndex, level,
@@ -3392,13 +3397,13 @@ PACKED(struct playerState_s {
         "\"ammoNotInClip\": {}, \"ammoInClip\": {}, \"proneDirection\": {}, "
         "\"proneDirectionPitch\": {}, \"proneTorsoPitch\": {}, \"viewLocked\": "
         "{}, \"viewlocked_entNum\": {}, \"vehiclePos\": {}, \"vehicleType\": "
-        "{:08X}, \"vehicleAnimBoneIndex\": {:08X}, \"linkFlags\": {:08X}, "
+        "{:08X}, \"vehicleAnimBoneIndex\": 0x{:08X}, \"linkFlags\": 0x{:08X}, "
         "\"linkAngles\": {}, \"groundTiltAngles\": {}, \"cursorHint\": {}, "
-        "\"cursorHintString\": {:08X}, \"cursorHintEntIndex\": {}, "
+        "\"cursorHintString\": 0x{:08X}, \"cursorHintEntIndex\": {}, "
         "\"cursorHintWeapon\": {}, \"interactivePromptEntIndex\": {}, "
-        "\"iCompassPlayerInfo\": {}, \"spyplaneTypeEnabled\": {:08X}, "
-        "\"satelliteTypeEnabled\": {:08X}, \"spyplaneTime\": {}, "
-        "\"satelliteTime\": {}, \"locationSelectionInfo\": {:08X}, "
+        "\"iCompassPlayerInfo\": {}, \"spyplaneTypeEnabled\": 0x{:08X}, "
+        "\"satelliteTypeEnabled\": 0x{:08X}, \"spyplaneTime\": {}, "
+        "\"satelliteTime\": {}, \"locationSelectionInfo\": 0x{:08X}, "
         "\"locationSelectionType\": {}, \"sprintState\": {}",
         predictableEventSequence, predictableEventSequenceOld,
         ::serialize(predictableEvents), ::serialize(predictableEventParms),
@@ -3449,7 +3454,7 @@ PACKED(struct playerState_s {
         "\"vehicleEntryPoint\": {}, \"meleeChargeDist\": {}, "
         "\"meleeChargeTime\": {}, \"meleeChargeEnt\": {}, "
         "\"meleeConstraintPlane\": {}, \"meleeStartTime\": {}, "
-        "\"meleeServerResult\": {}, \"meleeFlags\": {:08X}, \"meleeState\": "
+        "\"meleeServerResult\": {}, \"meleeFlags\": 0x{:08X}, \"meleeState\": "
         "{}, "
         "\"blockMeleeUsageTimer\": {}, \"meleeAttacker\": {}, "
         "\"meleeCounterTimer\": {}, \"chainMeleeCounter\": {}, \"mainCam\": "
@@ -3462,7 +3467,7 @@ PACKED(struct playerState_s {
         "\"locBlendTime\": {}, \"renderInfo\": {}, \"motionMatchingEnabled\": "
         "{}, \"mmTransitionBoost\": {}, \"kf_index\": {}, "
         "\"attemptedDoubleJump\": {}, \"entityEventSequence\": {}, "
-        "\"aimSpreadScale\": {}, \"statusEffectFlags\": {:08X}",
+        "\"aimSpreadScale\": {}, \"statusEffectFlags\": 0x{:08X}",
         fTorsoPitch, fWaistPitch, holdBreathScale, holdBreathTimer,
         chargeShotTimer, chargeShotLevel, shotsFiredFromChamber,
         quickScopeScale, quickScopeTimer, ::serialize(privateClientFields),
@@ -3498,14 +3503,15 @@ PACKED(struct playerState_s {
         "\"dofFarBlur\": {}, \"dofViewmodelStart\": {}, \"dofViewmodelEnd\": "
         "{}, \"waterLevel\": {}, \"walkUnderwater\": {}, "
         "\"lastFootInWaterTime\": {}, \"lastOutWaterTime\": {}, "
-        "\"smokeColorIndex\": {}, \"hudElemLastAssignedSoundID\": {:08X}, "
+        "\"smokeColorIndex\": {}, \"hudElemLastAssignedSoundID\": 0x{:08X}, "
         "\"adsZoomSelect\": {}, \"adsZoomLatchTime\": {}, "
         "\"adsZoomLatchState\": {}, \"adsPrevZoomSelect\": {}, "
         "\"adsPrevZoomSelectTime\": {}, \"artilleryInboundIconLocation\": {}, "
         "\"visionSetLerpRatio\": {}, \"poisoned\": {}, \"binoculars\": {}, "
-        "\"scriptCursorHintString\": {:08X}, \"objective\": {}, \"deltaTime\": "
+        "\"scriptCursorHintString\": 0x{:08X}, \"objective\": {}, "
+        "\"deltaTime\": "
         "{}, \"killCamEntity\": {}, \"killCamTargetEntity\": {}, "
-        "\"killCamWeapon\": {}, \"killCamMod\": {}, \"killCamFlag\": {:08X}, "
+        "\"killCamWeapon\": {}, \"killCamMod\": {}, \"killCamFlag\": 0x{:08X}, "
         "\"introShotsFired\": {}, \"hud\": {{ \"current\": {}, \"archival\": "
         "{} }}, "
         "\"hudMenus\": {}, \"serverModels\": {{ \"modelData\": {}, "
@@ -3645,10 +3651,11 @@ PACKED(struct clientState_s {
         "\"lastSpawnTime\": {}, "
         "\"turnedHumanTime\": {}, \"beingRevivedByClient\": {}, "
         "\"reviveTimeStart\": {}, "
-        "\"damageState\": {}, \"csPMFlags\": {:016X}, \"xuid\": {}, "
+        "\"damageState\": {}, \"csPMFlags\": 0x{:016X}, \"xuid\": 0x{:016X}, "
         "\"arenaPoints\": {}, \"perks\": {}, \"roleIndex\": {}, \"level\": {}, "
-        "\"bodyOptions\": {:016X}, \"cacLoadouts\": {}, \"heroWeaponIdx\": {}, "
-        "\"voiceConnectivityBits\": {:08X}, \"clanAbbrev\": {}, "
+        "\"bodyOptions\": 0x{:016X}, \"cacLoadouts\": {}, \"heroWeaponIdx\": "
+        "{}, "
+        "\"voiceConnectivityBits\": 0x{:08X}, \"clanAbbrev\": {}, "
         "\"currentLoadoutPrimaryWeapon\": {}, "
         "\"currentLoadoutSecondaryWeapon\": {}, "
         "\"csSwimState\": {}, \"weaponHealth\": {}, \"attachedEntNum\": {}, "
@@ -3657,13 +3664,13 @@ PACKED(struct clientState_s {
         "{:08X}, "
         "\"offhandWeaponVisible\": {}, \"clientLinkInfo\": {}, "
         "\"lastUpdateIndex\": {} }}",
-        ::serialize(clientIndex), scriptClientId, game::serialize(team),
+        game::serialize(clientIndex), scriptClientId, game::serialize(team),
         modelindex, riotShieldNext, ::serialize(attachments), ::serialize(name),
         maxSprintTimeMultiplier, rank, paragonRank, paragonIconId, prestige,
         lastDamageTime, lastStandStartTime, lastSpawnTime, turnedHumanTime,
-        ::serialize(beingRevivedByClient), reviveTimeStart, damageState,
-        csPMFlags, ::serialize(xuid), arenaPoints, ::serialize(perks),
-        roleIndex, level, bodyOptions, ::serialize(cacLoadouts), heroWeaponIdx,
+        game::serialize(beingRevivedByClient), reviveTimeStart, damageState,
+        csPMFlags, xuid, arenaPoints, ::serialize(perks), roleIndex, level,
+        bodyOptions, ::serialize(cacLoadouts), heroWeaponIdx,
         voiceConnectivityBits, ::serialize(clanAbbrev),
         currentLoadoutPrimaryWeapon.serialize(),
         currentLoadoutSecondaryWeapon.serialize(), game::serialize(csSwimState),

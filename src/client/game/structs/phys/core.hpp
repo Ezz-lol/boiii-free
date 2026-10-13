@@ -104,11 +104,11 @@ struct broad_phase_base {
     return std::format(
         "{{ \"m_trace_aabb_min_whace\": {}, \"m_trace_aabb_max_whace\": {}, "
         "\"m_trace_translation\": {}, "
-        "\"m_flags\": {:08X}, \"m_list_bpb_next\": {:p}, "
+        "\"m_flags\": 0x{:08X}, \"m_list_bpb_next\": {:p}, "
         "\"m_list_bpb_cluster_next\": {:p}, "
         "\"m_sap_node\": {:p}, \"m_user_data\": {:p}, "
-        "\"m_env_collision_flags\": {:08X}, "
-        "\"m_my_collision_type_flags\": {:08X} }}",
+        "\"m_env_collision_flags\": 0x{:08X}, "
+        "\"m_my_collision_type_flags\": 0x{:08X} }}",
         m_trace_aabb_min_whace.serialize(), m_trace_aabb_max_whace.serialize(),
         m_trace_translation.serialize(), m_flags, (const void *)m_list_bpb_next,
         (const void *)m_list_bpb_cluster_next, m_sap_node, m_user_data,
@@ -142,13 +142,7 @@ struct pulse_sum_node {
   uint8_t _padding64[4];
   rigid_body *m_rb;
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"base\": {}, \"m_world_inv_inertia\": {}, \"t_vel\": {}, "
-        "\"a_vel\": {}, \"m_inv_mass\": {}, \"m_rb\": {} }}",
-        base.serialize(), m_world_inv_inertia.serialize(), t_vel.serialize(),
-        a_vel.serialize(), m_inv_mass, ::serialize(m_rb));
-  }
+  std::string serialize() const noexcept;
 };
 ASSERT_SIZE(pulse_sum_node, 0x70);
 
@@ -171,10 +165,7 @@ public:
   rigid_body *b2;
   rigid_body_constraint *m_next;
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"b1\": {}, \"b2\": {}, \"m_next\": {} }}",
-                       ::serialize(b1), ::serialize(b2), ::serialize(m_next));
-  }
+  std::string serialize() const noexcept;
 };
 ASSERT_SIZE(rigid_body_constraint, 0x18);
 
@@ -234,27 +225,7 @@ struct rb_inplace_partition_node {
   int32_t m_partition_size;
   uint8_t _padding6C[4];
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"m_rbc_point_first\": {}, \"m_rbc_hinge_first\": {}, "
-        "\"m_rbc_dist_first\": {}, "
-        "\"m_rbc_ragdoll_first\": {}, \"m_rbc_wheel_first\": {}, "
-        "\"m_rbc_angular_actuator_first\": {}, "
-        "\"m_rbc_upright_first\": {}, \"m_rbc_custom_orientation_first\": {}, "
-        "\"m_rbc_custom_path_first\": {}, "
-        "\"m_rbc_contact_first\": {}, \"m_partition_head\": {}, "
-        "\"m_partition_tail\": {}, "
-        "\"m_next_node\": {}, \"m_partition_size\": {} }}",
-        ::serialize(m_rbc_point_first), ::serialize(m_rbc_hinge_first),
-        ::serialize(m_rbc_dist_first), ::serialize(m_rbc_ragdoll_first),
-        ::serialize(m_rbc_wheel_first),
-        ::serialize(m_rbc_angular_actuator_first),
-        ::serialize(m_rbc_upright_first),
-        ::serialize(m_rbc_custom_orientation_first),
-        ::serialize(m_rbc_custom_path_first), ::serialize(m_rbc_contact_first),
-        ::serialize(m_partition_head), ::serialize(m_partition_tail),
-        ::serialize(m_next_node), m_partition_size);
-  }
+  std::string serialize() const noexcept;
 };
 ASSERT_SIZE(rb_inplace_partition_node, 0x70);
 
@@ -311,7 +282,7 @@ public:
         "\"m_force_sum\": {}, "
         "\"m_torque_sum\": {}, \"m_inv_mass\": {}, \"m_max_avel\": {}, "
         "\"m_max_delta_t\": {}, "
-        "\"m_flags\": {:08X}, \"m_tick\": {}, \"m_node\": {:p}, "
+        "\"m_flags\": 0x{:08X}, \"m_tick\": {}, \"m_node\": {:p}, "
         "\"m_constraint_count\": {}, "
         "\"m_contact_count\": {}, \"m_stable_min_contact_count\": {}, "
         "\"m_stable_energy_time\": {}, "
@@ -364,7 +335,7 @@ public:
   unique_id m_counter;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"m_counter\": {:08X} }}", m_counter);
+    return std::format("{{ \"m_counter\": 0x{:08X} }}", m_counter);
   }
 };
 
@@ -389,8 +360,8 @@ struct gjk_base_t {
   inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_aabb_mn_loc\": {}, \"m_aabb_mx_loc\": {}, "
-        "\"m_gjk_geom_id\": {:08X}, \"m_xform_\": {}, \"m_next_geom\": {}, "
-        "\"m_flags\": {:08X}, \"stype\": {}, \"m_contents\": {:08X} }}",
+        "\"m_gjk_geom_id\": 0x{:08X}, \"m_xform_\": {}, \"m_next_geom\": {}, "
+        "\"m_flags\": 0x{:08X}, \"stype\": {}, \"m_contents\": 0x{:08X} }}",
         base.serialize(), m_aabb_mn_loc.serialize(), m_aabb_mx_loc.serialize(),
         m_gjk_geom_id, ::serialize(m_xform_), ::serialize(m_next_geom), m_flags,
         stype, m_contents);
@@ -445,30 +416,7 @@ public:
   hitinfo_t hitinfo;
   uint8_t _padding15C[4];
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"physPreset\": {}, \"body\": {}, \"vehicle\": {}, "
-        "\"m_gjk_geom_list\": {}, \"m_next_link\": {}, \"cg2rb\": {}, "
-        "\"m2w\": {}, \"m_bpb\": {}, \"tvel\": {}, \"avel\": {}, "
-        "\"friction\": {}, \"bounce\": {}, \"damping_linear\": {}, "
-        "\"damping_angular\": {}, \"id\": {}, \"underwater\": {}, "
-        "\"buoyancy\": {}, \"timeBuoyant\": {}, \"timeRipple\": {}, "
-        "\"trDuration\": {}, \"refcount\": {}, \"m_time_since_last_event\": "
-        "{}, "
-        "\"m_time_since_last_reeval\": {}, \"m_flags\": {:08X}, \"mass\": {}, "
-        "\"buoyancyBoxMin\": {}, \"buoyancyBoxMax\": {}, "
-        "\"centerOfMassOffset\": {}, "
-        "\"owner\": {}, \"owner_type\": {}, \"hitinfo\": {} }}",
-        ::serialize(physPreset), ::serialize(body), ::serialize(vehicle),
-        m_gjk_geom_list.serialize(), ::serialize(m_next_link),
-        cg2rb.serialize(), m2w.serialize(), ::serialize(m_bpb),
-        tvel.serialize(), avel.serialize(), friction, bounce, damping_linear,
-        damping_angular, id, underwater, buoyancy, timeBuoyant, timeRipple,
-        trDuration, refcount, m_time_since_last_event, m_time_since_last_reeval,
-        m_flags, mass, buoyancyBoxMin.serialize(), buoyancyBoxMax.serialize(),
-        centerOfMassOffset.serialize(), owner,
-        game::phys::serialize(owner_type), hitinfo.serialize());
-  }
+  std::string serialize() const noexcept;
 };
 ASSERT_SIZE(PhysObjUserData, 0x160);
 
@@ -498,11 +446,11 @@ struct ZBarrierBoard {
         "\"pTearAnim\": {}, \"pBoardAnim\": {}, \"repairEffect1\": {}, "
         "\"repairEffect2\": {}, "
         "\"repairEffect1Offset\": {}, \"repairEffect2Offset\": {}, "
-        "\"boardRepairSound\": {:08X}, "
-        "\"boardRepairHoverSound\": {:08X}, \"pauseAndRepeatRepSound\": "
+        "\"boardRepairSound\": 0x{:08X}, "
+        "\"boardRepairHoverSound\": 0x{:08X}, \"pauseAndRepeatRepSound\": "
         "{:08X}, \"minPause\": {}, "
-        "\"maxPause\": {}, \"zombieBoardTearStateName\": {:08X}, "
-        "\"zombieBoardTearSubStateName\": {:08X}, "
+        "\"maxPause\": {}, \"zombieBoardTearStateName\": 0x{:08X}, "
+        "\"zombieBoardTearSubStateName\": 0x{:08X}, "
         "\"numRepsToPullProBoard\": {} }}",
         ::serialize(pBoardModel), ::serialize(pAlternateBoardModel),
         ::serialize(pUpgradedBoardModel), ::serialize(pTearAnim),
@@ -542,19 +490,20 @@ struct ZBarrierDef {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"generalRepairSound1\": {:08X}, "
-        "\"generalRepairSound2\": {:08X}, "
-        "\"upgradedGeneralRepairSound1\": {:08X}, "
-        "\"upgradedGeneralRepairSound2\": {:08X}, "
-        "\"delayBetweenRepSounds\": {:08X}, \"delayBetweenRepSoundsDuration\": "
-        "{}, \"earthquakeOnRepair\": {:08X}, "
+        "{{ \"name\": {}, \"generalRepairSound1\": 0x{:08X}, "
+        "\"generalRepairSound2\": 0x{:08X}, "
+        "\"upgradedGeneralRepairSound1\": 0x{:08X}, "
+        "\"upgradedGeneralRepairSound2\": 0x{:08X}, "
+        "\"delayBetweenRepSounds\": 0x{:08X}, "
+        "\"delayBetweenRepSoundsDuration\": "
+        "{}, \"earthquakeOnRepair\": 0x{:08X}, "
         "\"earthquakeMinScale\": {}, \"earthquakeMaxScale\": {}, "
         "\"earthquakeMinDuration\": {}, "
         "\"earthquakeMaxDuration\": {}, \"earthquakeRadius\": {}, "
         "\"numBoardsInBarrier\": {}, "
-        "\"autoHideOpenPieces\": {:08X}, \"taunts\": {:08X}, "
-        "\"reachThroughAttacks\": {:08X}, "
-        "\"zombieTauntAnimState\": {:08X}, \"zombieReachThroughAnimState\": "
+        "\"autoHideOpenPieces\": 0x{:08X}, \"taunts\": 0x{:08X}, "
+        "\"reachThroughAttacks\": 0x{:08X}, "
+        "\"zombieTauntAnimState\": 0x{:08X}, \"zombieReachThroughAnimState\": "
         "{:08X}, \"numAttackSlots\": {}, "
         "\"attackSpotHorzOffset\": {}, \"pCollisionModel\": {}, \"boards\": "
         "{} }}",
@@ -595,7 +544,7 @@ struct ZBarrierType {
         "{{ \"serverIndex\": {}, \"clientIndex\": {}, \"zbarrierDef\": {}, "
         "\"clientAnims\": {}, \"serverAnims\": {}, \"boardModelIndex\": {}, "
         "\"upgradedBoardModelIndex\": {}, \"alternateBoardModelIndex\": {} }}",
-        serverIndex, ::serialize(clientIndex), ::serialize(zbarrierDef),
+        serverIndex, game::serialize(clientIndex), ::serialize(zbarrierDef),
         ::serialize(clientAnims), ::serialize(serverAnims),
         ::serialize(boardModelIndex), ::serialize(upgradedBoardModelIndex),
         ::serialize(alternateBoardModelIndex));
@@ -610,9 +559,9 @@ struct cached_tag_mat_t {
   vec3_t tagMat[4];
 
   inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"time\": {}, \"entnum\": {}, \"name\": {:08X}, \"tagMat\": {} }}",
-        time, entnum, name, ::serialize(tagMat));
+    return std::format("{{ \"time\": {}, \"entnum\": {}, \"name\": 0x{:08X}, "
+                       "\"tagMat\": {} }}",
+                       time, entnum, name, ::serialize(tagMat));
   }
 };
 ASSERT_SIZE(cached_tag_mat_t, 0x3C);
@@ -636,10 +585,7 @@ struct sv_FxVisBlock_t {
   float radius;
   uint8_t _padding0C[4];
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"fxEnt\": {}, \"radius\": {} }}",
-                       ::serialize(fxEnt), radius);
-  }
+  std::string serialize() const noexcept;
 };
 ASSERT_SIZE(sv_FxVisBlock_t, 0x10);
 
@@ -717,7 +663,7 @@ struct LocalClientFxUniqueHandle {
 
   inline std::string serialize() const noexcept {
     return std::format("{{ \"localClient\": {}, \"fxHandle\": {} }}",
-                       ::serialize(localClient), fxHandle);
+                       game::serialize(localClient), fxHandle);
   }
 };
 
@@ -727,8 +673,9 @@ struct DestructibleBurnData {
   snd::SndPlaybackId sndId;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"burnTime\": {}, \"fx\": {}, \"sndId\": {:08X} }}",
-                       burnTime, fx, sndId);
+    return std::format(
+        "{{ \"burnTime\": {}, \"fx\": {}, \"sndId\": 0x{:08X} }}", burnTime, fx,
+        sndId);
   }
 };
 
@@ -741,7 +688,7 @@ struct DESTRUCTIBLE_PIECE_INFO {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"health\": {}, \"xdollHandle\": {}, \"fx\": {:08X}, "
+        "{{ \"health\": {}, \"xdollHandle\": {}, \"fx\": 0x{:08X}, "
         "\"burnData\": {} }}",
         health, xdollHandle, fx, burnData.serialize());
   }
@@ -788,7 +735,7 @@ PACKED(struct Destructible {
         "{{ \"entNum\": {}, \"pieceArray\": {}, \"oldestBurnTime\": {}, "
         "\"entDestroyed\": {}, \"entDestroyedRespondedTo\": {}, "
         "\"pieceCount\": {}, "
-        "\"ddef\": {}, \"flags\": {:08X}, \"states\": {}, \"bHasBeenHit\": "
+        "\"ddef\": {}, \"flags\": 0x{:08X}, \"states\": {}, \"bHasBeenHit\": "
         "{} }}",
         entNum, ::serialize(pieceArray), oldestBurnTime,
         ::serialize(entDestroyed), ::serialize(entDestroyedRespondedTo),
@@ -898,10 +845,11 @@ PACKED(struct colgeom_visitor_t {
   TraceThreadInfo *m_threadInfo;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"base\": {}, \"m_radius\": {}, \"m_mask\": {:08X}, "
-                       "\"m_threadInfo\": {:p} }}",
-                       base.serialize(), m_radius, m_mask,
-                       reinterpret_cast<const void *>(m_threadInfo));
+    return std::format(
+        "{{ \"base\": {}, \"m_radius\": {}, \"m_mask\": 0x{:08X}, "
+        "\"m_threadInfo\": {:p} }}",
+        base.serialize(), m_radius, m_mask,
+        reinterpret_cast<const void *>(m_threadInfo));
   }
 });
 
@@ -951,7 +899,7 @@ struct col_context_t {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"mask\": {:08X}, \"prims\": {}, \"nprims\": {}, "
+        "{{ \"mask\": 0x{:08X}, \"prims\": {}, \"nprims\": {}, "
         "\"ignoreEntParams\": {}, "
         "\"passEntityNum0\": {}, \"passEntityNum1\": {}, "
         "\"staticmodels\": {}, \"locational\": {}, "
@@ -1014,9 +962,10 @@ struct __attribute__((aligned(4))) RagdollBoneDef {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"ragdollBone\": {:08X}, \"childBone\": {:08X}, \"radius\": {}, "
+        "{{ \"ragdollBone\": 0x{:08X}, \"childBone\": 0x{:08X}, \"radius\": "
+        "{}, "
         "\"mass\": {}, \"friction\": {}, \"damping\": {}, \"buoyancy\": {}, "
-        "\"geomType\": {}, \"parentBone\": {:08X}, \"jointType\": {}, "
+        "\"geomType\": {}, \"parentBone\": 0x{:08X}, \"jointType\": {}, "
         "\"musclePowerOn\": {}, \"musclePowerCollide\": {}, "
         "\"musclePowerDown\": {}, "
         "\"minAngles\": {}, \"maxAngles\": {}, \"axisFriction\": {}, "
@@ -1062,9 +1011,9 @@ PACKED(struct objcamCameraPoint {
   float ocMaxVertAngle;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"ocState\": {}, \"ocName\": {:08X}, \"ocIndex\": "
+    return std::format("{{ \"ocState\": {}, \"ocName\": 0x{:08X}, \"ocIndex\": "
                        "{}, \"ocEntNum\": {}, "
-                       "\"ocEntTag\": {:08X}, \"ocTeam\": {}, \"ocPos\": {}, "
+                       "\"ocEntTag\": 0x{:08X}, \"ocTeam\": {}, \"ocPos\": {}, "
                        "\"ocAngles\": {}, "
                        "\"ocMaxHorizAngle\": {}, \"ocMaxVertAngle\": {} }}",
                        game::phys::serialize(ocState), ocName, ocIndex,
@@ -1151,7 +1100,7 @@ struct broad_phase_info {
         "{{ \"base\": {}, \"m_rb\": {}, \"m_rb_to_world_xform\": {}, "
         "\"m_cg_to_world_xform\": {}, \"m_cg_to_rb_xform\": {}, "
         "\"m_gjk_geom\": {}, "
-        "\"m_gjk_geom_id\": {:08X}, \"m_surface_type\": {} }}",
+        "\"m_gjk_geom_id\": 0x{:08X}, \"m_surface_type\": {} }}",
         base.serialize(), ::serialize(m_rb), ::serialize(m_rb_to_world_xform),
         ::serialize(m_cg_to_world_xform), ::serialize(m_cg_to_rb_xform),
         ::serialize(m_gjk_geom), m_gjk_geom_id, m_surface_type);
@@ -1172,7 +1121,7 @@ public:
   phys_gjk_geom_id m_id2;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"m_id1\": {:08X}, \"m_id2\": {:08X} }}", m_id1,
+    return std::format("{{ \"m_id1\": 0x{:08X}, \"m_id2\": 0x{:08X} }}", m_id1,
                        m_id2);
   }
 };
@@ -1188,7 +1137,7 @@ struct phys_gjk_cache_info {
   inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_support_dir\": {}, \"m_support_a\": {}, \"m_support_b\": {}, "
-        "\"m_support_count\": {}, \"m_key\": {}, \"m_flags\": {:08X} }}",
+        "\"m_support_count\": {}, \"m_key\": {}, \"m_flags\": 0x{:08X} }}",
         m_support_dir.serialize(), m_support_a.serialize(),
         m_support_b.serialize(), m_support_count, m_key.serialize(), m_flags);
   }
@@ -1236,22 +1185,7 @@ struct __attribute__((aligned(16))) contact_point_info {
   phys_collision_pair *m_pcp;
   rigid_body_constraint_contact *m_rbc_contact;
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"m_normal\": {}, \"m_fric_coef\": {}, \"m_bounce_coef\": {}, "
-        "\"m_max_restitution_vel\": {}, \"m_flags\": {:08X}, "
-        "\"m_point_pair_count\": {}, "
-        "\"m_list_b1_r_loc\": {}, \"m_list_b2_r_loc\": {}, "
-        "\"m_list_pulse_sum_cache_info\": {}, "
-        "\"m_next_link\": {}, \"m_rb2_entity\": {}, \"m_translation_lambda\": "
-        "{}, "
-        "\"m_pcp\": {}, \"m_rbc_contact\": {} }}",
-        m_normal.serialize(), m_fric_coef, m_bounce_coef, m_max_restitution_vel,
-        m_flags, m_point_pair_count, ::serialize(m_list_b1_r_loc),
-        ::serialize(m_list_b2_r_loc), ::serialize(m_list_pulse_sum_cache_info),
-        ::serialize(m_next_link), m_rb2_entity, m_translation_lambda,
-        ::serialize(m_pcp), ::serialize(m_rbc_contact));
-  }
+  std::string serialize() const noexcept;
 };
 
 struct rigid_body_constraint_contact {
@@ -1268,7 +1202,7 @@ struct rigid_body_constraint_contact {
     return std::format(
         "{{ \"base\": {}, \"m_list_contact_point_info_buffer_1\": {}, "
         "\"m_list_contact_point_info_buffer_2\": {}, "
-        "\"m_solver_priority\": {:08X}, \"m_avl_tree_node\": {}, "
+        "\"m_solver_priority\": 0x{:08X}, \"m_avl_tree_node\": {}, "
         "\"m_avl_key\": {} }}",
         base.serialize(), m_list_contact_point_info_buffer_1.serialize(),
         m_list_contact_point_info_buffer_2.serialize(), m_solver_priority,
@@ -1299,7 +1233,7 @@ struct rigid_body_constraint_hinge {
                        "\"m_b2_axis_loc\": {}, \"m_b1_a1_loc\": {}, "
                        "\"m_b1_a2_loc\": {}, \"m_b1_ref_loc\": {}, "
                        "\"m_b2_ref_min_loc\": {}, \"m_b2_ref_max_loc\": {}, "
-                       "\"m_damp_k\": {}, \"m_flags\": {:08X}, "
+                       "\"m_damp_k\": {}, \"m_flags\": 0x{:08X}, "
                        "\"m_ps_cache\": {} }}",
                        base.serialize(), m_b1_r_loc.serialize(),
                        m_b2_r_loc.serialize(), m_b1_axis_loc.serialize(),
@@ -1330,7 +1264,8 @@ struct rigid_body_constraint_distance {
         "\"m_min_distance\": {}, "
         "\"m_max_distance\": {}, \"m_next_max_distance\": {}, "
         "\"m_max_distance_vel\": {}, "
-        "\"m_damp_coef\": {}, \"m_flags\": {:08X}, \"m_ps_cache_list\": {} }}",
+        "\"m_damp_coef\": {}, \"m_flags\": 0x{:08X}, \"m_ps_cache_list\": {} "
+        "}}",
         base.serialize(), m_b1_r_loc.serialize(), m_b2_r_loc.serialize(),
         m_min_distance, m_max_distance, m_next_max_distance, m_max_distance_vel,
         m_damp_coef, m_flags, ::serialize(m_ps_cache_list));
@@ -1374,7 +1309,8 @@ struct rigid_body_constraint_ragdoll {
   inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_b1_r_loc\": {}, \"m_b2_r_loc\": {}, "
-        "\"m_flags\": {:08X}, \"m_ps_cache_list\": {}, \"m_b1_axis_loc\": {}, "
+        "\"m_flags\": 0x{:08X}, \"m_ps_cache_list\": {}, \"m_b1_axis_loc\": "
+        "{}, "
         "\"m_b2_axis_loc\": {}, \"m_b1_a1_loc\": {}, \"m_b1_a2_loc\": {}, "
         "\"m_b1_ref_loc\": {}, \"m_b2_ref_min_loc\": {}, \"m_b2_ref_max_loc\": "
         "{}, "
@@ -1418,7 +1354,7 @@ struct pulse_sum_normal {
         "\"m_pulse_sum_max\": {}, "
         "\"m_pulse_sum\": {}, \"m_right_side\": {}, \"m_big_dirt\": {}, "
         "\"m_cfm\": {}, "
-        "\"m_denom\": {}, \"m_pulse_limit_ratio\": {}, \"m_flags\": {:08X}, "
+        "\"m_denom\": {}, \"m_pulse_limit_ratio\": {}, \"m_flags\": 0x{:08X}, "
         "\"m_pulse_parent\": {}, \"m_b1\": {}, \"m_b2\": {}, "
         "\"m_pulse_sum_cache\": {} }}",
         base.serialize(), m_ud.serialize(), m_b1_r.serialize(),
@@ -1516,7 +1452,7 @@ struct __attribute__((aligned(8))) rigid_body_constraint_wheel {
         "\"m_b2_hit_point_loc\": {}, "
         "\"m_b2_hit_normal_loc\": {}, \"m_wheel_radius\": {}, "
         "\"m_wheel_steering_angle\": {}, "
-        "\"m_wheel_flags\": {:08X}, \"m_wheel_state\": {}, "
+        "\"m_wheel_flags\": 0x{:08X}, \"m_wheel_state\": {}, "
         "\"m_turning_radius_ratio_max_speed\": {}, "
         "\"m_turning_radius_ratio_accel\": {}, \"m_desired_speed_k\": {}, "
         "\"m_acceleration_factor_k\": {}, "
@@ -1792,7 +1728,7 @@ struct moveclip_t {
     return std::format(
         "{{ \"mins\": {}, \"maxs\": {}, \"outerSize\": {}, \"extents\": {}, "
         "\"passEntityNum\": {}, \"passEntityNum1\": {}, \"passOwnerNum\": {}, "
-        "\"contentmask\": {:08X}, \"collide_entity_func\": {:p} }}",
+        "\"contentmask\": 0x{:08X}, \"collide_entity_func\": {:p} }}",
         mins.serialize(), maxs.serialize(), outerSize.serialize(),
         extents.serialize(), passEntityNum, passEntityNum1, passOwnerNum,
         contentmask, reinterpret_cast<const void *>(collide_entity_func));

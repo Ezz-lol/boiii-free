@@ -404,16 +404,16 @@ PACKED(struct SndAssetBankHeader {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"magic\": {:08X}, \"version\": {}, \"entrySize\": {}, "
+        "{{ \"magic\": 0x{:08X}, \"version\": {}, \"entrySize\": {}, "
         "\"checksumSize\": {}, "
         "\"dependencySize\": {}, \"entryCount\": {}, \"dependencyCount\": {}, "
-        "\"pad32\": {:08X}, "
+        "\"pad32\": 0x{:08X}, "
         "\"fileSize\": {}, \"entryOffset\": {}, \"checksumOffset\": {}, "
         "\"checksumChecksum\": {}, "
         "\"dependencies\": {}, \"SourceChecksumOffset\": {}, "
         "\"AssetNameOffset\": {}, \"zoneName\": {}, "
         "\"platform\": {}, \"language\": {}, \"convertedAssetVersion\": "
-        "{:08X}, \"padding0\": {:08X} }}",
+        "{:08X}, \"padding0\": 0x{:08X} }}",
         magic, game::snd::serialize(version), entrySize, checksumSize,
         dependencySize, entryCount, dependencyCount, pad32, fileSize,
         entryOffset, checksumOffset, ::serialize(checksumChecksum),
@@ -450,7 +450,7 @@ PACKED(struct SndAssetBankEntry {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"id\": {:08X}, \"size\": {}, \"frameCount\": {}, \"order\": {}, "
+        "{{ \"id\": 0x{:08X}, \"size\": {}, \"frameCount\": {}, \"order\": {}, "
         "\"offset\": {}, \"frameRateIndex\": {}, \"channelCount\": {}, "
         "\"looping\": {}, "
         "\"format\": {}, \"EnvelopeLoudness0\": {}, \"EnvelopeLoudness1\": {}, "
@@ -476,12 +476,11 @@ PACKED(struct SndAssetBankLoad {
   inline std::string serialize() const noexcept {
     return std::format("{{ \"header\": {}, \"filename\": {}, \"entries\": "
                        "{}, \"entryCount\": {}, "
-                       "\"fileHandle\": {}, \"indicesLoaded\": {}, "
+                       "\"fileHandle\": 0x{:08X}, \"indicesLoaded\": {}, "
                        "\"indicesAllocated\": {} }}",
                        header.serialize(), ::serialize(filename),
-                       ::serialize(entries, entryCount), entryCount,
-                       ::serialize(fileHandle), indicesLoaded.serialize(),
-                       indicesAllocated.serialize());
+                       ::serialize(entries, entryCount), entryCount, fileHandle,
+                       indicesLoaded.serialize(), indicesAllocated.serialize());
   }
 });
 ASSERT_SIZE(SndAssetBankLoad, 0x918);
@@ -499,7 +498,8 @@ PACKED(struct SndVolumeGroup {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"parentName\": {}, \"id\": {:08X}, \"parentIndex\": "
+        "{{ \"name\": {}, \"parentName\": {}, \"id\": 0x{:08X}, "
+        "\"parentIndex\": "
         "{}, "
         "\"category\": {}, \"attenuationSp\": {}, \"attenuationMp\": {} }}",
         ::serialize(name), ::serialize(parentName), id, parentIndex,
@@ -513,7 +513,7 @@ PACKED(struct SndCurve {
   array<game::vec2_t, 8> points;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {}, \"id\": {:08X}, \"points\": {} }}",
+    return std::format("{{ \"name\": {}, \"id\": 0x{:08X}, \"points\": {} }}",
                        ::serialize(name), id, ::serialize(points));
   }
 });
@@ -523,8 +523,8 @@ PACKED(struct SndDuckGroup {
   uint32_t id;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {}, \"id\": {:08X} }}", ::serialize(name),
-                       id);
+    return std::format("{{ \"name\": {}, \"id\": 0x{:08X} }}",
+                       ::serialize(name), id);
   }
 });
 
@@ -597,7 +597,7 @@ PACKED(struct SndMaster {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"id\": {:08X}, \"lowE\": {}, \"lowG\": {}, "
+        "{{ \"name\": {}, \"id\": 0x{:08X}, \"lowE\": {}, \"lowG\": {}, "
         "\"lowF\": {}, \"lowQ\": {}, \"peak1E\": {}, \"peak1G\": {}, "
         "\"peak1F\": {}, \"peak1Q\": {}, \"peak2E\": {}, \"peak2G\": {}, "
         "\"peak2F\": {}, \"peak2Q\": {}, \"hiE\": {}, \"hiG\": {}, "
@@ -638,7 +638,7 @@ PACKED(struct SndContext {
   uint32_t values[8];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"type\": {:08X}, \"values\": {} }}", type,
+    return std::format("{{ \"type\": 0x{:08X}, \"values\": {} }}", type,
                        ::serialize(values));
   }
 });
@@ -655,7 +655,7 @@ PACKED(struct SndPan {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"id\": {:08X}, \"front\": {}, \"back\": {}, "
+        "{{ \"name\": {}, \"id\": 0x{:08X}, \"front\": {}, \"back\": {}, "
         "\"center\": {}, \"lfe\": {}, \"left\": {}, \"right\": {} }}",
         ::serialize(name), id, front, back, center, lfe, left, right);
   }
@@ -683,12 +683,12 @@ PACKED(struct SndFutz {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"id\": {:08X}, \"bpfF\": {}, \"bpfQ\": {}, "
+        "{{ \"name\": {}, \"id\": 0x{:08X}, \"bpfF\": {}, \"bpfQ\": {}, "
         "\"lsG\": {}, \"lsF\": {}, \"lsQ\": {}, \"dist\": {}, "
         "\"preG\": {}, \"postG\": {}, \"th\": {}, \"tg\": {}, "
         "\"clippre\": {}, \"clippost\": {}, \"blend\": {}, \"startAliasId\": "
         "{:08X}, "
-        "\"stopAliasId\": {:08X}, \"loopAliasId\": {:08X} }}",
+        "\"stopAliasId\": 0x{:08X}, \"loopAliasId\": 0x{:08X} }}",
         ::serialize(name), id, bpfF, bpfQ, lsG, lsF, lsQ, dist, preG, postG, th,
         tg, clippre, clippost, blend, startAliasId, stopAliasId, loopAliasId);
   }
@@ -767,10 +767,11 @@ PACKED(struct SndQueue {
   SND_QueueCallback processNotify;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"active\": {}, \"submitted\": {}, \"buffers\": "
-                       "{}, \"processNotify\": {:p} }}",
-                       ::serialize(active), ::serialize(submitted),
-                       ::serialize(buffers),
+    return std::format("{{ \"active\": {:p}, \"submitted\": {:p}, \"buffers\": "
+                       "{:p}, \"processNotify\": {:p} }}",
+                       reinterpret_cast<const void *>(active),
+                       reinterpret_cast<const void *>(submitted),
+                       reinterpret_cast<const void *>(buffers),
                        reinterpret_cast<const void *>(processNotify));
   }
 });
@@ -931,21 +932,26 @@ PACKED(struct SndAlias {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"id\": {:08X}, \"subtitle\": {}, \"secondaryname\": "
+        "{{ \"name\": {}, \"id\": 0x{:08X}, \"subtitle\": {}, "
+        "\"secondaryname\": "
         "{}, "
-        "\"secondaryid\": {:08X}, \"stopAliasName\": {}, \"stopAliasID\": "
+        "\"secondaryid\": 0x{:08X}, \"stopAliasName\": {}, \"stopAliasID\": "
         "{:08X}, "
-        "\"facialAnimation\": {:08X}, \"assetId\": {:08X}, \"assetFileName\": "
+        "\"facialAnimation\": 0x{:08X}, \"assetId\": 0x{:08X}, "
+        "\"assetFileName\": "
         "{}, "
-        "\"assetIdSustain\": {:08X}, \"assetFileNameSustain\": {}, "
-        "\"assetIdRelease\": {:08X}, "
-        "\"assetFileNameRelease\": {}, \"flags0\": {:08X}, \"flags1\": {:08X}, "
-        "\"duck\": {:08X}, \"contextType\": {:08X}, \"contextValue\": {:08X}, "
-        "\"contextType1\": {:08X}, \"contextValue1\": {:08X}, "
-        "\"contextType2\": {:08X}, "
-        "\"contextValue2\": {:08X}, \"contextType3\": {:08X}, "
-        "\"contextValue3\": {:08X}, "
-        "\"stopOnPlay\": {:08X}, \"futzPatch\": {:08X}, \"reverbSend\": {}, "
+        "\"assetIdSustain\": 0x{:08X}, \"assetFileNameSustain\": {}, "
+        "\"assetIdRelease\": 0x{:08X}, "
+        "\"assetFileNameRelease\": {}, \"flags0\": 0x{:08X}, \"flags1\": "
+        "0x{:08X}, "
+        "\"duck\": 0x{:08X}, \"contextType\": 0x{:08X}, \"contextValue\": "
+        "0x{:08X}, "
+        "\"contextType1\": 0x{:08X}, \"contextValue1\": 0x{:08X}, "
+        "\"contextType2\": 0x{:08X}, "
+        "\"contextValue2\": 0x{:08X}, \"contextType3\": 0x{:08X}, "
+        "\"contextValue3\": 0x{:08X}, "
+        "\"stopOnPlay\": 0x{:08X}, \"futzPatch\": 0x{:08X}, \"reverbSend\": "
+        "{}, "
         "\"centerSend\": {}, \"volMin\": {}, \"volMax\": {}, "
         "\"envelopPercentage\": {}, "
         "\"fluxTime\": {}, \"startDelay\": {}, \"pitchMin\": {}, \"pitchMax\": "
@@ -1004,7 +1010,7 @@ PACKED(struct SndAliasList : public db::xasset::NamedXAsset {
      name.
   */
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {}, \"id\": {:08X}, \"list\": {}, "
+    return std::format("{{ \"name\": {}, \"id\": 0x{:08X}, \"list\": {}, "
                        "\"count\": {}, \"sequence\": {}, "
                        "\"cullDistance\": {}, \"spatial\": {} }}",
                        ::serialize(name), id, ::serialize(head, count), count,
@@ -1032,7 +1038,7 @@ PACKED(struct SndAliasLookupNode {
   SndAliasList *list;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"id\": {:08X}, \"list\": {} }}", id,
+    return std::format("{{ \"id\": 0x{:08X}, \"list\": {} }}", id,
                        ::serialize(list));
   }
 });
@@ -1087,7 +1093,7 @@ PACKED(union SndEntHandle {
   uint64_t handle;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"handle\": {:016X} }}", handle);
+    return std::format("{{ \"handle\": 0x{:016X} }}", handle);
   }
 });
 ASSERT_SIZE(SndEntHandle, sizeof(uint64_t));
@@ -1119,18 +1125,18 @@ PACKED(struct SndAmbient {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"id\": {:08X}, \"defaultRoom\": {}, \"reverb\": "
+        "{{ \"name\": {}, \"id\": 0x{:08X}, \"defaultRoom\": {}, \"reverb\": "
         "{:08X}, "
-        "\"reverbName\": {}, \"nearVerb\": {:08X}, \"nearVerbName\": {}, "
-        "\"farVerb\": {:08X}, "
+        "\"reverbName\": {}, \"nearVerb\": 0x{:08X}, \"nearVerbName\": {}, "
+        "\"farVerb\": 0x{:08X}, "
         "\"farVerbName\": {}, \"reverbDryLevel\": {}, \"reverbWetLevel\": {}, "
-        "\"loop\": {:08X}, "
-        "\"duck\": {}, \"duckId\": {:08X}, \"entityContextType0\": {:08X}, "
-        "\"entityContextValue0\": {:08X}, "
-        "\"entityContextType1\": {:08X}, \"entityContextValue1\": {:08X}, "
-        "\"entityContextType2\": {:08X}, "
-        "\"entityContextValue2\": {:08X}, \"globalContextType\": {:08X}, "
-        "\"globalContextValue\": {:08X} }}",
+        "\"loop\": 0x{:08X}, "
+        "\"duck\": {}, \"duckId\": 0x{:08X}, \"entityContextType0\": 0x{:08X}, "
+        "\"entityContextValue0\": 0x{:08X}, "
+        "\"entityContextType1\": 0x{:08X}, \"entityContextValue1\": 0x{:08X}, "
+        "\"entityContextType2\": 0x{:08X}, "
+        "\"entityContextValue2\": 0x{:08X}, \"globalContextType\": 0x{:08X}, "
+        "\"globalContextValue\": 0x{:08X} }}",
         ::serialize(name), id, defaultRoom.serialize(), reverb,
         ::serialize(reverbName), nearVerb, ::serialize(nearVerbName), farVerb,
         ::serialize(farVerbName), reverbDryLevel, reverbWetLevel, loop,
@@ -1159,9 +1165,9 @@ PACKED(struct SndEntState {
     return std::format(
         "{{ \"contexts\": {}, \"handle\": {}, \"next\": {:p}, "
         "\"ambientRoom\": {:p}, "
-        "\"ambientRoomId\": {:08X}, \"orientation\": {}, \"origin\": {}, "
+        "\"ambientRoomId\": 0x{:08X}, \"orientation\": {}, \"origin\": {}, "
         "\"velocity\": {}, "
-        "\"lastUsed\": {}, \"hasPosition\": {:08X} }}",
+        "\"lastUsed\": {}, \"hasPosition\": 0x{:08X} }}",
         ::serialize(contexts), handle.serialize(), (const void *)next,
         (const void *)ambientRoom, ambientRoomId, ::serialize(orientation),
         origin.serialize(), velocity.serialize(), lastUsed, hasPosition);
@@ -1183,9 +1189,9 @@ PACKED(struct SndListener {
         "{{ \"entHandle\": {}, \"orient\": {}, \"clientNum\": {}, "
         "\"controllerNum\": {}, "
         "\"active\": {}, \"team\": {}, \"distanceTraveled\": {} }}",
-        entHandle.serialize(), orient.serialize(), ::serialize(clientNum),
-        ::serialize(controllerNum), active.serialize(), game::serialize(team),
-        distanceTraveled);
+        entHandle.serialize(), orient.serialize(), game::serialize(clientNum),
+        game::serialize(controllerNum), active.serialize(),
+        game::serialize(team), distanceTraveled);
   }
 });
 
@@ -1210,14 +1216,14 @@ PACKED(struct SndDuck {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"id\": {:08X}, \"fadeIn\": {}, \"fadeOut\": {}, "
+        "{{ \"name\": {}, \"id\": 0x{:08X}, \"fadeIn\": {}, \"fadeOut\": {}, "
         "\"startDelay\": {}, \"distance\": {}, \"length\": {}, "
-        "\"fadeInCurve\": {:08X}, "
-        "\"fadeOutCurve\": {:08X}, \"attenuation\": {}, \"filter\": {}, "
+        "\"fadeInCurve\": 0x{:08X}, "
+        "\"fadeOutCurve\": 0x{:08X}, \"attenuation\": {}, \"filter\": {}, "
         "\"updateWhilePaused\": {}, "
         "\"trackAmplitude\": {}, \"disableInSplitscreen\": {}, "
         "\"aliasAttenuation\": {}, "
-        "\"aliasLpf\": {}, \"duckAlias\": {:08X} }}",
+        "\"aliasLpf\": {}, \"duckAlias\": 0x{:08X} }}",
         ::serialize(name), id, fadeIn, fadeOut, startDelay, distance, length,
         fadeInCurve, fadeOutCurve, ::serialize(attenuation),
         ::serialize(filter), updateWhilePaused.serialize(),
@@ -1242,16 +1248,7 @@ PACKED(struct SndDuckActive {
   float effect;
   float amplitude;
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"duck\": {}, \"voice\": {}, \"category\": {}, \"position\": "
-        "{}, "
-        "\"inUse\": {}, \"startTime\": {}, \"endTime\": {}, \"pingTime\": {}, "
-        "\"id\": {:08X}, \"amount\": {}, \"effect\": {}, \"amplitude\": {} }}",
-        ::serialize(duck), ::serialize(voice), game::snd::serialize(category),
-        position.serialize(), inUse.serialize(), startTime, endTime, pingTime,
-        id, amount, effect, amplitude);
-  }
+  std::string serialize() const noexcept;
 });
 
 PACKED(struct SndPlayState {
@@ -1278,14 +1275,14 @@ PACKED(struct SndPlayState {
   inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"entHandle\": {}, \"position\": {}, \"direction\": {}, "
-        "\"aliasId\": {:08X}, "
+        "\"aliasId\": 0x{:08X}, "
         "\"fadeTimeMs\": {}, \"startAttenuation\": {}, \"notify\": {}, "
         "\"startPaused\": {}, "
         "\"setScriptValues\": {}, \"pitch\": {}, \"pitchRate\": {}, "
         "\"attenuation\": {}, "
-        "\"attenuationRate\": {}, \"continueLoop\": {}, \"magic\": {:08X}, "
+        "\"attenuationRate\": {}, \"continueLoop\": {}, \"magic\": 0x{:08X}, "
         "\"fireTimeMs\": {}, "
-        "\"location\": {}, \"gpadFlags\": {:08X} }}",
+        "\"location\": {}, \"gpadFlags\": 0x{:08X} }}",
         entHandle.serialize(), position.serialize(), direction.serialize(),
         aliasId, fadeTimeMs, startAttenuation, notify.serialize(),
         startPaused.serialize(), setScriptValues.serialize(), pitch, pitchRate,
@@ -1353,7 +1350,8 @@ PACKED(struct SndPlayback {
     return std::format(
         "{{ \"id\": {}, \"attenuation\": {}, \"lengthMs\": {}, \"playedMs\": "
         "{}, "
-        "\"aliasId\": {:08X}, \"use\": {}, \"entHandle\": {}, \"next\": {} }}",
+        "\"aliasId\": 0x{:08X}, \"use\": {}, \"entHandle\": {}, \"next\": {} "
+        "}}",
         id, attenuation, lengthMs, playedMs, aliasId, use,
         entHandle.serialize(), ::serialize(next));
   }
@@ -1478,7 +1476,7 @@ PACKED(struct SndVoice {
         "\"aliasFadeOut\": {}, "
         "\"continueLoop\": {}, \"softStop\": {}, \"isSilent\": {}, "
         "\"gpadSound\": {}, "
-        "\"gpadFlags\": {:08X} }}",
+        "\"gpadFlags\": 0x{:08X} }}",
         state.serialize(), game::snd::serialize(loadingState),
         assetChannelCount, assetFrameRate, assetEndTime, assetTotalMsec,
         sndEnt.serialize(), game::snd::serialize(entity_update), group,
@@ -1548,7 +1546,7 @@ PACKED(struct SndMusicAsset {
   int32_t meter;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"alias\": {}, \"aliasId\": {:08X}, \"looping\": "
+    return std::format("{{ \"alias\": {}, \"aliasId\": 0x{:08X}, \"looping\": "
                        "{}, \"completeLoop\": {}, "
                        "\"removeAfterPlay\": {}, \"firstRandom\": {}, "
                        "\"startSync\": {}, \"stopSync\": {}, "
@@ -1591,7 +1589,7 @@ PACKED(struct SndMusicState {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"id\": {:08X}, \"intro\": {}, \"exit\": {}, "
+        "{{ \"name\": {}, \"id\": 0x{:08X}, \"intro\": {}, \"exit\": {}, "
         "\"loopCount\": {}, \"loops\": {}, \"order\": {}, \"isRandom\": {}, "
         "\"isSequential\": {}, \"skipPreviousExit\": {}, \"status\": {} }}",
         ::serialize(name), id, intro.serialize(), exit.serialize(), loopCount,
@@ -1610,7 +1608,7 @@ struct SndMusicSet {
   SndMusicState *states;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {}, \"id\": {:08X}, \"stateCount\": {}, "
+    return std::format("{{ \"name\": {}, \"id\": 0x{:08X}, \"stateCount\": {}, "
                        "\"states\": {} }}",
                        ::serialize(name), id, stateCount,
                        ::serialize(states, stateCount));
@@ -1626,7 +1624,7 @@ PACKED(struct SndAmbientBspVolume {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"id\": {:08X}, \"planeIndex\": {}, \"planeCount\": {} }}", id,
+        "{{ \"id\": 0x{:08X}, \"planeIndex\": {}, \"planeCount\": {} }}", id,
         planeIndex, planeCount);
   }
 });
@@ -1640,7 +1638,7 @@ PACKED(struct SndAmbientBspTrigger {
   str64_t roomName;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"id\": {:08X}, \"priority\": {}, \"roomId\": "
+    return std::format("{{ \"id\": 0x{:08X}, \"priority\": {}, \"roomId\": "
                        "{:08X}, \"roomName\": {} }}",
                        id, priority, roomId, ::serialize(roomName));
   }
@@ -1739,11 +1737,12 @@ PACKED(struct SndReverb {
   SndReverbLate farVerb;
 
   inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"name\": {}, \"id\": {:08X}, \"masterReturn\": {}, \"earlyVerb\": "
-        "{}, \"nearVerb\": {}, \"farVerb\": {} }}",
-        ::serialize(name), id, masterReturn, earlyVerb.serialize(),
-        nearVerb.serialize(), farVerb.serialize());
+    return std::format("{{ \"name\": {}, \"id\": 0x{:08X}, \"masterReturn\": "
+                       "{}, \"earlyVerb\": "
+                       "{}, \"nearVerb\": {}, \"farVerb\": {} }}",
+                       ::serialize(name), id, masterReturn,
+                       earlyVerb.serialize(), nearVerb.serialize(),
+                       farVerb.serialize());
   }
 });
 ASSERT_SIZE(SndReverb, 0xA0);
@@ -1754,7 +1753,7 @@ PACKED(struct SndDialogScriptIdLookup {
   SndStringHash aliasId;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"scriptId\": {:08X}, \"aliasId\": {:08X} }}",
+    return std::format("{{ \"scriptId\": 0x{:08X}, \"aliasId\": 0x{:08X} }}",
                        scriptId, aliasId);
   }
 });
@@ -1829,16 +1828,15 @@ PACKED(struct SndBankLoad {
         "\"loadedData\": {:p}, \"loadedAssetCount\": {}, \"loadedAssetTotal\": "
         "{}, \"loadedEntryCount\": {}, "
         "\"loadedDataSize\": {}, \"priority\": {}, \"patchZone\": {}, "
-        "\"streamRequestId\": {}, "
+        "\"streamRequestId\": 0x{:08X}, "
         "\"pendingIo\": {}, \"ioError\": {}, \"state\": {}, "
         "\"pendingIoCount\": {} }}",
         ::serialize(bank), streamAssetBank.serialize(),
         loadAssetBank.serialize(), ::serialize(loadedEntries, loadedEntryCount),
         reinterpret_cast<const void *>(loadedData), loadedAssetCount,
         loadedAssetTotal, loadedEntryCount, loadedDataSize, priority,
-        patchZone.serialize(), ::serialize(streamRequestId),
-        pendingIo.serialize(), ioError.serialize(), game::snd::serialize(state),
-        pendingIoCount);
+        patchZone.serialize(), streamRequestId, pendingIo.serialize(),
+        ioError.serialize(), game::snd::serialize(state), pendingIoCount);
   }
 });
 
@@ -1864,12 +1862,13 @@ PACKED(struct SndBankGlobals {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"bankMagic\": {:08X}, \"bankCount\": {}, \"patchCount\": {}, "
+        "{{ \"bankMagic\": 0x{:08X}, \"bankCount\": {}, \"patchCount\": {}, "
         "\"banks\": {}, \"patches\": {}, \"aliasCache\": {}, "
         "\"missingAliasCache\": {}, \"loads\": {}, "
-        "\"loadGate\": {}, \"assetLoadIndex\": {}, \"assetLoadId\": {:08X}, "
+        "\"loadGate\": {}, \"assetLoadIndex\": {}, \"assetLoadId\": 0x{:08X}, "
         "\"sequentialReadInProgress\": {}, "
-        "\"bankHeader\": {}, \"headerMagic\": {:08X}, \"assetLoadPercent\": {} "
+        "\"bankHeader\": {}, \"headerMagic\": 0x{:08X}, \"assetLoadPercent\": "
+        "{} "
         "}}",
         bankMagic, bankCount, patchCount, ::serialize(banks, bankCount),
         ::serialize(patches, patchCount), aliasCache.serialize(),
@@ -1918,16 +1917,17 @@ PACKED(struct snd_weapon_shot {
     return std::format(
         "{{ \"localClientNum\": {}, \"shooter\": {}, \"weapon\": {}, "
         "\"origin\": {}, "
-        "\"direction\": {}, \"tagName\": {:08X}, \"burstCount\": {}, "
+        "\"direction\": {}, \"tagName\": 0x{:08X}, \"burstCount\": {}, "
         "\"shooterIsPlayer\": {}, "
         "\"shooterIsLocalPlayer\": {}, \"leftGun\": {}, \"isLastShotInClip\": "
         "{}, \"isTurret\": {}, "
         "\"doubleTap\": {}, \"fakeFire\": {}, \"firstShotOfBurst\": {} }}",
-        ::serialize(localClientNum), shooter.serialize(), weapon.serialize(),
-        origin.serialize(), direction.serialize(), tagName, burstCount,
-        ::serialize(shooterIsPlayer), ::serialize(shooterIsLocalPlayer),
-        ::serialize(leftGun), ::serialize(isLastShotInClip),
-        ::serialize(isTurret), ::serialize(doubleTap), ::serialize(fakeFire),
+        game::serialize(localClientNum), shooter.serialize(),
+        weapon.serialize(), origin.serialize(), direction.serialize(), tagName,
+        burstCount, ::serialize(shooterIsPlayer),
+        ::serialize(shooterIsLocalPlayer), ::serialize(leftGun),
+        ::serialize(isLastShotInClip), ::serialize(isTurret),
+        ::serialize(doubleTap), ::serialize(fakeFire),
         ::serialize(firstShotOfBurst));
   }
 });
@@ -2028,7 +2028,7 @@ PACKED(struct SndEntLoop {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"id\": {:08X}, \"handle\": {}, \"origin\": {}, \"fade\": {} }}",
+        "{{ \"id\": 0x{:08X}, \"handle\": {}, \"origin\": {}, \"fade\": {} }}",
         id, handle.serialize(), origin.serialize(), fade);
   }
 });

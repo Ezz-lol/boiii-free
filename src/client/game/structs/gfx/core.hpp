@@ -58,6 +58,53 @@ enum class GfxCameraRegion : int8_t {
   CAMERA_REGION_NONE = 0x14,
 };
 
+inline constexpr const char *serialize(const GfxCameraRegion region) {
+  switch (region) {
+  case GfxCameraRegion::CAMERA_REGION_GBUFFER_DEPTH_HACK:
+    return "CAMERA_REGION_GBUFFER_DEPTH_HACK";
+  case GfxCameraRegion::CAMERA_REGION_GBUFFER_DEPTH_HACK_DECAL:
+    return "CAMERA_REGION_GBUFFER_DEPTH_HACK_DECAL";
+  case GfxCameraRegion::CAMERA_REGION_GBUFFER:
+    return "CAMERA_REGION_GBUFFER";
+  case GfxCameraRegion::CAMERA_REGION_GBUFFER_DECAL:
+    return "CAMERA_REGION_GBUFFER_DECAL";
+  case GfxCameraRegion::CAMERA_REGION_GBUFFER_NO_VOLUME_DECAL:
+    return "CAMERA_REGION_GBUFFER_NO_VOLUME_DECAL";
+  case GfxCameraRegion::CAMERA_REGION_LIT_OPAQUE:
+    return "CAMERA_REGION_LIT_OPAQUE";
+  case GfxCameraRegion::CAMERA_REGION_LIT_TRANS:
+    return "CAMERA_REGION_LIT_TRANS";
+  case GfxCameraRegion::CAMERA_REGION_LIT_TRANS_POST_RESOLVE:
+    return "CAMERA_REGION_LIT_TRANS_POST_RESOLVE";
+  case GfxCameraRegion::CAMERA_REGION_LIT_POST_RESOLVE:
+    return "CAMERA_REGION_LIT_POST_RESOLVE";
+  case GfxCameraRegion::CAMERA_REGION_WATER:
+    return "CAMERA_REGION_WATER";
+  case GfxCameraRegion::CAMERA_REGION_EMISSIVE_FX:
+    return "CAMERA_REGION_EMISSIVE_FX";
+  case GfxCameraRegion::CAMERA_REGION_DEPTH_HACK_SSS:
+    return "CAMERA_REGION_DEPTH_HACK_SSS";
+  case GfxCameraRegion::CAMERA_REGION_FORWARD_SSS:
+    return "CAMERA_REGION_FORWARD_SSS";
+  case GfxCameraRegion::CAMERA_REGION_DEPTH_HACK:
+    return "CAMERA_REGION_DEPTH_HACK";
+  case GfxCameraRegion::CAMERA_REGION_DEPTH_HACK_TRANS:
+    return "CAMERA_REGION_DEPTH_HACK_TRANS";
+  case GfxCameraRegion::CAMERA_REGION_DEPTH_HACK_POST_BLUR:
+    return "CAMERA_REGION_DEPTH_HACK_POST_BLUR";
+  case GfxCameraRegion::CAMERA_REGION_SONAR:
+    return "CAMERA_REGION_SONAR";
+  case GfxCameraRegion::CAMERA_REGION_OIT:
+    return "CAMERA_REGION_OIT";
+  case GfxCameraRegion::CAMERA_REGION_DEPTH_PRIME:
+    return "CAMERA_REGION_DEPTH_PRIME";
+  case GfxCameraRegion::CAMERA_REGION_UNDERWATER:
+    return "CAMERA_REGION_UNDERWATER";
+  default:
+    return "CAMERA_REGION_INVALID";
+  }
+}
+
 struct GfxDrawSurfFields {
   uint64_t useSiegeTextures : 1;
   uint64_t objectId : 18;
@@ -66,11 +113,26 @@ struct GfxDrawSurfFields {
   uint64_t techniqueIndexPlusOne : 11;
   uint64_t decalSurfSort : 6;
   uint64_t earlyDepthSort : 7;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"useSiegeTextures\": {}, \"objectId\": {}, \"lateDepthSort\": {}, "
+        "\"materialSortedIndex\": {}, \"techniqueIndexPlusOne\": {}, "
+        "\"decalSurfSort\": {}, \"earlyDepthSort\": {} }}",
+        static_cast<bool>(useSiegeTextures), objectId, lateDepthSort,
+        materialSortedIndex, techniqueIndexPlusOne, decalSurfSort,
+        earlyDepthSort);
+  }
 };
 
 union GfxSortKey {
   GfxDrawSurfFields fields;
   uint64_t packed;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"fields\": {}, \"packed\": 0x{:016X} }}",
+                       fields.serialize(), packed);
+  }
 };
 
 #pragma pack(push, 1)
@@ -87,6 +149,20 @@ struct XPakEntryInfo {
   uint64_t adjacentLeft : 18;
   uint64_t adjacentRight : 18;
   uint64_t padding : 15;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": {}, "
+        "\"compressed\": {}, \"valid\": {}, \"adjacentLeftType\": {}, "
+        "\"adjacentRightType\": {}, "
+        "\"adjacentLeft\": {}, \"adjacentRight\": {}, \"padding\": {} }}",
+        key, offset, size, static_cast<uint64_t>(xpakIndex),
+        static_cast<bool>(compressed), static_cast<bool>(valid),
+        static_cast<uint64_t>(adjacentLeftType),
+        static_cast<uint64_t>(adjacentRightType),
+        static_cast<uint64_t>(adjacentLeft),
+        static_cast<uint64_t>(adjacentRight), static_cast<uint64_t>(padding));
+  }
 };
 ASSERT_SIZE(XPakEntryInfo, 0x20);
 #pragma pack(pop)
@@ -97,6 +173,12 @@ struct GfxStreamedPartInfo {
   uint16_t width;
   uint16_t height;
   XPakEntryInfo xpakEntry;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"levelCountAndSize\": 0x{:08X}, \"width\": {}, "
+                       "\"height\": {}, \"xpakEntry\": {} }}",
+                       levelCountAndSize, width, height, xpakEntry.serialize());
+  }
 };
 #pragma pack(pop)
 
@@ -106,6 +188,12 @@ struct _GUID {
   uint16_t Data2;
   uint16_t Data3;
   uint8_t Data4[8];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"Data1\": 0x{:08X}, \"Data2\": 0x{:04X}, \"Data3\": "
+                       "{:04X}, \"Data4\": {} }}",
+                       Data1, Data2, Data3, ::serialize(Data4));
+  }
 };
 #pragma pack(pop)
 typedef struct _GUID GUID;
@@ -118,6 +206,14 @@ struct IUnknownVtbl {
   stdcallPtr_t<int32_t, IUnknown *, const IID *const, void **> QueryInterface;
   stdcallPtr_t<uint32_t, IUnknown *> AddRef;
   stdcallPtr_t<uint32_t, IUnknown *> Release;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"QueryInterface\": {:p}, \"AddRef\": {:p}, \"Release\": {:p} }}",
+        reinterpret_cast<const void *>(QueryInterface),
+        reinterpret_cast<const void *>(AddRef),
+        reinterpret_cast<const void *>(Release));
+  }
 };
 ASSERT_SIZE(IUnknownVtbl, 0x18);
 #pragma pack(pop)
@@ -125,14 +221,19 @@ ASSERT_SIZE(IUnknownVtbl, 0x18);
 #pragma pack(push, 8)
 struct IUnknown {
   IUnknownVtbl *lpVtbl;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lpVtbl\": {:p} }}",
+                       reinterpret_cast<const void *>(lpVtbl));
+  }
 };
 #pragma pack(pop)
 
-struct ID3D11DeviceChild : IUnknown {};
+struct ID3D11DeviceChild : public IUnknown {};
 
-struct ID3D11View : ID3D11DeviceChild {};
+struct ID3D11View : public ID3D11DeviceChild {};
 
-struct ID3D11ShaderResourceView : ID3D11View {};
+struct ID3D11ShaderResourceView : public ID3D11View {};
 
 // Unverified
 #pragma pack(push, 1)
@@ -145,6 +246,15 @@ struct GfxImageLoadDef {
   int32_t resourceSize;
   char data[1];
   uint8_t _padding011[3];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"levelCount\": {}, \"numElements\": {}, \"pad\": {}, \"flags\": "
+        "{:08X}, "
+        "\"format\": 0x{:08X}, \"resourceSize\": {}, \"data\": {} }}",
+        static_cast<int>(levelCount), static_cast<int>(numElements),
+        ::serialize(pad), flags, format, resourceSize, ::serialize(data));
+  }
 };
 ASSERT_SIZE(GfxImageLoadDef, 0x14);
 #pragma pack(pop)
@@ -152,6 +262,11 @@ ASSERT_SIZE(GfxImageLoadDef, 0x14);
 union GfxTexture {
   ID3D11ShaderResourceView *basemap;
   GfxImageLoadDef *loadDef;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"basemap\": {:p} }}",
+                       reinterpret_cast<const void *>(basemap));
+  }
 };
 
 enum class GfxImageSemantic : uint8_t {
@@ -178,6 +293,55 @@ enum class GfxImageSemantic : uint8_t {
   EYE_CAUSTIC = 0x14,
   COUNT = 0x15,
 };
+
+inline constexpr const char *serialize(const GfxImageSemantic semantic) {
+  switch (semantic) {
+  case GfxImageSemantic::UNKNOWN:
+    return "SEMANTIC_UNKNOWN";
+  case GfxImageSemantic::TWO_DIMENSIONAL:
+    return "SEMANTIC_TWO_DIMENSIONAL";
+  case GfxImageSemantic::DIFFUSE_MAP:
+    return "SEMANTIC_DIFFUSE_MAP";
+  case GfxImageSemantic::EFFECT_MAP:
+    return "SEMANTIC_EFFECT_MAP";
+  case GfxImageSemantic::NORMAL_MAP:
+    return "SEMANTIC_NORMAL_MAP";
+  case GfxImageSemantic::SPECULAR_MASK:
+    return "SEMANTIC_SPECULAR_MASK";
+  case GfxImageSemantic::SPECULAR_MAP:
+    return "SEMANTIC_SPECULAR_MAP";
+  case GfxImageSemantic::GLOSS_MAP:
+    return "SEMANTIC_GLOSS_MAP";
+  case GfxImageSemantic::OCCLUSION_MAP:
+    return "SEMANTIC_OCCLUSION_MAP";
+  case GfxImageSemantic::REVEAL_MAP:
+    return "SEMANTIC_REVEAL_MAP";
+  case GfxImageSemantic::MULTIPLE_MASK:
+    return "SEMANTIC_MULTIPLE_MASK";
+  case GfxImageSemantic::THICKNESS_MAP:
+    return "SEMANTIC_THICKNESS_MAP";
+  case GfxImageSemantic::CAMO_MAP:
+    return "SEMANTIC_CAMO_MAP";
+  case GfxImageSemantic::ONE_CHANNEL:
+    return "SEMANTIC_ONE_CHANNEL";
+  case GfxImageSemantic::TWO_CHANNEL:
+    return "SEMANTIC_TWO_CHANNEL";
+  case GfxImageSemantic::EMBLEM:
+    return "SEMANTIC_EMBLEM";
+  case GfxImageSemantic::CUSTOM:
+    return "SEMANTIC_CUSTOM";
+  case GfxImageSemantic::LUT_TPAGE:
+    return "SEMANTIC_LUT_TPAGE";
+  case GfxImageSemantic::LIGHT_COOKIE:
+    return "SEMANTIC_LIGHT_COOKIE";
+  case GfxImageSemantic::HDR:
+    return "SEMANTIC_HDR";
+  case GfxImageSemantic::EYE_CAUSTIC:
+    return "SEMANTIC_EYE_CAUSTIC";
+  default:
+    return "SEMANTIC_INVALID";
+  }
+}
 
 enum class GfxPixelFormat : uint32_t {
   INVALID = 0x0,
@@ -229,6 +393,105 @@ enum class GfxPixelFormat : uint32_t {
   R32G32_UI = 0x2D,
 };
 
+inline constexpr const char *serialize(const GfxPixelFormat format) {
+  switch (format) {
+  case GfxPixelFormat::INVALID:
+    return "PF_INVALID";
+  case GfxPixelFormat::D24S8:
+    return "PF_D24S8";
+  case GfxPixelFormat::D24FS8:
+    return "PF_D24FS8";
+  case GfxPixelFormat::A8:
+    return "PF_A8";
+  case GfxPixelFormat::R8_UN:
+    return "PF_R8_UN";
+  case GfxPixelFormat::R8_UI:
+    return "PF_R8_UI";
+  case GfxPixelFormat::D16:
+    return "PF_D16";
+  case GfxPixelFormat::R16_UN:
+    return "PF_R16_UN";
+  case GfxPixelFormat::R16_UI:
+    return "PF_R16_UI";
+  case GfxPixelFormat::R16F:
+    return "PF_R16F";
+  case GfxPixelFormat::R8G8_UN:
+    return "PF_R8G8_UN";
+  case GfxPixelFormat::R8G8_SNORM:
+    return "PF_R8G8_SNORM";
+  case GfxPixelFormat::B5G6R5:
+    return "PF_B5G6R5";
+  case GfxPixelFormat::B4G4R4A4:
+    return "PF_B4G4R4A4";
+  case GfxPixelFormat::D32F:
+    return "PF_D32F";
+  case GfxPixelFormat::R32F:
+    return "PF_R32F";
+  case GfxPixelFormat::R16G16_UN:
+    return "PF_R16G16_UN";
+  case GfxPixelFormat::R16G16_SNORM:
+    return "PF_R16G16_SNORM";
+  case GfxPixelFormat::R16G16F:
+    return "PF_R16G16F";
+  case GfxPixelFormat::R9G9B9E5:
+    return "PF_R9G9B9E5";
+  case GfxPixelFormat::R8G8B8A8:
+    return "PF_R8G8B8A8";
+  case GfxPixelFormat::R8G8B8A8_SNORM:
+    return "PF_R8G8B8A8_SNORM";
+  case GfxPixelFormat::B8G8R8A8:
+    return "PF_B8G8R8A8";
+  case GfxPixelFormat::R8G8B8A8_SRGB:
+    return "PF_R8G8B8A8_SRGB";
+  case GfxPixelFormat::R10G10B10A2:
+    return "PF_R10G10B10A2";
+  case GfxPixelFormat::B10G10R10A2:
+    return "PF_B10G10R10A2";
+  case GfxPixelFormat::R11G11B10F:
+    return "PF_R11G11B10F";
+  case GfxPixelFormat::R32G32F:
+    return "PF_R32G32F";
+  case GfxPixelFormat::R16G16B16A16_UN:
+    return "PF_R16G16B16A16_UN";
+  case GfxPixelFormat::R16G16B16A16F:
+    return "PF_R16G16B16A16F";
+  case GfxPixelFormat::R32G32B32A32F:
+    return "PF_R32G32B32A32F";
+  case GfxPixelFormat::BC1:
+    return "PF_BC1";
+  case GfxPixelFormat::BC1_SRGB:
+    return "PF_BC1_SRGB";
+  case GfxPixelFormat::BC2:
+    return "PF_BC2";
+  case GfxPixelFormat::BC2_SRGB:
+    return "PF_BC2_SRGB";
+  case GfxPixelFormat::BC3:
+    return "PF_BC3";
+  case GfxPixelFormat::BC3_SRGB:
+    return "PF_BC3_SRGB";
+  case GfxPixelFormat::BC4:
+    return "PF_BC4";
+  case GfxPixelFormat::BC5:
+    return "PF_BC5";
+  case GfxPixelFormat::BC6_UH:
+    return "PF_BC6_UH";
+  case GfxPixelFormat::BC6_SH:
+    return "PF_BC6_SH";
+  case GfxPixelFormat::BC7:
+    return "PF_BC7";
+  case GfxPixelFormat::BC7_SRGB:
+    return "PF_BC7_SRGB";
+  case GfxPixelFormat::R32G32B32A32_UN:
+    return "PF_R32G32B32A32_UN";
+  case GfxPixelFormat::R32_UI:
+    return "PF_R32_UI";
+  case GfxPixelFormat::R32G32_UI:
+    return "PF_R32G32_UI";
+  default:
+    return "PF_UNKNOWN_VAL";
+  }
+}
+
 typedef uint8_t MapType;
 typedef uint8_t GfxImageCategory;
 #pragma pack(push, 1)
@@ -264,6 +527,31 @@ struct GfxImage {
   const char *name;
   uint32_t hash;
   uint8_t _paddingFC[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"streamedParts\": {}, \"streamedPartCount\": {}, \"semantic\": "
+        "{}, \"mapType\": {}, "
+        "\"category\": {}, \"useFallback\": {}, \"texture\": {}, "
+        "\"fallbackTexture\": {}, "
+        "\"flags\": 0x{:08X}, \"delayLoadPixels\": {}, \"width\": {}, "
+        "\"height\": {}, "
+        "\"depth\": {}, \"alignment\": {}, \"levelCount\": {}, "
+        "\"fallbackLevel\": {}, "
+        "\"streaming\": {}, \"pixels\": {:p}, \"fallbackPixels\": {:p}, "
+        "\"totalSize\": {}, "
+        "\"fallbackSize\": {}, \"format\": {}, \"name\": {}, \"hash\": 0x{:08X} "
+        "}}",
+        ::serialize(streamedParts), streamedPartCount,
+        game::gfx::serialize(semantic), static_cast<uint32_t>(mapType),
+        static_cast<uint32_t>(category), useFallback.serialize(),
+        texture.serialize(), fallbackTexture.serialize(), flags,
+        ::serialize(delayLoadPixels), width, height, depth, alignment,
+        levelCount, fallbackLevel, ::serialize(streaming),
+        reinterpret_cast<const void *>(pixels),
+        reinterpret_cast<const void *>(fallbackPixels), totalSize, fallbackSize,
+        game::gfx::serialize(format), ::serialize(name), hash);
+  }
 };
 ASSERT_SIZE(GfxImage, 0x108);
 #pragma pack(pop)
@@ -300,6 +588,13 @@ struct GfxLightDef {
   HLSL::float2 offset;
   HLSL::float2 scroll;
   GfxImage *gfxImage;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"name\": {}, \"angle\": {}, \"rotation\": {}, "
+                       "\"offset\": {}, \"scroll\": {}, \"gfxImage\": {} }}",
+                       ::serialize(name), angle, rotation, offset.serialize(),
+                       scroll.serialize(), ::serialize(gfxImage));
+  }
 };
 ASSERT_SIZE(GfxLightDef, 0x28);
 
@@ -308,6 +603,13 @@ struct GfxSkinCacheEntry {
   int32_t skinnedCachedOffset;
   uint16_t numSkinnedVerts;
   uint16_t ageCount;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"frameCount\": {}, \"skinnedCachedOffset\": {}, "
+                       "\"numSkinnedVerts\": {}, \"ageCount\": {} }}",
+                       frameCount, skinnedCachedOffset, numSkinnedVerts,
+                       ageCount);
+  }
 };
 
 struct GpuShaderConstantSet {
@@ -335,12 +637,44 @@ struct GpuShaderConstantSet {
   vec4_t characterParam5;
   vec4_t characterParam6;
   vec4_t characterParam7;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"scriptVector0\": {}, \"scriptVector1\": {}, "
+                       "\"scriptVector2\": {}, \"scriptVector3\": {}, "
+                       "\"scriptVector4\": {}, \"scriptVector5\": {}, "
+                       "\"scriptVector6\": {}, \"scriptVector7\": {}, "
+                       "\"weaponParam0\": {}, \"weaponParam1\": {}, "
+                       "\"weaponParam2\": {}, \"weaponParam3\": {}, "
+                       "\"weaponParam4\": {}, \"weaponParam5\": {}, "
+                       "\"weaponParam6\": {}, \"weaponParam7\": {}, "
+                       "\"characterParam0\": {}, \"characterParam1\": {}, "
+                       "\"characterParam2\": {}, \"characterParam3\": {}, "
+                       "\"characterParam4\": {}, \"characterParam5\": {}, "
+                       "\"characterParam6\": {}, \"characterParam7\": {} }}",
+                       scriptVector0.serialize(), scriptVector1.serialize(),
+                       scriptVector2.serialize(), scriptVector3.serialize(),
+                       scriptVector4.serialize(), scriptVector5.serialize(),
+                       scriptVector6.serialize(), scriptVector7.serialize(),
+                       weaponParam0.serialize(), weaponParam1.serialize(),
+                       weaponParam2.serialize(), weaponParam3.serialize(),
+                       weaponParam4.serialize(), weaponParam5.serialize(),
+                       weaponParam6.serialize(), weaponParam7.serialize(),
+                       characterParam0.serialize(), characterParam1.serialize(),
+                       characterParam2.serialize(), characterParam3.serialize(),
+                       characterParam4.serialize(), characterParam5.serialize(),
+                       characterParam6.serialize(),
+                       characterParam7.serialize());
+  }
 };
 ASSERT_SIZE(GpuShaderConstantSet, 0x180);
 
 struct ShaderConstantSet {
   GpuShaderConstantSet values;
   uint32_t used;
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"values\": {}, \"used\": 0x{:08X} }}",
+                       values.serialize(), used);
+  }
 };
 ASSERT_SIZE(ShaderConstantSet, 0x184);
 
@@ -350,18 +684,28 @@ union GfxSimpleBuffer {
     uint64_t m_size : 28;
   };
   uint64_t m_packed;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"m_data\": 0x{:010X}, \"m_size\": 0x{:06X} }}", m_data,
+                       m_size);
+  }
 };
 
 typedef GfxSimpleBuffer GfxIndexBuffer;
 typedef GfxSimpleBuffer GfxVertexBuffer;
 
-class ID3D11Resource : ID3D11DeviceChild {};
+class ID3D11Resource : public ID3D11DeviceChild {};
 
-class ID3D11Buffer : ID3D11Resource {};
+class ID3D11Buffer : public ID3D11Resource {};
 
 struct GfxBuffer {
   ID3D11Buffer ro;
   ID3D11Buffer rw;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"ro\": {}, \"rw\": {} }}", ro.serialize(),
+                       rw.serialize());
+  }
 };
 
 #pragma pack(push, 1)
@@ -369,6 +713,10 @@ struct BlendTargetRemap {
   scr::ScrString_t name;
   uint16_t index;
   uint8_t _padding06[2];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"name\": 0x{:08X}, \"index\": {} }}", name, index);
+  }
 };
 #pragma pack(pop)
 
@@ -376,6 +724,12 @@ struct GfxExtraCamActiveState {
   bool anyActive;
   bool active[4];
   const GfxImage *renderTarget[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"anyActive\": {}, \"active\": {}, \"renderTarget\": {} }}",
+        ::serialize(anyActive), ::serialize(active), ::serialize(renderTarget));
+  }
 };
 
 enum class eRenderMethod : uint32_t {
@@ -387,11 +741,39 @@ enum class eRenderMethod : uint32_t {
   COUNT = 0x5,
 };
 
+inline constexpr const char *serialize(const eRenderMethod method) {
+  switch (method) {
+  case eRenderMethod::OFF:
+    return "RENDER_METHOD_OFF";
+  case eRenderMethod::DEFAULT_MATERIAL:
+    return "RENDER_METHOD_DEFAULT";
+  case eRenderMethod::THERMAL_MATERIAL:
+    return "RENDER_METHOD_THERMAL";
+  case eRenderMethod::CUSTOM_MATERIAL:
+    return "RENDER_METHOD_CUSTOM";
+  case eRenderMethod::FORCE_CUSTOM_MATERIAL:
+    return "RENDER_METHOD_FORCE_CUSTOM";
+  default:
+    return "RENDER_METHOD_INVALID";
+  }
+}
+
 enum class eRenderCulling : uint32_t {
   CULL = 0x0,
   NO_CULL = 0x1,
   COUNT = 0x2,
 };
+
+inline constexpr const char *serialize(const eRenderCulling cull) {
+  switch (cull) {
+  case eRenderCulling::CULL:
+    return "CULL_ENABLED";
+  case eRenderCulling::NO_CULL:
+    return "CULL_DISABLED";
+  default:
+    return "CULL_INVALID";
+  }
+}
 
 enum class PostfxAnimation : uint32_t {
   hold = 0x0,
@@ -406,12 +788,52 @@ enum class PostfxAnimation : uint32_t {
   COUNT = 0x9,
 };
 
+inline constexpr const char *serialize(const PostfxAnimation anim) {
+  switch (anim) {
+  case PostfxAnimation::hold:
+    return "ANIM_HOLD";
+  case PostfxAnimation::linear:
+    return "ANIM_LINEAR";
+  case PostfxAnimation::step:
+    return "ANIM_STEP";
+  case PostfxAnimation::ease_in:
+    return "ANIM_EASE_IN";
+  case PostfxAnimation::ease_out:
+    return "ANIM_EASE_OUT";
+  case PostfxAnimation::ease_inout:
+    return "ANIM_EASE_INOUT";
+  case PostfxAnimation::linear_repeat:
+    return "ANIM_LINEAR_REPEAT";
+  case PostfxAnimation::linear_mirror:
+    return "ANIM_LINEAR_MIRROR";
+  case PostfxAnimation::sin:
+    return "ANIM_SIN";
+  default:
+    return "ANIM_INVALID";
+  }
+}
+
 enum class PostfxAngle : uint32_t {
   off = 0x0,
   sin = 0x1,
   cos = 0x2,
   tan = 0x3,
 };
+
+inline constexpr const char *serialize(const PostfxAngle angle) {
+  switch (angle) {
+  case PostfxAngle::off:
+    return "ANGLE_OFF";
+  case PostfxAngle::sin:
+    return "ANGLE_SIN";
+  case PostfxAngle::cos:
+    return "ANGLE_COS";
+  case PostfxAngle::tan:
+    return "ANGLE_TAN";
+  default:
+    return "ANGLE_INVALID";
+  }
+}
 
 struct PostfxConstant {
   PostfxAnimation anm[4];
@@ -424,6 +846,17 @@ struct PostfxConstant {
   vec4_t start;
   PostfxAngle angle[4];
   const char *scriptVectorName[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"anm\": {}, \"channels\": 0x{:08X}, \"delay\": {}, \"end_clr\": {}, "
+        "\"end\": {}, \"scriptVectorIndex\": {}, \"start_clr\": {}, \"start\": "
+        "{}, "
+        "\"angle\": {}, \"scriptVectorName\": {} }}",
+        ::serialize(anm), channels, delay.serialize(), end_clr.serialize(),
+        end.serialize(), scriptVectorIndex, start_clr.serialize(),
+        start.serialize(), ::serialize(angle), ::serialize(scriptVectorName));
+  }
 };
 
 struct PostfxStage {
@@ -436,6 +869,16 @@ struct PostfxStage {
   int32_t spriteFilter;
   int32_t thermal;
   PostfxConstant *constant;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"length\": {}, \"material\": {:p}, \"method\": {}, \"cull\": {}, "
+        "\"numConsts\": {}, \"screenCaptureStage\": {}, \"spriteFilter\": {}, "
+        "\"thermal\": {}, \"constant\": {} }}",
+        length, reinterpret_cast<const void *>(material),
+        game::gfx::serialize(method), game::gfx::serialize(cull), numConsts,
+        screenCaptureStage, spriteFilter, thermal, ::serialize(constant));
+  }
 };
 
 struct PostfxHeader {
@@ -447,6 +890,15 @@ struct PostfxHeader {
   int32_t numStages;
   int32_t screenCapture;
   PostfxStage *stage;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"enterStage\": {}, \"exitStage\": {}, "
+                       "\"finishLoopOnExit\": {}, \"firstPersonOnly\": {}, "
+                       "\"looping\": {}, \"numStages\": {}, \"screenCapture\": "
+                       "{}, \"stage\": {} }}",
+                       enterStage, exitStage, finishLoopOnExit, firstPersonOnly,
+                       looping, numStages, screenCapture, ::serialize(stage));
+  }
 };
 
 struct GfxDuplicateRenderOption;
@@ -458,6 +910,16 @@ struct GfxDuplicateRenderOption {
     db::xasset::Material *customMaterial;
     eRenderMethod renderMethod;
     eRenderCulling renderCulling;
+
+    inline std::string serialize() const noexcept {
+      return std::format("{{ \"header\": {}, \"time\": {}, \"stage\": {}, "
+                         "\"customMaterial\": {:p}, "
+                         "\"renderMethod\": {}, \"renderCulling\": {} }}",
+                         ::serialize(header), time, stage,
+                         reinterpret_cast<const void *>(customMaterial),
+                         game::gfx::serialize(renderMethod),
+                         game::gfx::serialize(renderCulling));
+    }
   };
 
   enum class Type : int8_t {
@@ -466,6 +928,19 @@ struct GfxDuplicateRenderOption {
     ANY = 0x2,
   };
 
+  static inline constexpr const char *serialize(const Type type) {
+    switch (type) {
+    case GfxDuplicateRenderOption::Type::GLOBAL:
+      return "DUP_OPT_GLOBAL";
+    case GfxDuplicateRenderOption::Type::SUBMODEL:
+      return "DUP_OPT_SUBMODEL";
+    case GfxDuplicateRenderOption::Type::ANY:
+      return "DUP_OPT_ANY";
+    default:
+      return "DUP_OPT_INVALID";
+    }
+  }
+
   Target targets[3];
   volatile int32_t inUse;
   Type type;
@@ -473,6 +948,16 @@ struct GfxDuplicateRenderOption {
   uint16_t index;
   scr::ScrString_t submodelBoneName;
   GfxDuplicateRenderOption *nextDupOpt;
+
+  inline std::string serialize() const noexcept {
+    const int32_t inUseCopy = inUse;
+    return std::format(
+        "{{ \"targets\": {}, \"inUse\": {}, \"type\": {}, \"priority\": {}, "
+        "\"index\": {}, \"submodelBoneName\": 0x{:08X}, \"nextDupOpt\": {} }}",
+        ::serialize(targets), inUseCopy,
+        GfxDuplicateRenderOption::serialize(type), priority, index,
+        submodelBoneName, ::serialize(nextDupOpt));
+  }
 };
 
 class GfxConfig_Fog {
@@ -504,6 +989,34 @@ public:
   float atmospheresunstrength;
   float atmospherepbramount;
   float worldfogskysize;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"_fogcolor\": {}, \"fogopacity\": {}, \"fogintensity\": {}, "
+        "\"basedist\": {}, "
+        "\"halfdist\": {}, \"baseheight\": {}, \"halfheight\": {}, "
+        "\"skyhalfheightoffset\": {}, "
+        "\"_sunfogcolor\": {}, \"sunfogopacity\": {}, \"sunfogintensity\": {}, "
+        "\"sunfoginner\": {}, "
+        "\"sunfogouter\": {}, \"sunPitchOffset\": {}, \"sunYawOffset\": {}, "
+        "\"_atmospherefogcolor\": {}, "
+        "\"atmospherefogdensity\": {}, \"_atmospherehazecolor\": {}, "
+        "\"atmospherehazebasedist\": {}, \"atmospherehazefadedist\": {}, "
+        "\"atmospherehazedensity\": {}, \"atmospherehazespread\": {}, "
+        "\"atmosphereinscatterstrength\": {}, "
+        "\"atmosphereextinctionstrength\": {}, "
+        "\"atmospheresunstrength\": {}, \"atmospherepbramount\": {}, "
+        "\"worldfogskysize\": {} }}",
+        _fogcolor.serialize(), fogopacity, fogintensity, basedist, halfdist,
+        baseheight, halfheight, skyhalfheightoffset, _sunfogcolor.serialize(),
+        sunfogopacity, sunfogintensity, sunfoginner, sunfogouter,
+        sunPitchOffset, sunYawOffset, _atmospherefogcolor.serialize(),
+        atmospherefogdensity, _atmospherehazecolor.serialize(),
+        atmospherehazebasedist, atmospherehazefadedist, atmospherehazedensity,
+        atmospherehazespread, atmosphereinscatterstrength,
+        atmosphereextinctionstrength, atmospheresunstrength,
+        atmospherepbramount, worldfogskysize);
+  }
 };
 
 struct GfxVBLOOMGPU {
@@ -526,17 +1039,43 @@ struct GfxVBLOOMGPU {
   vec4_t vMXG;
   vec4_t vMXB;
   char nLVI[32];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"vRGB1\": {}, \"vLUM1\": {}, \"vRGB2\": {}, \"vLUM2\": {}, "
+        "\"vRGB3\": {}, \"vLUM3\": {}, \"vRGB4\": {}, \"vLUM4\": {}, "
+        "\"vRGB5\": {}, \"vLUM5\": {}, \"vLIB\": {}, \"vLIW\": {}, "
+        "\"vLIG\": {}, \"vLOB\": {}, \"vLOW\": {}, \"vMXR\": {}, "
+        "\"vMXG\": {}, \"vMXB\": {}, \"nLVI\": {} }}",
+        vRGB1.serialize(), vLUM1.serialize(), vRGB2.serialize(),
+        vLUM2.serialize(), vRGB3.serialize(), vLUM3.serialize(),
+        vRGB4.serialize(), vLUM4.serialize(), vRGB5.serialize(),
+        vLUM5.serialize(), vLIB.serialize(), vLIW.serialize(), vLIG.serialize(),
+        vLOB.serialize(), vLOW.serialize(), vMXR.serialize(), vMXG.serialize(),
+        vMXB.serialize(), ::serialize(nLVI));
+  }
 };
 struct GfxProbeVolumeTextures {
   GfxImagePtr X;
   GfxImagePtr Y;
   GfxImagePtr Z;
   db::xpak::StreamWrappedBuffer *pixelData;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"X\": {}, \"Y\": {}, \"Z\": {}, \"pixelData\": {} }}",
+        ::serialize(X), ::serialize(Y), ::serialize(Z), ::serialize(pixelData));
+  }
 };
 
 struct GfxSkyBoxImage {
   GfxImagePtr image;
   db::xpak::StreamWrappedBuffer pixelData;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"image\": {}, \"pixelData\": {} }}",
+                       ::serialize(image), pixelData.serialize());
+  }
 };
 
 struct GfxSkyBox {
@@ -545,6 +1084,8 @@ struct GfxSkyBox {
   float size;
   bool dynamicCookie;
   GfxSkyBoxImage *image;
+
+  std::string serialize() const noexcept;
 };
 
 struct __attribute__((aligned(8))) GfxExposureProbeBlend {
@@ -1544,9 +2085,10 @@ PACKED(struct GfxEntityPreFrame {
         "{{ \"activePartBits\": {}, \"modelCount\": {}, \"numBones\": {}, "
         "\"numCosmeticBones\": {}, \"boneArrayOffset\": {}, \"sanimIndex\": "
         "{:08X}, "
-        "\"sanimStateOffset\": {:08X}, \"blendShapeFrame\": {}, "
+        "\"sanimStateOffset\": 0x{:08X}, \"blendShapeFrame\": {}, "
         "\"blendShapeVertOffset\": {}, "
-        "\"blendShapeVertOffsetLast\": {}, \"blendShapeVertOffsetLastShared\": "
+        "\"blendShapeVertOffsetLast\": {}, "
+        "\"blendShapeVertOffsetLastShared\": "
         "{:p} }}",
         ::serialize(activePartBits), modelCount, numBones, numCosmeticBones,
         boneArrayOffset, sanimIndex, sanimStateOffset, blendShapeFrame,

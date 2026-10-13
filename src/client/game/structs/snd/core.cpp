@@ -38,5 +38,17 @@ std::string SndBank::serialize() const noexcept {
       ::serialize(scriptIdLookups, scriptIdLookupCount), ambientBsp.serialize(),
       musicSetCount, ::serialize(musicSets, musicSetCount));
 }
+
+std::string SndDuckActive::serialize() const noexcept {
+  return std::format(
+      "{{ \"duck\": {}, \"voice\": {}, \"category\": {}, \"position\": "
+      "{}, "
+      "\"inUse\": {}, \"startTime\": {}, \"endTime\": {}, \"pingTime\": {}, "
+      "\"id\": 0x{:08X}, \"amount\": {}, \"effect\": {}, \"amplitude\": {} "
+      "}}",
+      ::serialize(duck), ::serialize(voice), game::snd::serialize(category),
+      position.serialize(), inUse.serialize(), startTime, endTime, pingTime, id,
+      amount, effect, amplitude);
+}
 } // namespace snd
 } // namespace game

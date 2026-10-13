@@ -294,6 +294,11 @@ constexpr uint16_t DEFAULT_PORT = 3074;
   return workshop_id ? workshop_id.get_string() : std::nullopt;
 }
 
+typedef fastcall_t<void(
+    const std::function<void(sv::client_s &cl, ClientNum_t clientNum)>
+        &callback)>
+    forEachClientIterator_t;
+
 void foreach_client(const std::function<void(sv::client_s &cl,
                                              ClientNum_t clientNum)> &callback);
 void foreach_client(const std::function<void(sv::client_s &cl)> &callback);

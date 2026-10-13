@@ -58,8 +58,8 @@ struct ClipMaterial {
   contents_t contentFlags;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {}, \"surfaceFlags\": {:08X}, "
-                       "\"contentFlags\": {:08X} }}",
+    return std::format("{{ \"name\": {}, \"surfaceFlags\": 0x{:08X}, "
+                       "\"contentFlags\": 0x{:08X} }}",
                        ::serialize(name), surfaceFlags, contentFlags);
   }
 };
@@ -173,8 +173,8 @@ struct __attribute__((aligned(8))) cLeaf_t {
 
   inline std::string serialize() const noexcept {
     return std::format("{{ \"firstCollAabbIndex\": {}, \"collAabbCount\": {}, "
-                       "\"brushContents\": {:08X}, "
-                       "\"terrainContents\": {:08X}, \"mins\": {}, \"maxs\": "
+                       "\"brushContents\": 0x{:08X}, "
+                       "\"terrainContents\": 0x{:08X}, \"mins\": {}, \"maxs\": "
                        "{}, \"leafBrushNode\": {}, "
                        "\"cluster\": {} }}",
                        firstCollAabbIndex, collAabbCount, brushContents,
@@ -237,7 +237,7 @@ struct traceWork_t {
         "{{ \"delta\": {}, \"midpoint\": {}, \"halfDelta\": {}, "
         "\"halfDeltaAbs\": {}, "
         "\"size\": {}, \"bounds\": {}, \"radiusOffset\": {}, \"extents\": {}, "
-        "\"deltaLen\": {}, \"deltaLenSq\": {}, \"contents\": {:08X}, "
+        "\"deltaLen\": {}, \"deltaLenSq\": {}, \"contents\": 0x{:08X}, "
         "\"isPoint\": {}, "
         "\"axialCullOnly\": {}, \"radius\": {}, \"offsetZ\": {}, "
         "\"boundingRadius\": {}, "
@@ -257,7 +257,7 @@ struct TriggerHull {
   uint16_t firstSlab;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"bounds\": {}, \"contents\": {:08X}, "
+    return std::format("{{ \"bounds\": {}, \"contents\": 0x{:08X}, "
                        "\"slabCount\": {}, \"firstSlab\": {} }}",
                        bounds.serialize(), contents, slabCount, firstSlab);
   }
@@ -281,7 +281,7 @@ struct TriggerModel {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"contents\": {:08X}, \"hullCount\": {}, \"firstHull\": {} }}",
+        "{{ \"contents\": 0x{:08X}, \"hullCount\": {}, \"firstHull\": {} }}",
         contents, hullCount, firstHull);
   }
 };
@@ -347,14 +347,14 @@ PACKED(struct cStaticModel_s {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"writable\": {}, \"xmodel\": {:p}, \"contents\": {:08X}, "
+        "{{ \"writable\": {}, \"xmodel\": {:p}, \"contents\": 0x{:08X}, "
         "\"origin\": {}, \"invScaledAxis\": {}, \"absmin\": {}, \"absmax\": "
         "{}, "
-        "\"boneMtxs\": {}, \"numBoneMtxs\": {}, \"targetname\": {} }}",
+        "\"boneMtxs\": {}, \"numBoneMtxs\": {}, \"targetname\": 0x{:08X} }}",
         writable.serialize(), (const void *)xmodel, contents,
         origin.serialize(), ::serialize(invScaledAxis), absmin.serialize(),
         absmax.serialize(), ::serialize(boneMtxs, numBoneMtxs), numBoneMtxs,
-        ::serialize(targetname));
+        targetname);
   }
 });
 
@@ -447,7 +447,7 @@ PACKED(struct clipMap_t {
         "\"dynEntCollList\": {}, "
         "\"num_constraints\": {}, \"constraints\": {}, \"max_ropes\": {}, "
         "\"ropes\": {}, "
-        "\"miscModelTargetnameGroups\": {}, \"checksum\": {:08X} }}",
+        "\"miscModelTargetnameGroups\": {}, \"checksum\": 0x{:08X} }}",
         ::serialize(name), isInUse.serialize(), info.serialize(),
         reinterpret_cast<const void *>(pInfo), numStaticModels,
         ::serialize(staticModelList, numStaticModels), numNodes,
@@ -498,19 +498,19 @@ PACKED(struct trace_t {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"normal\": {}, \"fraction\": {}, \"sflags\": {:08X}, \"cflags\": "
+        "{{ \"normal\": {}, \"fraction\": {}, \"sflags\": 0x{:08X}, "
+        "\"cflags\": "
         "{:08X}, "
         "\"brushType\": {}, \"brushId\": {}, \"hitType\": {}, \"hitId\": {}, "
-        "\"modelIndex\": {}, \"subModelBoneIndex\": {}, \"partName\": {}, "
+        "\"modelIndex\": {}, \"subModelBoneIndex\": {}, \"partName\": 0x{:08X}, "
         "\"boneIndex\": {}, \"partGroup\": {}, \"allsolid\": {}, "
         "\"startsolid\": {}, "
         "\"walkable\": {}, \"staticModel\": {:p}, \"hitPartition\": {} }}",
         normal.serialize(), fraction, sflags, cflags,
         game::serialize(brushType), brushId, game::serialize(hitType), hitId,
-        modelIndex, subModelBoneIndex, ::serialize(partName), boneIndex,
-        partGroup, ::serialize(allsolid), ::serialize(startsolid),
-        ::serialize(walkable), reinterpret_cast<const void *>(staticModel),
-        hitPartition);
+        modelIndex, subModelBoneIndex, partName, boneIndex, partGroup,
+        ::serialize(allsolid), ::serialize(startsolid), ::serialize(walkable),
+        reinterpret_cast<const void *>(staticModel), hitPartition);
   }
 });
 ASSERT_SIZE(trace_t, 0x50);
@@ -547,14 +547,7 @@ PACKED(struct BulletTraceResults {
   int32_t depthSurfaceType;
   uint8_t _padding6C[4];
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"trace\": {}, \"hitEnt\": {}, \"hitPos\": {}, "
-                       "\"ignoreHitEnt\": {}, "
-                       "\"depthSurfaceType\": {} }}",
-                       trace.serialize(), ::serialize(hitEnt),
-                       hitPos.serialize(), ::serialize(ignoreHitEnt),
-                       depthSurfaceType);
-  }
+  std::string serialize() const noexcept;
 });
 
 PACKED(struct BulletTrace_Cmd {
@@ -574,19 +567,7 @@ PACKED(struct BulletTrace_Cmd {
   int32_t command_index;
   uint8_t _paddingF4[12];
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"localClientNum\": {}, \"bp\": {}, \"weapDef\": {}, "
-        "\"attacker\": {}, "
-        "\"br\": {}, \"lastSurfaceType\": {}, \"traceHit\": {}, \"weapon\": "
-        "{}, "
-        "\"tracerStart\": {}, \"drawTracer\": {}, \"isPlayer\": {}, "
-        "\"command_index\": {} }}",
-        ::serialize(localClientNum), bp.serialize(), ::serialize(weapDef),
-        ::serialize(attacker), br.serialize(), lastSurfaceType,
-        ::serialize(traceHit), weapon.serialize(), tracerStart.serialize(),
-        ::serialize(drawTracer), ::serialize(isPlayer), command_index);
-  }
+  std::string serialize() const noexcept;
 });
 
 PACKED(struct GroundTrace {

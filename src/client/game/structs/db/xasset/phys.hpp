@@ -33,6 +33,25 @@ struct PhysPreset {
   db::xasset::FxEffectDefHandle trailFX;
   FxImpactTablePtr impactFX;
   snd::SoundsImpactTablePtr impactSounds;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"name\": {}, \"flags\": 0x{:08X}, \"mass\": {}, \"bounce\": {}, "
+        "\"friction\": {}, \"damping_linear\": {}, \"damping_angular\": {}, "
+        "\"bulletForceScale\": {}, "
+        "\"explosiveForceScale\": {}, \"sndAliasPrefix\": {}, \"canFloat\": "
+        "{}, \"gravityScale\": {}, "
+        "\"centerOfMassOffset\": {}, \"buoyancyBoxMin\": {}, "
+        "\"buoyancyBoxMax\": {}, \"trailFX\": {:p}, "
+        "\"impactFX\": {:p}, \"impactSounds\": {:p} }}",
+        ::serialize(name), flags, mass, bounce, friction, damping_linear,
+        damping_angular, bulletForceScale, explosiveForceScale,
+        ::serialize(sndAliasPrefix), canFloat, gravityScale,
+        centerOfMassOffset.serialize(), buoyancyBoxMin.serialize(),
+        buoyancyBoxMax.serialize(), reinterpret_cast<const void *>(trailFX),
+        reinterpret_cast<const void *>(impactFX),
+        reinterpret_cast<const void *>(impactSounds));
+  }
 };
 // Verified
 ASSERT_SIZE(PhysPreset, 0x78);
@@ -59,7 +78,7 @@ struct cbrushside_t {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"plane\": {}, \"cflags\": {:08X}, \"sflags\": {:08X} }}",
+        "{{ \"plane\": {}, \"cflags\": 0x{:08X}, \"sflags\": 0x{:08X} }}",
         ::serialize(plane), cflags, sflags);
   }
 };
@@ -77,7 +96,7 @@ struct __attribute__((aligned(16))) cbrush_t {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"mins\": {}, \"contents\": {:08X}, \"maxs\": {}, "
+        "{{ \"mins\": {}, \"contents\": 0x{:08X}, \"maxs\": {}, "
         "\"numsides\": {}, "
         "\"sides\": {}, \"axial_cflags\": {}, \"axial_sflags\": "
         "{}, \"numverts\": {}, "
@@ -103,7 +122,7 @@ struct BrushWrapper {
   cplane_t *planes;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"mins\": {}, \"contents\": {:08X}, \"maxs\": {}, "
+    return std::format("{{ \"mins\": {}, \"contents\": 0x{:08X}, \"maxs\": {}, "
                        "\"numsides\": {}, "
                        "\"sides\": {}, \"axial_cflags\": {}, \"axial_sflags\": "
                        "{}, \"numverts\": {}, "
@@ -140,7 +159,7 @@ struct __attribute__((aligned(8))) PhysGeomList {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"count\": {}, \"geoms\": {}, \"contents\": {:08X} }}", count,
+        "{{ \"count\": {}, \"geoms\": {}, \"contents\": 0x{:08X} }}", count,
         ::serialize(geoms), contents);
   }
 };
@@ -181,8 +200,6 @@ inline constexpr const char *serialize(const ConstraintType type) {
     return "CONSTRAINT_ROPE";
   case ConstraintType::LIGHT:
     return "CONSTRAINT_LIGHT";
-  case ConstraintType::COUNT:
-    return "CONSTRAINT_COUNT";
   default:
     return "CONSTRAINT_INVALID";
   }
@@ -250,17 +267,20 @@ PACKED(struct PhysConstraint {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"targetname\": {:08X}, \"type\": {}, \"attach_point_type1\": {}, "
-        "\"target_index1\": {}, \"target_ent1\": {:08X}, \"target_bone1\": "
+        "{{ \"targetname\": 0x{:08X}, \"type\": {}, \"attach_point_type1\": "
+        "{}, "
+        "\"target_index1\": {}, \"target_ent1\": 0x{:08X}, \"target_bone1\": "
         "{:08X}, "
         "\"attach_point_type2\": {}, \"target_index2\": {}, \"target_ent2\": "
         "{:08X}, "
-        "\"target_bone2\": {:08X}, \"offset\": {}, \"pos\": {}, \"pos2\": {}, "
-        "\"dir\": {}, \"flags\": {:08X}, \"timeout\": {}, \"min_health\": {}, "
+        "\"target_bone2\": 0x{:08X}, \"offset\": {}, \"pos\": {}, \"pos2\": "
+        "{}, "
+        "\"dir\": {}, \"flags\": 0x{:08X}, \"timeout\": {}, \"min_health\": "
+        "{}, "
         "\"max_health\": {}, \"distance\": {}, \"damp\": {}, \"power\": {}, "
         "\"force_scale\": {}, \"misc_scale\": {}, \"minAngle\": {}, "
         "\"maxAngle\": {}, "
-        "\"minAngleYaw\": {}, \"maxAngleYaw\": {}, \"material\": {}, "
+        "\"minAngleYaw\": {}, \"maxAngleYaw\": {}, \"material\": {:p}, "
         "\"model\": {}, "
         "\"slice_count\": {}, \"gravity\": {}, \"useAntennaXAxis\": {}, "
         "\"constraintHandle\": {:p}, \"rope_index\": {}, \"centity_num\": {} "
@@ -272,9 +292,11 @@ PACKED(struct PhysConstraint {
         target_ent2, target_bone2, offset.serialize(), pos.serialize(),
         pos2.serialize(), dir.serialize(), flags, timeout, min_health,
         max_health, distance, damp, power, force_scale.serialize(), misc_scale,
-        minAngle, maxAngle, minAngleYaw, maxAngleYaw, ::serialize(material),
-        model, slice_count, gravity, useAntennaXAxis.serialize(),
-        (const void *)constraintHandle, rope_index, ::serialize(centity_num));
+        minAngle, maxAngle, minAngleYaw, maxAngleYaw,
+        reinterpret_cast<const void *>(material), model, slice_count, gravity,
+        useAntennaXAxis.serialize(),
+        reinterpret_cast<const void *>(constraintHandle), rope_index,
+        ::serialize(centity_num));
   }
 });
 ASSERT_SIZE(PhysConstraint, 0xD0);
@@ -284,6 +306,11 @@ PACKED(struct PhysConstraints {
   uint32_t count;
   uint8_t _padding0C[4];
   PhysConstraint data[8];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"name\": {}, \"count\": {}, \"data\": {} }}",
+                       ::serialize(name), count, ::serialize(data, count));
+  }
 });
 // Verified
 ASSERT_SIZE(PhysConstraints, 0x690);

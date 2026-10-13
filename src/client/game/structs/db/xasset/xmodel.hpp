@@ -34,6 +34,18 @@ struct __declspec(align(4)) XModelMesh {
   uint32_t nameHash;
   uint8_t numSurfs;
   uint8_t lodEstimate;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"name\": {}, \"surfs\": {:p}, \"shared\": {}, \"xpakEntry\": "
+        "{}, "
+        "\"partBits\": {}, \"avgRenderTriArea\": {}, \"avgCollisionTriArea\": "
+        "{}, "
+        "\"nameHash\": 0x{:08X}, \"numSurfs\": {}, \"lodEstimate\": {} }}",
+        ::serialize(name), reinterpret_cast<const void *>(surfs),
+        ::serialize(shared), xpakEntry.serialize(), ::serialize(partBits),
+        avgRenderTriArea, avgCollisionTriArea, nameHash, numSurfs, lodEstimate);
+  }
 };
 ASSERT_SIZE(XModelMesh, 0x78);
 
@@ -51,6 +63,15 @@ struct GfxLodModelParams {
     float averageTriAreas[8];
     float manualDistances[8];
   };
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"numLods\": {}, \"areaScale\": {}, \"cullOutRadius\": {}, "
+        "\"areaScaleBias\": {}, \"cullOutRadiusScale\": {}, "
+        "\"averageTriAreas\": {} }}",
+        numLods, areaScale, cullOutRadius, ::serialize(areaScaleBias),
+        ::serialize(cullOutRadiusScale), ::serialize(averageTriAreas));
+  }
 };
 
 enum class XModelLod : int8_t {
@@ -68,17 +89,54 @@ enum class XModelLod : int8_t {
   XMODEL_LOD_HIGH = 0x7,
 };
 
+inline constexpr const char *serialize(const XModelLod lod) {
+  switch (lod) {
+  case XModelLod::XMODEL_LOD_NONE:
+    return "XMODEL_LOD_NONE";
+  case XModelLod::XMODEL_LOD_0:
+    return "XMODEL_LOD_0";
+  case XModelLod::XMODEL_LOD_1:
+    return "XMODEL_LOD_1";
+  case XModelLod::XMODEL_LOD_2:
+    return "XMODEL_LOD_2";
+  case XModelLod::XMODEL_LOD_3:
+    return "XMODEL_LOD_3";
+  case XModelLod::XMODEL_LOD_4:
+    return "XMODEL_LOD_4";
+  case XModelLod::XMODEL_LOD_5:
+    return "XMODEL_LOD_5";
+  case XModelLod::XMODEL_LOD_6:
+    return "XMODEL_LOD_6";
+  case XModelLod::XMODEL_LOD_7:
+    return "XMODEL_LOD_7";
+  default:
+    return "XMODEL_LOD_INVALID";
+  }
+}
+
 PACKED(struct XModelMeshMaterials {
   uint16_t numMaterials;
   uint8_t _padding02[6];
   Material **materials;
   vec_t *himipInvSqRadii;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"numMaterials\": {}, \"materials\": {:p}, "
+                       "\"himipInvSqRadii\": {} }}",
+                       numMaterials, reinterpret_cast<const void *>(materials),
+                       ::serialize(himipInvSqRadii));
+  }
 });
 
 struct XModelCollTri_s {
   vec4_t plane;
   vec4_t svec;
   vec4_t tvec;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"plane\": {}, \"svec\": {}, \"tvec\": {} }}",
+                       plane.serialize(), svec.serialize(), tvec.serialize());
+  }
 };
 
 typedef XModelCollTri_s XModelCollTri;
@@ -92,6 +150,16 @@ struct XModelCollSurf_s {
   uint8_t _padding26[2];
   contents_t contents;
   int surfFlags;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"collTris\": {}, \"numCollTris\": {}, \"mins\": {}, "
+        "\"maxs\": {}, \"boneIdx\": 0x{:04X}, \"contents\": 0x{:08X}, "
+        "\"surfFlags\": "
+        "{:08X} }}",
+        ::serialize(collTris, numCollTris), numCollTris, mins.serialize(),
+        maxs.serialize(), boneIdx, contents, surfFlags);
+  }
 };
 
 typedef XModelCollSurf_s XModelCollSurf;
@@ -103,6 +171,8 @@ PACKED(struct XSubmodel {
   vec3_t trans;
   vec3_t rot;
   uint8_t _padding24[4];
+
+  std::string serialize() const noexcept;
 });
 
 typedef uint64_t XModelUsage;
@@ -148,7 +218,16 @@ PACKED(struct XModel {
   uint32_t nameHash;
   XPartBits combinedPartBits;
   uint8_t _padding184[4];
+
+  std::string serialize() const noexcept;
 });
+
+inline std::string XSubmodel::serialize() const noexcept {
+  return std::format(
+      "{{ \"model\": {}, \"boneName\": 0x{:08X}, \"trans\": {}, \"rot\": {} }}",
+      ::serialize(model), boneName, trans.serialize(), rot.serialize());
+}
+
 // Verified
 ASSERT_SIZE(XModel, 0x188);
 typedef XModel *XModelPtr;

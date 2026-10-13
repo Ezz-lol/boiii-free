@@ -37,7 +37,7 @@ struct par_t {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"p\": {}, \"p0\": {}, \"p_prev\": {}, \"flags\": {:08X} }}",
+        "{{ \"p\": {}, \"p0\": {}, \"p_prev\": {}, \"flags\": 0x{:08X} }}",
         p.serialize(), p0.serialize(), p_prev.serialize(), flags);
   }
 };
@@ -55,7 +55,7 @@ public:
   inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"p\": {}, \"type\": {}, \"entity_index\": {}, "
-        "\"bone_name_hash\": {:08X}, \"pi1\": {}, \"pi2\": {} }}",
+        "\"bone_name_hash\": 0x{:08X}, \"pi1\": {}, \"pi2\": {} }}",
         p.serialize(), game::rope::serialize(type), entity_index,
         bone_name_hash, pi1, pi2);
   }
@@ -121,8 +121,9 @@ PACKED(struct rope_t {
         "\"m_num_entity_anchors\": {}, "
         "\"m_num_draw_verts\": {}, \"m_client_verts\": {}, \"m_min\": {}, "
         "\"m_max\": {}, \"m_start\": {}, \"m_end\": {}, \"m_in_use\": {}, "
-        "\"m_visible\": {}, \"m_dist_constraint\": {}, \"m_flags\": {:08X}, "
-        "\"m_material\": {}, \"m_seglen\": {}, \"m_length\": {}, \"m_width\": "
+        "\"m_visible\": {}, \"m_dist_constraint\": {}, \"m_flags\": 0x{:08X}, "
+        "\"m_material\": {:p}, \"m_seglen\": {}, \"m_length\": {}, "
+        "\"m_width\": "
         "{}, "
         "\"m_scale\": {}, \"m_force_scale\": {}, \"m_health\": {}, "
         "\"m_frame\": {}, "
@@ -133,10 +134,10 @@ PACKED(struct rope_t {
         m_num_entity_anchors, m_num_draw_verts, m_client_verts.serialize(),
         m_min.serialize(), m_max.serialize(), m_start.serialize(),
         m_end.serialize(), m_in_use.serialize(), m_visible.serialize(),
-        m_dist_constraint.serialize(), m_flags, ::serialize(m_material),
-        m_seglen, m_length, m_width, m_scale, m_force_scale.serialize(),
-        m_health, m_frame, m_stable_count, m_static_rope, m_model,
-        m_slice_count);
+        m_dist_constraint.serialize(), m_flags,
+        reinterpret_cast<const void *>(m_material), m_seglen, m_length, m_width,
+        m_scale, m_force_scale.serialize(), m_health, m_frame, m_stable_count,
+        m_static_rope, m_model, m_slice_count);
   }
 });
 

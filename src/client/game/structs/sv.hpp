@@ -226,27 +226,7 @@ struct client_s {
   int32_t serverId;
   char __pad6[171432];
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"state\": {}, \"address\": {}, "
-        "\"reliableSequence\": {}, \"reliableAcknowledge\": {}, "
-        "\"messageAcknowledge\": {}, \"gentity\": {}, \"name\": \"{}\", "
-        "\"clanAbbrev\": \"{}\", \"xuid\": {:016X}, \"doubleXPGroupMask\": "
-        "{:08X}, \"availableMappackFlags\": {:08X}, \"nextReliableTime\": {}, "
-        "\"lastPacketTime\": {}, \"lastConnectTime\": {}, "
-        "\"nextSnapshotTime\": {}, \"lastSnapshotTime\": {}, \"timeoutCount\": "
-        "{}, "
-        "\"guid\": {:08X}, \"scriptId\": {:08X}, \"isSplitscreenClient\": {}, "
-        "\"isSecondScreenClient\": {}, \"bIsTestClient\": {}, \"serverId\": "
-        "{:08X} }}",
-        net::serialize(state), address.serialize(), reliableSequence,
-        reliableAcknowledge, messageAcknowledge, ::serialize(gentity), name,
-        clanAbbrev, xuid, doubleXPGroupMask, availableMappackFlags,
-        nextReliableTime, lastPacketTime, lastConnectTime, nextSnapshotTime,
-        lastSnapshotTime, timeoutCount, guid, scriptId,
-        ::serialize(isSplitscreenClient), ::serialize(isSecondScreenClient),
-        ::serialize(bIsTestClient), serverId);
-  }
+  std::string serialize() const noexcept;
 };
 typedef client_s client_t;
 
@@ -315,10 +295,9 @@ struct cachedSnapshot_t {
 
 ASSERT_SIZE(cachedSnapshot_t, 0x38);
 
-#pragma pack(push, 1)
 // Verified, 100% correct on dedicated server.
 // Currently unverified whether this is identical on client.
-struct serverStaticHeader_t {
+PACKED(struct serverStaticHeader_t {
   sv::client_s *clients;
   user::actor_t *actors;
   int32_t time;
@@ -396,16 +375,14 @@ struct serverStaticHeader_t {
   int32_t constBaselineEntitesMax;
   uint8_t _padding1A4[4];
   const level::entityState_t *constBaselineEntities;
-};
+});
 ASSERT_SIZE(serverStaticHeader_t, 0x1B0);
-#pragma pack(pop)
 
 // TODO
 struct archivedEntity_s;
 typedef archivedEntity_s archivedEntity_t;
 
-#pragma pack(push, 1)
-struct serverSnapshot_t {
+PACKED(struct serverSnapshot_t {
   lobby::LobbyClientPool<level::playerState_t *> ps;
   int32_t entityCount;
   int32_t clientCount;
@@ -417,9 +394,8 @@ struct serverSnapshot_t {
   int32_t casterStateIndex;
   int32_t firstCasterClientIndex;
   uint8_t _padding[4];
-};
+});
 ASSERT_SIZE(serverSnapshot_t, 0xB8);
-#pragma pack(pop)
 
 struct archivedSnapshot_s {
   int32_t start;
@@ -427,14 +403,12 @@ struct archivedSnapshot_s {
 };
 typedef archivedSnapshot_s archivedSnapshot_t;
 
-#pragma pack(push, 1)
-struct tempBanSlot_t {
-  uint64_t guid;
+PACKED(struct tempBanSlot_t {
+  XUID guid;
   uint32_t banTime;
   uint8_t _padding[4];
-};
+});
 ASSERT_SIZE(tempBanSlot_t, 16);
-#pragma pack(pop)
 
 // Fields and types unverified, but size should be correct.
 struct rateBoostingStats_t {
@@ -455,9 +429,8 @@ ASSERT_SIZE(rateBoostingStats_t, 0x24);
   fields.
   Unverified on client, but likely either identical or very similar.
 */
-#pragma pack(push, 1)
-struct serverStatic_t {
-  int32_t clientCount;
+PACKED(struct serverStatic_t {
+  ClientNum_t clientCount;
   int32_t packetBackupCount;
   int32_t packetBackupMask;
   uint8_t _padding0C[4];
@@ -547,12 +520,10 @@ struct serverStatic_t {
   int32_t constBaselineEntitesMax;
   const level::entityState_t *constBaselineEntities;
   uint8_t _padding14E0[0x20];
-};
+});
 ASSERT_SIZE(serverStatic_t, 0x1500);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct flashbackState_t {
+PACKED(struct flashbackState_t {
   vec3_t position;
   vec3_t angles;
   vec3_t velocity;
@@ -560,8 +531,7 @@ struct flashbackState_t {
   uint8_t psFlags;
   bool valid;
   uint8_t _padding2A[2];
-};
-#pragma pack(pop)
+});
 
 struct clientsFlashbackArchive_t {
   lobby::LobbyClientPool<flashbackState_t> clientsFlashbackStates;
@@ -579,8 +549,7 @@ struct recentFrame {
 };
 ASSERT_SIZE(recentFrame, 0x1);
 
-#pragma pack(push, 1)
-struct playerAnimState_t {
+PACKED(struct playerAnimState_t {
   float fTorsoPitch;
   float fWaistPitch;
   animationNumber_t animNum[3];
@@ -593,12 +562,10 @@ struct playerAnimState_t {
     };
   };
   uint8_t _padding0F[1];
-};
+});
 ASSERT_SIZE(playerAnimState_t, 0x10);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct AntilagPlayerAnimState {
+PACKED(struct AntilagPlayerAnimState {
   uint16_t notifyChild;
   int16_t notifyIndex;
   scr::ScrString_t notifyName;
@@ -610,9 +577,8 @@ struct AntilagPlayerAnimState {
   uint8_t oldTime;
   uint8_t _padding0F[1];
   float rate;
-};
+});
 ASSERT_SIZE(AntilagPlayerAnimState, 0x14);
-#pragma pack(pop)
 
 struct clientControllers_t {
   vec3_t angles[6];
@@ -640,8 +606,7 @@ struct clientsPositionArchive_t {
 };
 ASSERT_SIZE(clientsPositionArchive_t, 0x1B9C);
 
-#pragma pack(push, 1)
-struct server_t {
+PACKED(struct server_t {
   volatile serverState_t state;
   int32_t physicsTime;
   int32_t timeResidual;
@@ -701,9 +666,8 @@ struct server_t {
   inline constexpr bool running() volatile noexcept {
     return this->state == serverState_t::GAME || this->restarting;
   }
-};
+});
 ASSERT_SIZE(server_t, 0xBC5C0);
-#pragma pack(pop)
 
 enum class SwimStateType : int32_t {
   SWIM_STATE_NONE = 0x0,
@@ -985,8 +949,7 @@ struct animScriptItem_t {
 };
 ASSERT_SIZE(animScriptItem_t, 0x130);
 
-#pragma pack(push, 1)
-struct visionPulse_t {
+PACKED(struct visionPulse_t {
   qboolean active;
   int32_t startTime;
   int32_t endTime;
@@ -1004,8 +967,7 @@ struct visionPulse_t {
   snd::SndAliasId pulseSound;
   snd::SndAliasId pulseMissSound;
   uint8_t _padding4C[4];
-};
-#pragma pack(pop)
+});
 
 struct CasterHUDInfo {
   uint32_t gadgetPlayerStateFlags;
@@ -1018,8 +980,7 @@ struct CasterHUDInfo {
 
   Verify and adjust as needed prior to usage.
 */
-#pragma pack(push, 1)
-struct clientInfo_t {
+PACKED(struct clientInfo_t {
   qboolean infoValid;
   qboolean nextValid;
   ClientNum_t clientNum;
@@ -1188,7 +1149,7 @@ struct clientInfo_t {
   uint8_t _paddingED1[3];
   CasterHUDInfo casterHUDInfo;
   uint8_t _paddingEDC[4];
-};
+});
 ASSERT_OFFSET(clientInfo_t, _padding73D, 0x73D);
 ASSERT_OFFSET(clientInfo_t, _padding9D4, 0x9D4);
 ASSERT_OFFSET(clientInfo_t, _paddingEC4, 0xEC4);
@@ -1197,17 +1158,14 @@ ASSERT_OFFSET(clientInfo_t, _padding807, 0x807);
 ASSERT_OFFSET(clientInfo_t, name, 0x0C);
 ASSERT_OFFSET(clientInfo_t, clanAbbrev, 0x80);
 ASSERT_SIZE(clientInfo_t, 0xEE0);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct ucmd_t {
+PACKED(struct ucmd_t {
   const char *name;
-  fastcallPtr_t<void(client_t *cl)> func;
+  fastcallPtr_t<void(client_t * cl)> func;
   qboolean fromOldServer;
   uint8_t _padding14[4];
-};
+});
 ASSERT_SIZE(ucmd_t, 0x18);
-#pragma pack(pop)
 
 PACKED(struct BitField {
   const uint64_t *array;

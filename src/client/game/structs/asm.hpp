@@ -241,8 +241,8 @@ struct AliasToAnimsEntry {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"aliasName\": {}, \"anims\": {}, \"numAnims\": {} }}",
-        ::serialize(aliasName), ::serialize(anims, numAnims), numAnims);
+        "{{ \"aliasName\": 0x{:08X}, \"anims\": {}, \"numAnims\": {} }}",
+        aliasName, ::serialize(anims, numAnims), numAnims);
   }
 };
 ASSERT_SIZE(AliasToAnimsEntry, 0x18);
@@ -257,8 +257,8 @@ struct AnimSelectorTableEntry {
   };
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {}, \"integer\": {}, \"v\": {} }}",
-                       ::serialize(name), integer, v);
+    return std::format("{{ \"name\": 0x{:08X}, \"integer\": {}, \"v\": {} }}",
+                       name, integer, v);
   }
 };
 ASSERT_SIZE(AnimSelectorTableEntry, 0x8);
@@ -403,16 +403,15 @@ struct AnimSelectorTableColumn {
   scr::ScrVarCanonicalName_t parentNameCanonicalStringIndexCache;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {}, \"parentName\": {}, \"desired\": {}, "
-                       "\"outputColumn\": {}, "
-                       "\"aliasColumn\": {}, \"dataType\": {}, "
-                       "\"nameCanonicalStringIndexCache\": {}, "
-                       "\"parentNameCanonicalStringIndexCache\": {} }}",
-                       name, parentName, ::serialize(desired),
-                       ::serialize(outputColumn), ::serialize(aliasColumn),
-                       game::anim::serialize(dataType),
-                       ::serialize(nameCanonicalStringIndexCache),
-                       ::serialize(parentNameCanonicalStringIndexCache));
+    return std::format(
+        "{{ \"name\": {}, \"parentName\": {}, \"desired\": {}, "
+        "\"outputColumn\": {}, "
+        "\"aliasColumn\": {}, \"dataType\": {}, "
+        "\"nameCanonicalStringIndexCache\": 0x{:08X}, "
+        "\"parentNameCanonicalStringIndexCache\": 0x{:08X} }}",
+        name, parentName, ::serialize(desired), ::serialize(outputColumn),
+        ::serialize(aliasColumn), game::anim::serialize(dataType),
+        nameCanonicalStringIndexCache, parentNameCanonicalStringIndexCache);
   }
 };
 
@@ -449,12 +448,13 @@ struct AnimSelectorTable {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"columns\": {}, \"numColumns\": {}, \"rows\": {:p}, "
+        "{{ \"name\": 0x{:08X}, \"columns\": {}, \"numColumns\": {}, \"rows\": "
+        "{:p}, "
         "\"numRows\": {}, \"outParamsGroup1\": {}, \"blendInColumn\": {}, "
         "\"blendOutColumn\": {}, \"aimTableColumn\": {} }}",
-        ::serialize(name), ::serialize(columns, numColumns), numColumns,
-        (const void *)rows, numRows, outParamsGroup1.serialize(), blendInColumn,
-        blendOutColumn, aimTableColumn);
+        name, ::serialize(columns, numColumns), numColumns, (const void *)rows,
+        numRows, outParamsGroup1.serialize(), blendInColumn, blendOutColumn,
+        aimTableColumn);
   }
 };
 ASSERT_SIZE(AnimSelectorTable, 0x50);
@@ -609,7 +609,7 @@ struct PrimaryDeltaLayer_t {
         "\"currDeltaTableEvalFunc\": {}, "
         "\"currDeltaTableIndex\": {}, \"currDeltaTableRow\": {}, "
         "\"currDeltaRate\": {}, "
-        "\"currDeltaAnimIndex\": {}, \"currDeltaAnimAlias\": {}, "
+        "\"currDeltaAnimIndex\": {}, \"currDeltaAnimAlias\": 0x{:08X}, "
         "\"currDeltaParamWeights\": {}, "
         "\"blendOutTime\": {}, \"aimStartTime\": {}, \"aimStopTime\": {}, "
         "\"mocompStartTime\": {}, "
@@ -618,7 +618,7 @@ struct PrimaryDeltaLayer_t {
         "\"toggleCounter\": {} }}",
         game::anim::serialize(deltaAnimSource), currDeltaTableName,
         currDeltaTableEvalFunc, currDeltaTableIndex, currDeltaTableRow,
-        currDeltaRate, currDeltaAnimIndex, ::serialize(currDeltaAnimAlias),
+        currDeltaRate, currDeltaAnimIndex, currDeltaAnimAlias,
         ::serialize(currDeltaParamWeights), blendOutTime, aimStartTime,
         aimStopTime, mocompStartTime, mocompStopTime, footstepCount,
         ::serialize(footsteps), deltaRequestTime, toggleCounter);
@@ -702,7 +702,7 @@ struct MocompLayer {
   scr::ScrString_t mocompName;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"active\": {}, \"mocompName\": {:08X} }}",
+    return std::format("{{ \"active\": {}, \"mocompName\": 0x{:08X} }}",
                        ::serialize(active), mocompName);
   }
 };
@@ -717,7 +717,7 @@ struct AimTable {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"tableName\": {:08X}, \"atEntries\": {} }}",
+        "{{ \"name\": {}, \"tableName\": 0x{:08X}, \"atEntries\": {} }}",
         ::serialize(name), tableName, ::serialize(atEntries));
   }
 };
@@ -748,19 +748,21 @@ struct AnimSubState {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"fullname\": {}, \"validationFlags\": {:08X}, "
-        "\"subStateFlags\": {:08X}, "
-        "\"ownerStateIndex\": {}, \"deltaSelector\": {:08X}, \"aimSelector\": "
+        "{{ \"name\": 0x{:08X}, \"fullname\": 0x{:08X}, \"validationFlags\": "
+        "0x{:08X}, "
+        "\"subStateFlags\": 0x{:08X}, "
+        "\"ownerStateIndex\": {}, \"deltaSelector\": 0x{:08X}, "
+        "\"aimSelector\": "
         "{:08X}, "
-        "\"shootSelector\": {:08X}, "
-        "\"transitionSelector\": {:08X}, \"deltaSelectorEvaluator\": {:08X}, "
-        "\"transitionSelectorEvaluator\": {:08X}, "
+        "\"shootSelector\": 0x{:08X}, "
+        "\"transitionSelector\": 0x{:08X}, \"deltaSelectorEvaluator\": "
+        "0x{:08X}, "
+        "\"transitionSelectorEvaluator\": 0x{:08X}, "
         "\"substateTransitionIndices\": {}, \"numSubStateTransitions\": {} "
         "}}",
-        ::serialize(name), ::serialize(fullname), validationFlags,
-        subStateFlags, ownerStateIndex, deltaSelector, aimSelector,
-        shootSelector, transitionSelector, deltaSelectorEvaluator,
-        transitionSelectorEvaluator,
+        name, fullname, validationFlags, subStateFlags, ownerStateIndex,
+        deltaSelector, aimSelector, shootSelector, transitionSelector,
+        deltaSelectorEvaluator, transitionSelectorEvaluator,
         ::serialize(substateTransitionIndices, numSubStateTransitions),
         numSubStateTransitions);
   }
@@ -776,7 +778,7 @@ struct AnimState {
   uint8_t _padding14[4];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {:08X}, \"validationFlags\": {:08X}, "
+    return std::format("{{ \"name\": 0x{:08X}, \"validationFlags\": 0x{:08X}, "
                        "\"subStatesIndices\": {}, \"numSubStates\": {} }}",
                        name, validationFlags,
                        ::serialize(subStatesIndices, numSubStates),
@@ -801,14 +803,14 @@ struct AnimTransition {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {:08X}, \"fullname\": {:08X}, \"validationFlags\": "
+        "{{ \"name\": 0x{:08X}, \"fullname\": 0x{:08X}, \"validationFlags\": "
         "{:08X}, "
         "\"targetStateIndex\": {}, "
-        "\"targetSubStateIndex\": {}, \"targetStateName\": {:08X}, "
-        "\"targetSubStateName\": {:08X}, "
-        "\"deltaSelector\": {:08X}, \"aimSelector\": {:08X}, "
-        "\"shootSelector\": {:08X}, "
-        "\"deltaSelectorEvaluator\": {:08X} }}",
+        "\"targetSubStateIndex\": {}, \"targetStateName\": 0x{:08X}, "
+        "\"targetSubStateName\": 0x{:08X}, "
+        "\"deltaSelector\": 0x{:08X}, \"aimSelector\": 0x{:08X}, "
+        "\"shootSelector\": 0x{:08X}, "
+        "\"deltaSelectorEvaluator\": 0x{:08X} }}",
         name, fullname, validationFlags, targetStateIndex, targetSubStateIndex,
         targetStateName, targetSubStateName, deltaSelector, aimSelector,
         shootSelector, deltaSelectorEvaluator);
@@ -898,7 +900,7 @@ struct XAnimSearchEntry {
   uint8_t _padding06[2];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {:08X}, \"animIndex\": {} }}", name,
+    return std::format("{{ \"name\": 0x{:08X}, \"animIndex\": {} }}", name,
                        animIndex);
   }
 };
@@ -909,7 +911,7 @@ struct XAnimParent {
   uint16_t children;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"flags\": {:04X}, \"children\": {} }}", flags,
+    return std::format("{{ \"flags\": 0x{:04X}, \"children\": {} }}", flags,
                        children);
   }
 };
@@ -950,7 +952,7 @@ struct XAnim {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {:08X}, \"size\": {}, \"paramSize\": {}, \"params\": "
+        "{{ \"name\": 0x{:08X}, \"size\": {}, \"paramSize\": {}, \"params\": "
         "{:p}, "
         "\"animNames\": {:p}, \"sortedSearchList\": {:p}, \"entries\": {} }}",
         name, size, paramSize, reinterpret_cast<const void *>(params),
@@ -1070,8 +1072,8 @@ PACKED(struct animation_t {
     return std::format("{{ \"name\": \"{}\", \"initialLerp\": {}, "
                        "\"finalLerp\": {}, \"forceAnimRate\": {}, "
                        "\"moveSpeed\": {}, \"rotSpeed\": {}, \"duration\": {}, "
-                       "\"nameHash\": {:08X}, "
-                       "\"flags\": {:08X}, \"movetype\": {}, \"stance\": {}, "
+                       "\"nameHash\": 0x{:08X}, "
+                       "\"flags\": 0x{:08X}, \"movetype\": {}, \"stance\": {}, "
                        "\"noteType\": {}, "
                        "\"locBlendIndex\": {}, \"locBlendAlignTime\": {}, "
                        "\"localOverrideAnim\": {} }}",
@@ -1262,10 +1264,10 @@ struct BaseAnimBoneMat {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"boneIndex\": {}, \"ignoreParentRelativeData\": {}, "
+        "{{ \"boneIndex\": 0x{:04X}, \"ignoreParentRelativeData\": {}, "
         "\"primaryBone\": {}, "
         "\"baseQuat\": {}, \"baseTrans\": {} }}",
-        ::serialize(boneIndex), ::serialize(ignoreParentRelativeData),
+        boneIndex, ::serialize(ignoreParentRelativeData),
         ::serialize(primaryBone), baseQuat.serialize(), baseTrans.serialize());
   }
 };
@@ -1335,13 +1337,14 @@ struct __attribute__((aligned(8))) DObj {
         "{{ \"tree\": {:p}, \"ikState\": {:p}, \"siegeAnimations\": {:p}, "
         "\"models\": {:p}, "
         "\"locked\": {}, \"skel\": {}, \"hidePartBits\": {}, "
-        "\"hideSubModelBits\": {:08X}, "
-        "\"hideSubModelShadowBits\": {:08X}, \"duplicatePartsRef\": {:08X}, "
-        "\"ignoreCollision\": {:08X}, "
+        "\"hideSubModelBits\": 0x{:08X}, "
+        "\"hideSubModelShadowBits\": 0x{:08X}, \"duplicatePartsRef\": "
+        "0x{:08X}, "
+        "\"ignoreCollision\": 0x{:08X}, "
         "\"radius\": {}, \"pitchAngle\": {}, \"scale\": {}, \"entnum\": {}, "
         "\"numCosmeticBones\": {}, \"numSiegeAnimations\": {}, "
         "\"duplicatePartsSize\": {}, "
-        "\"flags\": {:04X}, \"numBones\": {}, \"numModels\": {}, "
+        "\"flags\": 0x{:04X}, \"numBones\": 0x{:04X}, \"numModels\": {}, "
         "\"numConstrainedBones\": {}, "
         "\"localClientIndex\": {}, \"numRootAdjustMats\": {} }}",
         reinterpret_cast<const void *>(tree),
@@ -1351,7 +1354,7 @@ struct __attribute__((aligned(8))) DObj {
         ::serialize(hidePartBits), hideSubModelBits, hideSubModelShadowBits,
         duplicatePartsRef, ignoreCollision, radius, pitchAngle, scale, entnum,
         numCosmeticBones, numSiegeAnimations, duplicatePartsSize, flags,
-        ::serialize(numBones), numModels, numConstrainedBones, localClientIndex,
+        numBones, numModels, numConstrainedBones, localClientIndex,
         numRootAdjustMats);
   }
 };
@@ -1366,7 +1369,7 @@ struct DObjModel {
 
   inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"model\": {}, \"boneName\": {:08X}, \"parentModel\": {}, "
+        "{{ \"model\": {}, \"boneName\": 0x{:08X}, \"parentModel\": {}, "
         "\"ignoreCollision\": {}, \"trans\": {}, \"rot\": {} }}",
         ::serialize(model), boneName, parentModel, ::serialize(ignoreCollision),
         trans.serialize(), rot.serialize());
@@ -1495,7 +1498,7 @@ union XAnimDynamicIndices {
   uint16_t _2[1];
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"_1\": {:02X} }}", _1[0]);
+    return std::format("{{ \"_1\": 0x{:02X} }}", _1[0]);
   }
 };
 
@@ -1641,9 +1644,9 @@ struct XAnimMarkup {
   scr::ScrString_t param2;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"type\": {:08X}, \"startTime\": {}, \"endTime\": "
+    return std::format("{{ \"type\": 0x{:08X}, \"startTime\": {}, \"endTime\": "
                        "{}, \"persistent\": {}, "
-                       "\"param1\": {:08X}, \"param2\": {:08X} }}",
+                       "\"param1\": 0x{:08X}, \"param2\": 0x{:08X} }}",
                        type, startTime, endTime, persistent, param1, param2);
   }
 };
@@ -1656,9 +1659,10 @@ struct XAnimNotifyInfo {
   scr::ScrString_t param3;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"type\": {:08X}, \"time\": {}, \"param1\": {:08X}, "
-                       "\"param2\": {:08X}, \"param3\": {:08X} }}",
-                       type, time, param1, param2, param3);
+    return std::format(
+        "{{ \"type\": 0x{:08X}, \"time\": {}, \"param1\": 0x{:08X}, "
+        "\"param2\": 0x{:08X}, \"param3\": 0x{:08X} }}",
+        type, time, param1, param2, param3);
   }
 };
 
@@ -1667,7 +1671,7 @@ struct __attribute__((aligned(4))) BlendTargetRemap {
   uint16_t index;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {:08X}, \"index\": {} }}", name, index);
+    return std::format("{{ \"name\": 0x{:08X}, \"index\": {} }}", name, index);
   }
 };
 
@@ -1750,7 +1754,7 @@ struct XAnimParts {
         "\"randomDataByte\": {:p}, \"name\": {}, \"dataInt\": {:p}, "
         "\"randomDataInt\": {:p}, "
         "\"dataShort\": {:p}, \"randomDataShort\": {:p}, \"indices\": {}, "
-        "\"branchName\": {:08X}, "
+        "\"branchName\": 0x{:08X}, "
         "\"framerate\": {}, \"frequency\": {}, \"loopEntryTime\": {}, "
         "\"primedLength\": {}, "
         "\"indexCount\": {}, \"numIKPitchBones\": {}, \"numIKPitchLayers\": "
@@ -1815,7 +1819,8 @@ struct animScriptCondition_t {
   uint32_t value;
 
   inline std::string serialize() const noexcept {
-    return std::format("{{ \"index\": {}, \"value\": {:08X} }}", index, value);
+    return std::format("{{ \"index\": {}, \"value\": 0x{:08X} }}", index,
+                       value);
   }
 };
 
@@ -1864,15 +1869,9 @@ struct __attribute__((aligned(4))) animScriptCommand_t {
     };
   };
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"soundAlias\": {}, \"tagName\": {:08X}, \"bodyPart\": {}, "
-        "\"animIndex\": {}, \"animDuration\": {}, \"flags\": {:02X}, "
-        "\"motionMatchingEnabled\": {} }}",
-        ::serialize(soundAlias), tagName, ::serialize(bodyPart),
-        ::serialize(animIndex), ::serialize(animDuration), flags,
-        static_cast<bool>(motionMatchingEnabled));
-  }
+  std::string serialize() const noexcept;
+
+
 };
 
 struct animScriptItem_t {
