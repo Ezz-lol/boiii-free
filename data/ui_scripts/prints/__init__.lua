@@ -2,7 +2,7 @@ local function isZombieGame()
   return Engine and type(Engine.IsZombiesGame) == "function" and Engine.IsZombiesGame()
 end
 
-if not Engine.IsInGame() or not isZombieGame() then
+if CoD.isFrontend then
   return
 end
 
