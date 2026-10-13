@@ -421,6 +421,48 @@ struct component final : generic_component {
     // Set cl_maxpackets to 100
     utils::hook::set<uint8_t>(
         game::select(0x1412ff362, 0x1412FF342, 0x140177A32), 100 - 15);
+
+    command::add("listBots", [](const command::params &params) {
+      game::foreach_test_client(
+          [](const game::sv::client_s &cl, game::ClientNum_t index) {
+            const std::string botListing =
+                std::format("[{}] {}", serialize(index), cl.serialize());
+            fprintf(stdout, "%s\n", botListing.c_str());
+            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
+                                  game::consoleLabel::DEFAULT, "%s\n",
+                                  botListing.c_str());
+            game::trace("{}", botListing);
+            fflush(stdout);
+          });
+    });
+
+    command::add("listConnected", [](const command::params &params) {
+      game::foreach_connected_client(
+          [](const game::sv::client_s &cl, game::ClientNum_t index) {
+            const std::string listing =
+                std::format("[{}] {}", serialize(index), cl.serialize());
+            fprintf(stdout, "%s\n", listing.c_str());
+            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
+                                  game::consoleLabel::DEFAULT, "%s\n",
+                                  listing.c_str());
+            game::trace("{}", listing);
+            fflush(stdout);
+          });
+    });
+
+    command::add("listActive", [](const command::params &params) {
+      game::foreach_active_client(
+          [](const game::sv::client_s &cl, game::ClientNum_t index) {
+            const std::string listing =
+                std::format("[{}] {}", serialize(index), cl.serialize());
+            fprintf(stdout, "%s\n", listing.c_str());
+            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
+                                  game::consoleLabel::DEFAULT, "%s\n",
+                                  listing.c_str());
+            game::trace("{}", listing);
+            fflush(stdout);
+          });
+    });
   }
 };
 } // namespace network
