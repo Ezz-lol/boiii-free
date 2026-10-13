@@ -646,7 +646,7 @@ std::string find_steam_game_path() {
   constexpr std::string_view default_path =
       "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Call of Duty Black "
       "Ops III";
-  if (!is_valid_game_folder(default_path)) {
+  if (is_valid_game_folder(default_path)) {
     return std::string(default_path);
   }
 
