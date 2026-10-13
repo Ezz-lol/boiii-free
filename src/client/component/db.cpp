@@ -2,10 +2,16 @@
 
 #include <loader/component_loader.hpp>
 
+#include "scheduler.hpp"
+
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
 #include <utils/hook.hpp>
+#include <utils/thread.hpp>
+
+#include <fstream>
+#include <regex>
 
 namespace db {
 using namespace game;
@@ -111,6 +117,24 @@ void PrintWaitedError_stub(const XAssetType type, const char *name,
   PrintWaitedError_hook.invoke(type, name, waitedMsec);
 }
 
+void preload_mode_files() {
+  SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+  static const std::regex mode_file(
+      R"(([a-z]{2}_)?(zm|mp|cp)_(patch|common)(_d)?\.(ff|xpak))");
+  std::vector<char> buffer(1 << 20);
+  std::error_code ec;
+  for (const auto &entry : std::filesystem::directory_iterator(
+           game::get_game_path() / "zone", ec)) {
+    if (!std::regex_match(entry.path().filename().string(), mode_file)) {
+      continue;
+    }
+    std::ifstream file(entry.path(), std::ios::binary);
+    while (
+        file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()))) {
+    }
+  }
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("db");
 
@@ -132,6 +156,20 @@ public:
     db_log_missing_assets =
         register_dvar_bool("db_logMissingAssets", false, DVAR_NONE,
                            "Print every asset that couldn't be found");
+
+    if (game::is_client()) {
+      scheduler::schedule(
+          [] {
+            if (!com::Com_IsRunningUILevel()) {
+              return scheduler::cond_continue;
+            }
+            utils::thread::create_named_thread("Mode Preload",
+                                               preload_mode_files)
+                .detach();
+            return scheduler::cond_end;
+          },
+          scheduler::main, 1s);
+    }
   }
 };
 } // namespace db
