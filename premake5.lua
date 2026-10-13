@@ -321,6 +321,7 @@ buildoptions({
   "-Wno-format",
   "-Wno-sign-compare",
   "/clang:-march=x86-64",
+  "/clang:-fbracket-depth=1024",
   -- Only used after positive test for support at runtime.
   -- We need to compile with these CPU features regardless of end-user
   -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
@@ -370,6 +371,7 @@ filter({ "configurations:Debug", "toolset:msc*" })
 buildoptions({
   "/MDd",
   "/clang:-march=x86-64",
+  "/clang:-fbracket-depth=1024",
   -- Only used after positive test for support at runtime.
   -- We need to compile with these CPU features regardless of end-user
   -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
