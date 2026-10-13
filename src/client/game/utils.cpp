@@ -156,11 +156,12 @@ void first_client(
 
 void foreach_client(const std::function<void(sv::client_s &cl)> &callback) {
   foreach_client(
-      [&callback](sv::client_s &client, size_t) { callback(client); });
+      [&callback](sv::client_s &client, ClientNum_t) { callback(client); });
 }
 void first_client(const std::function<bool(sv::client_s &cl)> &callback) {
-  first_client(
-      [&callback](sv::client_s &client, size_t) { return callback(client); });
+  first_client([&callback](sv::client_s &client, ClientNum_t) {
+    return callback(client);
+  });
 }
 
 void foreach_connected_client(
@@ -175,7 +176,7 @@ void foreach_connected_client(
 void foreach_connected_client(
     const std::function<void(sv::client_s &cl)> &callback) {
   foreach_connected_client(
-      [&callback](sv::client_s &client, size_t) { callback(client); });
+      [&callback](sv::client_s &client, ClientNum_t) { callback(client); });
 }
 
 void first_connected_client(
@@ -190,8 +191,9 @@ void first_connected_client(
 
 void first_connected_client(
     const std::function<bool(sv::client_s &cl)> &callback) {
-  first_connected_client(
-      [&callback](sv::client_s &client, size_t) { return callback(client); });
+  first_connected_client([&callback](sv::client_s &client, ClientNum_t) {
+    return callback(client);
+  });
 }
 
 bool access_connected_client(
@@ -212,8 +214,8 @@ void foreach_test_client(
 
 void foreach_test_client(
     const std::function<void(sv::client_s &cl)> &callback) {
-  foreach_connected_client(
-      [&callback](sv::client_s &client, size_t) { callback(client); });
+  foreach_client(
+      [&callback](sv::client_s &client, ClientNum_t) { callback(client); });
 }
 
 void first_test_client(
@@ -227,8 +229,9 @@ void first_test_client(
 }
 
 void first_test_client(const std::function<bool(sv::client_s &cl)> &callback) {
-  first_test_client(
-      [&callback](sv::client_s &client, size_t) { return callback(client); });
+  first_test_client([&callback](sv::client_s &client, ClientNum_t) {
+    return callback(client);
+  });
 }
 
 void foreach_active_client(
@@ -243,7 +246,7 @@ void foreach_active_client(
 void foreach_active_client(
     const std::function<void(sv::client_s &cl)> &callback) {
   foreach_active_client(
-      [&callback](sv::client_s &client, size_t) { callback(client); });
+      [&callback](sv::client_s &client, ClientNum_t) { callback(client); });
 }
 
 void first_active_client(
@@ -256,8 +259,9 @@ void first_active_client(
 
 void first_active_client(
     const std::function<bool(sv::client_s &cl)> &callback) {
-  first_active_client(
-      [&callback](sv::client_s &client, size_t) { return callback(client); });
+  first_active_client([&callback](sv::client_s &client, ClientNum_t) {
+    return callback(client);
+  });
 }
 
 bool access_active_client(

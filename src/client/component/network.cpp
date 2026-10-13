@@ -376,12 +376,30 @@ void client_listing_command(const command::params &params) {
   });
 
   completeListing += " }";
-  fprintf(stdout, "%s\n", completeListing.c_str());
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
-                        game::consoleLabel::DEFAULT, "%s\n",
-                        completeListing.c_str());
+
+  const std::string_view completeListingView = completeListing;
   game::trace("{}", completeListing);
+
+  constexpr size_t PRINT_CHUNK_SIZE = 255;
+  for (size_t i = 0; i < completeListingView.length(); i += PRINT_CHUNK_SIZE) {
+    const size_t currChunkSize =
+        std::min<size_t>(PRINT_CHUNK_SIZE, completeListingView.length() - i);
+    if (currChunkSize) {
+      const std::string_view chunk =
+          completeListingView.substr(i, currChunkSize);
+      fprintf(stdout, "%s", chunk.data());
+      fflush(stdout);
+
+      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
+                            game::consoleLabel::DEFAULT, "%s", chunk.data());
+    }
+  }
+
+  fprintf(stdout, "\n");
   fflush(stdout);
+
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
+                        game::consoleLabel::DEFAULT, "\n");
 }
 
 struct component final : generic_component {

@@ -1992,12 +1992,12 @@ Lua_CoD_FFReader_EnforceOverride(lua_State *luaVM, RawFile *ud, size_t *size) {
 // TODO: how and why does this happen? How do scripts arrive here if not fetched
 // with `DB_FindXAssetHeader`?
 #ifndef NDEBUG
-      game::trace(
-          "Rawfile override failed for script \"{}\". Override buffer: {:p}, "
-          "original buffer: {:p}, override len: 0x{:016X}, original len: "
-          "0x{:016X}",
-          ud->name, static_cast<void *>(override->buffer),
-          static_cast<void *>(ud->buffer), override->len, ud->len);
+      game::trace("[Lua][Load][FF] WARNING: rawfile header override failed for "
+                  "Lua script \"{}\". Override buffer: {:p}, original buffer: "
+                  "{:p}, override len: 0x{:016X}, original len: "
+                  "0x{:016X}. Overriding in Lua_CoD_FFReader instead.",
+                  ud->name, static_cast<void *>(override->buffer),
+                  static_cast<void *>(ud->buffer), override->len, ud->len);
 #endif
       ud->buffer = override->buffer;
       ud->len = override->len;
