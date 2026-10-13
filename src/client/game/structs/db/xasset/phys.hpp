@@ -43,12 +43,25 @@ struct cplane_t {
   uint8_t type;
   uint8_t signbits;
   uint8_t pad[2];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"normal\": {}, \"dist\": {}, \"type\": {}, "
+                       "\"signbits\": {}, \"pad\": {} }}",
+                       normal.serialize(), dist, type, signbits,
+                       ::serialize(pad));
+  }
 };
 
 struct cbrushside_t {
   cplane_t *plane;
   contents_t cflags;
   int32_t sflags;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"plane\": {}, \"cflags\": {:08X}, \"sflags\": {:08X} }}",
+        ::serialize(plane), cflags, sflags);
+  }
 };
 
 struct __attribute__((aligned(16))) cbrush_t {
@@ -61,6 +74,20 @@ struct __attribute__((aligned(16))) cbrush_t {
   int32_t axial_sflags[2][3];
   uint32_t numverts;
   vec3_t *verts;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"mins\": {}, \"contents\": {:08X}, \"maxs\": {}, "
+        "\"numsides\": {}, "
+        "\"sides\": {}, \"axial_cflags\": {}, \"axial_sflags\": "
+        "{}, \"numverts\": {}, "
+        "\"verts\": {} }}",
+        mins.serialize(), contents, maxs.serialize(), numsides,
+        ::serialize(sides),
+        /* Adding matrix serialization overloads for all the array serialization
+           util functions will be a pain. Leave as TODO for now. */
+        "TODO", "TODO", numverts, ::serialize(verts));
+  }
 };
 
 struct BrushWrapper {
@@ -74,6 +101,21 @@ struct BrushWrapper {
   uint32_t numverts;
   vec3_t *verts;
   cplane_t *planes;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"mins\": {}, \"contents\": {:08X}, \"maxs\": {}, "
+                       "\"numsides\": {}, "
+                       "\"sides\": {}, \"axial_cflags\": {}, \"axial_sflags\": "
+                       "{}, \"numverts\": {}, "
+                       "\"verts\": {}, \"planes\": {} }}",
+                       mins.serialize(), contents, maxs.serialize(), numsides,
+                       ::serialize(sides),
+                       /* Adding matrix serialization overloads for all the
+                          array serialization util functions will be a pain.
+                          Leave as TODO for now. */
+                       "TODO", "TODO", numverts, ::serialize(verts),
+                       ::serialize(planes));
+  }
 };
 
 struct PhysGeomInfo {
@@ -82,12 +124,25 @@ struct PhysGeomInfo {
   vec3_t orientation[3];
   vec3_t offset;
   vec3_t halfLengths;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"brush\": {}, \"type\": {}, \"orientation\": {}, "
+                       "\"offset\": {}, \"halfLengths\": {} }}",
+                       ::serialize(brush), type, ::serialize(orientation),
+                       offset.serialize(), halfLengths.serialize());
+  }
 };
 
 struct __attribute__((aligned(8))) PhysGeomList {
   uint32_t count;
   PhysGeomInfo *geoms;
   contents_t contents;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"count\": {}, \"geoms\": {}, \"contents\": {:08X} }}", count,
+        ::serialize(geoms), contents);
+  }
 };
 
 enum class ConstraintType : uint32_t {
@@ -104,12 +159,56 @@ enum class ConstraintType : uint32_t {
   COUNT = 0xA,
 };
 
+inline constexpr const char *serialize(const ConstraintType type) {
+  switch (type) {
+  case ConstraintType::NONE:
+    return "CONSTRAINT_NONE";
+  case ConstraintType::POINT:
+    return "CONSTRAINT_POINT";
+  case ConstraintType::DISTANCE:
+    return "CONSTRAINT_DISTANCE";
+  case ConstraintType::HINGE:
+    return "CONSTRAINT_HINGE";
+  case ConstraintType::ACTUATOR:
+    return "CONSTRAINT_ACTUATOR";
+  case ConstraintType::FAKE_SHAKE:
+    return "CONSTRAINT_FAKE_SHAKE";
+  case ConstraintType::LAUNCH:
+    return "CONSTRAINT_LAUNCH";
+  case ConstraintType::ANTENNA:
+    return "CONSTRAINT_ANTENNA";
+  case ConstraintType::ROPE:
+    return "CONSTRAINT_ROPE";
+  case ConstraintType::LIGHT:
+    return "CONSTRAINT_LIGHT";
+  case ConstraintType::COUNT:
+    return "CONSTRAINT_COUNT";
+  default:
+    return "CONSTRAINT_INVALID";
+  }
+}
+
 enum AttachPointType : uint32_t {
   WORLD = 0x0,
   DYNENT = 0x1,
   ENT = 0x2,
   BONE = 0x3,
 };
+
+inline constexpr const char *serialize(const AttachPointType type) {
+  switch (type) {
+  case AttachPointType::WORLD:
+    return "ATTACH_WORLD";
+  case AttachPointType::DYNENT:
+    return "ATTACH_DYNENT";
+  case AttachPointType::ENT:
+    return "ATTACH_ENT";
+  case AttachPointType::BONE:
+    return "ATTACH_BONE";
+  default:
+    return "ATTACH_INVALID";
+  }
+}
 
 PACKED(struct PhysConstraint {
   scr::ScrString_t targetname;
@@ -148,6 +247,35 @@ PACKED(struct PhysConstraint {
   intptr_t constraintHandle;
   int32_t rope_index;
   int32_t centity_num[5];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"targetname\": {:08X}, \"type\": {}, \"attach_point_type1\": {}, "
+        "\"target_index1\": {}, \"target_ent1\": {:08X}, \"target_bone1\": "
+        "{:08X}, "
+        "\"attach_point_type2\": {}, \"target_index2\": {}, \"target_ent2\": "
+        "{:08X}, "
+        "\"target_bone2\": {:08X}, \"offset\": {}, \"pos\": {}, \"pos2\": {}, "
+        "\"dir\": {}, \"flags\": {:08X}, \"timeout\": {}, \"min_health\": {}, "
+        "\"max_health\": {}, \"distance\": {}, \"damp\": {}, \"power\": {}, "
+        "\"force_scale\": {}, \"misc_scale\": {}, \"minAngle\": {}, "
+        "\"maxAngle\": {}, "
+        "\"minAngleYaw\": {}, \"maxAngleYaw\": {}, \"material\": {}, "
+        "\"model\": {}, "
+        "\"slice_count\": {}, \"gravity\": {}, \"useAntennaXAxis\": {}, "
+        "\"constraintHandle\": {:p}, \"rope_index\": {}, \"centity_num\": {} "
+        "}}",
+        targetname, game::db::xasset::phys::serialize(type),
+        game::db::xasset::phys::serialize(attach_point_type1), target_index1,
+        target_ent1, target_bone1,
+        game::db::xasset::phys::serialize(attach_point_type2), target_index2,
+        target_ent2, target_bone2, offset.serialize(), pos.serialize(),
+        pos2.serialize(), dir.serialize(), flags, timeout, min_health,
+        max_health, distance, damp, power, force_scale.serialize(), misc_scale,
+        minAngle, maxAngle, minAngleYaw, maxAngleYaw, ::serialize(material),
+        model, slice_count, gravity, useAntennaXAxis.serialize(),
+        (const void *)constraintHandle, rope_index, ::serialize(centity_num));
+  }
 });
 ASSERT_SIZE(PhysConstraint, 0xD0);
 

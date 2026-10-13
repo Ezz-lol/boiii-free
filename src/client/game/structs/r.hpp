@@ -50,11 +50,14 @@ struct vidConfig_t {
 #ifndef NDEBUG
   inline std::string serialize() const noexcept {
     return std::format(
-        "vidConfig_t {{ sceneWidth: {}, sceneHeight: {}, sceneAspectRatio: "
-        "{}, displayWidth: {}, displayHeight: {}, displayAspectRatio: {}, "
-        "isFullScreen: {}, isWideScreen: {}, viewAspectRatioPX: {}, "
-        "viewWidth: {}, viewHeight: {}, viewAspectRatio: {}, viewScalePx: "
-        "{}, maxTextureSize: {} }}",
+        "{{ \"sceneWidth\": {}, \"sceneHeight\": {}, \"sceneAspectRatio\": "
+        "{}, \"displayWidth\": {}, \"displayHeight\": {}, "
+        "\"displayAspectRatio\": {}, "
+        "\"isFullScreen\": {}, \"isWideScreen\": {}, \"viewAspectRatioPX\": "
+        "{}, "
+        "\"viewWidth\": {}, \"viewHeight\": {}, \"viewAspectRatio\": {}, "
+        "\"viewScalePx\": "
+        "{}, \"maxTextureSize\": {} }}",
         sceneWidth, sceneHeight, sceneAspectRatio, displayWidth, displayHeight,
         displayAspectRatio, isFullscreen.serialize(), isWideScreen.serialize(),
         viewAspectRatioPx, viewWidth, viewHeight, viewAspectRatio, viewScalePx,

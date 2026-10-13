@@ -14,15 +14,35 @@ enum class rope_constraint_e : uint32_t {
   ROPE_CENTITY_CONSTRAINT = 0x3,
 };
 
+inline constexpr const char *serialize(const rope_constraint_e type) {
+  switch (type) {
+  case rope_constraint_e::ROPE_PAIR_CONSTRAINT:
+    return "ROPE_PAIR_CONSTRAINT";
+  case rope_constraint_e::ROPE_WORLD_CONSTRAINT:
+    return "ROPE_WORLD_CONSTRAINT";
+  case rope_constraint_e::ROPE_DENTITY_CONSTRAINT:
+    return "ROPE_DENTITY_CONSTRAINT";
+  case rope_constraint_e::ROPE_CENTITY_CONSTRAINT:
+    return "ROPE_CENTITY_CONSTRAINT";
+  default:
+    return "ROPE_CONSTRAINT_INVALID";
+  }
+}
+
 struct par_t {
   vec3_t p;
   vec3_t p0;
   vec3_t p_prev;
   int32_t flags;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"p\": {}, \"p0\": {}, \"p_prev\": {}, \"flags\": {:08X} }}",
+        p.serialize(), p0.serialize(), p_prev.serialize(), flags);
+  }
 };
 
-#pragma pack(push, 1)
-class constraint_t {
+PACKED(class constraint_t {
 public:
   vec3_t p;
   rope_constraint_e type;
@@ -31,21 +51,37 @@ public:
   uint8_t pi1;
   uint8_t pi2;
   uint8_t _padding1A[2];
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"p\": {}, \"type\": {}, \"entity_index\": {}, "
+        "\"bone_name_hash\": {:08X}, \"pi1\": {}, \"pi2\": {} }}",
+        p.serialize(), game::rope::serialize(type), entity_index,
+        bone_name_hash, pi1, pi2);
+  }
+});
 
 struct rope_frame_verts_t {
   int num_verts;
   vec3_t v[60];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"num_verts\": {}, \"v\": {} }}", num_verts,
+                       ::serialize(&v[0], num_verts));
+  }
 };
 
 struct rope_client_verts_t {
   rope_frame_verts_t frame_verts[2];
   uint32_t frame_index;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"frame_verts\": {}, \"frame_index\": {} }}",
+                       ::serialize(frame_verts), frame_index);
+  }
 };
 
-#pragma pack(push, 1)
-struct rope_t {
+PACKED(struct rope_t {
   par_t m_particles[30];
   constraint_t m_constraints[35];
   int32_t m_entity_anchors[3];
@@ -76,8 +112,33 @@ struct rope_t {
   int32_t m_model;
   int32_t m_slice_count;
   uint8_t _paddingECC[4];
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"m_particles\": {}, \"m_constraints\": {}, \"m_entity_anchors\": "
+        "{}, "
+        "\"m_num_particles\": {}, \"m_num_constraints\": {}, "
+        "\"m_num_entity_anchors\": {}, "
+        "\"m_num_draw_verts\": {}, \"m_client_verts\": {}, \"m_min\": {}, "
+        "\"m_max\": {}, \"m_start\": {}, \"m_end\": {}, \"m_in_use\": {}, "
+        "\"m_visible\": {}, \"m_dist_constraint\": {}, \"m_flags\": {:08X}, "
+        "\"m_material\": {}, \"m_seglen\": {}, \"m_length\": {}, \"m_width\": "
+        "{}, "
+        "\"m_scale\": {}, \"m_force_scale\": {}, \"m_health\": {}, "
+        "\"m_frame\": {}, "
+        "\"m_stable_count\": {}, \"m_static_rope\": {}, \"m_model\": {}, "
+        "\"m_slice_count\": {} }}",
+        ::serialize(m_particles), ::serialize(m_constraints),
+        ::serialize(m_entity_anchors), m_num_particles, m_num_constraints,
+        m_num_entity_anchors, m_num_draw_verts, m_client_verts.serialize(),
+        m_min.serialize(), m_max.serialize(), m_start.serialize(),
+        m_end.serialize(), m_in_use.serialize(), m_visible.serialize(),
+        m_dist_constraint.serialize(), m_flags, ::serialize(m_material),
+        m_seglen, m_length, m_width, m_scale, m_force_scale.serialize(),
+        m_health, m_frame, m_stable_count, m_static_rope, m_model,
+        m_slice_count);
+  }
+});
 
 } // namespace rope
 } // namespace game

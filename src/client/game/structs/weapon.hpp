@@ -19,6 +19,19 @@ enum class GadgetTargetResult : uint32_t {
   MAX = 0x3,
 };
 
+inline constexpr const char *serialize(const GadgetTargetResult result) {
+  switch (result) {
+  case GadgetTargetResult::NONE:
+    return "GADGETTARGET_NONE";
+  case GadgetTargetResult::HIT:
+    return "GADGETTARGET_HIT";
+  case GadgetTargetResult::MISS:
+    return "GADGETTARGET_MISS";
+  default:
+    return "GADGETTARGET_INVALID";
+  }
+}
+
 enum class gadgetPulseShareType_e : int32_t {
   DEFAULT = 0x0,
   NONE = 0x1,
@@ -27,6 +40,23 @@ enum class gadgetPulseShareType_e : int32_t {
   BOTH = 0x4,
   COUNT = 0x5,
 };
+
+inline constexpr const char *serialize(const gadgetPulseShareType_e type) {
+  switch (type) {
+  case gadgetPulseShareType_e::DEFAULT:
+    return "GADGETPULSESHARE_DEFAULT";
+  case gadgetPulseShareType_e::NONE:
+    return "GADGETPULSESHARE_NONE";
+  case gadgetPulseShareType_e::MINIMAP:
+    return "GADGETPULSESHARE_MINIMAP";
+  case gadgetPulseShareType_e::VIEWPORT:
+    return "GADGETPULSESHARE_VIEWPORT";
+  case gadgetPulseShareType_e::BOTH:
+    return "GADGETPULSESHARE_BOTH";
+  default:
+    return "GADGETPULSESHARE_INVALID";
+  }
+}
 
 union Weapon {
   struct {
@@ -40,9 +70,17 @@ union Weapon {
     uint64_t attachment7 : 6;
     uint64_t attachment8 : 6;
     uint64_t padding : 7;
-  } _anon_0;
+  };
 
   uint64_t weaponData;
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"weaponIdx\": {}, \"attachment1\": {}, \"attachment2\": {}, "
+        "\"attachment3\": {}, \"attachment4\": {}, \"attachment5\": {}, "
+        "\"attachment6\": {}, \"attachment7\": {}, \"attachment8\": {} }}",
+        weaponIdx, attachment1, attachment2, attachment3, attachment4,
+        attachment5, attachment6, attachment7, attachment8);
+  }
 };
 ASSERT_SIZE(Weapon, 0x8);
 
@@ -58,18 +96,33 @@ union AttachmentCosmeticVariantIndexes {
     uint32_t attachmentCosmeticVariantIndex8 : 4;
   };
   uint32_t data;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"attachmentCosmeticVariantIndex1\": {}, "
+        "\"attachmentCosmeticVariantIndex2\": {}, "
+        "\"attachmentCosmeticVariantIndex3\": {}, "
+        "\"attachmentCosmeticVariantIndex4\": {}, "
+        "\"attachmentCosmeticVariantIndex5\": {}, "
+        "\"attachmentCosmeticVariantIndex6\": {}, "
+        "\"attachmentCosmeticVariantIndex7\": {}, "
+        "\"attachmentCosmeticVariantIndex8\": {} }}",
+        attachmentCosmeticVariantIndex1, attachmentCosmeticVariantIndex2,
+        attachmentCosmeticVariantIndex2, attachmentCosmeticVariantIndex3,
+        attachmentCosmeticVariantIndex4, attachmentCosmeticVariantIndex5,
+        attachmentCosmeticVariantIndex6, attachmentCosmeticVariantIndex7,
+        attachmentCosmeticVariantIndex8);
+  }
 };
 ASSERT_SIZE(AttachmentCosmeticVariantIndexes, 0x4);
 
-#pragma pack(push, 1)
-struct entityGadgetState_t {
+PACKED(struct entityGadgetState_t {
   Weapon gadgetWeapon;
   int32_t gadgetActivateTime;
   int16_t gadgetEntNum;
   uint8_t gadgetEntityStateFlags;
   uint8_t _padding0F[1];
-};
-#pragma pack(pop)
+});
 
 enum class gadgetType_e : int32_t {
   NONE = 0x0,
@@ -133,6 +186,129 @@ enum class gadgetType_e : int32_t {
   COUNT = 0x3A,
 };
 
+inline constexpr const char *serialize(const gadgetType_e type) {
+  switch (type) {
+  case gadgetType_e::NONE:
+    return "GADGET_NONE";
+  case gadgetType_e::OTHER:
+    return "GADGET_OTHER";
+  case gadgetType_e::OPTIC_CAMO:
+    return "GADGET_OPTIC_CAMO";
+  case gadgetType_e::ARMOR_REGEN:
+    return "GADGET_ARMOR_REGEN";
+  case gadgetType_e::ARMOR:
+    return "GADGET_ARMOR";
+  case gadgetType_e::DRONE:
+    return "GADGET_DRONE";
+  case gadgetType_e::VISION_PULSE:
+    return "GADGET_VISION_PULSE";
+  case gadgetType_e::MULTI_ROCKET:
+    return "GADGET_MULTI_ROCKET";
+  case gadgetType_e::TURRET_DEPLOY:
+    return "GADGET_TURRET_DEPLOY";
+  case gadgetType_e::GRENADE:
+    return "GADGET_GRENADE";
+  case gadgetType_e::JUKE:
+    return "GADGET_JUKE";
+  case gadgetType_e::HACKER:
+    return "GADGET_HACKER";
+  case gadgetType_e::INFRARED:
+    return "GADGET_INFRARED";
+  case gadgetType_e::SPEED_BURST:
+    return "GADGET_SPEED_BURST";
+  case gadgetType_e::HERO_WEAPON:
+    return "GADGET_HERO_WEAPON";
+  case gadgetType_e::COMBAT_EFFICIENCY:
+    return "GADGET_COMBAT_EFFICIENCY";
+  case gadgetType_e::FLASHBACK:
+    return "GADGET_FLASHBACK";
+  case gadgetType_e::CLEANSE:
+    return "GADGET_CLEANSE";
+  case gadgetType_e::SYSTEM_OVERLOAD:
+    return "GADGET_SYSTEM_OVERLOAD";
+  case gadgetType_e::SERVO_SHORTOUT:
+    return "GADGET_SERVO_SHORTOUT";
+  case gadgetType_e::EXO_BREAKDOWN:
+    return "GADGET_EXO_BREAKDOWN";
+  case gadgetType_e::SURGE:
+    return "GADGET_SURGE";
+  case gadgetType_e::RAVAGE_CORE:
+    return "GADGET_RAVAGE_CORE";
+  case gadgetType_e::REMOTE_HIJACK:
+    return "GADGET_REMOTE_HIJACK";
+  case gadgetType_e::IFF_OVERRIDE:
+    return "GADGET_IFF_OVERRIDE";
+  case gadgetType_e::CACOPHONY:
+    return "GADGET_CACOPHONY";
+  case gadgetType_e::FORCED_MALFUNCTION:
+    return "GADGET_FORCED_MALFUNCTION";
+  case gadgetType_e::CONCUSSIVE_WAVE:
+    return "GADGET_CONCUSSIVE_WAVE";
+  case gadgetType_e::OVERDRIVE:
+    return "GADGET_OVERDRIVE";
+  case gadgetType_e::UNSTOPPABLE_FORCE:
+    return "GADGET_UNSTOPPABLE_FORCE";
+  case gadgetType_e::RAPID_STRIKE:
+    return "GADGET_RAPID_STRIKE";
+  case gadgetType_e::ACTIVE_CAMO:
+    return "GADGET_ACTIVE_CAMO";
+  case gadgetType_e::SENSORY_OVERLOAD:
+    return "GADGET_SENSORY_OVERLOAD";
+  case gadgetType_e::ES_STRIKE:
+    return "GADGET_ES_STRIKE";
+  case gadgetType_e::IMMOLATION:
+    return "GADGET_IMMOLATION";
+  case gadgetType_e::FIREFLY_SWARM:
+    return "GADGET_FIREFLY_SWARM";
+  case gadgetType_e::SMOKESCREEN:
+    return "GADGET_SMOKESCREEN";
+  case gadgetType_e::MISDIRECTION:
+    return "GADGET_MISDIRECTION";
+  case gadgetType_e::MRPUKEY:
+    return "GADGET_MRPUKEY";
+  case gadgetType_e::SHOCK_FIELD:
+    return "GADGET_SHOCK_FIELD";
+  case gadgetType_e::RESURRECT:
+    return "GADGET_RESURRECT";
+  case gadgetType_e::HEAT_WAVE:
+    return "GADGET_HEAT_WAVE";
+  case gadgetType_e::CLONE:
+    return "GADGET_CLONE";
+  case gadgetType_e::ROULETTE:
+    return "GADGET_ROULETTE";
+  case gadgetType_e::THIEF:
+    return "GADGET_THIEF";
+  case gadgetType_e::DISRUPTOR:
+    return "GADGET_DISRUPTOR";
+  case gadgetType_e::HORNET_SWARM:
+    return "GADGET_HORNET_SWARM";
+  case gadgetType_e::GROUP_REVIVE:
+    return "GADGET_GROUP_REVIVE";
+  case gadgetType_e::XRAY_EYES:
+    return "GADGET_XRAY_EYES";
+  case gadgetType_e::EMERGENCY_MELEE:
+    return "GADGET_EMERGENCY_MELEE";
+  case gadgetType_e::SHOULDER_GUN:
+    return "GADGET_SHOULDER_GUN";
+  case gadgetType_e::GRAPPLE:
+    return "GADGET_GRAPPLE";
+  case gadgetType_e::INVULNERABLE:
+    return "GADGET_INVULNERABLE";
+  case gadgetType_e::SPRINT_BOOST:
+    return "GADGET_SPRINT_BOOST";
+  case gadgetType_e::HEALTH_REGEN:
+    return "GADGET_HEALTH_REGEN";
+  case gadgetType_e::SELF_DESTRUCT:
+    return "GADGET_SELF_DESTRUCT";
+  case gadgetType_e::BARRIER_BUILDER:
+    return "GADGET_BARRIER_BUILDER";
+  case gadgetType_e::SPAWN_BEACON:
+    return "GADGET_SPAWN_BEACON";
+  default:
+    return "GADGET_INVALID";
+  }
+}
+
 enum class gadgetHoldMode_e : int32_t {
   WIELD = 0x0,
   OFFHAND = 0x1,
@@ -142,12 +318,42 @@ enum class gadgetHoldMode_e : int32_t {
   COUNT = 0x5,
 };
 
+inline constexpr const char *serialize(const gadgetHoldMode_e mode) {
+  switch (mode) {
+  case gadgetHoldMode_e::WIELD:
+    return "HOLDMODE_WIELD";
+  case gadgetHoldMode_e::OFFHAND:
+    return "HOLDMODE_OFFHAND";
+  case gadgetHoldMode_e::THROW:
+    return "HOLDMODE_THROW";
+  case gadgetHoldMode_e::HANDS_FREE:
+    return "HOLDMODE_HANDS_FREE";
+  case gadgetHoldMode_e::OFFHAND_PRIME:
+    return "HOLDMODE_OFFHAND_PRIME";
+  default:
+    return "HOLDMODE_INVALID";
+  }
+}
+
 enum class gadgetPowerUseType_e : int32_t {
   AMMO = 0x0,
   COOLDOWN = 0x1,
   POWER_BAR = 0x2,
   COUNT = 0x3,
 };
+
+inline constexpr const char *serialize(const gadgetPowerUseType_e type) {
+  switch (type) {
+  case gadgetPowerUseType_e::AMMO:
+    return "POWERUSE_AMMO";
+  case gadgetPowerUseType_e::COOLDOWN:
+    return "POWERUSE_COOLDOWN";
+  case gadgetPowerUseType_e::POWER_BAR:
+    return "POWERUSE_POWER_BAR";
+  default:
+    return "POWERUSE_INVALID";
+  }
+}
 
 enum class gadgetActivateMode_e : int32_t {
   HOLD = 0x0,
@@ -162,23 +368,82 @@ enum class gadgetActivateMode_e : int32_t {
   COUNT = 0x9,
 };
 
+inline constexpr const char *serialize(const gadgetActivateMode_e mode) {
+  switch (mode) {
+  case gadgetActivateMode_e::HOLD:
+    return "ACTIVATE_HOLD";
+  case gadgetActivateMode_e::TOGGLE:
+    return "ACTIVATE_TOGGLE";
+  case gadgetActivateMode_e::SINGLE:
+    return "ACTIVATE_SINGLE";
+  case gadgetActivateMode_e::TOGGLE_AND_ATTACK:
+    return "ACTIVATE_TOGGLE_AND_ATTACK";
+  case gadgetActivateMode_e::TOGGLE_AND_HOLD:
+    return "ACTIVATE_TOGGLE_AND_HOLD";
+  case gadgetActivateMode_e::SINGLE_STAY_ON:
+    return "ACTIVATE_SINGLE_STAY_ON";
+  case gadgetActivateMode_e::AUTO:
+    return "ACTIVATE_AUTO";
+  case gadgetActivateMode_e::PRIME_ON_HOLD_ACTIVATE_ON_RELEASE:
+    return "ACTIVATE_PRIME_ON_HOLD_ACTIVATE_ON_RELEASE";
+  case gadgetActivateMode_e::PRIME_ON_HOLD_ACTIVATE_ON_RELEASE_STAY_ON:
+    return "ACTIVATE_PRIME_ON_HOLD_ACTIVATE_ON_RELEASE_STAY_ON";
+  default:
+    return "ACTIVATE_INVALID";
+  }
+}
+
 enum class weapOverlayReticle_t : int32_t {
   NONE = 0x0,
   CROSSHAIR = 0x1,
   COUNT = 0x2,
 };
 
+inline constexpr const char *serialize(const weapOverlayReticle_t reticle) {
+  switch (reticle) {
+  case weapOverlayReticle_t::NONE:
+    return "RETICLE_NONE";
+  case weapOverlayReticle_t::CROSSHAIR:
+    return "RETICLE_CROSSHAIR";
+  default:
+    return "RETICLE_INVALID";
+  }
+}
+
 enum class WeapStickinessType : int32_t {
-  WEAPSTICKINESS_NONE = 0x0,
-  WEAPSTICKINESS_ALL = 0x1,
-  WEAPSTICKINESS_ALL_NO_SENTIENTS = 0x2,
-  WEAPSTICKINESS_ALL_NO_VEHICLES = 0x3,
-  WEAPSTICKINESS_GROUND = 0x4,
-  WEAPSTICKINESS_GROUND_WITH_YAW = 0x5,
-  WEAPSTICKINESS_FLESH = 0x6,
+  NONE = 0x0,
+  ALL = 0x1,
+  ALL_NO_SENTIENTS = 0x2,
+  ALL_NO_VEHICLES = 0x3,
+  GROUND = 0x4,
+  GROUND_WITH_YAW = 0x5,
+  FLESH = 0x6,
   WEAPSTICKINESS_IGNORE = 0x7,
-  WEAPSTICKINESS_COUNT = 0x8,
+  COUNT = 0x8,
 };
+
+inline constexpr const char *serialize(const WeapStickinessType type) {
+  switch (type) {
+  case WeapStickinessType::NONE:
+    return "WEAPSTICKINESS_NONE";
+  case WeapStickinessType::ALL:
+    return "WEAPSTICKINESS_ALL";
+  case WeapStickinessType::ALL_NO_SENTIENTS:
+    return "WEAPSTICKINESS_ALL_NO_SENTIENTS";
+  case WeapStickinessType::ALL_NO_VEHICLES:
+    return "WEAPSTICKINESS_ALL_NO_VEHICLES";
+  case WeapStickinessType::GROUND:
+    return "WEAPSTICKINESS_GROUND";
+  case WeapStickinessType::GROUND_WITH_YAW:
+    return "WEAPSTICKINESS_GROUND_WITH_YAW";
+  case WeapStickinessType::FLESH:
+    return "WEAPSTICKINESS_FLESH";
+  case WeapStickinessType::WEAPSTICKINESS_IGNORE:
+    return "WEAPSTICKINESS_IGNORE";
+  default:
+    return "WEAPSTICKINESS_INVALID";
+  }
+}
 
 enum class eAttachment : int32_t {
   NOT_FOUND = -1,
@@ -233,8 +498,104 @@ enum class eAttachment : int32_t {
   INVALID = 0x2C,
 };
 
-#pragma pack(push, 1)
-struct gadgetProperties_t {
+inline constexpr const char *serialize(const eAttachment att) {
+  switch (att) {
+  case eAttachment::NOT_FOUND:
+    return "ATTACHMENT_NOT_FOUND";
+  case eAttachment::NONE:
+    return "ATTACHMENT_NONE";
+  case eAttachment::ACOG:
+    return "ATTACHMENT_ACOG";
+  case eAttachment::CLANTAG:
+    return "ATTACHMENT_CLANTAG";
+  case eAttachment::DAMAGE:
+    return "ATTACHMENT_DAMAGE";
+  case eAttachment::DUALCLIP:
+    return "ATTACHMENT_DUALCLIP";
+  case eAttachment::DUALOPTIC:
+    return "ATTACHMENT_DUALOPTIC";
+  case eAttachment::DW:
+    return "ATTACHMENT_DW";
+  case eAttachment::DYNZOOM:
+    return "ATTACHMENT_DYNZOOM";
+  case eAttachment::EXTBARREL:
+    return "ATTACHMENT_EXTBARREL";
+  case eAttachment::EXTCLIP:
+    return "ATTACHMENT_EXTCLIP";
+  case eAttachment::FASTADS:
+    return "ATTACHMENT_FASTADS";
+  case eAttachment::FASTRELOAD:
+    return "ATTACHMENT_FASTRELOAD";
+  case eAttachment::FMJ:
+    return "ATTACHMENT_FMJ";
+  case eAttachment::GL:
+    return "ATTACHMENT_GL";
+  case eAttachment::GADGET_MOD_0:
+    return "ATTACHMENT_GADGET_MOD_0";
+  case eAttachment::GADGET_MOD_1:
+    return "ATTACHMENT_GADGET_MOD_1";
+  case eAttachment::GADGET_MOD_2:
+    return "ATTACHMENT_GADGET_MOD_2";
+  case eAttachment::GADGET_MOD_3:
+    return "ATTACHMENT_GADGET_MOD_3";
+  case eAttachment::GADGET_MOD_4:
+    return "ATTACHMENT_GADGET_MOD_4";
+  case eAttachment::GADGET_MOD_5:
+    return "ATTACHMENT_GADGET_MOD_5";
+  case eAttachment::GRIP:
+    return "ATTACHMENT_GRIP";
+  case eAttachment::HOLO:
+    return "ATTACHMENT_HOLO";
+  case eAttachment::IR:
+    return "ATTACHMENT_IR";
+  case eAttachment::IRONSIGHTS:
+    return "ATTACHMENT_IRONSIGHTS";
+  case eAttachment::KILLCOUNTER:
+    return "ATTACHMENT_KILLCOUNTER";
+  case eAttachment::MK:
+    return "ATTACHMENT_MK";
+  case eAttachment::MMS:
+    return "ATTACHMENT_MMS";
+  case eAttachment::NOTRACER:
+    return "ATTACHMENT_NOTRACER";
+  case eAttachment::PRECISION:
+    return "ATTACHMENT_PRECISION";
+  case eAttachment::QUICKDRAW:
+    return "ATTACHMENT_QUICKDRAW";
+  case eAttachment::RANGEFINDER:
+    return "ATTACHMENT_RANGEFINDER";
+  case eAttachment::RECON:
+    return "ATTACHMENT_RECON";
+  case eAttachment::REDDOT:
+    return "ATTACHMENT_REDDOT";
+  case eAttachment::REFLEX:
+    return "ATTACHMENT_REFLEX";
+  case eAttachment::RF:
+    return "ATTACHMENT_RF";
+  case eAttachment::SELECTFIRE:
+    return "ATTACHMENT_SELECTFIRE";
+  case eAttachment::STACKFIRE:
+    return "ATTACHMENT_STACKFIRE";
+  case eAttachment::STALKER:
+    return "ATTACHMENT_STALKER";
+  case eAttachment::STEADYAIM:
+    return "ATTACHMENT_STEADYAIM";
+  case eAttachment::SUPPLY:
+    return "ATTACHMENT_SUPPLY";
+  case eAttachment::SUPPRESSED:
+    return "ATTACHMENT_SUPPRESSED";
+  case eAttachment::SWAYREDUC:
+    return "ATTACHMENT_SWAYREDUC";
+  case eAttachment::TACKNIFE:
+    return "ATTACHMENT_TACKNIFE";
+  case eAttachment::VZOOM:
+    return "ATTACHMENT_VZOOM";
+  default:
+    return "ATTACHMENT_INVALID";
+  }
+}
+
+PACKED(struct gadgetProperties_t {
   gadgetActivateMode_e activate_mode;
   gadgetType_e gadget_type;
   gadgetHoldMode_e weapon_hold_mode;
@@ -373,8 +734,176 @@ struct gadgetProperties_t {
   bool fastADS;
   bool activatesCast;
   qboolean targetedCast;
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"activate_mode\": {}, \"gadget_type\": {}, \"weapon_hold_mode\": "
+        "{}, "
+        "\"power_use_type\": {}, \"activate_with_primed_delay\": {}, "
+        "\"movementMultipliers\": {}, "
+        "\"shock_field_radius\": {}, \"shock_field_damage\": {}, "
+        "\"camo_bread_crumb_duration\": {}, "
+        "\"camo_invisibility_alert_time\": {}, "
+        "\"camo_invisibility_flicker_extension_time\": {}, "
+        "\"camo_invisibility_flicker_radius_extension\": {}, "
+        "\"camo_invisibility_radius\": {}, "
+        "\"camo_invisibility_takedown_response_radius\": {}, "
+        "\"camo_invisibility_takedown_reveal_time\": {}, "
+        "\"camo_takedown_power_gain\": {}, "
+        "\"escort_drone_bullet_dmg_power_loss\": {}, "
+        "\"escort_drone_burst_count_max\": {}, "
+        "\"escort_drone_burst_count_min\": {}, "
+        "\"escort_drone_burst_power_loss\": {}, "
+        "\"escort_drone_burst_wait_time\": {}, "
+        "\"escort_drone_exp_dmg_power_loss\": {}, \"escort_drone_hover_dist\": "
+        "{}, "
+        "\"escort_drone_launch_dist\": {}, "
+        "\"escort_drone_misc_dmg_power_loss\": {}, "
+        "\"escort_drone_target_acquire_time\": {}, "
+        "\"escort_drone_tether_max_dist\": {}, "
+        "\"escort_drone_tether_min_dist\": {}, \"flicker_on_damage\": {}, "
+        "\"flicker_on_power_loss\": {}, "
+        "\"flicker_on_power_low\": {}, \"flicker_on_whizby\": {}, "
+        "\"heroVersion_2_0\": {}, "
+        "\"multiRocket_acquisition_time\": {}, \"multiRocket_fire_interval\": "
+        "{}, "
+        "\"multiRocket_fire_power_loss\": {}, \"multirocket_target_number\": "
+        "{}, "
+        "\"multiRocket_target_radius\": {}, \"gadget_max_hitpoints\": {}, "
+        "\"blurAmount\": {}, "
+        "\"blurRadiusInner\": {}, \"blurRadiusOuter\": {}, \"blurOutScale\": "
+        "{}, "
+        "\"blurInTime\": {}, \"blurOutTime\": {}, \"blur_screen\": {}, "
+        "\"changeLens\": {}, "
+        "\"lensScaleInitial\": {}, \"lensScaleFinal\": {}, "
+        "\"lensMinFocalLength\": {}, "
+        "\"lensMaxFocalLength\": {}, \"lensTransTimeIn\": {}, "
+        "\"lensTransTimeOut\": {}, "
+        "\"power_shared\": {}, \"power_attack_loss\": {}, "
+        "\"power_consume_on_ammo_use\": {}, "
+        "\"power_damage_factor\": {}, \"power_flicker_chance\": {}, "
+        "\"power_flicker_frequency\": {}, "
+        "\"power_flicker_threshold\": {}, \"power_gain_on_retrieve\": {}, "
+        "\"power_gain_score_factor\": {}, "
+        "\"power_gain_score_ignore_self\": {}, "
+        "\"power_gain_score_ignore_when_active\": {}, "
+        "\"power_init_empty\": {}, \"power_init_amount\": {}, "
+        "\"power_juke_loss\": {}, "
+        "\"power_jump_loss\": {}, \"power_melee_loss\": {}, "
+        "\"power_move_loss\": {}, "
+        "\"power_move_loss_speed\": {}, \"power_on_damage_factor\": {}, "
+        "\"power_power_bonus\": {}, "
+        "\"power_recharge_delay\": {}, \"power_recharge_delay_max\": {}, "
+        "\"power_recharge_rate\": {}, "
+        "\"power_recharge_disable_on_emp\": {}, \"power_replenish_factor\": "
+        "{}, "
+        "\"power_reset_on_class_change\": {}, "
+        "\"power_reset_on_death_if_active\": {}, "
+        "\"power_reset_on_spawn\": {}, \"power_reset_on_team_change\": {}, "
+        "\"power_reset_on_round_switch\": {}, "
+        "\"power_round_end_active_penalty\": {}, "
+        "\"power_sprint_loss\": {}, \"power_shut_off_on_death_penalty\": {}, "
+        "\"power_shut_off_penalty\": {}, \"power_turn_off_penalty\": {}, "
+        "\"power_usable_threshold\": {}, "
+        "\"power_usage_rate\": {}, \"pulse_duration\": {}, \"pulse_margin\": "
+        "{}, \"pulse_reveal_time\": {}, "
+        "\"pulse_reveal_camo_time\": {}, \"pulse_reveal_time_viewModel\": {}, "
+        "\"pulse_share_radius\": {}, "
+        "\"pulse_enemy_share_type\": {}, \"pulse_share_type\": {}, "
+        "\"pulse_type\": {}, "
+        "\"pulse_max_range\": {}, \"shield_blast_protection_120\": {}, "
+        "\"shield_blast_protection_180\": {}, "
+        "\"shield_blast_protection_30\": {}, \"shield_blast_protection_60\": "
+        "{}, "
+        "\"shield_reflect_actor_accuracy_multiplier\": {}, "
+        "\"shield_reflect_aim_assist_lerp\": {}, "
+        "\"shield_reflect_damage_multiplier\": {}, "
+        "\"shield_reflect_power_gain\": {}, "
+        "\"shield_reflect_power_loss\": {}, \"speed_max_power_usage_rate\": "
+        "{}, "
+        "\"speed_max_power_speed_threshold\": {}, \"speed_sprint_out_scale\": "
+        "{}, "
+        "\"speed_wallrun_out_scale\": {}, \"cleanseRadius\": {}, "
+        "\"turnoff_onEmpJammed\": {}, "
+        "\"turnoff_onHeldKillstreak\": {}, \"turnoff_onAttack\": {}, "
+        "\"can_activate_whenEmpJammed\": {}, "
+        "\"turret_fire_power_loss\": {}, \"wielded_stayOn_onEmpJammed\": {}, "
+        "\"wielded_stayOn_onHeldKillstreak\": {}, "
+        "\"wielded_stayOn_onOffhandThrow\": {}, \"flashback_rewindTime\": {}, "
+        "\"flashback_screenFlashShotFadeTime\": {}, "
+        "\"flashback_screenFlashWhiteFadeTime\": {}, "
+        "\"flashback_rewindDistance\": {}, \"fastFire\": {}, \"fastReload\": "
+        "{}, \"fastSwitch\": {}, "
+        "\"fastMelee\": {}, \"fastToss\": {}, \"fastEquipmentUse\": {}, "
+        "\"fastADS\": {}, "
+        "\"activatesCast\": {}, \"targetedCast\": {} }}",
+        game::weapon::serialize(activate_mode),
+        game::weapon::serialize(gadget_type),
+        game::weapon::serialize(weapon_hold_mode),
+        game::weapon::serialize(power_use_type), activate_with_primed_delay,
+        ::serialize(movementMultipliers), shock_field_radius,
+        shock_field_damage, camo_bread_crumb_duration,
+        camo_invisibility_alert_time, camo_invisibility_flicker_extension_time,
+        camo_invisibility_flicker_radius_extension, camo_invisibility_radius,
+        camo_invisibility_takedown_response_radius,
+        camo_invisibility_takedown_reveal_time, camo_takedown_power_gain,
+        escort_drone_bullet_dmg_power_loss, escort_drone_burst_count_max,
+        escort_drone_burst_count_min, escort_drone_burst_power_loss,
+        escort_drone_burst_wait_time, escort_drone_exp_dmg_power_loss,
+        escort_drone_hover_dist, escort_drone_launch_dist,
+        escort_drone_misc_dmg_power_loss, escort_drone_target_acquire_time,
+        escort_drone_tether_max_dist, escort_drone_tether_min_dist,
+        flicker_on_damage, flicker_on_power_loss, flicker_on_power_low,
+        flicker_on_whizby, heroVersion_2_0.serialize(),
+        multiRocket_acquisition_time, multiRocket_fire_interval,
+        multiRocket_fire_power_loss, multirocket_target_number,
+        multiRocket_target_radius, gadget_max_hitpoints, blurAmount,
+        blurRadiusInner, blurRadiusOuter, blurOutScale, blurInTime, blurOutTime,
+        ::serialize(blur_screen), ::serialize(changeLens), lensScaleInitial,
+        lensScaleFinal, lensMinFocalLength, lensMaxFocalLength, lensTransTimeIn,
+        lensTransTimeOut, power_shared.serialize(), power_attack_loss,
+        power_consume_on_ammo_use.serialize(), power_damage_factor,
+        power_flicker_chance, power_flicker_frequency, power_flicker_threshold,
+        power_gain_on_retrieve, power_gain_score_factor,
+        ::serialize(power_gain_score_ignore_self),
+        ::serialize(power_gain_score_ignore_when_active),
+        ::serialize(power_init_empty), power_init_amount, power_juke_loss,
+        power_jump_loss, power_melee_loss, power_move_loss,
+        power_move_loss_speed, power_on_damage_factor, power_power_bonus,
+        power_recharge_delay, power_recharge_delay_max, power_recharge_rate,
+        power_recharge_disable_on_emp.serialize(), power_replenish_factor,
+        ::serialize(power_reset_on_class_change),
+        ::serialize(power_reset_on_death_if_active),
+        ::serialize(power_reset_on_spawn),
+        ::serialize(power_reset_on_team_change),
+        power_reset_on_round_switch.serialize(), power_round_end_active_penalty,
+        power_sprint_loss, power_shut_off_on_death_penalty,
+        power_shut_off_penalty, power_turn_off_penalty, power_usable_threshold,
+        power_usage_rate, pulse_duration, pulse_margin, pulse_reveal_time,
+        pulse_reveal_camo_time, pulse_reveal_time_viewModel, pulse_share_radius,
+        game::weapon::serialize(pulse_enemy_share_type),
+        game::weapon::serialize(pulse_share_type),
+        game::weapon::serialize(pulse_type), pulse_max_range,
+        shield_blast_protection_120, shield_blast_protection_180,
+        shield_blast_protection_30, shield_blast_protection_60,
+        shield_reflect_actor_accuracy_multiplier,
+        shield_reflect_aim_assist_lerp, shield_reflect_damage_multiplier,
+        shield_reflect_power_gain, shield_reflect_power_loss,
+        speed_max_power_usage_rate, speed_max_power_speed_threshold,
+        speed_sprint_out_scale, speed_wallrun_out_scale, cleanseRadius,
+        ::serialize(turnoff_onEmpJammed), ::serialize(turnoff_onHeldKillstreak),
+        ::serialize(turnoff_onAttack), ::serialize(can_activate_whenEmpJammed),
+        turret_fire_power_loss, ::serialize(wielded_stayOn_onEmpJammed),
+        ::serialize(wielded_stayOn_onHeldKillstreak),
+        ::serialize(wielded_stayOn_onOffhandThrow), flashback_rewindTime,
+        flashback_screenFlashShotFadeTime, flashback_screenFlashWhiteFadeTime,
+        flashback_rewindDistance, ::serialize(fastFire),
+        ::serialize(fastReload), ::serialize(fastSwitch),
+        ::serialize(fastMelee), ::serialize(fastToss),
+        ::serialize(fastEquipmentUse), ::serialize(fastADS),
+        ::serialize(activatesCast), targetedCast.serialize());
+  }
+});
 
 struct WeaponAttachmentUniqueModelInfo {
   db::xasset::xmodel::XModelPtr model;
@@ -382,6 +911,14 @@ struct WeaponAttachmentUniqueModelInfo {
   XString tag;
   vec3_t offset;
   vec3_t rotation;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"model\": {}, \"modelADS\": {}, \"tag\": {}, "
+                       "\"offset\": {}, \"rotation\": {} }}",
+                       ::serialize(model), ::serialize(modelADS),
+                       ::serialize(tag), offset.serialize(),
+                       rotation.serialize());
+  }
 };
 
 struct AttachmentCosmeticVariantModelInfo {
@@ -390,6 +927,14 @@ struct AttachmentCosmeticVariantModelInfo {
   XString tag;
   vec3_t offset;
   vec3_t rotation;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"model\": {}, \"modelADS\": {}, \"tag\": {}, "
+                       "\"offset\": {}, \"rotation\": {} }}",
+                       ::serialize(model), ::serialize(modelADS),
+                       ::serialize(tag), offset.serialize(),
+                       rotation.serialize());
+  }
 };
 
 struct AttachmentCosmeticVariantSet {
@@ -399,16 +944,31 @@ struct AttachmentCosmeticVariantSet {
   const char *displayNameLong;
   const char *description;
   gfx::GfxImagePtr uiMaterial;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"viewModelInfo\": {}, \"worldModelInfo\": {}, "
+        "\"displayNameShort\": {}, "
+        "\"displayNameLong\": {}, \"description\": {}, \"uiMaterial\": {:p} }}",
+        ::serialize(viewModelInfo), ::serialize(worldModelInfo),
+        ::serialize(displayNameShort), ::serialize(displayNameLong),
+        ::serialize(description), reinterpret_cast<const void *>(uiMaterial));
+  }
 };
 
-#pragma pack(push, 1)
-struct AttachmentCosmeticVariant {
+PACKED(struct AttachmentCosmeticVariant {
   const char *name;
   AttachmentCosmeticVariantSet *variantSets;
   int32_t numVariantSets;
   uint8_t _padding14[4];
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"name\": {}, \"variantSets\": {}, \"numVariantSets\": {} }}",
+        ::serialize(name), ::serialize(variantSets, numVariantSets),
+        numVariantSets);
+  }
+});
 typedef AttachmentCosmeticVariant *AttachmentCosmeticVariantPtr;
 
 struct WeaponAttachmentUniqueModelSet {
@@ -420,10 +980,23 @@ struct WeaponAttachmentUniqueModelSet {
   const char *displayNameLong;
   const char *description;
   gfx::GfxImageHandle uiMaterial;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"attachmentModelAssociation\": {}, "
+        "\"attachmentCosmeticVariantOverride\": {:p}, "
+        "\"viewModelInfo\": {}, \"worldModelInfo\": {}, \"displayNameShort\": "
+        "{}, "
+        "\"displayNameLong\": {}, \"description\": {}, \"uiMaterial\": {:p} }}",
+        game::weapon::serialize(attachmentModelAssociation),
+        reinterpret_cast<const void *>(attachmentCosmeticVariantOverride),
+        ::serialize(viewModelInfo), ::serialize(worldModelInfo),
+        ::serialize(displayNameShort), ::serialize(displayNameLong),
+        ::serialize(description), reinterpret_cast<const void *>(uiMaterial));
+  }
 };
 
-#pragma pack(push, 1)
-struct CamoMaterialChannel {
+PACKED(struct CamoMaterialChannel {
   uint16_t replaceFlags;
   uint8_t _padding02[6];
   db::xasset::MaterialDeferredHandle camoMaterial;
@@ -439,44 +1012,78 @@ struct CamoMaterialChannel {
   float detailHeight;
   vec2_t detailScale;
   uint8_t _padding44[4];
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"replaceFlags\": {:04X}, \"camoMaterial\": {}, "
+                       "\"translationX\": {}, "
+                       "\"translationY\": {}, \"scaleX\": {}, \"scaleY\": {}, "
+                       "\"rotation\": {}, "
+                       "\"normalBlend\": {}, \"glossBlend\": {}, "
+                       "\"albedoTint\": {}, \"detailMap\": {:p}, "
+                       "\"detailHeight\": {}, \"detailScale\": {} }}",
+                       replaceFlags, ::serialize(camoMaterial), translationX,
+                       translationY, scaleX, scaleY, rotation, normalBlend,
+                       glossBlend, albedoTint.serialize(),
+                       reinterpret_cast<const void *>(detailMap), detailHeight,
+                       detailScale.serialize());
+  }
+});
 
 struct CamoBaseMaterial {
   db::xasset::MaterialDeferredHandle material;
   gfx::GfxImage *mask;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"material\": {}, \"mask\": {:p} }}",
+                       ::serialize(material),
+                       reinterpret_cast<const void *>(mask));
+  }
 };
 
-#pragma pack(push, 1)
-struct CamoMaterial {
+PACKED(struct CamoMaterial {
   uint16_t numBaseMaterials;
   uint8_t _padding02[6];
   CamoBaseMaterial *baseMaterials;
   uint16_t activeChannels;
   uint8_t _padding12[6];
   CamoMaterialChannel camoMaterialChannels[4];
-};
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct WeaponCamoMaterialSet {
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"numBaseMaterials\": {}, \"baseMaterials\": {}, "
+                       "\"activeChannels\": {:04X}, "
+                       "\"camoMaterialChannels\": {} }}",
+                       numBaseMaterials,
+                       ::serialize(baseMaterials, numBaseMaterials),
+                       activeChannels, ::serialize(camoMaterialChannels));
+  }
+});
+
+PACKED(struct WeaponCamoMaterialSet {
   uint32_t numMaterials;
   uint8_t _padding04[4];
   CamoMaterial *materials;
-};
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct WeaponCamo {
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"numMaterials\": {}, \"materials\": {} }}",
+                       numMaterials, ::serialize(materials, numMaterials));
+  }
+});
+
+PACKED(struct WeaponCamo {
   const char *name;
   WeaponCamoMaterialSet *camoMaterials;
   uint32_t numCamoMaterials;
   uint8_t _padding014[4];
-};
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct WeaponAttachmentUnique {
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"name\": {}, \"camoMaterials\": {}, \"numCamoMaterials\": {} }}",
+        ::serialize(name), ::serialize(camoMaterials, numCamoMaterials),
+        numCamoMaterials);
+  }
+});
+
+PACKED(struct WeaponAttachmentUnique {
   const char *szInternalName;
   const char *szDisplayName;
   const char *szDisplayDesc;
@@ -620,9 +1227,156 @@ struct WeaponAttachmentUnique {
   bool customBool4;
   bool customBool5;
   uint8_t _padding832[6];
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"szInternalName\": {}, \"szDisplayName\": {}, \"szDisplayDesc\": "
+        "{}, "
+        "\"modHudIcon\": {}, \"attachmentImage\": {}, \"attachmentType\": {}, "
+        "\"siblingLink\": {}, \"childLink\": {}, "
+        "\"combinedAttachmentTypeMask\": {}, "
+        "\"szAltWeaponName\": {}, \"altWeaponIndex\": {}, "
+        "\"szDualWieldWeaponName\": {}, "
+        "\"dualWieldWeaponIndex\": {}, \"hideTags\": {:p}, "
+        "\"attachmentModelSets\": {}, "
+        "\"attachViewModel\": {:p}, \"attachWorldModel\": {:p}, "
+        "\"attachViewModelTag\": {:p}, "
+        "\"attachWorldModelTag\": {:p}, \"attachViewModelOffsets\": {}, "
+        "\"attachWorldModelOffsets\": {}, "
+        "\"attachViewModelRotations\": {}, \"attachWorldModelRotations\": {}, "
+        "\"weaponCamo\": {:p}, "
+        "\"disableBaseWeaponAttachment\": {}, \"disableBaseWeaponClip\": {}, "
+        "\"overrideBaseWeaponAttachmentOffsets\": {}, "
+        "\"viewModelOffsetBaseAttachment\": {}, "
+        "\"worldModelOffsetBaseAttachment\": {}, \"overlayMaterial\": {}, "
+        "\"overlayMaterialLowRes\": {}, "
+        "\"overlayReticle\": {}, \"iFirstRaiseTime\": {}, \"iAltRaiseTime\": "
+        "{}, \"iAltDropTime\": {}, "
+        "\"iAdsAltRaiseTime\": {}, \"iAdsAltDropTime\": {}, "
+        "\"iReloadAmmoAdd\": {}, \"iReloadStartAdd\": {}, "
+        "\"bSegmentedReload\": {}, \"szXAnims\": {:p}, \"animationOverrides\": "
+        "{}, "
+        "\"locationDamageMultipliers\": {:p}, \"damage\": {}, \"damageRange\": "
+        "{}, \"soundOverrides\": {}, "
+        "\"fireSound\": {}, \"fireSoundPlayer\": {}, \"fireBurstSound\": {}, "
+        "\"fireBurstSoundPlayer\": {}, "
+        "\"fireLoopSound\": {}, \"fireLoopSoundPlayer\": {}, "
+        "\"fireLoopSoundLeft\": {}, "
+        "\"fireLoopSoundPlayerLeft\": {}, \"fireLoopEndSound\": {}, "
+        "\"fireLoopEndSoundPlayer\": {}, "
+        "\"fireStartSound\": {}, \"fireStopSound\": {}, "
+        "\"fireStartSoundPlayer\": {}, \"fireStopSoundPlayer\": {}, "
+        "\"fireLastSound\": {}, \"fireLastSoundPlayer\": {}, "
+        "\"fireKillcamSound\": {}, \"fireKillcamSoundPlayer\": {}, "
+        "\"crackSound\": {}, \"whizbySound\": {}, \"emptyFireSound\": {}, "
+        "\"emptyFireSoundPlayer\": {}, "
+        "\"spinLoopSound\": {}, \"spinLoopSoundPlayer\": {}, "
+        "\"startSpinSound\": {}, \"startSpinSoundPlayer\": {}, "
+        "\"stopSpinSound\": {}, \"stopSpinSoundPlayer\": {}, "
+        "\"rotateLoopSound\": {}, \"rotateLoopSoundPlayer\": {}, "
+        "\"rotateStopSound\": {}, \"rotateStopSoundPlayer\": {}, "
+        "\"effectOverrides\": {}, \"viewFlashEffect\": {}, "
+        "\"worldFlashEffect\": {}, \"vViewFlashOffset\": {}, "
+        "\"vWorldFlashOffset\": {}, \"tracerType\": {}, "
+        "\"enemyTracerType\": {}, \"laserTypeViewModel\": {}, "
+        "\"laserTypeWorld\": {}, \"adsDofStart\": {}, "
+        "\"adsDofEnd\": {}, \"iAmmoIndex\": {}, \"iClipIndex\": {}, "
+        "\"bOverrideLeftHandIK\": {}, "
+        "\"bOverrideLeftHandProneIK\": {}, \"ikLeftHandOffset\": {}, "
+        "\"ikLeftHandRotation\": {}, "
+        "\"ikLeftHandProneOffset\": {}, \"ikLeftHandProneRotation\": {}, "
+        "\"iCanDoQuickToss\": {}, "
+        "\"stickiness\": {}, \"ammoCountEquipment\": {}, \"iStartAmmo\": {}, "
+        "\"iMaxAmmo\": {}, "
+        "\"iExplosionRadius\": {}, \"iExplosionRadiusMultiplier\": {}, "
+        "\"fuseTime\": {}, "
+        "\"proximityDetonation\": {}, \"proximityAlarmInnerRadius\": {}, "
+        "\"proximityAlarmOuterRadius\": {}, "
+        "\"proximityAlarmActivationDelay\": {}, \"chainEventRadius\": {}, "
+        "\"chainEventTime\": {}, "
+        "\"chainEventMax\": {}, \"multiDetonation\": {}, "
+        "\"multiDetonationFragmentSpeed\": {}, "
+        "\"curveballForce\": {}, \"curveballMaxRadius\": {}, "
+        "\"lockOnMaxRange\": {}, "
+        "\"lockOnMaxRangeNoLineOfSight\": {}, \"lockOnSpeed\": {}, "
+        "\"bProjExplodeWhenStationary\": {}, "
+        "\"gadgetProperty\": {}, \"customFloat0\": {}, \"customFloat1\": {}, "
+        "\"customFloat2\": {}, "
+        "\"customFloat3\": {}, \"customFloat4\": {}, \"customFloat5\": {}, "
+        "\"customBool0\": {}, "
+        "\"customBool1\": {}, \"customBool2\": {}, \"customBool3\": {}, "
+        "\"customBool4\": {}, "
+        "\"customBool5\": {} }}",
+        ::serialize(szInternalName), ::serialize(szDisplayName),
+        ::serialize(szDisplayDesc), ::serialize(modHudIcon),
+        ::serialize(attachmentImage), game::weapon::serialize(attachmentType),
+        siblingLink, childLink, ::serialize(combinedAttachmentTypeMask),
+        ::serialize(szAltWeaponName), altWeaponIndex,
+        ::serialize(szDualWieldWeaponName), dualWieldWeaponIndex,
+        reinterpret_cast<const void *>(hideTags),
+        ::serialize(attachmentModelSets),
+        reinterpret_cast<const void *>(attachViewModel),
+        reinterpret_cast<const void *>(attachWorldModel),
+        reinterpret_cast<const void *>(attachViewModelTag),
+        reinterpret_cast<const void *>(attachWorldModelTag),
+        ::serialize(attachViewModelOffsets),
+        ::serialize(attachWorldModelOffsets),
+        ::serialize(attachViewModelRotations),
+        ::serialize(attachWorldModelRotations),
+        reinterpret_cast<const void *>(weaponCamo),
+        ::serialize(disableBaseWeaponAttachment),
+        ::serialize(disableBaseWeaponClip),
+        ::serialize(overrideBaseWeaponAttachmentOffsets),
+        viewModelOffsetBaseAttachment.serialize(),
+        worldModelOffsetBaseAttachment.serialize(),
+        ::serialize(overlayMaterial), ::serialize(overlayMaterialLowRes),
+        game::weapon::serialize(overlayReticle), iFirstRaiseTime, iAltRaiseTime,
+        iAltDropTime, iAdsAltRaiseTime, iAdsAltDropTime, iReloadAmmoAdd,
+        iReloadStartAdd, ::serialize(bSegmentedReload),
+        reinterpret_cast<const void *>(szXAnims),
+        ::serialize(animationOverrides),
+        reinterpret_cast<const void *>(locationDamageMultipliers),
+        ::serialize(damage), ::serialize(damageRange), soundOverrides,
+        ::serialize(fireSound), ::serialize(fireSoundPlayer),
+        ::serialize(fireBurstSound), ::serialize(fireBurstSoundPlayer),
+        ::serialize(fireLoopSound), ::serialize(fireLoopSoundPlayer),
+        ::serialize(fireLoopSoundLeft), ::serialize(fireLoopSoundPlayerLeft),
+        ::serialize(fireLoopEndSound), ::serialize(fireLoopEndSoundPlayer),
+        ::serialize(fireStartSound), ::serialize(fireStopSound),
+        ::serialize(fireStartSoundPlayer), ::serialize(fireStopSoundPlayer),
+        ::serialize(fireLastSound), ::serialize(fireLastSoundPlayer),
+        ::serialize(fireKillcamSound), ::serialize(fireKillcamSoundPlayer),
+        ::serialize(crackSound), ::serialize(whizbySound),
+        ::serialize(emptyFireSound), ::serialize(emptyFireSoundPlayer),
+        ::serialize(spinLoopSound), ::serialize(spinLoopSoundPlayer),
+        ::serialize(startSpinSound), ::serialize(startSpinSoundPlayer),
+        ::serialize(stopSpinSound), ::serialize(stopSpinSoundPlayer),
+        ::serialize(rotateLoopSound), ::serialize(rotateLoopSoundPlayer),
+        ::serialize(rotateStopSound), ::serialize(rotateStopSoundPlayer),
+        effectOverrides, ::serialize(viewFlashEffect),
+        ::serialize(worldFlashEffect), vViewFlashOffset.serialize(),
+        vWorldFlashOffset.serialize(), ::serialize(tracerType),
+        ::serialize(enemyTracerType), ::serialize(laserTypeViewModel),
+        ::serialize(laserTypeWorld), adsDofStart, adsDofEnd, iAmmoIndex,
+        iClipIndex, ::serialize(bOverrideLeftHandIK),
+        ::serialize(bOverrideLeftHandProneIK), ikLeftHandOffset.serialize(),
+        ikLeftHandRotation.serialize(), ikLeftHandProneOffset.serialize(),
+        ikLeftHandProneRotation.serialize(), iCanDoQuickToss,
+        game::weapon::serialize(stickiness), ammoCountEquipment, iStartAmmo,
+        iMaxAmmo, iExplosionRadius, iExplosionRadiusMultiplier, fuseTime,
+        proximityDetonation, proximityAlarmInnerRadius,
+        proximityAlarmOuterRadius, proximityAlarmActivationDelay,
+        chainEventRadius, chainEventTime, chainEventMax, multiDetonation,
+        multiDetonationFragmentSpeed, curveballForce, curveballMaxRadius,
+        lockOnMaxRange, lockOnMaxRangeNoLineOfSight, lockOnSpeed,
+        bProjExplodeWhenStationary, gadgetProperty.serialize(), customFloat0,
+        customFloat1, customFloat2, customFloat3, customFloat4, customFloat5,
+        ::serialize(customBool0), ::serialize(customBool1),
+        ::serialize(customBool2), ::serialize(customBool3),
+        ::serialize(customBool4), ::serialize(customBool5));
+  }
+});
 typedef WeaponAttachmentUnique *WeaponAttachmentUniquePtr;
-#pragma pack(pop)
 
 enum class WeaponDobjInfoSlot : int32_t {
   HELD = 0x0,
@@ -631,10 +1385,30 @@ enum class WeaponDobjInfoSlot : int32_t {
   OFFHAND = 0x4,
 };
 
+inline constexpr const char *serialize(const WeaponDobjInfoSlot slot) {
+  switch (slot) {
+  case WeaponDobjInfoSlot::HELD:
+    return "SLOT_HELD";
+  case WeaponDobjInfoSlot::STOWED:
+    return "SLOT_STOWED";
+  case WeaponDobjInfoSlot::MELEE:
+    return "SLOT_MELEE";
+  case WeaponDobjInfoSlot::OFFHAND:
+    return "SLOT_OFFHAND";
+  default:
+    return "SLOT_INVALID";
+  }
+}
+
 struct ExplosionDamage {
   int32_t radius;
   int32_t height;
   int32_t damage;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"radius\": {}, \"height\": {}, \"damage\": {} }}",
+                       radius, height, damage);
+  }
 };
 
 enum class weapLockType_t : int32_t {
@@ -645,12 +1419,40 @@ enum class weapLockType_t : int32_t {
   COUNT = 0x4,
 };
 
+inline constexpr const char *serialize(const weapLockType_t type) {
+  switch (type) {
+  case weapLockType_t::NONE:
+    return "LOCKTYPE_NONE";
+  case weapLockType_t::TARGETED:
+    return "LOCKTYPE_TARGETED";
+  case weapLockType_t::SINGLEAP:
+    return "LOCKTYPE_SINGLEAP";
+  case weapLockType_t::MULTIAP:
+    return "LOCKTYPE_MULTIAP";
+  default:
+    return "LOCKTYPE_INVALID";
+  }
+}
+
 enum class WeapStickOrientation : int32_t {
   NONE = 0x0,
   FLAT = 0x1,
   FLAT_MAINTAIN_DIRECTION = 0x2,
   COUNT = 0x3,
 };
+
+inline constexpr const char *serialize(const WeapStickOrientation orient) {
+  switch (orient) {
+  case WeapStickOrientation::NONE:
+    return "STICKORIENT_NONE";
+  case WeapStickOrientation::FLAT:
+    return "STICKORIENT_FLAT";
+  case WeapStickOrientation::FLAT_MAINTAIN_DIRECTION:
+    return "STICKORIENT_FLAT_MAINTAIN_DIRECTION";
+  default:
+    return "STICKORIENT_INVALID";
+  }
+}
 
 struct RumbleInfo;
 typedef RumbleInfo *RumbleInfoPtr;
@@ -679,6 +1481,51 @@ enum class DamageType : int32_t {
   COUNT = 0x13,
 };
 
+inline constexpr const char *serialize(const DamageType dtype) {
+  switch (dtype) {
+  case DamageType::NORMAL:
+    return "DAMAGETYPE_NORMAL";
+  case DamageType::NORMAL_SHOTGUN:
+    return "DAMAGETYPE_NORMAL_SHOTGUN";
+  case DamageType::BURNED:
+    return "DAMAGETYPE_BURNED";
+  case DamageType::MELEE:
+    return "DAMAGETYPE_MELEE";
+  case DamageType::MELEE_ASSASSINATE:
+    return "DAMAGETYPE_MELEE_ASSASSINATE";
+  case DamageType::MELEE_CHARGE:
+    return "DAMAGETYPE_MELEE_CHARGE";
+  case DamageType::MELEE_BASH:
+    return "DAMAGETYPE_MELEE_BASH";
+  case DamageType::MELEE_ARMBLADE:
+    return "DAMAGETYPE_MELEE_ARMBLADE";
+  case DamageType::EXPLOSIVE:
+    return "DAMAGETYPE_EXPLOSIVE";
+  case DamageType::SUICIDE:
+    return "DAMAGETYPE_SUICIDE";
+  case DamageType::FALLING:
+    return "DAMAGETYPE_FALLING";
+  case DamageType::BLOWBACK:
+    return "DAMAGETYPE_BLOWBACK";
+  case DamageType::ELECTRIFIED:
+    return "DAMAGETYPE_ELECTRIFIED";
+  case DamageType::ANNIHILATOR:
+    return "DAMAGETYPE_ANNIHILATOR";
+  case DamageType::FIREFLIES:
+    return "DAMAGETYPE_FIREFLIES";
+  case DamageType::BOW_PARTIAL_CHARGE:
+    return "DAMAGETYPE_BOW_PARTIAL_CHARGE";
+  case DamageType::BOW_FULL_CHARGE:
+    return "DAMAGETYPE_BOW_FULL_CHARGE";
+  case DamageType::MELEE_BAT:
+    return "DAMAGETYPE_MELEE_BAT";
+  case DamageType::ENERGY_WEAPON:
+    return "DAMAGETYPE_ENERGY_WEAPON";
+  default:
+    return "DAMAGETYPE_INVALID";
+  }
+}
+
 enum class weapClass_t : int32_t {
   RIFLE = 0x0,
   MG = 0x1,
@@ -698,6 +1545,43 @@ enum class weapClass_t : int32_t {
   COUNT = 0xF,
 };
 
+inline constexpr const char *serialize(const weapClass_t wclass) {
+  switch (wclass) {
+  case weapClass_t::RIFLE:
+    return "WEAPCLASS_RIFLE";
+  case weapClass_t::MG:
+    return "WEAPCLASS_MG";
+  case weapClass_t::SMG:
+    return "WEAPCLASS_SMG";
+  case weapClass_t::SPREAD:
+    return "WEAPCLASS_SPREAD";
+  case weapClass_t::PISTOL:
+    return "WEAPCLASS_PISTOL";
+  case weapClass_t::GRENADE:
+    return "WEAPCLASS_GRENADE";
+  case weapClass_t::ROCKETLAUNCHER:
+    return "WEAPCLASS_ROCKETLAUNCHER";
+  case weapClass_t::TURRET:
+    return "WEAPCLASS_TURRET";
+  case weapClass_t::NON_PLAYER:
+    return "WEAPCLASS_NON_PLAYER";
+  case weapClass_t::GAS:
+    return "WEAPCLASS_GAS";
+  case weapClass_t::ITEM:
+    return "WEAPCLASS_ITEM";
+  case weapClass_t::MELEE:
+    return "WEAPCLASS_MELEE";
+  case weapClass_t::KILLSTREAK_ALT_STORED_WEAPON:
+    return "WEAPCLASS_KILLSTREAK_ALT_STORED_WEAPON";
+  case weapClass_t::PISTOL_SPREAD:
+    return "WEAPCLASS_PISTOL_SPREAD";
+  case weapClass_t::BALL:
+    return "WEAPCLASS_BALL";
+  default:
+    return "WEAPCLASS_INVALID";
+  }
+}
+
 enum class weapType_t : int32_t {
   BULLET = 0x0,
   GRENADE = 0x1,
@@ -711,6 +1595,31 @@ enum class weapType_t : int32_t {
   COUNT = 0x9,
 };
 
+inline constexpr const char *serialize(const weapType_t wtype) {
+  switch (wtype) {
+  case weapType_t::BULLET:
+    return "WEAPTYPE_BULLET";
+  case weapType_t::GRENADE:
+    return "WEAPTYPE_GRENADE";
+  case weapType_t::PROJECTILE:
+    return "WEAPTYPE_PROJECTILE";
+  case weapType_t::BINOCULARS:
+    return "WEAPTYPE_BINOCULARS";
+  case weapType_t::GAS:
+    return "WEAPTYPE_GAS";
+  case weapType_t::BOMB:
+    return "WEAPTYPE_BOMB";
+  case weapType_t::MINE:
+    return "WEAPTYPE_MINE";
+  case weapType_t::MELEE:
+    return "WEAPTYPE_MELEE";
+  case weapType_t::RIOTSHIELD:
+    return "WEAPTYPE_RIOTSHIELD";
+  default:
+    return "WEAPTYPE_INVALID";
+  }
+}
+
 enum class PenetrateType : int32_t {
   NONE = 0x0,
   SMALL = 0x1,
@@ -718,6 +1627,21 @@ enum class PenetrateType : int32_t {
   LARGE = 0x3,
   COUNT = 0x4,
 };
+
+inline constexpr const char *serialize(const PenetrateType ptype) {
+  switch (ptype) {
+  case PenetrateType::NONE:
+    return "PENTYPE_NONE";
+  case PenetrateType::SMALL:
+    return "PENTYPE_SMALL";
+  case PenetrateType::MEDIUM:
+    return "PENTYPE_MEDIUM";
+  case PenetrateType::LARGE:
+    return "PENTYPE_LARGE";
+  default:
+    return "PENTYPE_INVALID";
+  }
+}
 
 enum class ImpactType : int32_t {
   NONE = 0x0,
@@ -739,6 +1663,45 @@ enum class ImpactType : int32_t {
   COUNT = 0x10,
 };
 
+inline constexpr const char *serialize(const ImpactType itype) {
+  switch (itype) {
+  case ImpactType::NONE:
+    return "IMPACT_NONE";
+  case ImpactType::BULLET_SMALL:
+    return "IMPACT_BULLET_SMALL";
+  case ImpactType::BULLET_LARGE:
+    return "IMPACT_BULLET_LARGE";
+  case ImpactType::BULLET_AP:
+    return "IMPACT_BULLET_AP";
+  case ImpactType::BULLET_XTREME:
+    return "IMPACT_BULLET_XTREME";
+  case ImpactType::SHOTGUN:
+    return "IMPACT_SHOTGUN";
+  case ImpactType::GRENADE_BOUNCE:
+    return "IMPACT_GRENADE_BOUNCE";
+  case ImpactType::GRENADE_EXPLODE:
+    return "IMPACT_GRENADE_EXPLODE";
+  case ImpactType::RIFLE_GRENADE:
+    return "IMPACT_RIFLE_GRENADE";
+  case ImpactType::ROCKET_EXPLODE:
+    return "IMPACT_ROCKET_EXPLODE";
+  case ImpactType::ROCKET_EXPLODE_XTREME:
+    return "IMPACT_ROCKET_EXPLODE_XTREME";
+  case ImpactType::PROJECTILE_DUD:
+    return "IMPACT_PROJECTILE_DUD";
+  case ImpactType::MORTAR_SHELL:
+    return "IMPACT_MORTAR_SHELL";
+  case ImpactType::TANK_SHELL:
+    return "IMPACT_TANK_SHELL";
+  case ImpactType::BOLT:
+    return "IMPACT_BOLT";
+  case ImpactType::BLADE:
+    return "IMPACT_BLADE";
+  default:
+    return "IMPACT_INVALID";
+  }
+}
+
 enum class weapInventoryType_t : int32_t {
   PRIMARY = 0x0,
   OFFHAND = 0x1,
@@ -750,6 +1713,29 @@ enum class weapInventoryType_t : int32_t {
   HEAVY = 0x7,
   COUNT = 0x8,
 };
+
+inline constexpr const char *serialize(const weapInventoryType_t inv) {
+  switch (inv) {
+  case weapInventoryType_t::PRIMARY:
+    return "INV_PRIMARY";
+  case weapInventoryType_t::OFFHAND:
+    return "INV_OFFHAND";
+  case weapInventoryType_t::ITEM:
+    return "INV_ITEM";
+  case weapInventoryType_t::ALTMODE:
+    return "INV_ALTMODE";
+  case weapInventoryType_t::MELEE:
+    return "INV_MELEE";
+  case weapInventoryType_t::DWLEFTHAND:
+    return "INV_DWLEFTHAND";
+  case weapInventoryType_t::ABILITY:
+    return "INV_ABILITY";
+  case weapInventoryType_t::HEAVY:
+    return "INV_HEAVY";
+  default:
+    return "INV_INVALID";
+  }
+}
 
 enum class weapFireType_t : int32_t {
   FULLAUTO = 0x0,
@@ -767,6 +1753,39 @@ enum class weapFireType_t : int32_t {
   AIMONLY = 0xC,
   COUNT = 0xD,
 };
+
+inline constexpr const char *serialize(const weapFireType_t ftype) {
+  switch (ftype) {
+  case weapFireType_t::FULLAUTO:
+    return "FIRETYPE_FULLAUTO";
+  case weapFireType_t::SINGLESHOT:
+    return "FIRETYPE_SINGLESHOT";
+  case weapFireType_t::BURSTFIRE:
+    return "FIRETYPE_BURSTFIRE";
+  case weapFireType_t::AUTOBURSTFIRE:
+    return "FIRETYPE_AUTOBURSTFIRE";
+  case weapFireType_t::STACKED:
+    return "FIRETYPE_STACKED";
+  case weapFireType_t::ALLLOCKED:
+    return "FIRETYPE_ALLLOCKED";
+  case weapFireType_t::MINIGUN:
+    return "FIRETYPE_MINIGUN";
+  case weapFireType_t::CHARGESHOT:
+    return "FIRETYPE_CHARGESHOT";
+  case weapFireType_t::CHARGESHOTBURST:
+    return "FIRETYPE_CHARGESHOTBURST";
+  case weapFireType_t::CHARGESHOTAUTOBURST:
+    return "FIRETYPE_CHARGESHOTAUTOBURST";
+  case weapFireType_t::JETGUN:
+    return "FIRETYPE_JETGUN";
+  case weapFireType_t::MELEE:
+    return "FIRETYPE_MELEE";
+  case weapFireType_t::AIMONLY:
+    return "FIRETYPE_AIMONLY";
+  default:
+    return "FIRETYPE_INVALID";
+  }
+}
 
 enum class weapClipType_t : int32_t {
   BOTTOM = 0x0,
@@ -790,6 +1809,29 @@ enum class barrelType_t : int32_t {
   COUNT = 0x8,
 };
 
+inline constexpr const char *serialize(const barrelType_t btype) {
+  switch (btype) {
+  case barrelType_t::SINGLE:
+    return "BARREL_SINGLE";
+  case barrelType_t::DUAL:
+    return "BARREL_DUAL";
+  case barrelType_t::DUAL_ALTERNATE:
+    return "BARREL_DUAL_ALTERNATE";
+  case barrelType_t::QUAD:
+    return "BARREL_QUAD";
+  case barrelType_t::QUAD_ALTERNATE:
+    return "BARREL_QUAD_ALTERNATE";
+  case barrelType_t::QUAD_DOUBLE_ALTERNATE:
+    return "BARREL_QUAD_DOUBLE_ALTERNATE";
+  case barrelType_t::OFFSET_DUAL:
+    return "BARREL_OFFSET_DUAL";
+  case barrelType_t::OFFSET_DUAL_ALTERNATE:
+    return "BARREL_OFFSET_DUAL_ALTERNATE";
+  default:
+    return "BARREL_INVALID";
+  }
+}
+
 enum class OffhandClass : int32_t {
   NONE = 0x0,
   FRAG_GRENADE = 0x1,
@@ -800,6 +1842,27 @@ enum class OffhandClass : int32_t {
   GADGET = 0x6,
   COUNT = 0x7,
 };
+
+inline constexpr const char *serialize(const OffhandClass oclass) {
+  switch (oclass) {
+  case OffhandClass::NONE:
+    return "OFFHANDCLASS_NONE";
+  case OffhandClass::FRAG_GRENADE:
+    return "OFFHANDCLASS_FRAG_GRENADE";
+  case OffhandClass::SMOKE_GRENADE:
+    return "OFFHANDCLASS_SMOKE_GRENADE";
+  case OffhandClass::FLASH_GRENADE:
+    return "OFFHANDCLASS_FLASH_GRENADE";
+  case OffhandClass::GEAR:
+    return "OFFHANDCLASS_GEAR";
+  case OffhandClass::SUPPLYDROP_MARKER:
+    return "OFFHANDCLASS_SUPPLYDROP_MARKER";
+  case OffhandClass::GADGET:
+    return "OFFHANDCLASS_GADGET";
+  default:
+    return "OFFHANDCLASS_INVALID";
+  }
+}
 
 enum class OffhandSlot : int32_t {
   NONE = 0x0,
@@ -812,12 +1875,46 @@ enum class OffhandSlot : int32_t {
   COUNT = 0x7,
 };
 
+inline constexpr const char *serialize(const OffhandSlot oslot) {
+  switch (oslot) {
+  case OffhandSlot::NONE:
+    return "OFFHANDSLOT_NONE";
+  case OffhandSlot::LETHAL_GRENADE:
+    return "OFFHANDSLOT_LETHAL_GRENADE";
+  case OffhandSlot::TACTICAL_GRENADE:
+    return "OFFHANDSLOT_TACTICAL_GRENADE";
+  case OffhandSlot::EQUIPMENT:
+    return "OFFHANDSLOT_EQUIPMENT";
+  case OffhandSlot::SPECIFIC_USE:
+    return "OFFHANDSLOT_SPECIFIC_USE";
+  case OffhandSlot::GADGET:
+    return "OFFHANDSLOT_GADGET";
+  case OffhandSlot::SPECIAL:
+    return "OFFHANDSLOT_SPECIAL";
+  default:
+    return "OFFHANDSLOT_INVALID";
+  }
+}
+
 enum class weapStance_t : int32_t {
   STAND = 0x0,
   DUCK = 0x1,
   PRONE = 0x2,
   NUM = 0x3,
 };
+
+inline constexpr const char *serialize(const weapStance_t stance) {
+  switch (stance) {
+  case weapStance_t::STAND:
+    return "STANCE_STAND";
+  case weapStance_t::DUCK:
+    return "STANCE_DUCK";
+  case weapStance_t::PRONE:
+    return "STANCE_PRONE";
+  default:
+    return "STANCE_INVALID";
+  }
+}
 
 enum class activeReticleType_t : int32_t {
   NONE = 0x0,
@@ -827,12 +1924,40 @@ enum class activeReticleType_t : int32_t {
   COUNT = 0x4,
 };
 
+inline constexpr const char *serialize(const activeReticleType_t art) {
+  switch (art) {
+  case activeReticleType_t::NONE:
+    return "ACTIVERETICLE_NONE";
+  case activeReticleType_t::PIP_ON_A_STICK:
+    return "ACTIVERETICLE_PIP_ON_A_STICK";
+  case activeReticleType_t::BOUNCING_DIAMOND:
+    return "ACTIVERETICLE_BOUNCING_DIAMOND";
+  case activeReticleType_t::MISSILE_LOCK:
+    return "ACTIVERETICLE_MISSILE_LOCK";
+  default:
+    return "ACTIVERETICLE_INVALID";
+  }
+}
+
 enum class weaponIconRatioType_t : int32_t {
   WEAPON_ICON_RATIO_1TO1 = 0x0,
   WEAPON_ICON_RATIO_2TO1 = 0x1,
   WEAPON_ICON_RATIO_4TO1 = 0x2,
   WEAPON_ICON_RATIO_COUNT = 0x3,
 };
+
+inline constexpr const char *serialize(const weaponIconRatioType_t ratio) {
+  switch (ratio) {
+  case weaponIconRatioType_t::WEAPON_ICON_RATIO_1TO1:
+    return "RATIO_1TO1";
+  case weaponIconRatioType_t::WEAPON_ICON_RATIO_2TO1:
+    return "RATIO_2TO1";
+  case weaponIconRatioType_t::WEAPON_ICON_RATIO_4TO1:
+    return "RATIO_4TO1";
+  default:
+    return "RATIO_INVALID";
+  }
+}
 
 enum class ammoCounterClipType_t : int32_t {
   NONE = 0x0,
@@ -845,6 +1970,27 @@ enum class ammoCounterClipType_t : int32_t {
   COUNT = 0x7,
 };
 
+inline constexpr const char *serialize(const ammoCounterClipType_t act) {
+  switch (act) {
+  case ammoCounterClipType_t::NONE:
+    return "AMMOCOUNTER_NONE";
+  case ammoCounterClipType_t::MAGAZINE:
+    return "AMMOCOUNTER_MAGAZINE";
+  case ammoCounterClipType_t::SHORTMAGAZINE:
+    return "AMMOCOUNTER_SHORTMAGAZINE";
+  case ammoCounterClipType_t::SHOTGUN:
+    return "AMMOCOUNTER_SHOTGUN";
+  case ammoCounterClipType_t::ROCKET:
+    return "AMMOCOUNTER_ROCKET";
+  case ammoCounterClipType_t::BELTFED:
+    return "AMMOCOUNTER_BELTFED";
+  case ammoCounterClipType_t::ALTWEAPON:
+    return "AMMOCOUNTER_ALTWEAPON";
+  default:
+    return "AMMOCOUNTER_INVALID";
+  }
+}
+
 enum class WeapRotateType : int32_t {
   GRENADE = 0x0,
   BLADE = 0x1,
@@ -852,6 +1998,21 @@ enum class WeapRotateType : int32_t {
   ANIMATION = 0x3,
   COUNT = 0x4,
 };
+
+inline constexpr const char *serialize(const WeapRotateType rtype) {
+  switch (rtype) {
+  case WeapRotateType::GRENADE:
+    return "ROTATETYPE_GRENADE";
+  case WeapRotateType::BLADE:
+    return "ROTATETYPE_BLADE";
+  case WeapRotateType::CYLINDER:
+    return "ROTATETYPE_CYLINDER";
+  case WeapRotateType::ANIMATION:
+    return "ROTATETYPE_ANIMATION";
+  default:
+    return "ROTATETYPE_INVALID";
+  }
+}
 
 enum class weapProjExposion_t : int32_t {
   NONE = 0x0,
@@ -868,6 +2029,35 @@ enum class weapProjExposion_t : int32_t {
   COUNT = 0xB,
 };
 
+inline constexpr const char *serialize(const weapProjExposion_t exp) {
+  switch (exp) {
+  case weapProjExposion_t::NONE:
+    return "PROJEXP_NONE";
+  case weapProjExposion_t::GRENADE:
+    return "PROJEXP_GRENADE";
+  case weapProjExposion_t::ROCKET:
+    return "PROJEXP_ROCKET";
+  case weapProjExposion_t::FLASHBANG:
+    return "PROJEXP_FLASHBANG";
+  case weapProjExposion_t::DUD:
+    return "PROJEXP_DUD";
+  case weapProjExposion_t::SMOKE:
+    return "PROJEXP_SMOKE";
+  case weapProjExposion_t::HEAVY:
+    return "PROJEXP_HEAVY";
+  case weapProjExposion_t::FIRE:
+    return "PROJEXP_FIRE";
+  case weapProjExposion_t::NAPALMBLOB:
+    return "PROJEXP_NAPALMBLOB";
+  case weapProjExposion_t::BOLT:
+    return "PROJEXP_BOLT";
+  case weapProjExposion_t::SHRAPNELSPAN:
+    return "PROJEXP_SHRAPNELSPAN";
+  default:
+    return "PROJEXP_INVALID";
+  }
+}
+
 enum class eAttachmentPoint : int32_t {
   NONE = 0x0,
   TOP = 0x1,
@@ -881,12 +2071,48 @@ enum class eAttachmentPoint : int32_t {
   INVALID = 0x7,
 };
 
+inline constexpr const char *serialize(const eAttachmentPoint pt) {
+  switch (pt) {
+  case eAttachmentPoint::NONE:
+    return "ATTACHMENTPOINT_NONE";
+  case eAttachmentPoint::TOP:
+    return "ATTACHMENTPOINT_TOP";
+  case eAttachmentPoint::BOTTOM:
+    return "ATTACHMENTPOINT_BOTTOM";
+  case eAttachmentPoint::TRIGGER:
+    return "ATTACHMENTPOINT_TRIGGER";
+  case eAttachmentPoint::MUZZLE:
+    return "ATTACHMENTPOINT_MUZZLE";
+  case eAttachmentPoint::GUNPERK:
+    return "ATTACHMENTPOINT_GUNPERK";
+  case eAttachmentPoint::RIG:
+    return "ATTACHMENTPOINT_RIG";
+  case eAttachmentPoint::INVALID:
+    return "ATTACHMENTPOINT_INVALID";
+  default:
+    return "ATTACHMENTPOINT_INVALID";
+  }
+}
+
 enum class WeapOverlayInteface_t : int32_t {
   NONE = 0x0,
   JAVELIN = 0x1,
   TURRETSCOPE = 0x2,
   COUNT = 0x3,
 };
+
+inline constexpr const char *serialize(const WeapOverlayInteface_t iface) {
+  switch (iface) {
+  case WeapOverlayInteface_t::NONE:
+    return "OVERLAYINT_NONE";
+  case WeapOverlayInteface_t::JAVELIN:
+    return "OVERLAYINT_JAVELIN";
+  case WeapOverlayInteface_t::TURRETSCOPE:
+    return "OVERLAYINT_TURRETSCOPE";
+  default:
+    return "OVERLAYINT_INVALID";
+  }
+}
 
 struct __attribute__((aligned(4))) WeaponAttachment {
   const char *szInternalName;
@@ -1003,6 +2229,119 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   bool customBool3;
   bool customBool4;
   bool customBool5;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"szInternalName\": {}, \"szDisplayName\": {}, \"attachmentType\": "
+        "{}, "
+        "\"attachmentPoint\": {}, \"penetrateType\": {}, \"fireType\": {}, "
+        "\"firstRaisePriority\": {}, \"fHipIdleAmount\": {}, "
+        "\"bAltWeaponAdsOnly\": {}, "
+        "\"bAltWeaponDisableSwitching\": {}, \"altScopeADSTransInTime\": {}, "
+        "\"altScopeADSTransOutTime\": {}, \"bSilenced\": {}, \"bDualMag\": {}, "
+        "\"laserSight\": {}, \"bInfraRed\": {}, \"bUseAsMelee\": {}, "
+        "\"bDualWield\": {}, "
+        "\"sharedAmmo\": {}, \"fMasterDamageRangeScale\": {}, \"damageScale\": "
+        "{}, "
+        "\"damageRangeScale\": {}, \"multishotBaseDamageScale\": {}, "
+        "\"multishotBaseDamageRangeScale\": {}, "
+        "\"aimAssistRangeScale\": {}, \"aimAssistRangeAdsScale\": {}, "
+        "\"fAdsFlinchScalar\": {}, "
+        "\"fAdsFiringFlinchScalar\": {}, \"fAdsTurnRateScalar\": {}, "
+        "\"fAdsWallRunBobScalar\": {}, "
+        "\"fAdsAdditiveFallScalar\": {}, \"fAdsAdditiveJumpScalar\": {}, "
+        "\"fAdsAdditiveJumpLandScalar\": {}, "
+        "\"fAdsZoom1_focalLength\": {}, \"fAdsZoom1_fStop\": {}, "
+        "\"fAdsZoom2_focalLength\": {}, "
+        "\"fAdsZoom2_fStop\": {}, \"fAdsZoom3_focalLength\": {}, "
+        "\"fAdsZoom3_fStop\": {}, "
+        "\"fAdsZoomFov1\": {}, \"fAdsZoomFov2\": {}, \"fAdsZoomFov3\": {}, "
+        "\"fAdsZoomInFrac\": {}, "
+        "\"fAdsZoomOutFrac\": {}, \"fAdsTransInTimeScale\": {}, "
+        "\"fAdsTransOutTimeScale\": {}, "
+        "\"fAdsRecoilReductionRate\": {}, \"fAdsRecoilReductionLimit\": {}, "
+        "\"fAdsViewKickCenterSpeedScale\": {}, "
+        "\"fAdsIdleAmountScale\": {}, \"idleSpeedFromFireTransitionTime\": {}, "
+        "\"fAdsScopeBlurAmount\": {}, "
+        "\"fAdsScopeBlurStart\": {}, \"adsSwayViewInsteadOfGun\": {}, "
+        "\"fkickAlignedInputScalar\": {}, "
+        "\"fkickOpposedInputScalar\": {}, \"swayOverride\": {}, "
+        "\"swayMaxAngle\": {}, "
+        "\"swayLerpSpeed\": {}, \"swayPitchScale\": {}, \"swayYawScale\": {}, "
+        "\"swayHorizScale\": {}, "
+        "\"swayVertScale\": {}, \"adsSwayOverride\": {}, \"adsSwayMaxAngle\": "
+        "{}, \"adsSwayLerpSpeed\": {}, "
+        "\"adsSwayTransitionLerpSpeed\": {}, \"adsSwayPitchScale\": {}, "
+        "\"adsSwayYawScale\": {}, "
+        "\"fAdsSwayHorizScale\": {}, \"fAdsSwayVertScale\": {}, "
+        "\"adsMoveSpeedScale\": {}, "
+        "\"adsFiringSpeedScale\": {}, \"adsMoveSpeedTransitionTimeIn\": {}, "
+        "\"adsMoveSpeedTransitionTimeOut\": {}, "
+        "\"fHipSpreadMinScale\": {}, \"fHipSpreadMaxScale\": {}, "
+        "\"strafeRotR\": {}, \"standMoveF\": {}, "
+        "\"vStandRot\": {}, \"fFireTimeScale\": {}, \"fBurstDelayTimeScale\": "
+        "{}, \"fReloadTimeScale\": {}, "
+        "\"fReloadEmptyTimeScale\": {}, \"fReloadAddTimeScale\": {}, "
+        "\"fReloadEmptyAddTimeScale\": {}, "
+        "\"fReloadQuickTimeScale\": {}, \"fReloadQuickEmptyTimeScale\": {}, "
+        "\"fReloadQuickAddTimeScale\": {}, "
+        "\"fReloadQuickEmptyAddTimeScale\": {}, \"mmsWeapon\": {}, "
+        "\"mmsInScope\": {}, \"mmsFOV\": {}, "
+        "\"mmsAspect\": {}, \"mmsMaxDist\": {}, \"clipSizeScale\": {}, "
+        "\"iClipSize\": {}, "
+        "\"stackFire\": {:08X}, \"stackFireSpread\": {}, "
+        "\"stackFireAccuracyDecay\": {}, "
+        "\"luiReticle\": {}, \"perks\": {}, \"customFloat0\": {}, "
+        "\"customFloat1\": {}, "
+        "\"customFloat2\": {}, \"customFloat3\": {}, \"customFloat4\": {}, "
+        "\"customFloat5\": {}, "
+        "\"customBool0\": {}, \"customBool1\": {}, \"customBool2\": {}, "
+        "\"customBool3\": {}, "
+        "\"customBool4\": {}, \"customBool5\": {} }}",
+        ::serialize(szInternalName), ::serialize(szDisplayName),
+        game::weapon::serialize(attachmentType),
+        game::weapon::serialize(attachmentPoint),
+        game::weapon::serialize(penetrateType),
+        game::weapon::serialize(fireType), firstRaisePriority, fHipIdleAmount,
+        ::serialize(bAltWeaponAdsOnly), ::serialize(bAltWeaponDisableSwitching),
+        altScopeADSTransInTime, altScopeADSTransOutTime, ::serialize(bSilenced),
+        ::serialize(bDualMag), ::serialize(laserSight), ::serialize(bInfraRed),
+        ::serialize(bUseAsMelee), ::serialize(bDualWield),
+        ::serialize(sharedAmmo), fMasterDamageRangeScale,
+        ::serialize(damageScale), ::serialize(damageRangeScale),
+        ::serialize(multishotBaseDamageScale),
+        ::serialize(multishotBaseDamageRangeScale), aimAssistRangeScale,
+        aimAssistRangeAdsScale, fAdsFlinchScalar, fAdsFiringFlinchScalar,
+        fAdsTurnRateScalar, fAdsWallRunBobScalar, fAdsAdditiveFallScalar,
+        fAdsAdditiveJumpScalar, fAdsAdditiveJumpLandScalar,
+        fAdsZoom1_focalLength, fAdsZoom1_fStop, fAdsZoom2_focalLength,
+        fAdsZoom2_fStop, fAdsZoom3_focalLength, fAdsZoom3_fStop, fAdsZoomFov1,
+        fAdsZoomFov2, fAdsZoomFov3, fAdsZoomInFrac, fAdsZoomOutFrac,
+        fAdsTransInTimeScale, fAdsTransOutTimeScale, fAdsRecoilReductionRate,
+        fAdsRecoilReductionLimit, fAdsViewKickCenterSpeedScale,
+        fAdsIdleAmountScale, idleSpeedFromFireTransitionTime,
+        fAdsScopeBlurAmount, fAdsScopeBlurStart,
+        ::serialize(adsSwayViewInsteadOfGun), fkickAlignedInputScalar,
+        fkickOpposedInputScalar, ::serialize(swayOverride), swayMaxAngle,
+        swayLerpSpeed, swayPitchScale, swayYawScale, swayHorizScale,
+        swayVertScale, ::serialize(adsSwayOverride), adsSwayMaxAngle,
+        adsSwayLerpSpeed, adsSwayTransitionLerpSpeed, adsSwayPitchScale,
+        adsSwayYawScale, fAdsSwayHorizScale, fAdsSwayVertScale,
+        adsMoveSpeedScale, adsFiringSpeedScale, adsMoveSpeedTransitionTimeIn,
+        adsMoveSpeedTransitionTimeOut, fHipSpreadMinScale, fHipSpreadMaxScale,
+        strafeRotR, standMoveF, vStandRot.serialize(), fFireTimeScale,
+        fBurstDelayTimeScale, fReloadTimeScale, fReloadEmptyTimeScale,
+        fReloadAddTimeScale, fReloadEmptyAddTimeScale, fReloadQuickTimeScale,
+        fReloadQuickEmptyTimeScale, fReloadQuickAddTimeScale,
+        fReloadQuickEmptyAddTimeScale, ::serialize(mmsWeapon),
+        ::serialize(mmsInScope), mmsFOV, mmsAspect, mmsMaxDist, clipSizeScale,
+        iClipSize, stackFire, stackFireSpread, stackFireAccuracyDecay,
+        ::serialize(luiReticle), ::serialize(perks), customFloat0, customFloat1,
+        customFloat2, customFloat3, customFloat4, customFloat5,
+        ::serialize(customBool0), ::serialize(customBool1),
+        ::serialize(customBool2), ::serialize(customBool3),
+        ::serialize(customBool4), ::serialize(customBool5));
+  }
 };
 typedef WeaponAttachment *WeaponAttachmentPtr;
 
@@ -1020,6 +2359,35 @@ enum class guidedMissileType_t : int32_t {
   DYNAMICIMPACTPOINT = 0xA,
   COUNT = 0xB,
 };
+
+inline constexpr const char *serialize(const guidedMissileType_t gtype) {
+  switch (gtype) {
+  case guidedMissileType_t::NONE:
+    return "GUIDEDMISSILE_NONE";
+  case guidedMissileType_t::SIDEWINDER:
+    return "GUIDEDMISSILE_SIDEWINDER";
+  case guidedMissileType_t::HELLFIRE:
+    return "GUIDEDMISSILE_HELLFIRE";
+  case guidedMissileType_t::JAVELIN:
+    return "GUIDEDMISSILE_JAVELIN";
+  case guidedMissileType_t::BALLISTIC:
+    return "GUIDEDMISSILE_BALLISTIC";
+  case guidedMissileType_t::WIREGUIDED:
+    return "GUIDEDMISSILE_WIREGUIDED";
+  case guidedMissileType_t::TVGUIDED:
+    return "GUIDEDMISSILE_TVGUIDED";
+  case guidedMissileType_t::DRONE:
+    return "GUIDEDMISSILE_DRONE";
+  case guidedMissileType_t::HEATSEEKING:
+    return "GUIDEDMISSILE_HEATSEEKING";
+  case guidedMissileType_t::ROBOTECH:
+    return "GUIDEDMISSILE_ROBOTECH";
+  case guidedMissileType_t::DYNAMICIMPACTPOINT:
+    return "GUIDEDMISSILE_DYNAMICIMPACTPOINT";
+  default:
+    return "GUIDEDMISSILE_INVALID";
+  }
+}
 
 struct WeaponDef {
   const char *szInternalName;
@@ -2180,15 +3548,28 @@ struct WeaponDef {
   vec3_t ikLeftHandUiViewerRotation;
 };
 
-#pragma pack(push, 1)
-struct WeaponDobjInfo {
-
+PACKED(struct WeaponDobjInfo {
   enum class Slot : uint32_t {
     HELD = 0x0,
     STOWED = 0x1,
     MELEE = 0x2,
     OFFHAND = 0x4,
   };
+
+  static inline constexpr const char *serialize(const Slot slot) {
+    switch (slot) {
+    case WeaponDobjInfo::Slot::HELD:
+      return "SLOT_HELD";
+    case WeaponDobjInfo::Slot::STOWED:
+      return "SLOT_STOWED";
+    case WeaponDobjInfo::Slot::MELEE:
+      return "SLOT_MELEE";
+    case WeaponDobjInfo::Slot::OFFHAND:
+      return "SLOT_OFFHAND";
+    default:
+      return "SLOT_INVALID";
+    }
+  }
 
   struct ModelMask {
     Slot slot;
@@ -2199,6 +3580,15 @@ struct WeaponDobjInfo {
     };
     uint32_t dobjModelMask;
     uint8_t _padding14[4];
+
+    inline std::string serialize() const noexcept {
+      return std::format("{{ \"slot\": {}, \"weapon\": {}, \"target\": {:p}, "
+                         "\"dobjModelMask\": {:08X} }}",
+                         WeaponDobjInfo::serialize(slot), weapon.serialize(),
+                         static_cast<bool>(weapon) ? (const void *)weapDef
+                                                   : (const void *)attachment,
+                         dobjModelMask);
+    }
   };
 
   uint8_t numModelMasks;
@@ -2207,16 +3597,25 @@ struct WeaponDobjInfo {
   int16_t lastAddedModel;
   uint8_t _padding0A[6];
   ModelMask modelMasks[32];
-};
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct DroppedWeaponDobjInfo {
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"numModelMasks\": {}, \"addingSlot\": {}, "
+                       "\"lastAddedModel\": {}, \"modelMasks\": {} }}",
+                       numModelMasks, serialize(addingSlot), lastAddedModel,
+                       ::serialize(modelMasks));
+  }
+});
+
+PACKED(struct DroppedWeaponDobjInfo {
   int32_t entnum;
   uint8_t _padding04[4];
   weapon::WeaponDobjInfo weaponDobjInfo;
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"entnum\": {}, \"weaponDobjInfo\": {} }}", entnum,
+                       weaponDobjInfo.serialize());
+  }
+});
 
 enum class QueuedActionState : uint32_t {
   NONE = 0x0,
@@ -2227,8 +3626,24 @@ enum class QueuedActionState : uint32_t {
   COUNT = 0x5,
 };
 
-#pragma pack(push, 1)
-struct PlayerWeaponHandState {
+inline constexpr const char *serialize(const QueuedActionState state) {
+  switch (state) {
+  case QueuedActionState::NONE:
+    return "ACTION_NONE";
+  case QueuedActionState::FIRE_WEAPON:
+    return "ACTION_FIRE_WEAPON";
+  case QueuedActionState::RELOAD_WEAPON:
+    return "ACTION_RELOAD_WEAPON";
+  case QueuedActionState::MELEE:
+    return "ACTION_MELEE";
+  case QueuedActionState::SPECIAL_MELEE:
+    return "ACTION_SPECIAL_MELEE";
+  default:
+    return "ACTION_INVALID";
+  }
+}
+
+PACKED(struct PlayerWeaponHandState {
   int32_t weaponTime;
   int32_t weaponDelay;
   int32_t weaponState;
@@ -2237,22 +3652,39 @@ struct PlayerWeaponHandState {
   uint8_t _padding12[2];
   int32_t weaponFrameTimeRemainder;
   QueuedActionState queuedActionState;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"weaponTime\": {}, \"weaponDelay\": {}, \"weaponState\": {}, "
+        "\"weaponShotCount\": {}, \"weapAnim\": {}, "
+        "\"weaponFrameTimeRemainder\": {}, "
+        "\"queuedActionState\": {} }}",
+        weaponTime, weaponDelay, weaponState, weaponShotCount,
+        weapAnim.serialize(), weaponFrameTimeRemainder,
+        game::weapon::serialize(queuedActionState));
+  }
+});
 ASSERT_SIZE(PlayerWeaponHandState, 0x1C);
-#pragma pack(pop)
 
 struct AmmoPool {
   int32_t count;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"count\": {} }}", count);
+  }
 };
 ASSERT_SIZE(AmmoPool, 0x4);
 
 struct AmmoClip {
   int32_t count;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"count\": {} }}", count);
+  }
 };
 ASSERT_SIZE(AmmoClip, 0x4);
 
-#pragma pack(push, 1)
-struct PlayerHeldWeapon {
+PACKED(struct PlayerHeldWeapon {
   union percent_t {
     float value;
     float heatPercent;
@@ -2286,32 +3718,67 @@ struct PlayerHeldWeapon {
     };
   };
   uint8_t _padding29[7];
-};
-ASSERT_SIZE(PlayerHeldWeapon, 0x30);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct visWeapon_s {
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"weapon\": {}, \"options\": {}, "
+        "\"attachmentCosmeticVariantIndexes\": {}, "
+        "\"percent\": {}, \"time\": {}, \"adsZoomSelect\": {}, \"flags\": "
+        "{:02X}, "
+        "\"overHeating\": {}, \"heldBefore\": {}, \"quickReload\": {}, "
+        "\"blockWeaponPickup\": {}, \"needsRechamber\": {}, "
+        "\"friendlyTargeting\": {}, "
+        "\"friendlyTargetLocked\": {}, \"friendlyHacking\": {} }}",
+        weapon.serialize(), options.serialize(),
+        attachmentCosmeticVariantIndexes.serialize(), percent.value, time.value,
+        adsZoomSelect, flags, ::serialize(static_cast<bool>(overHeating)),
+        ::serialize(static_cast<bool>(heldBefore)),
+        ::serialize(static_cast<bool>(quickReload)),
+        ::serialize(static_cast<bool>(blockWeaponPickup)),
+        ::serialize(static_cast<bool>(needsRechamber)),
+        ::serialize(static_cast<bool>(friendlyTargeting)),
+        ::serialize(static_cast<bool>(friendlyTargetLocked)),
+        ::serialize(static_cast<bool>(friendlyHacking)));
+  }
+});
+ASSERT_SIZE(PlayerHeldWeapon, 0x30);
+
+PACKED(struct visWeapon_s {
   Weapon weapon;
   int32_t streamerOptions;
   uint8_t _padding0C[4];
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"weapon\": {}, \"streamerOptions\": {:08X} }}",
+                       weapon.serialize(), streamerOptions);
+  }
+});
 
 struct visLoadOut_s {
   visWeapon_s primary;
   visWeapon_s secondary;
   int32_t primaryGadgetIdx;
   int32_t secondaryGadgetIdx;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"primary\": {}, \"secondary\": {}, \"primaryGadgetIdx\": {}, "
+        "\"secondaryGadgetIdx\": {} }}",
+        primary.serialize(), secondary.serialize(), primaryGadgetIdx,
+        secondaryGadgetIdx);
+  }
 };
 
-#pragma pack(push, 1)
-struct DelayedWeaponFire {
+PACKED(struct DelayedWeaponFire {
   int32_t time;
   uint8_t _padding04[4];
   Weapon weapon;
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"time\": {}, \"weapon\": {} }}", time,
+                       weapon.serialize());
+  }
+});
 
 enum class gadgetHeldSlot_e : uint32_t {
   GADGET_HELD_0 = 0x0,
@@ -2320,6 +3787,21 @@ enum class gadgetHeldSlot_e : uint32_t {
   GADGET_HELD_3 = 0x3,
   GADGET_HELD_COUNT = 0x4,
 };
+
+inline constexpr const char *serialize(const gadgetHeldSlot_e slot) {
+  switch (slot) {
+  case gadgetHeldSlot_e::GADGET_HELD_0:
+    return "GADGET_HELD_0";
+  case gadgetHeldSlot_e::GADGET_HELD_1:
+    return "GADGET_HELD_1";
+  case gadgetHeldSlot_e::GADGET_HELD_2:
+    return "GADGET_HELD_2";
+  case gadgetHeldSlot_e::GADGET_HELD_3:
+    return "GADGET_HELD_3";
+  default:
+    return "GADGET_HELD_INVALID";
+  }
+}
 
 PACKED(struct WeaponVariantDef {
   const char *szInternalName;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <format>
 #include <numbers>
 
 #include <game/structs/macros.hpp>
@@ -161,6 +162,22 @@ template <typename T = vec_t> union vec2 {
     const T epsilon_sq = epsilon * epsilon;
     return std::pow(x - b.x, 2) <= epsilon_sq &&
            std::pow(y - b.y, 2) <= epsilon_sq;
+  }
+
+  inline std::string serialize() const noexcept {
+    if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
+      return std::format("{{ \"x\": {}, \"y\": {} }}", x, y);
+    } else if constexpr (std::is_enum_v<T> || std::is_same_v<T, char> ||
+                         std::is_same_v<bool, char>) {
+      return std::format("{{ \"x\": {}, \"y\": {} }}", ::serialize(x),
+                         ::serialize(y));
+    } else if constexpr (Serializable<T>) {
+      return std::format("{{ \"x\": {}, \"y\": {} }}", x.serialize(),
+                         y.serialize());
+    } else if constexpr (SerializablePtr<T>) {
+      return std::format("{{ \"x\": {}, \"y\": {} }}", x->serialize(),
+                         y->serialize());
+    }
   }
 };
 
@@ -330,6 +347,22 @@ template <typename T = vec_t> union vec3 {
     return std::pow(x - b.x, 2) <= epsilon_sq &&
            std::pow(y - b.y, 2) <= epsilon_sq &&
            std::pow(z - b.z, 2) <= epsilon_sq;
+  }
+
+  inline std::string serialize() const noexcept {
+    if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
+      return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {} }}", x, y, z);
+    } else if constexpr (std::is_enum_v<T> || std::is_same_v<T, char> ||
+                         std::is_same_v<bool, char>) {
+      return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {} }}",
+                         ::serialize(x), ::serialize(y), ::serialize(z));
+    } else if constexpr (Serializable<T>) {
+      return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {} }}", x.serialize(),
+                         y.serialize(), z.serialize());
+    } else if constexpr (SerializablePtr<T>) {
+      return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {} }}",
+                         x->serialize(), y->serialize(), z->serialize());
+    }
   }
 };
 
@@ -506,6 +539,26 @@ template <typename T = vec_t> union vec4 {
            std::pow(y - b.y, 2) <= epsilon_sq &&
            std::pow(z - b.z, 2) <= epsilon_sq &&
            std::pow(w - b.w, 2) <= epsilon_sq;
+  }
+
+  inline std::string serialize() const noexcept {
+    if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
+      return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {}, \"w\": {} }}", x,
+                         y, z, w);
+    } else if constexpr (std::is_enum_v<T> || std::is_same_v<T, char> ||
+                         std::is_same_v<bool, char>) {
+      return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {}, \"w\": {} }}",
+                         ::serialize(x), ::serialize(y), ::serialize(z),
+                         ::serialize(w));
+    } else if constexpr (Serializable<T>) {
+      return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {}, \"w\": {} }}",
+                         x.serialize(), y.serialize(), z.serialize(),
+                         w.serialize());
+    } else if constexpr (SerializablePtr<T>) {
+      return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {}, \"w\": {} }}",
+                         x->serialize(), y->serialize(), z->serialize(),
+                         w->serialize());
+    }
   }
 };
 

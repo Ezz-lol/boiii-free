@@ -143,6 +143,11 @@ union hudelem_color_t {
     uint8_t a;
   };
   int32_t rgba;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"r\": {}, \"g\": {}, \"b\": {}, \"a\": {} }}", r, g,
+                       b, a);
+  }
 };
 ASSERT_SIZE(hudelem_color_t, 0x4);
 
@@ -167,6 +172,48 @@ public:
   static inline constexpr Enum<Underlying> PERKS = {0x10};
   static inline constexpr Enum<Underlying> COUNT = {0x11};
 };
+
+template <typename Underlying>
+inline constexpr const char *serialize(const HEType<Underlying> type) {
+  switch (type) {
+  case HEType<Underlying>::FREE:
+    return "HETYPE_FREE";
+  case HEType<Underlying>::TEXT:
+    return "HEType_TEXT";
+  case HEType<Underlying>::VALUE:
+    return "HEType_VALUE";
+  case HEType<Underlying>::PLAYERNAME:
+    return "HEType_PLAYERNAME";
+  case HEType<Underlying>::MAPNAME:
+    return "HEType_MAPNAME";
+  case HEType<Underlying>::GAMETYPE:
+    return "HEType_GAMETYPE";
+  case HEType<Underlying>::DAMAGE_INDICATOR:
+    return "HEType_DAMAGE_INDICATOR";
+  case HEType<Underlying>::SCORE:
+    return "HEType_SCORE";
+  case HEType<Underlying>::MATERIAL:
+    return "HEType_MATERIAL";
+  case HEType<Underlying>::TIMER_DOWN:
+    return "HEType_TIMER_DOWN";
+  case HEType<Underlying>::TIMER_UP:
+    return "HEType_TIMER_UP";
+  case HEType<Underlying>::TENTHS_TIMER_DOWN:
+    return "HEType_TENTHS_TIMER_DOWN";
+  case HEType<Underlying>::TENTHS_TIMER_UP:
+    return "HEType_TENTHS_TIMER_UP";
+  case HEType<Underlying>::CLOCK_DOWN:
+    return "HEType_CLOCK_DOWN";
+  case HEType<Underlying>::CLOCK_UP:
+    return "HEType_CLOCK_UP";
+  case HEType<Underlying>::WAYPOINT:
+    return "HEType_WAYPOINT";
+  case HEType<Underlying>::PERKS:
+    return "HEType_PERKS";
+  default:
+    return "HETYPE_INVALID";
+  }
+}
 
 typedef HEType<uint32_t> he_type_t;
 ASSERT_SIZE(he_type_t, sizeof(uint32_t));
@@ -245,6 +292,42 @@ PACKED(struct hudelem_s {
     value = 0.0;
     text = 0;
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"x\": {}, \"y\": {}, \"z\": {}, \"fontScale\": {}, "
+        "\"fromFontScale\": {}, "
+        "\"fontScaleStartTime\": {}, \"color\": {}, \"fromColor\": {}, "
+        "\"fadeStartTime\": {}, "
+        "\"scaleStartTime\": {}, \"fromX\": {}, \"fromY\": {}, "
+        "\"moveStartTime\": {}, "
+        "\"time\": {}, \"duration\": {}, \"value\": {}, \"sort\": {}, "
+        "\"glowColor\": {}, "
+        "\"fxBirthTime\": {}, \"flags\": {:08X}, \"targetEntNum\": {}, "
+        "\"fontScaleTime\": {}, "
+        "\"fadeTime\": {}, \"label\": {}, \"width\": {}, \"height\": {}, "
+        "\"fromWidth\": {}, "
+        "\"fromHeight\": {}, \"scaleTime\": {}, \"moveTime\": {}, \"text\": "
+        "{}, "
+        "\"fxLetterTime\": {}, \"fxDecayStartTime\": {}, \"fxDecayDuration\": "
+        "{}, "
+        "\"fxRedactDecayStartTime\": {}, \"fxRedactDecayDuration\": {}, "
+        "\"type\": {}, "
+        "\"font\": {}, \"alignOrg\": {}, \"alignScreen\": {}, "
+        "\"materialIndex\": {}, "
+        "\"offscreenMaterialIdx\": {}, \"fromAlignOrg\": {}, "
+        "\"fromAlignScreen\": {}, "
+        "\"soundID\": {} }}",
+        x, y, z, fontScale, fromFontScale, fontScaleStartTime,
+        color.serialize(), fromColor.serialize(), fadeStartTime, scaleStartTime,
+        fromX, fromY, moveStartTime, time, duration, value, sort,
+        glowColor.serialize(), fxBirthTime, flags, targetEntNum, fontScaleTime,
+        fadeTime, label, width, height, fromWidth, fromHeight, scaleTime,
+        moveTime, text, fxLetterTime, fxDecayStartTime, fxDecayDuration,
+        fxRedactDecayStartTime, fxRedactDecayDuration, ::serialize(type), font,
+        alignOrg, alignScreen, materialIndex, offscreenMaterialIdx,
+        fromAlignOrg, fromAlignScreen, soundID);
+  }
 });
 ASSERT_SIZE(hudelem_s, 0x7C);
 
@@ -257,6 +340,13 @@ struct game_hudelem_s {
   qboolean archived;
 
   inline constexpr void reset_value() volatile noexcept { elem.reset_value(); }
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"elem\": {}, \"clientNum\": {}, \"team\": {}, \"archived\": {} }}",
+        elem.serialize(), ::serialize(clientNum), game::serialize(team),
+        archived.serialize());
+  }
 };
 ASSERT_SIZE(game_hudelem_s, 0x88);
 typedef game_hudelem_s game_hudelem_t;
@@ -268,12 +358,23 @@ struct serverHudMenu_t {
   int32_t modelNames[16];
   bool persistent;
   uint8_t _padding145[11];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"modelData\": {}, \"menuNameIndex\": {}, "
+                       "\"modelNames\": {}, \"persistent\": {} }}",
+                       ::serialize(modelData), menuNameIndex,
+                       ::serialize(modelNames), ::serialize(persistent));
+  }
 };
 ASSERT_SIZE(serverHudMenu_t, 0x150);
 #pragma pack(pop)
 
 struct hudElemSoundInfo_t {
   int lastPlayedTime;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lastPlayedTime\": {} }}", lastPlayedTime);
+  }
 };
 } // namespace he
 } // namespace ui

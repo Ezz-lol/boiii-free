@@ -282,6 +282,11 @@ union GfxColor {
     uint8_t a;
   } rgba;
   uint8_t array[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"r\": {}, \"g\": {}, \"b\": {}, \"a\": {} }}",
+                       rgba.r, rgba.g, rgba.b, rgba.a);
+  }
 };
 
 // TODO
@@ -1513,10 +1518,14 @@ struct GfxSiegeAnimState {
 struct GfxPlacement {
   vec4_t quat;
   vec3_t origin;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"quat\": {}, \"origin\": {} }}", quat.serialize(),
+                       origin.serialize());
+  }
 };
 
-#pragma pack(push, 1)
-struct GfxEntityPreFrame {
+PACKED(struct GfxEntityPreFrame {
   uint32_t activePartBits[12];
   int32_t modelCount;
   int32_t numBones;
@@ -1529,10 +1538,23 @@ struct GfxEntityPreFrame {
   uint32_t blendShapeVertOffsetLast;
   uint8_t _padding54[4];
   db::xasset::XSurfaceShared *blendShapeVertOffsetLastShared;
-};
-ASSERT_SIZE(GfxEntityPreFrame, 0x60);
 
-#pragma pack(pop)
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"activePartBits\": {}, \"modelCount\": {}, \"numBones\": {}, "
+        "\"numCosmeticBones\": {}, \"boneArrayOffset\": {}, \"sanimIndex\": "
+        "{:08X}, "
+        "\"sanimStateOffset\": {:08X}, \"blendShapeFrame\": {}, "
+        "\"blendShapeVertOffset\": {}, "
+        "\"blendShapeVertOffsetLast\": {}, \"blendShapeVertOffsetLastShared\": "
+        "{:p} }}",
+        ::serialize(activePartBits), modelCount, numBones, numCosmeticBones,
+        boneArrayOffset, sanimIndex, sanimStateOffset, blendShapeFrame,
+        blendShapeVertOffset, blendShapeVertOffsetLast,
+        reinterpret_cast<const void *>(blendShapeVertOffsetLastShared));
+  }
+});
+ASSERT_SIZE(GfxEntityPreFrame, 0x60);
 
 struct GfxStreamingAabbTree {
   vec4_t mins;

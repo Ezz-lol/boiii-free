@@ -248,6 +248,49 @@ enum class trTypeField_t : uint8_t {
 };
 IMPL_ENUM_OPERATORS(trTypeField_t);
 
+inline constexpr const char *serialize(const trTypeField_t typeField) {
+  switch (typeField) {
+  case trTypeField_t::STATIONARY:
+    return "TRAJECTORY_FIELD_STATIONARY";
+  case trTypeField_t::INTERPOLATE:
+    return "TRAJECTORY_FIELD_INTERPOLATE";
+  case trTypeField_t::INTERPOLATE_MOVER:
+    return "TRAJECTORY_FIELD_INTERPOLATE_MOVER";
+  case trTypeField_t::LINEAR:
+    return "TRAJECTORY_FIELD_LINEAR";
+  case trTypeField_t::LINEAR_STOP:
+    return "TRAJECTORY_FIELD_LINEAR_STOP";
+  case trTypeField_t::SINE:
+    return "TRAJECTORY_FIELD_SINE";
+  case trTypeField_t::GRAVITY:
+    return "TRAJECTORY_FIELD_GRAVITY";
+  case trTypeField_t::LOW_GRAVITY:
+    return "TRAJECTORY_FIELD_LOW_GRAVITY";
+  case trTypeField_t::WATER_GRAVITY:
+    return "TRAJECTORY_FIELD_WATER_GRAVITY";
+  case trTypeField_t::ACCELERATE:
+    return "TRAJECTORY_FIELD_ACCELERATE";
+  case trTypeField_t::DECELERATE:
+    return "TRAJECTORY_FIELD_DECELERATE";
+  case trTypeField_t::DECELERATE_GRAVITY:
+    return "TRAJECTORY_FIELD_DECELERATE_GRAVITY";
+  case trTypeField_t::PHYSICS:
+    return "TRAJECTORY_FIELD_PHYSICS";
+  case trTypeField_t::XDOLL:
+    return "TRAJECTORY_FIELD_XDOLL";
+  case trTypeField_t::RAGDOLL:
+    return "TRAJECTORY_FIELD_RAGDOLL";
+  case trTypeField_t::RAGDOLL_GRAVITY:
+    return "TRAJECTORY_FIELD_RAGDOLL_GRAVITY";
+  case trTypeField_t::RAGDOLL_INTERPOLATE:
+    return "TRAJECTORY_FIELD_RAGDOLL_INTERPOLATE";
+  case trTypeField_t::MOON_GRAVITY:
+    return "TRAJECTORY_FIELD_MOON_GRAVITY";
+  default:
+    return "TRAJECTORY_FIELD_INVALID";
+  }
+}
+
 enum class trType_t : uint32_t {
   STATIONARY = 0x0,
   INTERPOLATE = 0x1,
@@ -273,6 +316,49 @@ enum class trType_t : uint32_t {
 };
 IMPL_ENUM_OPERATORS(trType_t);
 
+inline constexpr const char *serialize(const trType_t trType) {
+  switch (trType) {
+  case trType_t::STATIONARY:
+    return "TRAJECTORY_TYPE_STATIONARY";
+  case trType_t::INTERPOLATE:
+    return "TRAJECTORY_TYPE_INTERPOLATE";
+  case trType_t::INTERPOLATE_MOVER:
+    return "TRAJECTORY_TYPE_INTERPOLATE_MOVER";
+  case trType_t::LINEAR:
+    return "TRAJECTORY_TYPE_LINEAR";
+  case trType_t::LINEAR_STOP:
+    return "TRAJECTORY_TYPE_LINEAR_STOP";
+  case trType_t::SINE:
+    return "TRAJECTORY_TYPE_SINE";
+  case trType_t::GRAVITY:
+    return "TRAJECTORY_TYPE_GRAVITY";
+  case trType_t::LOW_GRAVITY:
+    return "TRAJECTORY_TYPE_LOW_GRAVITY";
+  case trType_t::WATER_GRAVITY:
+    return "TRAJECTORY_TYPE_WATER_GRAVITY";
+  case trType_t::ACCELERATE:
+    return "TRAJECTORY_TYPE_ACCELERATE";
+  case trType_t::DECELERATE:
+    return "TRAJECTORY_TYPE_DECELERATE";
+  case trType_t::DECELERATE_GRAVITY:
+    return "TRAJECTORY_TYPE_DECELERATE_GRAVITY";
+  case trType_t::PHYSICS:
+    return "TRAJECTORY_TYPE_PHYSICS";
+  case trType_t::XDOLL:
+    return "TRAJECTORY_TYPE_XDOLL";
+  case trType_t::RAGDOLL:
+    return "TRAJECTORY_TYPE_RAGDOLL";
+  case trType_t::RAGDOLL_GRAVITY:
+    return "TRAJECTORY_TYPE_RAGDOLL_GRAVITY";
+  case trType_t::RAGDOLL_INTERPOLATE:
+    return "TRAJECTORY_TYPE_RAGDOLL_INTERPOLATE";
+  case trType_t::MOON_GRAVITY:
+    return "TRAJECTORY_TYPE_MOON_GRAVITY";
+  default:
+    return "TRAJECTORY_TYPE_INVALID";
+  }
+}
+
 #pragma pack(push, 1)
 struct trajectory_t {
   trTypeField_t trType;
@@ -281,6 +367,13 @@ struct trajectory_t {
   int32_t trDuration;
   vec3_t trBase;
   vec3_t trDelta;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"trType\": {}, \"trTime\": {}, \"trDuration\": {}, "
+                       "\"trBase\": {}, \"trDelta\": {} }}",
+                       game::level::serialize(trType), trTime, trDuration,
+                       trBase.serialize(), trDelta.serialize());
+  }
 };
 #pragma pack(pop)
 
@@ -303,10 +396,12 @@ union LerpEntityStateTypeUnion {
   LerpEntityStateStreamerHint streamerHint;
   LerpEntityStateZBarrier zbarrier;
   LerpEntityStateAnonymous anonymous;
+
+  // TODO: how do we differentiate which union member to use?
+  inline std::string serialize() const noexcept { return "TODO"; }
 };
 
-#pragma pack(push, 1)
-struct LerpEntityState {
+PACKED(struct LerpEntityState {
   int32_t eFlags;
   int32_t eFlags2;
   // Position - placement
@@ -318,20 +413,29 @@ struct LerpEntityState {
   uint8_t _paddingBA[2];
   uint32_t clientFields[4];
   uint8_t _paddingCC[4];
-};
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"eFlags\": {:08X}, \"eFlags2\": {:08X}, \"pos\": {}, \"apos\": "
+        "{}, \"u\": {}, \"useCount\": {}, \"clientFields\": {} }}",
+        eFlags, eFlags2, pos.serialize(), apos.serialize(), u.serialize(),
+        useCount, ::serialize(clientFields));
+  }
+});
 ASSERT_SIZE(LerpEntityState, 0xD0);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct clientLinkInfo_t {
+PACKED(struct clientLinkInfo_t {
   int16_t parentEnt;
   uint8_t tagIndex;
   uint8_t flags;
-};
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct playerAnimState_t {
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"parentEnt\": {:04X}, \"tagIndex\": {:02X}, \"flags\": {:02X} }}",
+        parentEnt, tagIndex, flags);
+  }
+});
+
+PACKED(struct playerAnimState_t {
   float fTorsoPitch;
   float fWaistPitch;
   animationNumber_t animNum[3];
@@ -344,62 +448,80 @@ struct playerAnimState_t {
     };
   };
   uint8_t _padding0F[1];
-};
+});
 
-struct hardlineHint_t {
+PACKED(struct hardlineHint_t {
   uint8_t team;
   uint8_t perk;
   uint8_t hint;
-};
+});
 
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct scriptMoverState_t {
+PACKED(struct scriptMoverState_t {
   uint8_t fov;
   uint8_t _padding01[1];
   int16_t animId;
-};
-#pragma pack(pop)
+});
 
 struct fxLightingState_t {
   float primaryLightFraction;
   int32_t lightingOriginOffset;
 };
 
-#pragma pack(push, 1)
-
-union entityStateUn2 {
+PACKED(union entityStateUn2 {
   playerAnimState_t anim;
   vehicle::vehicleState_t vehicleState;
   hardlineHint_t hardline;
   scriptMoverState_t moverState;
   fxLightingState_t fxState;
-};
 
-union entityStateUn3 {
+  // TODO: how do we determine which union member to use?
+  inline std::string serialize() const noexcept { return "TODO"; }
+});
+
+PACKED(union entityStateUn3 {
   int32_t hintString;
   int32_t vehicleXModel;
   uint32_t secondBcAlias;
   uint32_t soundTag;
-};
 
-union entityStateIndex {
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"hintString\": {:08X}, \"vehicleXModel\": {:08X}, "
+                       "\"secondBcAlias\": {:08X}, \"soundTag\": {:08X} }}",
+                       hintString, vehicleXModel, secondBcAlias, soundTag);
+  }
+});
+
+PACKED(union entityStateIndex {
   uint16_t brushmodel;
   uint16_t triggerModel;
   uint16_t xmodel;
   uint16_t primaryLight;
   uint16_t probe;
   BoneIndex bone;
-};
 
-union entityStateUn1 {
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"brushModel\": {:04X}, \"triggerModel\": {:04X}, "
+                       "\"xmodel\": {:04X}, \"primaryLight\": {:04X}, "
+                       "\"probe\": {:04X}, \"boneIndex\": {:04X} }}",
+                       brushmodel, triggerModel, xmodel, primaryLight, probe,
+                       bone);
+  }
+});
+
+PACKED(union entityStateUn1 {
   uint8_t scale;
   uint8_t eventParm2;
   uint8_t helicopterStage;
   uint8_t destructibleid;
   uint8_t chainMeleeCounter;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"scale\": {}, \"eventParm2\": {:02X}, \"helicopterStage\": {}, "
+        "\"destructibleid\": {:02X}, \"chainMeleeCounter\": {} }}",
+        scale, eventParm2, helicopterStage, destructibleid, chainMeleeCounter);
+  }
+});
 
 /*
   Up to date and correct.
@@ -1289,8 +1411,7 @@ enum class entityType32_t : uint32_t {
    Generated from two tables of display strings in the server engine -
    one for entity type enumerations, and the other entity event enumerations.
 */
-struct entityType_t {
-
+PACKED(struct entityType_t {
   enum entityType : uint16_t {
     /*
      Comments above each entity type
@@ -1620,7 +1741,540 @@ struct entityType_t {
   */
   entityType type;
   uint8_t _pad[2];
-};
+
+  inline constexpr const char *serialize() const noexcept {
+    switch (type) {
+    case entityType::ET_GENERAL:
+      return "ET_GENERAL";
+    case entityType::ET_PLAYER:
+      return "ET_PLAYER";
+    case entityType::ET_PLAYER_CORPSE:
+      return "ET_PLAYER_CORPSE";
+    case entityType::ET_ITEM:
+      return "ET_ITEM";
+    case entityType::ET_MISSILE:
+      return "ET_MISSILE";
+    case entityType::ET_PLAYER_INVISIBLE:
+      return "ET_PLAYER_INVISIBLE";
+    case entityType::ET_SCRIPTMOVER:
+      return "ET_SCRIPTMOVER";
+    case entityType::ET_SOUND_BLEND:
+      return "ET_SOUND_BLEND";
+    case entityType::ET_FX:
+      return "ET_FX";
+    case entityType::ET_LOOP_FX:
+      return "ET_LOOP_FX";
+    case entityType::ET_PRIMARY_LIGHT:
+      return "ET_PRIMARY_LIGHT";
+    case entityType::ET_LENSFLARE:
+      return "ET_LENSFLARE";
+    case entityType::ET_REFLECTION_PROBE:
+      return "ET_REFLECTION_PROBE";
+    case entityType::ET_HELICOPTER:
+      return "ET_HELICOPTER";
+    case entityType::ET_PLANE:
+      return "ET_PLANE";
+    case entityType::ET_VEHICLE:
+      return "ET_VEHICLE";
+    case entityType::ET_VEHICLE_SPAWNER:
+      return "ET_VEHICLE_SPAWNER";
+    case entityType::ET_VEHICLE_CORPSE:
+      return "ET_VEHICLE_CORPSE";
+    case entityType::ET_ACTOR:
+      return "ET_ACTOR";
+    case entityType::ET_ACTOR_SPAWNER:
+      return "ET_ACTOR_SPAWNER";
+    case entityType::ET_ACTOR_CORPSE:
+      return "ET_ACTOR_CORPSE";
+    case entityType::ET_STREAMER_HINT:
+      return "ET_STREAMER_HINT";
+    case entityType::ET_ZBARRIER:
+      return "ET_ZBARRIER";
+    case entityType::ET_TRIGGER:
+      return "ET_TRIGGER";
+    case entityType::EV_NONE:
+      return "EV_NONE";
+    case entityType::EV_FOLIAGE_SOUND:
+      return "EV_FOLIAGE_SOUND";
+    case entityType::EV_STOP_WEAPON_SOUND:
+      return "EV_STOP_WEAPON_SOUND";
+    case entityType::EV_STOP_SOUND_ALIAS:
+      return "EV_STOP_SOUND_ALIAS";
+    case entityType::EV_SOUND_ALIAS:
+      return "EV_SOUND_ALIAS";
+    case entityType::EV_SOUND_ALIAS_NOTIFY:
+      return "EV_SOUND_ALIAS_NOTIFY";
+    case entityType::EV_SOUND_BATTLECHAT_ALIAS:
+      return "EV_SOUND_BATTLECHAT_ALIAS";
+    case entityType::EV_STOPSOUNDS:
+      return "EV_STOPSOUNDS";
+    case entityType::EV_ITEM_PICKUP:
+      return "EV_ITEM_PICKUP";
+    case entityType::EV_AMMO_PICKUP:
+      return "EV_AMMO_PICKUP";
+    case entityType::EV_NOAMMO:
+      return "EV_NOAMMO";
+    case entityType::EV_NOAMMO_LEFT:
+      return "EV_NOAMMO_LEFT";
+    case entityType::EV_EMPTY_OFFHAND:
+      return "EV_EMPTY_OFFHAND";
+    case entityType::EV_RESET_ADS:
+      return "EV_RESET_ADS";
+    case entityType::EV_RELOAD:
+      return "EV_RELOAD";
+    case entityType::EV_RELOAD_FROM_EMPTY:
+      return "EV_RELOAD_FROM_EMPTY";
+    case entityType::EV_RELOAD_START:
+      return "EV_RELOAD_START";
+    case entityType::EV_RELOAD_END:
+      return "EV_RELOAD_END";
+    case entityType::EV_RELOAD_START_NOTIFY:
+      return "EV_RELOAD_START_NOTIFY";
+    case entityType::EV_RELOAD_ADDAMMO:
+      return "EV_RELOAD_ADDAMMO";
+    case entityType::EV_RAISE_WEAPON:
+      return "EV_RAISE_WEAPON";
+    case entityType::EV_FIRST_RAISE_WEAPON:
+      return "EV_FIRST_RAISE_WEAPON";
+    case entityType::EV_RAISE_PICKUP_WEAPON:
+      return "EV_RAISE_PICKUP_WEAPON";
+    case entityType::EV_PUTAWAY_WEAPON:
+      return "EV_PUTAWAY_WEAPON";
+    case entityType::EV_WEAPON_ALT:
+      return "EV_WEAPON_ALT";
+    case entityType::EV_WEAPON_SWITCH_STARTED:
+      return "EV_WEAPON_SWITCH_STARTED";
+    case entityType::EV_PULLBACK_WEAPON:
+      return "EV_PULLBACK_WEAPON";
+    case entityType::EV_HOLDFIRE_WEAPON:
+      return "EV_HOLDFIRE_WEAPON";
+    case entityType::EV_FIRE_WEAPON_DELAY_START:
+      return "EV_FIRE_WEAPON_DELAY_START";
+    case entityType::EV_FIRE_WEAPON_SCRIPTED:
+      return "EV_FIRE_WEAPON_SCRIPTED";
+    case entityType::EV_FIRE_WEAPON:
+      return "EV_FIRE_WEAPON";
+    case entityType::EV_FIRE_WEAPON_LASTSHOT:
+      return "EV_FIRE_WEAPON_LASTSHOT";
+    case entityType::EV_FIRE_WEAPON_LEFT:
+      return "EV_FIRE_WEAPON_LEFT";
+    case entityType::EV_FIRE_WEAPON_LASTSHOT_LEFT:
+      return "EV_FIRE_WEAPON_LASTSHOT_LEFT";
+    case entityType::EV_FIRE_WEAPON_BALL_PASS:
+      return "EV_FIRE_WEAPON_BALL_PASS";
+    case entityType::EV_FIRE_RICOCHET:
+      return "EV_FIRE_RICOCHET";
+    case entityType::EV_FIRE_WEAPON_GRAPPLE:
+      return "EV_FIRE_WEAPON_GRAPPLE";
+    case entityType::EV_RECHAMBER_WEAPON:
+      return "EV_RECHAMBER_WEAPON";
+    case entityType::EV_EJECT_BRASS:
+      return "EV_EJECT_BRASS";
+    case entityType::EV_FIRE_MELEE_SWIPE:
+      return "EV_FIRE_MELEE_SWIPE";
+    case entityType::EV_FIRE_MELEE_POWER:
+      return "EV_FIRE_MELEE_POWER";
+    case entityType::EV_FIRE_MELEE_POWER_LEFT:
+      return "EV_FIRE_MELEE_POWER_LEFT";
+    case entityType::EV_FIRE_MELEE:
+      return "EV_FIRE_MELEE";
+    case entityType::EV_MELEE_JUKE:
+      return "EV_MELEE_JUKE";
+    case entityType::EV_MELEE_JUKE_END:
+      return "EV_MELEE_JUKE_END";
+    case entityType::EV_MELEE_LUNGE:
+      return "EV_MELEE_LUNGE";
+    case entityType::EV_MELEE_STRUGGLE:
+      return "EV_MELEE_STRUGGLE";
+    case entityType::EV_MELEE_COUNTER:
+      return "EV_MELEE_COUNTER";
+    case entityType::EV_FIRE_MELEE_DELAYED:
+      return "EV_FIRE_MELEE_DELAYED";
+    case entityType::EV_MELEE_HIT:
+      return "EV_MELEE_HIT";
+    case entityType::EV_MELEE_HIT_ENT:
+      return "EV_MELEE_HIT_ENT";
+    case entityType::EV_MELEE_HIT_FROM_BEHIND:
+      return "EV_MELEE_HIT_FROM_BEHIND";
+    case entityType::EV_MELEE_MISS:
+      return "EV_MELEE_MISS";
+    case entityType::EV_MELEE_BLOOD:
+      return "EV_MELEE_BLOOD";
+    case entityType::EV_WEAPON_DEPLOYING:
+      return "EV_WEAPON_DEPLOYING";
+    case entityType::EV_WEAPON_FINISH_DEPLOYING:
+      return "EV_WEAPON_FINISH_DEPLOYING";
+    case entityType::EV_WEAPON_FINISH_BREAKING_DOWN:
+      return "EV_WEAPON_FINISH_BREAKING_DOWN";
+    case entityType::EV_INC_CHARGESHOT_LEVEL:
+      return "EV_INC_CHARGESHOT_LEVEL";
+    case entityType::EV_HOLDFIRE_CANCEL:
+      return "EV_HOLDFIRE_CANCEL";
+    case entityType::EV_HOLDFIRE_FIRED:
+      return "EV_HOLDFIRE_FIRED";
+    case entityType::EV_PREP_OFFHAND:
+      return "EV_PREP_OFFHAND";
+    case entityType::EV_USE_OFFHAND:
+      return "EV_USE_OFFHAND";
+    case entityType::EV_SWITCH_OFFHAND:
+      return "EV_SWITCH_OFFHAND";
+    case entityType::EV_PREP_RIOTSHIELD:
+      return "EV_PREP_RIOTSHIELD";
+    case entityType::EV_DEPLOY_RIOTSHIELD:
+      return "EV_DEPLOY_RIOTSHIELD";
+    case entityType::EV_LOWER_RIOTSHIELD:
+      return "EV_LOWER_RIOTSHIELD";
+    case entityType::EV_FIRE_BARREL_1:
+      return "EV_FIRE_BARREL_1";
+    case entityType::EV_FIRE_BARREL_2:
+      return "EV_FIRE_BARREL_2";
+    case entityType::EV_FIRE_BARREL_3:
+      return "EV_FIRE_BARREL_3";
+    case entityType::EV_FIRE_BARREL_4:
+      return "EV_FIRE_BARREL_4";
+    case entityType::EV_BULLET_HIT:
+      return "EV_BULLET_HIT";
+    case entityType::EV_BULLET_HIT_SHIELD:
+      return "EV_BULLET_HIT_SHIELD";
+    case entityType::EV_BULLET_HIT_CLIENT_SHIELD:
+      return "EV_BULLET_HIT_CLIENT_SHIELD";
+    case entityType::EV_EXPLOSIVE_IMPACT_ON_SHIELD:
+      return "EV_EXPLOSIVE_IMPACT_ON_SHIELD";
+    case entityType::EV_EXPLOSIVE_SPLASH_ON_SHIELD:
+      return "EV_EXPLOSIVE_SPLASH_ON_SHIELD";
+    case entityType::EV_BULLET_HIT_CLIENT:
+      return "EV_BULLET_HIT_CLIENT";
+    case entityType::EV_DESTRUCTIBLE_BULLET_HIT:
+      return "EV_DESTRUCTIBLE_BULLET_HIT";
+    case entityType::EV_DESTRUCTIBLE_EXPLOSION_HIT:
+      return "EV_DESTRUCTIBLE_EXPLOSION_HIT";
+    case entityType::EV_GRENADE_BOUNCE:
+      return "EV_GRENADE_BOUNCE";
+    case entityType::EV_GRENADE_EXPLODE:
+      return "EV_GRENADE_EXPLODE";
+    case entityType::EV_ROCKET_EXPLODE:
+      return "EV_ROCKET_EXPLODE";
+    case entityType::EV_ROCKET_EXPLODE_NOMARKS:
+      return "EV_ROCKET_EXPLODE_NOMARKS";
+    case entityType::EV_EXPLODE_ON_CLIENT:
+      return "EV_EXPLODE_ON_CLIENT";
+    case entityType::EV_FLASHBANG_EXPLODE:
+      return "EV_FLASHBANG_EXPLODE";
+    case entityType::EV_CUSTOM_EXPLODE:
+      return "EV_CUSTOM_EXPLODE";
+    case entityType::EV_CUSTOM_EXPLODE_NOMARKS:
+      return "EV_CUSTOM_EXPLODE_NOMARKS";
+    case entityType::EV_SENSOR_GRENADE_EXPLODE:
+      return "EV_SENSOR_GRENADE_EXPLODE";
+    case entityType::EV_CHANGE_TO_DUD:
+      return "EV_CHANGE_TO_DUD";
+    case entityType::EV_DUD_EXPLODE:
+      return "EV_DUD_EXPLODE";
+    case entityType::EV_DUD_IMPACT:
+      return "EV_DUD_IMPACT";
+    case entityType::EV_MISSILE_REPULSED:
+      return "EV_MISSILE_REPULSED";
+    case entityType::EV_FIRE_EXPLODE:
+      return "EV_FIRE_EXPLODE";
+    case entityType::EV_TIMED_FX:
+      return "EV_TIMED_FX";
+    case entityType::EV_HIT_MARKER:
+      return "EV_HIT_MARKER";
+    case entityType::EV_FAKE_FIRE:
+      return "EV_FAKE_FIRE";
+    case entityType::EV_PLAY_FX:
+      return "EV_PLAY_FX";
+    case entityType::EV_PLAY_FX_IGNORE_PAUSE:
+      return "EV_PLAY_FX_IGNORE_PAUSE";
+    case entityType::EV_PLAY_FX_ON_TAG:
+      return "EV_PLAY_FX_ON_TAG";
+    case entityType::EV_PLAY_FX_ON_TAG_IGNORE_PAUSE:
+      return "EV_PLAY_FX_ON_TAG_IGNORE_PAUSE";
+    case entityType::EV_PLAY_FX_ON_CAMERA:
+      return "EV_PLAY_FX_ON_CAMERA";
+    case entityType::EV_PLAY_FX_ON_CAMERA_IGNORE_PAUSE:
+      return "EV_PLAY_FX_ON_CAMERA_IGNORE_PAUSE";
+    case entityType::EV_PHYS_EXPLOSION_SPHERE:
+      return "EV_PHYS_EXPLOSION_SPHERE";
+    case entityType::EV_PHYS_EXPLOSION_CYLINDER:
+      return "EV_PHYS_EXPLOSION_CYLINDER";
+    case entityType::EV_PHYS_EXPLOSION_JOLT:
+      return "EV_PHYS_EXPLOSION_JOLT";
+    case entityType::EV_PHYS_JET_THRUST:
+      return "EV_PHYS_JET_THRUST";
+    case entityType::EV_PHYS_LAUNCH:
+      return "EV_PHYS_LAUNCH";
+    case entityType::EV_BALLISTIC_TARGET:
+      return "EV_BALLISTIC_TARGET";
+    case entityType::EV_CREATE_DYNENT:
+      return "EV_CREATE_DYNENT";
+    case entityType::EV_CREATE_ROPE:
+      return "EV_CREATE_ROPE";
+    case entityType::EV_DETACH_ENTITY:
+      return "EV_DETACH_ENTITY";
+    case entityType::EV_DELETE_ROPE:
+      return "EV_DELETE_ROPE";
+    case entityType::EV_ROPE_COLLIDE_WORLD:
+      return "EV_ROPE_COLLIDE_WORLD";
+    case entityType::EV_ROPE_COLLIDE_ENT:
+      return "EV_ROPE_COLLIDE_ENT";
+    case entityType::EV_ROPE_SETFLAG:
+      return "EV_ROPE_SETFLAG";
+    case entityType::EV_ROPE_SETPARAM:
+      return "EV_ROPE_SETPARAM";
+    case entityType::EV_ROPE_ADDANCHOR:
+      return "EV_ROPE_ADDANCHOR";
+    case entityType::EV_ROPE_REMOVEANCHOR:
+      return "EV_ROPE_REMOVEANCHOR";
+    case entityType::EV_ROPE_MOVEANCHOR:
+      return "EV_ROPE_MOVEANCHOR";
+    case entityType::EV_EARTHQUAKE:
+      return "EV_EARTHQUAKE";
+    case entityType::EV_SCREEN_SHAKE:
+      return "EV_SCREEN_SHAKE";
+    case entityType::EV_GRENADE_DROP:
+      return "EV_GRENADE_DROP";
+    case entityType::EV_GRENADE_SUICIDE:
+      return "EV_GRENADE_SUICIDE";
+    case entityType::EV_DETONATE:
+      return "EV_DETONATE";
+    case entityType::EV_DETONATE_OFFHAND:
+      return "EV_DETONATE_OFFHAND";
+    case entityType::EV_MISSILE_REMOTE_BOOST:
+      return "EV_MISSILE_REMOTE_BOOST";
+    case entityType::EV_MISSILE_REMOTE_BRAKE:
+      return "EV_MISSILE_REMOTE_BRAKE";
+    case entityType::EV_PLAY_RUMBLE_ON_ENT:
+      return "EV_PLAY_RUMBLE_ON_ENT";
+    case entityType::EV_PLAY_RUMBLE_ON_POS:
+      return "EV_PLAY_RUMBLE_ON_POS";
+    case entityType::EV_PLAY_RUMBLELOOP_ON_ENT:
+      return "EV_PLAY_RUMBLELOOP_ON_ENT";
+    case entityType::EV_PLAY_RUMBLELOOP_ON_POS:
+      return "EV_PLAY_RUMBLELOOP_ON_POS";
+    case entityType::EV_STOP_RUMBLE:
+      return "EV_STOP_RUMBLE";
+    case entityType::EV_STOP_ALL_RUMBLES:
+      return "EV_STOP_ALL_RUMBLES";
+    case entityType::EV_OBITUARY:
+      return "EV_OBITUARY";
+    case entityType::EV_REVIVE_OBITUARY:
+      return "EV_REVIVE_OBITUARY";
+    case entityType::EV_DIRECTIONAL_HIT_INDICATOR:
+      return "EV_DIRECTIONAL_HIT_INDICATOR";
+    case entityType::EV_ANIMATE_UI:
+      return "EV_ANIMATE_UI";
+    case entityType::EV_KILLSTREAK_DAMAGE:
+      return "EV_KILLSTREAK_DAMAGE";
+    case entityType::EV_ROUND_START_DELAY_HINT:
+      return "EV_ROUND_START_DELAY_HINT";
+    case entityType::EV_NO_FRAG_GRENADE_HINT:
+      return "EV_NO_FRAG_GRENADE_HINT";
+    case entityType::EV_NO_SPECIAL_GRENADE_HINT:
+      return "EV_NO_SPECIAL_GRENADE_HINT";
+    case entityType::EV_GRENADE_NOT_ALLOWED_HINT:
+      return "EV_GRENADE_NOT_ALLOWED_HINT";
+    case entityType::EV_NO_TARGET_IN_RANGE_HINT:
+      return "EV_NO_TARGET_IN_RANGE_HINT";
+    case entityType::EV_TARGET_TOO_CLOSE_HINT:
+      return "EV_TARGET_TOO_CLOSE_HINT";
+    case entityType::EV_TARGET_NOT_ENOUGH_CLEARANCE:
+      return "EV_TARGET_NOT_ENOUGH_CLEARANCE";
+    case entityType::EV_LOCKON_REQUIRED_HINT:
+      return "EV_LOCKON_REQUIRED_HINT";
+    case entityType::EV_FOOTSTEP_SPRINT:
+      return "EV_FOOTSTEP_SPRINT";
+    case entityType::EV_FOOTSTEP_RUN:
+      return "EV_FOOTSTEP_RUN";
+    case entityType::EV_FOOTSTEP_WALK:
+      return "EV_FOOTSTEP_WALK";
+    case entityType::EV_FOOTSTEP_CROUCHRUN:
+      return "EV_FOOTSTEP_CROUCHRUN";
+    case entityType::EV_FOOTSTEP_CROUCHWALK:
+      return "EV_FOOTSTEP_CROUCHWALK";
+    case entityType::EV_FOOTSTEP_PRONE:
+      return "EV_FOOTSTEP_PRONE";
+    case entityType::EV_LADDER_HAND_GRAB:
+      return "EV_LADDER_HAND_GRAB";
+    case entityType::EV_MANTLE:
+      return "EV_MANTLE";
+    case entityType::EV_JUMP:
+      return "EV_JUMP";
+    case entityType::EV_LEAP:
+      return "EV_LEAP";
+    case entityType::EV_TRM:
+      return "EV_TRM";
+    case entityType::EV_WALLRUN_START_LEFT:
+      return "EV_WALLRUN_START_LEFT";
+    case entityType::EV_WALLRUN_START_RIGHT:
+      return "EV_WALLRUN_START_RIGHT";
+    case entityType::EV_WALLRUN_FALL_START:
+      return "EV_WALLRUN_FALL_START";
+    case entityType::EV_WALLRUN_JUMP:
+      return "EV_WALLRUN_JUMP";
+    case entityType::EV_WALLRUN_END:
+      return "EV_WALLRUN_END";
+    case entityType::EV_WALLRUN_FALL_END:
+      return "EV_WALLRUN_FALL_END";
+    case entityType::EV_DOUBLEJUMP_DISABLED:
+      return "EV_DOUBLEJUMP_DISABLED";
+    case entityType::EV_DOUBLEJUMP_BOOST:
+      return "EV_DOUBLEJUMP_BOOST";
+    case entityType::EV_DOUBLEJUMP_FULLENERGY_BOOST:
+      return "EV_DOUBLEJUMP_FULLENERGY_BOOST";
+    case entityType::EV_SLIDE_START:
+      return "EV_SLIDE_START";
+    case entityType::EV_SOFT_LANDING:
+      return "EV_SOFT_LANDING";
+    case entityType::EV_MEDIUM_LANDING:
+      return "EV_MEDIUM_LANDING";
+    case entityType::EV_HARD_LANDING:
+      return "EV_HARD_LANDING";
+    case entityType::EV_DAMAGE_LANDING:
+      return "EV_DAMAGE_LANDING";
+    case entityType::EV_WATER_LANDING:
+      return "EV_WATER_LANDING";
+    case entityType::EV_FIRE_VEHICLE_TURRET:
+      return "EV_FIRE_VEHICLE_TURRET";
+    case entityType::EV_FIRE_GUNNER_1:
+      return "EV_FIRE_GUNNER_1";
+    case entityType::EV_FIRE_GUNNER_2:
+      return "EV_FIRE_GUNNER_2";
+    case entityType::EV_FIRE_GUNNER_3:
+      return "EV_FIRE_GUNNER_3";
+    case entityType::EV_FIRE_GUNNER_4:
+      return "EV_FIRE_GUNNER_4";
+    case entityType::EV_FIRE_GUNNER_1A:
+      return "EV_FIRE_GUNNER_1A";
+    case entityType::EV_FIRE_GUNNER_2A:
+      return "EV_FIRE_GUNNER_2A";
+    case entityType::EV_FIRE_GUNNER_3A:
+      return "EV_FIRE_GUNNER_3A";
+    case entityType::EV_FIRE_GUNNER_4A:
+      return "EV_FIRE_GUNNER_4A";
+    case entityType::EV_FIRE_GUNNER_1B:
+      return "EV_FIRE_GUNNER_1B";
+    case entityType::EV_FIRE_GUNNER_2B:
+      return "EV_FIRE_GUNNER_2B";
+    case entityType::EV_FIRE_GUNNER_3B:
+      return "EV_FIRE_GUNNER_3B";
+    case entityType::EV_FIRE_GUNNER_4B:
+      return "EV_FIRE_GUNNER_4B";
+    case entityType::EV_FIRE_GUNNER_1C:
+      return "EV_FIRE_GUNNER_1C";
+    case entityType::EV_FIRE_GUNNER_2C:
+      return "EV_FIRE_GUNNER_2C";
+    case entityType::EV_FIRE_GUNNER_3C:
+      return "EV_FIRE_GUNNER_3C";
+    case entityType::EV_FIRE_GUNNER_4C:
+      return "EV_FIRE_GUNNER_4C";
+    case entityType::EV_START_CAMERA_TWEEN:
+      return "EV_START_CAMERA_TWEEN";
+    case entityType::EV_START_CAMERA_TWEEN_QUICK_STOP:
+      return "EV_START_CAMERA_TWEEN_QUICK_STOP";
+    case entityType::EV_DESTRUCTIBLE_DISABLE_PIECES:
+      return "EV_DESTRUCTIBLE_DISABLE_PIECES";
+    case entityType::EV_FOOTPRINT:
+      return "EV_FOOTPRINT";
+    case entityType::EV_CANNOTPLANT:
+      return "EV_CANNOTPLANT";
+    case entityType::EV_CANT_EQUIP_PRONE:
+      return "EV_CANT_EQUIP_PRONE";
+    case entityType::EV_CANT_JUKE:
+      return "EV_CANT_JUKE";
+    case entityType::EV_CANT_SLAM:
+      return "EV_CANT_SLAM";
+    case entityType::EV_DTP_LAUNCH:
+      return "EV_DTP_LAUNCH";
+    case entityType::EV_DTP_LAND:
+      return "EV_DTP_LAND";
+    case entityType::EV_LEAP_LAND:
+      return "EV_LEAP_LAND";
+    case entityType::EV_SCOPE_ZOOM:
+      return "EV_SCOPE_ZOOM";
+    case entityType::EV_JAM_WEAPON:
+      return "EV_JAM_WEAPON";
+    case entityType::EV_STACKFIRE:
+      return "EV_STACKFIRE";
+    case entityType::EV_MISSILE_STICK:
+      return "EV_MISSILE_STICK";
+    case entityType::EV_BOLT_IMPALE:
+      return "EV_BOLT_IMPALE";
+    case entityType::EV_PLAY_WEAPON_DEATH_EFFECTS:
+      return "EV_PLAY_WEAPON_DEATH_EFFECTS";
+    case entityType::EV_PLAY_WEAPON_DAMAGE_EFFECTS:
+      return "EV_PLAY_WEAPON_DAMAGE_EFFECTS";
+    case entityType::EV_FACE_EVENT:
+      return "EV_FACE_EVENT";
+    case entityType::EV_SETLOCALWIND:
+      return "EV_SETLOCALWIND";
+    case entityType::EV_FLOAT_LONGER:
+      return "EV_FLOAT_LONGER";
+    case entityType::EV_FORCE_BUOYANCY:
+      return "EV_FORCE_BUOYANCY";
+    case entityType::EV_DISABLE_DEPTH_BUOYANCY_ADJUSTMENTS:
+      return "EV_DISABLE_DEPTH_BUOYANCY_ADJUSTMENTS";
+    case entityType::EV_SCALE_BUOYANCY:
+      return "EV_SCALE_BUOYANCY";
+    case entityType::EV_GIB:
+      return "EV_GIB";
+    case entityType::EV_STANCE_INVALID:
+      return "EV_STANCE_INVALID";
+    case entityType::EV_ENTER_VEHICLE:
+      return "EV_ENTER_VEHICLE";
+    case entityType::EV_EXIT_VEHICLE:
+      return "EV_EXIT_VEHICLE";
+    case entityType::EV_IMMEDIATE_RAGDOLL:
+      return "EV_IMMEDIATE_RAGDOLL";
+    case entityType::EV_ENT_SPAWNED_SENTINEL:
+      return "EV_ENT_SPAWNED_SENTINEL";
+    case entityType::EV_PROJECTILE_PASS_THROUGH:
+      return "EV_PROJECTILE_PASS_THROUGH";
+    case entityType::EV_CTX_COVER_START:
+      return "EV_CTX_COVER_START";
+    case entityType::EV_CTX_COVER_END:
+      return "EV_CTX_COVER_END";
+    case entityType::EV_GADGET_0:
+      return "EV_GADGET_0";
+    case entityType::EV_GADGET_1:
+      return "EV_GADGET_1";
+    case entityType::EV_GADGET_2:
+      return "EV_GADGET_2";
+    case entityType::EV_GADGET_0_DENIAL:
+      return "EV_GADGET_0_DENIAL";
+    case entityType::EV_GADGET_1_DENIAL:
+      return "EV_GADGET_1_DENIAL";
+    case entityType::EV_GADGET_2_DENIAL:
+      return "EV_GADGET_2_DENIAL";
+    case entityType::EV_LOCKON_CHANGE:
+      return "EV_LOCKON_CHANGE";
+    case entityType::EV_TARGETOOR:
+      return "EV_TARGETOOR";
+    case entityType::EV_TARGETHIJACKED:
+      return "EV_TARGETHIJACKED";
+    case entityType::EV_TARGETNOTVALID:
+      return "EV_TARGETNOTVALID";
+    case entityType::EV_NO_TARGETS:
+      return "EV_NO_TARGETS";
+    case entityType::EV_NO_LOS_TO_TARGET:
+      return "EV_NO_LOS_TO_TARGET";
+    case entityType::EV_TARGET_DISABLED:
+      return "EV_TARGET_DISABLED";
+    case entityType::EV_TARGETING_ABORTED:
+      return "EV_TARGETING_ABORTED";
+    case entityType::EV_TARGET_ALREADY_TARGETED:
+      return "EV_TARGET_ALREADY_TARGETED";
+    case entityType::EV_GRAPPLE_BEAM_ON:
+      return "EV_GRAPPLE_BEAM_ON";
+    case entityType::EV_GRAPPLE_BEAM_OFF:
+      return "EV_GRAPPLE_BEAM_OFF";
+    case entityType::EV_LMG_INFINITE_SOUNDS:
+      return "EV_LMG_INFINITE_SOUNDS";
+    default:
+      return "EV_INVALID";
+    }
+  }
+});
 ASSERT_SIZE(entityType_t, 0x4);
 
 constexpr uint32_t ENTITYSTATE_SIZE = 0x1F0;
@@ -1630,31 +2284,31 @@ constexpr uint32_t ENTITYSTATE_CLIENTMASK_OFFSET = 0x168;
 constexpr uint32_t ENTITYSTATE_ETYPE_OFFSET = 0x1A0;
 constexpr uint32_t ENTITYSTATE_OTHERENTITYNUM_OFFSET = 0x1AE;
 
-struct entityState_s {
-  int32_t number;
+PACKED(struct entityState_s {
+  int32_t number; // Verified
   uint8_t _padding04[4];
   LerpEntityState lerp;
   int32_t time2;
-  snd::LoopSoundInfo loopSound;
+  snd::LoopSoundInfo loopSound; // Verified
   int32_t solid;
-  renderOptions_t renderOptions;
+  renderOptions_t renderOptions; // Verified
   weapon::AttachmentCosmeticVariantIndexes attachmentCosmeticVariantIndexes;
   anim::animState_t animState;
   entityStateUn2 un2;
-  entityStateUn3 un3;
+  entityStateUn3 un3; // Verified
   uint32_t partBits[12];
   clientLinkInfo_t clientLinkInfo;
-  int32_t clientMask[1];
+  int32_t clientMask[1]; // Verified
   uint8_t teamMask;
   uint8_t events[4];
   uint8_t _padding171[7];
   EventParm_t eventParms[5];
-  entityType_t eType;
+  entityType_t eType; // Verified
   team_t team;
   int16_t owner;
   int16_t groundEntityNum;
   entityStateIndex index;
-  int16_t otherEntityNum;
+  int16_t otherEntityNum; // Verified
   int16_t attackerEntityNum;
   int16_t enemyModel;
   weapon::Weapon weapon;
@@ -1667,18 +2321,45 @@ struct entityState_s {
   int16_t eventSequence;
   uint8_t surfType;
   uint8_t _padding1DF[1];
-  int16_t clientNum;
+  ClientNum16_t clientNum;
   uint8_t iHeadIcon;
   entityStateUn1 un1;
   uint32_t _unknown1E4;
   int16_t previousEventSequence;
   uint8_t _padding1EA[2];
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"number\": {}, \"lerp\": {}, \"time2\": {}, \"loopSound\": {}, "
+        "\"solid\": {}, \"renderOptions\": {}, "
+        "\"attachmentCosmeticVariantIndexes\": {}, \"animState\": {}, \"un2\": "
+        "{}, \"un3\": {}, \"partBits\": {}, \"clientLinkInfo\": {}, "
+        "\"clientMask\": {}, \"teamMask\": {:02X}, \"events\": {}, "
+        "\"eventParms\": {}, \"eType\": {}, \"team\": {}, \"owner\": {}, "
+        "\"groundEntityNum\": {}, \"index\": {}, \"otherEntityNum\": {}, "
+        "\"attackerEntityNum\": {}, \"enemyModel\": {}, \"weapon\": {}, "
+        "\"lastStandPrevWeapon\": {}, \"targetName\": {:08X}, "
+        "\"spawnVarIndex\": {}, \"animtreeIndex\": {}, \"animScripted\": {}, "
+        "\"eventSequence\": {}, \"surfType\": {}, \"clientNum\": {}, "
+        "\"iHeadIcon\": {}, \"un1\": {}, \"previousEventSequence\": {} }}",
+        number, lerp.serialize(), time2, loopSound.serialize(), solid,
+        renderOptions.serialize(), attachmentCosmeticVariantIndexes.serialize(),
+        animState.serialize(), un2.serialize(), un3.serialize(),
+        ::serialize(partBits), clientLinkInfo.serialize(),
+        ::serialize(clientMask), teamMask, ::serialize(events),
+        ::serialize(eventParms), eType.serialize(), game::serialize(team),
+        owner, groundEntityNum, index.serialize(), otherEntityNum,
+        attackerEntityNum, enemyModel, weapon.serialize(),
+        lastStandPrevWeapon.serialize(), targetname, spawnVarIndex,
+        animtreeIndex, animScripted.serialize(), eventSequence, surfType,
+        ::serialize(clientNum), iHeadIcon, un1.serialize(),
+        previousEventSequence);
+  }
+});
 constexpr uint32_t ENTITYSTATE_CLIENTMASK_BITS =
     bitsizeof<decltype(entityState_s::clientMask)>();
 
 typedef entityState_s entityState_t;
-#pragma pack(pop)
 ASSERT_SIZE(entityState_t, ENTITYSTATE_SIZE);
 ASSERT_OFFSET(entityState_t, eType, ENTITYSTATE_ETYPE_OFFSET);
 ASSERT_OFFSET(entityState_t, number, 0);
@@ -1688,8 +2369,7 @@ ASSERT_OFFSET(entityState_t, otherEntityNum, ENTITYSTATE_OTHERENTITYNUM_OFFSET);
 ASSERT_OFFSET(entityState_t, un3, ENTITYSTATE_UN3_OFFSET);
 ASSERT_OFFSET(entityState_t, renderOptions, 0xE8);
 
-#pragma pack(push, 1)
-struct entityShared_t {
+PACKED(struct entityShared_t {
   bool linked;
   bool bmodel;
   int16_t svFlags;
@@ -1705,10 +2385,21 @@ struct entityShared_t {
   vec3_t currentAngles;
   EntHandle ownerNum;
   int32_t eventTime;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"linked\": {}, \"bmodel\": {}, \"svFlags\": {:04X}, \"inuse\": "
+        "{}, \"broadcastTime\": {}, \"mins\": {}, \"maxs\": {}, \"contents\": "
+        "{:08X}, \"absmin\": {}, \"absmax\": {}, \"currentOrigin\": {}, "
+        "\"currentAngles\": {}, \"ownerNum\": {}, \"eventTime\": {} }}",
+        ::serialize(linked), ::serialize(bmodel), svFlags, ::serialize(inuse),
+        broadcastTime, mins.serialize(), maxs.serialize(), contents,
+        absmin.serialize(), absmax.serialize(), currentOrigin.serialize(),
+        currentAngles.serialize(), ownerNum.serialize(), eventTime);
+  }
+});
 ASSERT_SIZE(entityShared_t, 0x60);
 ASSERT_OFFSET(entityShared_t, eventTime, 0x5C);
-#pragma pack(pop)
 
 enum class EViewAngleEaseMode : uint32_t {
   LINEAR = 0x0,
@@ -1716,6 +2407,21 @@ enum class EViewAngleEaseMode : uint32_t {
   QUADRATIC = 0x2,
   SINUSOIDAL = 0x3,
 };
+
+inline constexpr const char *serialize(const EViewAngleEaseMode mode) {
+  switch (mode) {
+  case EViewAngleEaseMode::LINEAR:
+    return "VAEM_LINEAR";
+  case EViewAngleEaseMode::CUBIC:
+    return "VAEM_CUBIC";
+  case EViewAngleEaseMode::QUADRATIC:
+    return "VAEM_QUADRATIC";
+  case EViewAngleEaseMode::SINUSOIDAL:
+    return "VAEM_SINUSOIDAL";
+  default:
+    return "VAEM_INVALID";
+  }
+}
 
 struct playerViewAngleState_s {
   int32_t flags;
@@ -1725,6 +2431,15 @@ struct playerViewAngleState_s {
   EViewAngleEaseMode easeMode;
   vec2_t startAngles;
   vec2_t goalAngles;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"flags\": {:08X}, \"time\": {}, \"startTimeMs\": "
+                       "{}, \"durationMs\": {}, \"easeMode\": {}, "
+                       "\"startAngles\": {}, \"goalAngles\": {} }}",
+                       flags, time, startTimeMs, durationMs,
+                       game::level::serialize(easeMode),
+                       startAngles.serialize(), goalAngles.serialize());
+  }
 };
 ASSERT_SIZE(playerViewAngleState_s, 0x24);
 typedef playerViewAngleState_s playerViewAngleState_t;
@@ -1739,12 +2454,39 @@ enum class PlayerLensState : int32_t {
   COUNT = 0x6,
 };
 
+inline constexpr const char *serialize(const PlayerLensState lensState) {
+  switch (lensState) {
+  case PlayerLensState::DEFAULT:
+    return "PLAYERLENSSTATE_DEFAULT";
+  case PlayerLensState::WALK:
+    return "PLAYERLENSSTATE_WALK";
+  case PlayerLensState::SPRINT:
+    return "PLAYERLENSSTATE_SPRINT";
+  case PlayerLensState::SWIM:
+    return "PLAYERLENSSTATE_SWIM";
+  case PlayerLensState::SWIMSPRINT:
+    return "PLAYERLENSSTATE_SWIMSPRINT";
+  case PlayerLensState::SLIDE:
+    return "PLAYERLENSSTATE_SLIDE";
+  default:
+    return "PLAYERLENSSTATE_INVALID";
+  }
+}
+
 struct PlayerLens {
   PlayerLensState lensState;
   float focalLength;
   float focalDistance;
   float fStop;
   float unknown;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"lensState\": {}, \"focalLength\": {}, \"focalDistance\": {}, "
+        "\"fStop\": {}, \"unknown\": {} }}",
+        game::level::serialize(lensState), focalLength, focalDistance, fStop,
+        unknown);
+  }
 };
 ASSERT_SIZE(PlayerLens, 0x14);
 
@@ -1754,11 +2496,34 @@ enum class OffhandSecondaryClass : int32_t {
   COUNT = 0x2,
 };
 
+inline constexpr const char *
+serialize(const OffhandSecondaryClass secondaryClass) {
+  switch (secondaryClass) {
+  case OffhandSecondaryClass::SMOKE:
+    return "OFFHANDSECONDARYCLASS_SMOKE";
+  case OffhandSecondaryClass::FLASH:
+    return "OFFHANDSECONDARYCLASS_FLASH";
+  default:
+    return "OFFHANDSECONDARYCLASS_INVALID";
+  }
+}
+
 enum class OffhandPrimaryClass : int32_t {
   FRAG = 0x0,
   GEAR = 0x1,
   COUNT = 0x2,
 };
+
+inline constexpr const char *serialize(const OffhandPrimaryClass primaryClass) {
+  switch (primaryClass) {
+  case OffhandPrimaryClass::FRAG:
+    return "OFFHANDPRIMARYCLASS_FRAG";
+  case OffhandPrimaryClass::GEAR:
+    return "OFFHANDPRIMARYCLASS_GEAR";
+  default:
+    return "OFFHANDPRIMARYCLASS_INVALID";
+  }
+}
 
 enum class ViewHeightState : int32_t {
   PRONE = 0x0,
@@ -1773,12 +2538,50 @@ enum class ViewHeightState : int32_t {
   COUNT = 0x9,
 };
 
+inline constexpr const char *serialize(const ViewHeightState heightState) {
+  switch (heightState) {
+  case ViewHeightState::PRONE:
+    return "VIEWHEIGHTSTATE_PRONE";
+  case ViewHeightState::CROUCH:
+    return "VIEWHEIGHTSTATE_CROUCH";
+  case ViewHeightState::STAND:
+    return "VIEWHEIGHTSTATE_STAND";
+  case ViewHeightState::SLIDE:
+    return "VIEWHEIGHTSTATE_SLIDE";
+  case ViewHeightState::SWIM:
+    return "VIEWHEIGHTSTATE_SWIM";
+  case ViewHeightState::LASTSTAND:
+    return "VIEWHEIGHTSTATE_LASTSTAND";
+  case ViewHeightState::ASSASSINATION:
+    return "VIEWHEIGHTSTATE_ASSASSINATION";
+  case ViewHeightState::DEAD:
+    return "VIEWHEIGHTSTATE_DEAD";
+  case ViewHeightState::SPECTATOR:
+    return "VIEWHEIGHTSTATE_SPECTATOR";
+  default:
+    return "VIEWHEIGHTSTATE_INVALID";
+  }
+}
+
 enum class ViewLockTypes : uint32_t {
   NONE = 0x0,
   FULL = 0x1,
   WEAPONJITTER = 0x2,
   COUNT = 0x3,
 };
+
+inline constexpr const char *serialize(const ViewLockTypes lockType) {
+  switch (lockType) {
+  case ViewLockTypes::NONE:
+    return "PLAYERVIEWLOCK_NONE";
+  case ViewLockTypes::FULL:
+    return "PLAYERVIEWLOCK_FULL";
+  case ViewLockTypes::WEAPONJITTER:
+    return "PLAYERVIEWLOCK_WEAPONJITTER";
+  default:
+    return "PLAYERVIEWLOCK_INVALID";
+  }
+}
 
 enum class locSel_t : uint32_t {
   NONE = 0x0,
@@ -1789,8 +2592,26 @@ enum class locSel_t : uint32_t {
   COMLINK = 0x5,
 };
 
-#pragma pack(push, 1)
-struct SprintState {
+inline constexpr const char *serialize(const locSel_t sel) {
+  switch (sel) {
+  case locSel_t::NONE:
+    return "LOC_SEL_NONE";
+  case locSel_t::ARTILLERY:
+    return "LOC_SEL_ARTILLERY";
+  case locSel_t::AIRSTRIKE:
+    return "LOC_SEL_AIRSTRIKE";
+  case locSel_t::MORTAR:
+    return "LOC_SEL_MORTAR";
+  case locSel_t::NAPALM:
+    return "LOC_SEL_NAPALM";
+  case locSel_t::COMLINK:
+    return "LOC_SEL_COMLINK";
+  default:
+    return "LOC_SEL_INVALID";
+  }
+}
+
+PACKED(struct SprintState {
   qboolean sprintButtonUpRequired;
   qboolean sprintRestore;
   int32_t sprintRestoreDelayStart;
@@ -1802,9 +2623,21 @@ struct SprintState {
   uint8_t _padding1D[3];
   int32_t sprintDuration;
   int32_t sprintCooldown;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"sprintButtonUpRequired\": {}, \"sprintRestore\": {}, "
+        "\"sprintRestoreDelayStart\": {}, \"sprintDelay\": {}, "
+        "\"lastSprintStart\": {}, \"lastSprintEnd\": {}, "
+        "\"sprintStartMaxLength\": {}, \"dir\": {}, \"sprintDuration\": {}, "
+        "\"sprintCooldown\": {} }}",
+        sprintButtonUpRequired.serialize(), sprintRestore.serialize(),
+        sprintRestoreDelayStart, sprintDelay.serialize(), lastSprintStart,
+        lastSprintEnd, sprintStartMaxLength, dir, sprintDuration,
+        sprintCooldown);
+  }
+});
 ASSERT_SIZE(SprintState, 0x28);
-#pragma pack(pop)
 
 enum class trmAnim_t : int32_t {
   ROOT = 0x0,
@@ -1835,8 +2668,58 @@ enum class trmAnim_t : int32_t {
   FIRST_NONCOMBAT_ANIM = 0x12,
 };
 
-#pragma pack(push, 1)
-struct TRMState {
+inline constexpr const char *serialize(const trmAnim_t anim) {
+  switch (anim) {
+  case trmAnim_t::ROOT:
+    return "TRMANIM_ROOT";
+  case trmAnim_t::STEP_F:
+    return "TRMANIM_STEP_F";
+  case trmAnim_t::STEP_B:
+    return "TRMANIM_STEP_B";
+  case trmAnim_t::STEP_L:
+    return "TRMANIM_STEP_L";
+  case trmAnim_t::STEP_R:
+    return "TRMANIM_STEP_R";
+  case trmAnim_t::ON_LOW_FORWARD_32:
+    return "TRMANIM_ON_LOW_FORWARD_32";
+  case trmAnim_t::ON_LOW_BACK_32:
+    return "TRMANIM_ON_LOW_BACK_32";
+  case trmAnim_t::ON_LOW_LEFT_32:
+    return "TRMANIM_ON_LOW_LEFT_32";
+  case trmAnim_t::ON_LOW_RIGHT_32:
+    return "TRMANIM_ON_LOW_RIGHT_32";
+  case trmAnim_t::ON_MED_FORWARD_60:
+    return "TRMANIM_ON_MED_FORWARD_60";
+  case trmAnim_t::ON_MED_LEFT_50:
+    return "TRMANIM_ON_MED_LEFT_50";
+  case trmAnim_t::ON_MED_RIGHT_50:
+    return "TRMANIM_ON_MED_RIGHT_50";
+  case trmAnim_t::OVER_LOW_FORWARD_VAULT:
+    return "TRMANIM_OVER_LOW_FORWARD_VAULT";
+  case trmAnim_t::OVER_LOW_FORWARD:
+    return "TRMANIM_OVER_LOW_FORWARD";
+  case trmAnim_t::OVER_LOW_BACK:
+    return "TRMANIM_OVER_LOW_BACK";
+  case trmAnim_t::OVER_LOW_LEFT:
+    return "TRMANIM_OVER_LOW_LEFT";
+  case trmAnim_t::OVER_LOW_RIGHT:
+    return "TRMANIM_OVER_LOW_RIGHT";
+  case trmAnim_t::OVER_HIGH_75:
+    return "TRMANIM_OVER_HIGH_75";
+  case trmAnim_t::OVER_HIGH_100:
+    return "TRMANIM_OVER_HIGH_100";
+  case trmAnim_t::OVER_HIGH_140:
+    return "TRMANIM_OVER_HIGH_140";
+  case trmAnim_t::ON_HIGH_100:
+    return "TRMANIM_ON_HIGH_100";
+  case trmAnim_t::ON_HIGH_140:
+    return "TRMANIM_ON_HIGH_140";
+  default:
+    return "TRMANIM_INVALID";
+  }
+}
+
+PACKED(struct TRMState {
   float yaw;
   float ledgeYaw;
   int32_t timer;
@@ -1846,27 +2729,52 @@ struct TRMState {
   float animTimeScale;
   vec2_t restoreAngles;
   int32_t doublejumpEndedTime;
-};
-ASSERT_SIZE(TRMState, 0x30);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct GrappleState {
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"yaw\": {}, \"ledgeYaw\": {}, \"timer\": {}, \"flags\": {:08X}, "
+        "\"animIndex\": {}, \"moveVec\": {}, \"animTimeScale\": {}, "
+        "\"restoreAngles\": {}, \"doublejumpEndedTime\": {} }}",
+        yaw, ledgeYaw, timer, flags, game::level::serialize(animIndex),
+        moveVec.serialize(), animTimeScale, restoreAngles.serialize(),
+        doublejumpEndedTime);
+  }
+});
+ASSERT_SIZE(TRMState, 0x30);
+
+PACKED(struct GrappleState {
   vec3_t startPos;
   int32_t startTime;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"startPos\": {}, \"startTime\": {} }}",
+                       startPos.serialize(), startTime);
+  }
+});
 ASSERT_SIZE(GrappleState, 0x10);
-struct JukeState {
+PACKED(struct JukeState {
   int32_t startTime;
   float jukeYaw;
   int32_t flags;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"startTime\": {}, \"jukeYaw\": {}, \"flags\": {:08X} }}",
+        startTime, jukeYaw, flags);
+  }
+});
 ASSERT_SIZE(JukeState, 0xC);
-struct SlamState {
+PACKED(struct SlamState {
   int32_t startTime;
   float slamYaw;
   int32_t flags;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"startTime\": {}, \"slamYaw\": {}, \"flags\": {:08X} }}",
+        startTime, slamYaw, flags);
+  }
+});
 ASSERT_SIZE(SlamState, 0xC);
 
 enum class SlideType : uint32_t {
@@ -1876,16 +2784,37 @@ enum class SlideType : uint32_t {
   COUNT = 0x3,
 };
 
-struct SlideState {
+inline constexpr const char *serialize(const SlideType type) {
+  switch (type) {
+  case SlideType::BOOST:
+    return "SLIDETYPE_BOOST";
+  case SlideType::REDUCED:
+    return "SLIDETYPE_REDUCED";
+  case SlideType::BASE:
+    return "SLIDETYPE_BASE";
+  default:
+    return "SLIDETYPE_INVALID";
+  }
+}
+
+PACKED(struct SlideState {
   vec3_t slideAngleOffsets;
   int32_t flags;
   int32_t slideTime;
   int32_t slideOutDuration;
   int32_t subsequentCount;
   SlideType slideType;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"slideAngleOffsets\": {}, \"flags\": {:08X}, \"slideTime\": {}, "
+        "\"slideOutDuration\": {}, \"subsequentCount\": {}, \"slideType\": {} "
+        "}}",
+        slideAngleOffsets.serialize(), flags, slideTime, slideOutDuration,
+        subsequentCount, game::level::serialize(slideType));
+  }
+});
 ASSERT_SIZE(SlideState, 0x20);
-#pragma pack(pop)
 
 enum class DoubleJumpStateType : int32_t {
   OFF = 0x0,
@@ -1894,6 +2823,22 @@ enum class DoubleJumpStateType : int32_t {
   IN_AIR = 0x3,
   COUNT = 0x4,
 };
+
+inline constexpr const char *serialize(const DoubleJumpStateType state) {
+  switch (state) {
+  case DoubleJumpStateType::OFF:
+    return "DOUBLEJUMPSTATE_OFF";
+  case DoubleJumpStateType::FIRST_UP_BOOST:
+    return "DOUBLEJUMPSTATE_FIRST_UP_BOOST";
+  case DoubleJumpStateType::UP_BOOST:
+    return "DOUBLEJUMPSTATE_UP_BOOST";
+  case DoubleJumpStateType::IN_AIR:
+    return "DOUBLEJUMPSTATE_IN_AIR";
+  default:
+    return "DOUBLEJUMPSTATE_INVALID";
+  }
+}
+
 enum class DoubleJumpBoostUpDirection : int32_t {
   NONE = 0x0,
   LEFT = 0x1,
@@ -1903,6 +2848,23 @@ enum class DoubleJumpBoostUpDirection : int32_t {
   COUNT = 0x5,
 };
 
+inline constexpr const char *serialize(const DoubleJumpBoostUpDirection dir) {
+  switch (dir) {
+  case DoubleJumpBoostUpDirection::NONE:
+    return "DOUBLEJUMPBOOST_NONE";
+  case DoubleJumpBoostUpDirection::LEFT:
+    return "DOUBLEJUMPBOOST_LEFT";
+  case DoubleJumpBoostUpDirection::RIGHT:
+    return "DOUBLEJUMPBOOST_RIGHT";
+  case DoubleJumpBoostUpDirection::FORWARD:
+    return "DOUBLEJUMPBOOST_FORWARD";
+  case DoubleJumpBoostUpDirection::BACKWARD:
+    return "DOUBLEJUMPBOOST_BACKWARD";
+  default:
+    return "DOUBLEJUMPBOOST_INVALID";
+  }
+}
+
 enum class gadgetButtonInput_e : int32_t {
   NO_CHANGE = 0x0,
   PRESSED = 0x1,
@@ -1910,6 +2872,21 @@ enum class gadgetButtonInput_e : int32_t {
   RELEASED = 0x3,
   COUNT = 0x4,
 };
+
+inline constexpr const char *serialize(const gadgetButtonInput_e input) {
+  switch (input) {
+  case gadgetButtonInput_e::NO_CHANGE:
+    return "GADGETBUTTON_NO_CHANGE";
+  case gadgetButtonInput_e::PRESSED:
+    return "GADGETBUTTON_PRESSED";
+  case gadgetButtonInput_e::HELD:
+    return "GADGETBUTTON_HELD";
+  case gadgetButtonInput_e::RELEASED:
+    return "GADGETBUTTON_RELEASED";
+  default:
+    return "GADGETBUTTON_INVALID";
+  }
+}
 
 struct playerGadgetState_t {
   uint32_t gadgetPlayerStateFlags;
@@ -1920,6 +2897,18 @@ struct playerGadgetState_t {
   int32_t gadgetActivateTime;
   float gadgetPowerRemaining;
   gadgetButtonInput_e gadgetButtonState;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"gadgetPlayerStateFlags\": {:08X}, \"gadgetLastUsedTime\": {}, "
+        "\"gadgetFlickerTime\": {}, \"gadgetEntNum\": {}, \"gadgetPressTime\": "
+        "{}, "
+        "\"gadgetActivateTime\": {}, \"gadgetPowerRemaining\": {}, "
+        "\"gadgetButtonState\": {} }}",
+        gadgetPlayerStateFlags, gadgetLastUsedTime, gadgetFlickerTime,
+        gadgetEntNum, gadgetPressTime, gadgetActivateTime, gadgetPowerRemaining,
+        game::level::serialize(gadgetButtonState));
+  }
 };
 ASSERT_SIZE(playerGadgetState_t, 0x20);
 
@@ -1935,6 +2924,16 @@ struct WallRunState {
   float rollFrac;
   int32_t timeLastInputReceived;
   int32_t lastShotMs;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"startTimeMs\": {}, \"endTimeMs\": {}, \"flags\": {:04X}, "
+        "\"normal\": {}, \"startHeight\": {}, \"verticality\": {}, "
+        "\"rollFrac\": {}, \"timeLastInputReceived\": {}, \"lastShotMs\": {} "
+        "}}",
+        startTimeMs, endTimeMs, flags, normal.serialize(), startHeight,
+        verticality, rollFrac, timeLastInputReceived, lastShotMs);
+  }
 };
 ASSERT_SIZE(WallRunState, 0x2C);
 #pragma pack(pop)
@@ -1942,6 +2941,11 @@ ASSERT_SIZE(WallRunState, 0x2C);
 struct LeapState {
   int32_t volumeTimer;
   int32_t state;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"volumeTimer\": {}, \"state\": {} }}", volumeTimer,
+                       state);
+  }
 };
 ASSERT_SIZE(LeapState, 0x8);
 
@@ -1956,6 +2960,17 @@ struct AnimMovement {
   int32_t targetFlags;
   int32_t flags;
   float lerpTime;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"startOrigin\": {}, \"originErrorNormal\": {}, \"timer\": {}, "
+        "\"originErrorDistance\": {}, \"startYaw\": {}, \"errorYaw\": {}, "
+        "\"timeScale\": {}, \"targetFlags\": {:08X}, \"flags\": {:08X}, "
+        "\"lerpTime\": {} }}",
+        startOrigin.serialize(), originErrorNormal.serialize(), timer,
+        originErrorDistance, startYaw, errorYaw, timeScale, targetFlags, flags,
+        lerpTime);
+  }
 };
 ASSERT_SIZE(AnimMovement, 0x38);
 
@@ -1966,6 +2981,15 @@ struct playerStateCameraInfo {
   int32_t xcamSubCamera;
   vec3_t xcamBundleOrigin;
   vec4_t xcamBundleAnglesQuat;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"xcamIndex\": {}, \"xcamStartTime\": {}, \"xcamLerpEndTime\": {}, "
+        "\"xcamSubCamera\": {}, \"xcamBundleOrigin\": {}, "
+        "\"xcamBundleAnglesQuat\": {} }}",
+        xcamIndex, xcamStartTime, xcamLerpEndTime, xcamSubCamera,
+        xcamBundleOrigin.serialize(), xcamBundleAnglesQuat.serialize());
+  }
 };
 ASSERT_SIZE(playerStateCameraInfo, 0x2C);
 
@@ -1973,6 +2997,12 @@ struct PlayerWeaponLock {
   int32_t lockFlags;
   int32_t targetEntNum;
   int32_t subtarget;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"lockFlags\": {:08X}, \"targetEntNum\": {}, \"subtarget\": {} }}",
+        lockFlags, targetEntNum, subtarget);
+  }
 };
 ASSERT_SIZE(PlayerWeaponLock, 0xC);
 
@@ -1984,37 +3014,69 @@ enum class ActionSlotType : int32_t {
   COUNT = 0x4,
 };
 
+inline constexpr const char *serialize(const ActionSlotType type) {
+  switch (type) {
+  case ActionSlotType::DONOTHING:
+    return "ACTIONSLOTTYPE_DONOTHING";
+  case ActionSlotType::SPECIFYWEAPON:
+    return "ACTIONSLOTTYPE_SPECIFYWEAPON";
+  case ActionSlotType::ALTWEAPONTOGGLE:
+    return "ACTIONSLOTTYPE_ALTWEAPONTOGGLE";
+  case ActionSlotType::BGB:
+    return "ACTIONSLOTTYPE_BGB";
+  default:
+    return "ACTIONSLOTTYPE_INVALID";
+  }
+}
+
 struct ActionSlotParam {
   struct SpecifyWeapon {
     weapon::Weapon weapon;
+
+    inline std::string serialize() const noexcept {
+      return std::format("{{ \"weapon\": {} }}", weapon.serialize());
+    }
   };
 
   union {
     SpecifyWeapon specifyWeapon;
   };
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"specifyWeapon\": {} }}",
+                       specifyWeapon.serialize());
+  }
 };
 ASSERT_SIZE(ActionSlotParam, 0x8);
 
-#pragma pack(push, 1)
-struct PlayerRenderInfo {
+PACKED(struct PlayerRenderInfo {
   uint8_t lightingState;
   uint8_t _padding01[3];
   int32_t sunShadowSplitDistance;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"lightingState\": {}, \"sunShadowSplitDistance\": {} }}",
+        lightingState, sunShadowSplitDistance);
+  }
+});
 ASSERT_SIZE(PlayerRenderInfo, 0x8);
-#pragma pack(pop)
 
 struct clientCmdAngles_t {
   int32_t time;
   int16_t pitch;
   int16_t yaw;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"time\": {}, \"pitch\": {:04X}, \"yaw\": {:04X} }}",
+                       time, pitch, yaw);
+  }
 };
 ASSERT_SIZE(clientCmdAngles_t, 0x8);
 
 // Almost entirely unverified as of initial definition.
 // Verify and adjust as needed prior to usage.
-#pragma pack(push, 1)
-struct playerState_s {
+PACKED(struct playerState_s {
   ClientNum_t clientNum;
   int32_t commandTime;
   int32_t pm_type;
@@ -2266,7 +3328,206 @@ struct playerState_s {
   clientCmdAngles_t cmdAngles[20];
   int32_t cmdAnglesHead;
   uint8_t _padding[51];
-};
+
+  inline std::string serialize() const noexcept {
+    // Format calls need to be split here, as MSVC's built-in `std::format`
+    // function can't handle the number of arguments needed to serialize the
+    // struct in one call
+    std::string json;
+    json.reserve(6144); // Preallocate buffer to avoid reallocations
+
+    json += std::format(
+        "{{ \"clientNum\": {}, \"commandTime\": {}, \"pm_type\": {:08X}, "
+        "\"bobCycle\": {}, \"pm_flags\": {:016X}, \"weapFlags\": {:016X}, "
+        "\"otherFlags\": {:08X}, \"pm_time\": {}, \"loopSound\": {}, "
+        "\"roleIndex\": {}, \"level\": {}, \"origin\": {}, \"velocity\": {}, "
+        "\"remoteEyesEnt\": {:08X}, \"remoteEyesTagname\": {}, \"handState\": "
+        "{}, \"movementState\": {:08X}, \"movementTime\": {}, "
+        "\"weaponIdleTime\": {}, \"grenadeTimeLeft\": {}, "
+        "\"throwBackGrenadeOwner\": {}, \"throwBackGrenadeTimeLeft\": {}, "
+        "\"weaponRestrictKickTime\": {}, \"mountAvailable\": {}, "
+        "\"bThirdPerson\": {}, \"foliageSoundTime\": {}, \"gravity\": {}, "
+        "\"leanf\": {}, \"speed\": {}, \"delta_angles\": {}, "
+        "\"viewAngleState\": {}, \"groundEntityNum\": {}, \"moverEntityNum\": "
+        "{}, \"moverTimestamp\": {}, \"groundType\": {:08X}, \"jumpTime\": {}, "
+        "\"jumpOriginZ\": {}, \"moveType\": {:08X}, \"playerAnims\": {}, "
+        "\"animScripted\": {}, \"damageTimer\": {}, \"damageDuration\": {}, "
+        "\"dmgDirection\": {}, \"dmgType\": {:08X}, \"corpseIndex\": {}, "
+        "\"movementDir\": {}, \"eFlags\": {:08X}, \"eFlags2\": {:08X}, "
+        "\"playerLens\": {}, \"vehicleState\": {}",
+        game::serialize(clientNum), commandTime, pm_type, bobCycle, pm_flags,
+        weapFlags, otherFlags, pm_time, loopSound.serialize(), roleIndex, level,
+        origin.serialize(), velocity.serialize(), remoteEyesEnt,
+        remoteEyesTagname, ::serialize(handState), movementState, movementTime,
+        weaponIdleTime, grenadeTimeLeft, throwBackGrenadeOwner,
+        throwBackGrenadeTimeLeft, weaponRestrictKickTime,
+        ::serialize(mountAvailable), ::serialize(bThirdPerson),
+        foliageSoundTime, gravity, leanf, speed, delta_angles.serialize(),
+        viewAngleState.serialize(), groundEntityNum, moverEntityNum,
+        moverTimestamp, groundType, jumpTime, jumpOriginZ, moveType,
+        ::serialize(playerAnims), animScripted.serialize(), damageTimer,
+        damageDuration, dmgDirection, dmgType, corpseIndex, movementDir, eFlags,
+        eFlags2, playerLens.serialize(), vehicleState.serialize());
+
+    json += std::format(
+        ", \"predictableEventSequence\": {}, \"predictableEventSequenceOld\": "
+        "{}, \"predictableEvents\": {}, \"predictableEventParms\": {}, "
+        "\"unpredictableEventSequence\": {}, "
+        "\"unpredictableEventSequenceOld\": {}, \"unpredictableEvents\": {}, "
+        "\"unpredictableEventParms\": {}, \"offHandWeapon\": {}, "
+        "\"offhandSecondary\": {}, \"offhandPrimary\": {}, \"renderOptions\": "
+        "{}, \"attachmentCosmeticVariantIndexes\": {}, \"momentum\": {}, "
+        "\"weapon\": {}, \"lastWeaponAltModeSwitch\": {}, \"stowedWeapon\": "
+        "{}, \"meleeWeapon\": {}, \"gadgetTargetResult\": {}, "
+        "\"fWeaponPosFrac\": {}, \"fMoveSpeedTransitionLerp\": {}, "
+        "\"fIdleSpeedFromFireTransitionLerp\": {}, \"adsDelayTime\": {}, "
+        "\"spreadOverride\": {}, \"spreadOverrideState\": {}, "
+        "\"weaponSpinLerp\": {}, \"viewangles\": {}, \"viewHeightCurrent\": "
+        "{}, \"viewHeightLerpTime\": {}, \"viewHeightLerpTarget\": {}, "
+        "\"viewHeightLerpDown\": {}, \"viewHeightState\": {}, "
+        "\"viewHeightStatePrev\": {}, \"viewBobFactor\": {}, "
+        "\"viewAngleClampBase\": {}, \"viewAngleClampRange\": {}, "
+        "\"damageEvent\": {}, \"damageYaw\": {}, \"damagePitch\": {}, "
+        "\"damageCount\": {}, \"stats\": {}, \"heldWeapons\": {}, "
+        "\"ammoNotInClip\": {}, \"ammoInClip\": {}, \"proneDirection\": {}, "
+        "\"proneDirectionPitch\": {}, \"proneTorsoPitch\": {}, \"viewLocked\": "
+        "{}, \"viewlocked_entNum\": {}, \"vehiclePos\": {}, \"vehicleType\": "
+        "{:08X}, \"vehicleAnimBoneIndex\": {:08X}, \"linkFlags\": {:08X}, "
+        "\"linkAngles\": {}, \"groundTiltAngles\": {}, \"cursorHint\": {}, "
+        "\"cursorHintString\": {:08X}, \"cursorHintEntIndex\": {}, "
+        "\"cursorHintWeapon\": {}, \"interactivePromptEntIndex\": {}, "
+        "\"iCompassPlayerInfo\": {}, \"spyplaneTypeEnabled\": {:08X}, "
+        "\"satelliteTypeEnabled\": {:08X}, \"spyplaneTime\": {}, "
+        "\"satelliteTime\": {}, \"locationSelectionInfo\": {:08X}, "
+        "\"locationSelectionType\": {}, \"sprintState\": {}",
+        predictableEventSequence, predictableEventSequenceOld,
+        ::serialize(predictableEvents), ::serialize(predictableEventParms),
+        unpredictableEventSequence, unpredictableEventSequenceOld,
+        ::serialize(unpredictableEvents), ::serialize(unpredictableEventParms),
+        offHandWeapon.serialize(), game::level::serialize(offhandSecondary),
+        game::level::serialize(offhandPrimary), renderOptions.serialize(),
+        attachmentCosmeticVariantIndexes.serialize(), momentum,
+        weapon.serialize(), lastWeaponAltModeSwitch.serialize(),
+        stowedWeapon.serialize(), meleeWeapon.serialize(),
+        game::weapon::serialize(gadgetTargetResult), fWeaponPosFrac,
+        fMoveSpeedTransitionLerp, fIdleSpeedFromFireTransitionLerp,
+        adsDelayTime, spreadOverride, spreadOverrideState, weaponSpinLerp,
+        viewangles.serialize(), viewHeightCurrent, viewHeightLerpTime,
+        viewHeightLerpTarget, ::serialize(viewHeightLerpDown),
+        game::level::serialize(viewHeightState),
+        game::level::serialize(viewHeightStatePrev), viewBobFactor.serialize(),
+        viewAngleClampBase.serialize(), viewAngleClampRange.serialize(),
+        damageEvent, damageYaw, damagePitch, damageProjYaw, damageCount,
+        ::serialize(stats), ::serialize(heldWeapons),
+        ::serialize(ammoNotInClip), ::serialize(ammoInClip), proneDirection,
+        proneDirectionPitch, proneTorsoPitch,
+        game::level::serialize(viewlocked), viewlocked_entNum, vehiclePos,
+        vehicleType, vehicleAnimBoneIndex, linkFlags, linkAngles.serialize(),
+        groundTiltAngles.serialize(), cursorHint, cursorHintString,
+        cursorHintEntIndex, cursorHintWeapon.serialize(),
+        interactivePromptEntIndex, iCompassPlayerInfo, spyplaneTypeEnabled,
+        satelliteTypeEnabled, spyplaneTime, satelliteTime,
+        locationSelectionInfo, game::level::serialize(locationSelectionType),
+        sprintState.serialize());
+
+    json += std::format(
+        ", \"fTorsoPitch\": {}, \"fWaistPitch\": {}, "
+        "\"holdBreathScale\": {}, \"holdBreathTimer\": {}, "
+        "\"chargeShotTimer\": {}, "
+        "\"chargeShotLevel\": {}, \"shotsFiredFromChamber\": {}, "
+        "\"quickScopeScale\": {}, \"quickScopeTimer\": {}, "
+        "\"privateClientFields\": {}, \"clientFields\": {}, \"uiModelFields\": "
+        "{}, \"moveSpeedScaleMultiplier\": {}, \"trmState\": {}, "
+        "\"grappleState\": {}, \"grappledByEntNum\": {}, \"slideState\": {}, "
+        "\"jukeState\": {}, \"slamState\": {}, \"impactTime\": {}, "
+        "\"impactIntensity\": {}, \"doubleJumpState\": {}, "
+        "\"doubleJumpBoostUpDirection\": {}, \"doubleJumpPitchOffset\": {}, "
+        "\"doubleJumpRollOffset\": {}, \"playerEnergyRatio\": {}, "
+        "\"playerEnergyTime\": {}, \"playerGadgetState\": {}, "
+        "\"wallRunState\": {}, \"playerSwimAnimRate\": {}, \"leapState\": {}, "
+        "\"animMovement\": {}, \"vehicleAnimStage\": {}, "
+        "\"vehicleEntryPoint\": {}, \"meleeChargeDist\": {}, "
+        "\"meleeChargeTime\": {}, \"meleeChargeEnt\": {}, "
+        "\"meleeConstraintPlane\": {}, \"meleeStartTime\": {}, "
+        "\"meleeServerResult\": {}, \"meleeFlags\": {:08X}, \"meleeState\": "
+        "{}, "
+        "\"blockMeleeUsageTimer\": {}, \"meleeAttacker\": {}, "
+        "\"meleeCounterTimer\": {}, \"chainMeleeCounter\": {}, \"mainCam\": "
+        "{}, \"extraCam\": {}, \"weapLock\": {}, \"weapLockedPivotEntnum\": "
+        "{}, \"weapLockTimer\": {}, "
+        "\"lockOnRequiredMsgSuppressAfterFireTimer\": {}, \"perks\": {}, "
+        "\"perksCache\": {}, \"bonuscards\": {}, \"actionSlotType\": {}, "
+        "\"actionSlotParam\": {}, \"inventoryWeapon\": {}, "
+        "\"inventoryHeldWeapon\": {}, \"vehicleDefIndex\": {}, "
+        "\"locBlendTime\": {}, \"renderInfo\": {}, \"motionMatchingEnabled\": "
+        "{}, \"mmTransitionBoost\": {}, \"kf_index\": {}, "
+        "\"attemptedDoubleJump\": {}, \"entityEventSequence\": {}, "
+        "\"aimSpreadScale\": {}, \"statusEffectFlags\": {:08X}",
+        fTorsoPitch, fWaistPitch, holdBreathScale, holdBreathTimer,
+        chargeShotTimer, chargeShotLevel, shotsFiredFromChamber,
+        quickScopeScale, quickScopeTimer, ::serialize(privateClientFields),
+        ::serialize(clientFields), ::serialize(uiModelFields),
+        moveSpeedScaleMultiplier, trmState.serialize(),
+        grappleState.serialize(), grappledByEntNum, slideState.serialize(),
+        jukeState.serialize(), slamState.serialize(), impactTime,
+        impactIntensity, game::level::serialize(doubleJumpState),
+        game::level::serialize(doubleJumpBoostUpDirection),
+        doubleJumpPitchOffset, doubleJumpRollOffset, playerEnergyRatio,
+        playerEnergyTime, ::serialize(playerGadgetState),
+        wallRunState.serialize(), playerSwimAnimRate, leapState.serialize(),
+        animMovement.serialize(), vehicleAnimStage, vehicleEntryPoint,
+        meleeChargeDist, meleeChargeTime, meleeChargeEnt,
+        meleeConstraintPlane.serialize(), meleeStartTime, meleeServerResult,
+        meleeFlags, meleeState, blockMeleeUsageTimer, meleeAttacker,
+        meleeCounterTimer, chainMeleeCounter, mainCam.serialize(),
+        ::serialize(extraCam), ::serialize(weapLock), weapLockedPivotEntnum,
+        weapLockTimer, lockOnRequiredMsgSuppressAfterFireTimer,
+        ::serialize(perks), ::serialize(perksCache), ::serialize(bonuscards),
+        ::serialize(actionSlotType), ::serialize(actionSlotParam),
+        inventoryWeapon.serialize(), inventoryHeldWeapon.serialize(),
+        vehicleDefIndex, locBlendTime, renderInfo.serialize(),
+        ::serialize(motionMatchingEnabled), ::serialize(mmTransitionBoost),
+        kf_index, attemptedDoubleJump.serialize(), entityEventSequence,
+        aimSpreadScale, statusEffectFlags);
+
+    json += std::format(
+        ", \"shellshockIndex\": {}, \"shellshockTime\": {}, "
+        "\"shellshockDuration\": {}, \"meleeButtStartTime\": {}, "
+        "\"meleeButtDirection\": {}, \"dofNearStart\": {}, \"dofNearEnd\": {}, "
+        "\"dofFarStart\": {}, \"dofFarEnd\": {}, \"dofNearBlur\": {}, "
+        "\"dofFarBlur\": {}, \"dofViewmodelStart\": {}, \"dofViewmodelEnd\": "
+        "{}, \"waterLevel\": {}, \"walkUnderwater\": {}, "
+        "\"lastFootInWaterTime\": {}, \"lastOutWaterTime\": {}, "
+        "\"smokeColorIndex\": {}, \"hudElemLastAssignedSoundID\": {:08X}, "
+        "\"adsZoomSelect\": {}, \"adsZoomLatchTime\": {}, "
+        "\"adsZoomLatchState\": {}, \"adsPrevZoomSelect\": {}, "
+        "\"adsPrevZoomSelectTime\": {}, \"artilleryInboundIconLocation\": {}, "
+        "\"visionSetLerpRatio\": {}, \"poisoned\": {}, \"binoculars\": {}, "
+        "\"scriptCursorHintString\": {:08X}, \"objective\": {}, \"deltaTime\": "
+        "{}, \"killCamEntity\": {}, \"killCamTargetEntity\": {}, "
+        "\"killCamWeapon\": {}, \"killCamMod\": {}, \"killCamFlag\": {:08X}, "
+        "\"introShotsFired\": {}, \"hud\": {{ \"current\": {}, \"archival\": "
+        "{} }}, "
+        "\"hudMenus\": {}, \"serverModels\": {{ \"modelData\": {}, "
+        "\"modelNames\": {} }}, \"cmdAngles\": {}, \"cmdAnglesHead\": {}  }}",
+        shellshockIndex, shellshockTime, shellshockDuration, meleeButtStartTime,
+        meleeButtDirection, dofNearStart, dofNearEnd, dofFarStart, dofFarEnd,
+        dofNearBlur, dofFarBlur, dofViewmodelStart, dofViewmodelEnd, waterlevel,
+        walkUnderwater.serialize(), lastFootInWaterTime, lastOutWaterTime,
+        smokeColorIndex, hudElemLastAssignedSoundID, adsZoomSelect,
+        adsZoomLatchTime, adsZoomLatchState.serialize(), adsPrevZoomSelect,
+        adsPrevZoomSelectTime, artilleryInboundIconLocation, visionSetLerpRatio,
+        ::serialize(poisoned), ::serialize(binoculars), scriptCursorHintString,
+        ::serialize(objective), deltaTime, killCamEntity, killCamTargetEntity,
+        killCamWeapon.serialize(), killCamMod, killCamFlag, introShotsFired,
+        ::serialize(hud.current), ::serialize(hud.archival),
+        ::serialize(hudMenus), ::serialize(serverModels.modelData),
+        ::serialize(serverModels.modelNames), ::serialize(cmdAngles),
+        cmdAnglesHead);
+
+    return json;
+  }
+});
 ASSERT_OFFSET(playerState_s, _paddingBB5, 0xBB5);
 ASSERT_OFFSET(playerState_s, _paddingBBB, 0xBBB);
 ASSERT_OFFSET(playerState_s, _paddingB58, 0xB58);
@@ -2278,7 +3539,6 @@ ASSERT_SIZE(playerState_s, 0xB566);
    all other known-correct offsets stay valid.
 */
 typedef playerState_s playerState_t;
-#pragma pack(pop)
 
 struct score_s {
   int32_t ping;
@@ -2294,6 +3554,19 @@ struct score_s {
   int32_t headshots;
   int32_t scoreMultiplier;
   int32_t currentStreak;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"ping\": {}, \"status_icon\": {}, \"place\": {}, \"score\": {}, "
+        "\"kills\": {}, \"assists\": {}, \"deaths\": {}, "
+        "\"scoreboardColumns\": {}, "
+        "\"downs\": {}, \"revives\": {}, \"headshots\": {}, "
+        "\"scoreMultiplier\": {}, "
+        "\"currentStreak\": {} }}",
+        ping, status_icon, place, score, kills, assists, deaths,
+        ::serialize(scoreboardColumns), downs, revives, headshots,
+        scoreMultiplier, currentStreak);
+  }
 };
 typedef score_s score_t;
 ASSERT_SIZE(score_t, 0x54);
@@ -2304,8 +3577,7 @@ ASSERT_SIZE(score_t, 0x54);
 
   Verify and adjust as needed prior to usage.
 */
-#pragma pack(push, 1)
-struct clientState_s {
+PACKED(struct clientState_s {
   ClientNum_t clientIndex;
   int32_t scriptClientId;
   team_t team;
@@ -2362,15 +3634,52 @@ struct clientState_s {
   qboolean offhandWeaponVisible;
   clientLinkInfo_t clientLinkInfo;
   lobby::LobbyClientPool<int32_t> lastUpdateIndex;
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"clientIndex\": {}, \"scriptClientId\": {}, \"team\": {}, "
+        "\"modelindex\": {}, \"riotShieldNext\": {}, \"attachments\": {}, "
+        "\"name\": {}, \"maxSprintTimeMultiplier\": {}, \"rank\": {}, "
+        "\"paragonRank\": {}, \"paragonIconId\": {}, \"prestige\": {}, "
+        "\"lastDamageTime\": {}, \"lastStandStartTime\": {}, "
+        "\"lastSpawnTime\": {}, "
+        "\"turnedHumanTime\": {}, \"beingRevivedByClient\": {}, "
+        "\"reviveTimeStart\": {}, "
+        "\"damageState\": {}, \"csPMFlags\": {:016X}, \"xuid\": {}, "
+        "\"arenaPoints\": {}, \"perks\": {}, \"roleIndex\": {}, \"level\": {}, "
+        "\"bodyOptions\": {:016X}, \"cacLoadouts\": {}, \"heroWeaponIdx\": {}, "
+        "\"voiceConnectivityBits\": {:08X}, \"clanAbbrev\": {}, "
+        "\"currentLoadoutPrimaryWeapon\": {}, "
+        "\"currentLoadoutSecondaryWeapon\": {}, "
+        "\"csSwimState\": {}, \"weaponHealth\": {}, \"attachedEntNum\": {}, "
+        "\"attachedVehSeat\": {}, \"needsRevive\": {}, \"clanAbbrevEV\": {}, "
+        "\"vehAnimState\": {}, \"score\": {}, \"clientUIVisibilityFlags\": "
+        "{:08X}, "
+        "\"offhandWeaponVisible\": {}, \"clientLinkInfo\": {}, "
+        "\"lastUpdateIndex\": {} }}",
+        ::serialize(clientIndex), scriptClientId, game::serialize(team),
+        modelindex, riotShieldNext, ::serialize(attachments), ::serialize(name),
+        maxSprintTimeMultiplier, rank, paragonRank, paragonIconId, prestige,
+        lastDamageTime, lastStandStartTime, lastSpawnTime, turnedHumanTime,
+        ::serialize(beingRevivedByClient), reviveTimeStart, damageState,
+        csPMFlags, ::serialize(xuid), arenaPoints, ::serialize(perks),
+        roleIndex, level, bodyOptions, ::serialize(cacLoadouts), heroWeaponIdx,
+        voiceConnectivityBits, ::serialize(clanAbbrev),
+        currentLoadoutPrimaryWeapon.serialize(),
+        currentLoadoutSecondaryWeapon.serialize(), game::serialize(csSwimState),
+        weaponHealth, attachedEntNum, attachedVehSeat, ::serialize(needsRevive),
+        ::serialize(clanAbbrevEV), game::vehicle::serialize(vehAnimState),
+        score.serialize(), clientUIVisibilityFlags,
+        offhandWeaponVisible.serialize(), clientLinkInfo.serialize(),
+        ::serialize(lastUpdateIndex));
+  }
+});
 typedef clientState_s clientState_t;
 ASSERT_OFFSET(clientState_t, name, 0x2C);
 ASSERT_OFFSET(clientState_t, clanAbbrev, 0x25C);
 ASSERT_SIZE(clientState_t, 0x338); // Correct
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct actorState_t {
+PACKED(struct actorState_t {
   int32_t actorIndex;
   int32_t entityNum;
   int32_t modelindex;
@@ -2382,13 +3691,11 @@ struct actorState_t {
   qboolean lookAtAiming;
   qboolean lookAtNoTorso;
   qboolean gibbed;
-};
+});
 ASSERT_SIZE(actorState_t, 0x50); // Correct
-#pragma pack(pop)
 
-#pragma pack(push, 1)
 // sizeof=0x30
-struct TopScorer {
+PACKED(struct TopScorer {
   renderOptions_t renderOptions;
   weapon::AttachmentCosmeticVariantIndexes attachmentCosmeticVariantIndexes;
   uint8_t _padding14[4];
@@ -2399,9 +3706,8 @@ struct TopScorer {
   uint32_t
       padding[1]; // Note: this field is actually in the Treyarch struct, as-is.
   uint8_t _padding2C[4];
-};
+});
 ASSERT_SIZE(TopScorer, 0x30);
-#pragma pack(pop)
 
 // sizeof=0x120
 struct UnarchivedMatchState {

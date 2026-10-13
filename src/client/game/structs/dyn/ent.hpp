@@ -14,15 +14,23 @@ struct DynEntityPose {
   gfx::GfxPlacement pose;
   float radius;
   gfx::GfxEntityPreFrame prevFrame;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"pose\": {}, \"radius\": {}, \"prevFrame\": {} }}",
+                       pose.serialize(), radius, prevFrame.serialize());
+  }
 };
 
-#pragma pack(push, 1)
-struct DynEntityServer {
+PACKED(struct DynEntityServer {
   uint16_t flags;
   uint8_t _padding02[2];
   int health;
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"flags\": {:04X}, \"health\": {} }}", flags,
+                       health);
+  }
+});
 
 struct DynEntityColl {
   uint16_t sector;
@@ -30,10 +38,17 @@ struct DynEntityColl {
   vec3_t linkMins;
   vec3_t linkMaxs;
   contents_t contents;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"sector\": {}, \"nextEntInSector\": {}, \"linkMins\": {}, "
+        "\"linkMaxs\": {}, \"contents\": {:08X} }}",
+        sector, nextEntInSector, linkMins.serialize(), linkMaxs.serialize(),
+        contents);
+  }
 };
 
-#pragma pack(push, 1)
-struct DynEntityClient {
+PACKED(struct DynEntityClient {
   intptr_t physObjId;
   uint16_t flags;
   uint8_t _padding0A[2];
@@ -44,12 +59,18 @@ struct DynEntityClient {
   phys::LocalClientFxUniqueHandle fxHandles[10];
   int32_t numFxHandles;
   uint8_t _padding6C[4];
-};
 
-#pragma pack(pop)
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"physObjId\": {:p}, \"flags\": {:04X}, \"health\": {}, "
+        "\"burnTime\": {}, \"fadeTime\": {}, \"physicsStartTime\": {}, "
+        "\"fxHandles\": {}, \"numFxHandles\": {} }}",
+        reinterpret_cast<const void *>(physObjId), flags, health, burnTime,
+        fadeTime, physicsStartTime, ::serialize(fxHandles), numFxHandles);
+  }
+});
 
-#pragma pack(push, 1)
-struct DynEntityDef {
+PACKED(struct DynEntityDef {
   gfx::GfxPlacement pose;
   uint8_t _padding1C[4];
   db::xasset::xmodel::XModel *xModel;
@@ -72,9 +93,27 @@ struct DynEntityDef {
   scr::ScrString_t targetname;
   scr::ScrString_t target;
   uint8_t _padding94[4];
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"pose\": {}, \"xModel\": {:p}, \"destroyedxModel\": {:p}, "
+        "\"brushModel\": {}, \"physicsBrushModel\": {}, \"destroyFx\": {}, "
+        "\"destroySound\": {}, \"rattleFx\": {}, \"rattleSound\": {}, "
+        "\"splashUpFx\": {}, \"physPreset\": {:p}, \"physConstraints\": {}, "
+        "\"health\": {}, \"flags\": {:08X}, \"contents\": {:08X}, "
+        "\"targetname\": {:08X}, \"target\": {:08X} }}",
+        pose.serialize(), reinterpret_cast<const void *>(xModel),
+        reinterpret_cast<const void *>(destroyedxModel), brushModel,
+        physicsBrushModel, ::serialize(destroyFx), ::serialize(destroySound),
+        ::serialize(rattleFx), ::serialize(rattleSound),
+        ::serialize(reinterpret_cast<const uintptr_t *const>(splashUpFx),
+                    std::size(splashUpFx)),
+        reinterpret_cast<const void *>(physPreset),
+        ::serialize(physConstraints), health, flags, contents, targetname,
+        target);
+  }
+});
 ASSERT_SIZE(DynEntityDef, 0x98);
-#pragma pack(pop)
 
 typedef uint16_t DynEntityId;
 } // namespace ent

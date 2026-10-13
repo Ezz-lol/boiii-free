@@ -15,15 +15,44 @@ enum class BotLookType : uint32_t {
   ANGLES = 0x3,
 };
 
-enum bot_goal_state : uint32_t {
+inline constexpr const char *serialize(const BotLookType lookType) {
+  switch (lookType) {
+  case BotLookType::NONE:
+    return "BOT_LOOK_TYPE_NONE";
+  case BotLookType::FORWARD:
+    return "BOT_LOOK_TYPE_FORWARD";
+  case BotLookType::POINT:
+    return "BOT_LOOK_TYPE_POINT";
+  case BotLookType::ANGLES:
+    return "BOT_LOOK_TYPE_ANGLES";
+  default:
+    return "BOT_LOOK_TYPE_INVALID";
+  }
+}
+
+enum class bot_goal_state : uint32_t {
   INVALID = 0x0,
   UNREACHABLE = 0x1,
   SET = 0x2,
   REACHED = 0x3,
 };
 
-#pragma pack(push, 1)
-struct bot_look_t {
+inline constexpr const char *serialize(const bot_goal_state goalState) {
+  switch (goalState) {
+  case bot_goal_state::INVALID:
+    return "BOT_GOAL_INVALID";
+  case bot_goal_state::UNREACHABLE:
+    return "BOT_GOAL_UNREACHABLE";
+  case bot_goal_state::SET:
+    return "BOT_GOAL_SET";
+  case bot_goal_state::REACHED:
+    return "BOT_GOAL_REACHED";
+  default:
+    return "BOT_GOAL_INVALID";
+  }
+}
+
+PACKED(struct bot_look_t {
   vec2_t anglesDesired;
   vec2_t anglesCurrent;
   vec3_t lookPoint;
@@ -33,25 +62,42 @@ struct bot_look_t {
   weapon::Weapon grenadeWeapon;
   vec3_t grenadeOrigin;
   int32_t grenadeTime;
-};
-ASSERT_SIZE(bot_look_t, 0x50);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct bot_move_t {
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"anglesDesired\": {}, \"anglesCurrent\": {}, \"lookPoint\": {}, "
+        "\"lookType\": {}, \"kickAngles\": {}, \"kickAVel\": {}, "
+        "\"grenadeWeapon\": {}, \"grenadeOrigin\": {}, \"grenadeTime\": {} }}",
+        anglesDesired.serialize(), anglesCurrent.serialize(),
+        lookPoint.serialize(), game::user::serialize(lookType),
+        kickAngles.serialize(), kickAVel.serialize(), grenadeWeapon.serialize(),
+        grenadeOrigin.serialize(), grenadeTime);
+  }
+});
+ASSERT_SIZE(bot_look_t, 0x50);
+
+PACKED(struct bot_move_t {
   vec_t angleDesired;
   vec_t magnitude;
-};
-ASSERT_SIZE(bot_move_t, 0x8);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct bot_goal_t {
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"angleDesired\": {}, \"magnitude\": {} }}",
+                       angleDesired, magnitude);
+  }
+});
+ASSERT_SIZE(bot_move_t, 0x8);
+
+PACKED(struct bot_goal_t {
   vec3_t position;
   int32_t radius;
   bot_goal_state state;
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"position\": {}, radius: {}, state: {} }}",
+                       position.serialize(), radius,
+                       game::user::serialize(state));
+  }
+});
 ASSERT_SIZE(bot_goal_t, 0x14);
 
 /* Entirely unspecified in BO3, BO4, BO2 alpha engines. Just 0x10 empty bytes.
@@ -66,8 +112,7 @@ ASSERT_SIZE(bot_goal_t, 0x14);
 typedef vec4_t hkVector4f;
 
 typedef hkVector4f hkVector4;
-#pragma pack(push, 1)
-struct bot_t {
+PACKED(struct bot_t {
   bot_look_t look;
   bot_move_t move;
   bot_goal_t goal;
@@ -79,13 +124,20 @@ struct bot_t {
   int32_t lastMoveTime;
   char goal_callStack[1025];
   uint8_t _padding4A5[11];
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"look\": {}, \"move\": {}, \"goal\": {}, "
+                       "\"lastCorner\": {}, \"tapButtons\": {}, \"buttons\": "
+                       "{}, \"weapon\": {}, \"lastMoveTime\": {} }}",
+                       look.serialize(), move.serialize(), goal.serialize(),
+                       lastCorner.serialize(), tapButtons.serialize(),
+                       buttons.serialize(), weapon.serialize(), lastMoveTime);
+  }
+});
 ASSERT_SIZE(bot_t, 0x4B0);
-#pragma pack(pop)
 
 typedef bitarray<32> serverFieldBits_t;
-#pragma pack(push, 1)
-struct usercmd_s {
+PACKED(struct usercmd_s {
   int32_t serverTime;
   game_button_bits_t button_bits;
   serverFieldBits_t serverFields;
@@ -112,8 +164,28 @@ struct usercmd_s {
   uint8_t _padding56[2];
   uint32_t kf_index;
   qboolean transition;
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"serverTime\": {}, \"button_bits\": {}, \"serverFields\": {}, "
+        "\"angles\": {}, \"level\": {}, \"weapon\": {}, \"offHandWeapon\": {}, "
+        "\"lastWeaponAltModeSwitch\": {}, \"forwardmove\": {}, \"rightmove\": "
+        "{}, "
+        "\"upmove\": {}, \"pitchmove\": {}, \"yawmove\": {}, "
+        "\"meleeChargeEnt\": {}, "
+        "\"meleeChargeDist\": {}, \"damageKick\": {}, \"selectedLocation\": "
+        "{}, "
+        "\"selectedYaw\": {}, \"lastInput\": {}, \"streamerState\": {}, "
+        "\"kf_index\": {}, \"transition\": {} }}",
+        serverTime, button_bits.serialize(), serverFields.serialize(),
+        ::serialize(angles), level, weapon.serialize(),
+        offHandWeapon.serialize(), lastWeaponAltModeSwitch.serialize(),
+        forwardmove, rightmove, upmove, pitchmove, yawmove, meleeChargeEnt,
+        meleeChargeDist, ::serialize(damageKick), ::serialize(selectedLocation),
+        selectedYaw, lastInput, streamerState, kf_index,
+        transition.serialize());
+  }
+});
 typedef usercmd_s usercmd_t;
 ASSERT_OFFSET(usercmd_t, _padding45, 0x45);
 ASSERT_OFFSET(usercmd_t, _padding56, 0x56);

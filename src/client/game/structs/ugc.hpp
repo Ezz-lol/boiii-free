@@ -38,11 +38,11 @@ struct UGCItem {
 #ifndef NDEBUG
   inline std::string serialize() {
     return std::format(
-        "UGCItem {{ \"title\": \"{}\", \"internalName\": \"{}\", "
-        "\"publisherId\": \"{}\", \"description\": \"{}\", "
-        "\"contentPathToZoneFiles\": \"{}\", \"absolutePathContentDirectory\": "
-        "\"{}\", \"absolutePathZoneFiles\", \"{}\", \"version\": {}, "
-        "\"publisherIdInteger\": {}, \"publisherIdHash\": {}, \"type\": {} }}",
+        "{{ \"title\": \"{}\", \"internalName\": \"{}\", \"publisherId\": "
+        "\"{}\", \"description\": \"{}\", \"contentPathToZoneFiles\": \"{}\", "
+        "\"absolutePathContentDirectory\": \"{}\", \"absolutePathZoneFiles\", "
+        "\"{}\", \"version\": {}, \"publisherIdInteger\": {:016X}, "
+        "\"publisherIdHash\": {:08X}, \"type\": {} }}",
         title, internalName, publisherId, description, contentPathToZoneFiles,
         absolutePathContentDirectory, absolutePathZoneFiles, version,
         publisherIdInteger, publisherIdHash, ::game::serialize(type));
@@ -59,9 +59,35 @@ enum class ModLoadState : uint32_t {
 };
 IMPL_ENUM_OPERATORS(ModLoadState);
 
+inline constexpr const char *serialize(const ModLoadState state) {
+  switch (state) {
+  case ModLoadState::IDLE:
+    return "MOD_IDLE";
+  case ModLoadState::LOADING:
+    return "MOD_LOADING";
+  case ModLoadState::COMPLETE:
+    return "MOD_COMPLETE";
+  default:
+    return "MOD_INVALID";
+  }
+}
+
 struct ActiveMod : UGCItem {
   ModLoadState loadState;
   uint8_t _padding4CC[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"title\": \"{}\", \"internalName\": \"{}\", \"publisherId\": "
+        "\"{}\", \"description\": \"{}\", \"contentPathToZoneFiles\": \"{}\", "
+        "\"absolutePathContentDirectory\": \"{}\", \"absolutePathZoneFiles\", "
+        "\"{}\", \"version\": {}, \"publisherIdInteger\": {:016X}, "
+        "\"publisherIdHash\": {:08X}, \"type\": {}, \"loadState\": {} }}",
+        title, internalName, publisherId, description, contentPathToZoneFiles,
+        absolutePathContentDirectory, absolutePathZoneFiles, version,
+        publisherIdInteger, publisherIdHash, ::game::serialize(type),
+        game::ugc::serialize(loadState));
+  }
 };
 ASSERT_SIZE(ActiveMod, 0x4D0);
 
@@ -74,6 +100,11 @@ template <const uint32_t POOL_SIZE> struct UGCPool {
   uint32_t count;
   uint8_t _padding04[4];
   UGCItem data[POOL_SIZE];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"count\": {}, \"data\": {} }}", count,
+                       ::serialize(data, count));
+  }
 
   inline void clear() {
     memset(static_cast<void *>(this), 0, sizeof(UGCPool<POOL_SIZE>));
@@ -183,9 +214,16 @@ template <const uint32_t POOL_SIZE> struct UGCPool {
   }
 };
 
-template <const uint32_t POOL_SIZE> struct ClientUGCPool : UGCPool<POOL_SIZE> {
+template <const uint32_t POOL_SIZE>
+struct ClientUGCPool : public UGCPool<POOL_SIZE> {
   LocalClientPool<ui::UIModelIndex> listModels;
   uint8_t _padding[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"count\": {}, \"data\": {}, \"listModels\": {} }}",
+                       this->count, ::serialize(this->data),
+                       ::serialize(listModels));
+  }
 };
 
 constexpr uint32_t BUILTIN_WORKSHOP_DATA_POOL_SIZE = 128;

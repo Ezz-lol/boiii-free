@@ -2,12 +2,10 @@
 #define GAME_STRUCTS_DB_XASSETS_HPP
 
 #include <cstdint>
-#ifndef NDEBUG
 #include <format>
 #include <game/ptr.hpp>
-#include <string>
-#endif
 #include <game/structs/gfx/gfx.hpp>
+#include <string>
 
 namespace game {
 
@@ -248,7 +246,7 @@ PACKED(struct RawFile : NamedXAsset {
 #ifndef NDEBUG
   inline constexpr std::string serialize() const noexcept {
     return std::format(
-        "RawFile {{ \"name\": \"{}\", \"len\": 0x{:X}, \"buffer\": {:p} }}",
+        " {{ \"name\": \"{}\", \"len\": 0x{:X}, \"buffer\": {:p} }}",
         game::readable_ptr(name) ? name : "NULL", len,
         static_cast<const void *>(buffer));
   }

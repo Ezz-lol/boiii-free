@@ -22,40 +22,78 @@ namespace cm {
 class hybrid_vector {
 public:
   math::float4 vec;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"vec\": {} }}", vec.serialize());
+  }
 };
 
 struct TraceExtents {
   hybrid_vector start;
   hybrid_vector end;
   hybrid_vector invDelta;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"start\": {}, \"end\": {}, \"invDelta\": {} }}",
+                       start.serialize(), end.serialize(),
+                       invDelta.serialize());
+  }
 };
 struct TraceCheckCount {
   uint16_t global;
   uint16_t *partitions;
   uint16_t *brushes;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"global\": {}, \"partitions\": {:p}, \"brushes\": {:p} }}", global,
+        reinterpret_cast<const void *>(partitions),
+        reinterpret_cast<const void *>(brushes));
+  }
 };
 
 struct ClipMaterial {
   const char *name;
   int32_t surfaceFlags;
   contents_t contentFlags;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"name\": {}, \"surfaceFlags\": {:08X}, "
+                       "\"contentFlags\": {:08X} }}",
+                       ::serialize(name), surfaceFlags, contentFlags);
+  }
 };
 
 typedef uint32_t LeafBrush;
 
 struct cLeafBrushNodeLeaf_t {
   LeafBrush *brushes;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"brushes\": {:p} }}",
+                       reinterpret_cast<const void *>(brushes));
+  }
 };
 
 struct cLeafBrushNodeChildren_t {
   float dist;
   float range;
   uint16_t childOffset[2];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"dist\": {}, \"range\": {}, \"childOffset\": {} }}",
+                       dist, range, ::serialize(childOffset));
+  }
 };
 
 union __attribute__((aligned(8))) cLeafBrushNodeData_t {
   cLeafBrushNodeLeaf_t leaf;
   cLeafBrushNodeChildren_t children;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"leaf\": {}, \"children\": {} }}", leaf.serialize(),
+                       children.serialize());
+  }
 };
 
 struct cLeafBrushNode_t {
@@ -63,16 +101,27 @@ struct cLeafBrushNode_t {
   int32_t leafBrushCount;
   contents_t contents;
   cLeafBrushNodeData_t data;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"axis\": {}, \"leafBrushCount\": {}, \"contents\": "
+                       "{:08X}, \"data\": {} }}",
+                       axis, leafBrushCount, contents, data.serialize());
+  }
 };
 
 struct Bounds {
   vec3_t midPoint;
   vec3_t halfSize;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"midPoint\": {}, \"halfSize\": {} }}",
+                       midPoint.serialize(), halfSize.serialize());
+  }
 };
 
 struct ClipInfo {
   int32_t planeCount;
-  cplane_t *planes;
+  db::xasset::phys::cplane_t *planes;
   uint32_t numMaterials;
   ClipMaterial *materials;
   uint32_t numBrushSides;
@@ -89,6 +138,27 @@ struct ClipInfo {
   db::xasset::phys::cbrush_t *brushes;
   Bounds *brushBounds;
   contents_t *brushContents;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"planeCount\": {}, \"planes\": {}, \"numMaterials\": {}, "
+        "\"materials\": {}, \"numBrushSides\": {}, \"brushsides\": {}, "
+        "\"leafbrushNodesCount\": {}, \"leafbrushNodes\": {}, "
+        "\"numLeafBrushes\": {}, "
+        "\"leafbrushes\": {}, \"numBrushVerts\": {}, \"brushVerts\": {}, "
+        "\"nuinds\": {}, \"uinds\": {}, \"numBrushes\": {}, \"brushes\": "
+        "{}, "
+        "\"brushBounds\": {}, \"brushContents\": {} }}",
+        planeCount, ::serialize(planes, planeCount), numMaterials,
+        ::serialize(materials, numMaterials), numBrushSides,
+        ::serialize(brushsides, numBrushSides), leafbrushNodesCount,
+        ::serialize(leafbrushNodes, leafbrushNodesCount), numLeafBrushes,
+        ::serialize(leafbrushes, numLeafBrushes), numBrushVerts,
+        ::serialize(brushVerts, numBrushVerts), nuinds,
+        ::serialize(uinds, nuinds), numBrushes,
+        ::serialize(brushes, numBrushes), ::serialize(brushBounds, numBrushes),
+        ::serialize(brushContents, numBrushes));
+  }
 };
 
 struct __attribute__((aligned(8))) cLeaf_t {
@@ -100,6 +170,17 @@ struct __attribute__((aligned(8))) cLeaf_t {
   vec3_t maxs;
   intptr_t leafBrushNode;
   int32_t cluster;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"firstCollAabbIndex\": {}, \"collAabbCount\": {}, "
+                       "\"brushContents\": {:08X}, "
+                       "\"terrainContents\": {:08X}, \"mins\": {}, \"maxs\": "
+                       "{}, \"leafBrushNode\": {}, "
+                       "\"cluster\": {} }}",
+                       firstCollAabbIndex, collAabbCount, brushContents,
+                       terrainContents, mins.serialize(), maxs.serialize(),
+                       leafBrushNode, cluster);
+  }
 };
 
 struct cmodel_t {
@@ -108,6 +189,13 @@ struct cmodel_t {
   float radius;
   ClipInfo *info;
   cLeaf_t leaf;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"mins\": {}, \"maxs\": {}, \"radius\": {}, "
+                       "\"info\": {}, \"leaf\": {} }}",
+                       mins.serialize(), maxs.serialize(), radius,
+                       ::serialize(info), leaf.serialize());
+  }
 };
 
 struct TraceThreadInfo {
@@ -115,6 +203,14 @@ struct TraceThreadInfo {
   db::xasset::phys::cbrush_t *box_brush;
   cmodel_t *box_model;
   db::xasset::phys::PhysGeomList **geoms;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"checkcount\": {}, \"box_brush\": {}, "
+                       "\"box_model\": {}, \"geoms\": {:p} }}",
+                       checkcount.serialize(), ::serialize(box_brush),
+                       ::serialize(box_model),
+                       reinterpret_cast<const void *>(geoms));
+  }
 };
 
 struct traceWork_t {
@@ -135,6 +231,23 @@ struct traceWork_t {
   float offsetZ;
   float boundingRadius;
   TraceThreadInfo threadInfo;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"delta\": {}, \"midpoint\": {}, \"halfDelta\": {}, "
+        "\"halfDeltaAbs\": {}, "
+        "\"size\": {}, \"bounds\": {}, \"radiusOffset\": {}, \"extents\": {}, "
+        "\"deltaLen\": {}, \"deltaLenSq\": {}, \"contents\": {:08X}, "
+        "\"isPoint\": {}, "
+        "\"axialCullOnly\": {}, \"radius\": {}, \"offsetZ\": {}, "
+        "\"boundingRadius\": {}, "
+        "\"threadInfo\": {} }}",
+        delta.serialize(), midpoint.serialize(), halfDelta.serialize(),
+        halfDeltaAbs.serialize(), size.serialize(), ::serialize(bounds),
+        radiusOffset.serialize(), extents.serialize(), deltaLen, deltaLenSq,
+        contents, ::serialize(isPoint), ::serialize(axialCullOnly), radius,
+        offsetZ, boundingRadius, threadInfo.serialize());
+  }
 };
 
 struct TriggerHull {
@@ -142,22 +255,38 @@ struct TriggerHull {
   contents_t contents;
   uint16_t slabCount;
   uint16_t firstSlab;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"bounds\": {}, \"contents\": {:08X}, "
+                       "\"slabCount\": {}, \"firstSlab\": {} }}",
+                       bounds.serialize(), contents, slabCount, firstSlab);
+  }
 };
 
 struct TriggerSlab {
   vec3_t dir;
   float midPoint;
   float halfSize;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"dir\": {}, \"midPoint\": {}, \"halfSize\": {} }}",
+                       dir.serialize(), midPoint, halfSize);
+  }
 };
 
 struct TriggerModel {
   contents_t contents;
   uint16_t hullCount;
   uint16_t firstHull;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"contents\": {:08X}, \"hullCount\": {}, \"firstHull\": {} }}",
+        contents, hullCount, firstHull);
+  }
 };
 
-#pragma pack(push, 1)
-struct MapTriggers {
+PACKED(struct MapTriggers {
   uint32_t count;
   uint8_t _padding4[4];
   TriggerModel *models;
@@ -167,25 +296,42 @@ struct MapTriggers {
   uint32_t slabCount;
   uint8_t _padding24[4];
   TriggerSlab *slabs;
-};
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct MapEnts {
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"count\": {}, \"models\": {}, \"hullCount\": {}, "
+                       "\"hulls\": {}, "
+                       "\"slabCount\": {}, \"slabs\": {} }}",
+                       count, ::serialize(models, count), hullCount,
+                       ::serialize(hulls, hullCount), slabCount,
+                       ::serialize(slabs, slabCount));
+  }
+});
+
+PACKED(struct MapEnts {
   const char *name;
   char *entityString;
   int32_t numEntityChars;
   uint8_t _padding14[4];
   MapTriggers trigger;
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"name\": {}, \"entityString\": {}, "
+                       "\"numEntityChars\": {}, \"trigger\": {} }}",
+                       ::serialize(name), ::serialize(entityString),
+                       numEntityChars, trigger.serialize());
+  }
+});
 
 struct cStaticModelWritable {
   uint16_t nextModelInWorldSector;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"nextModelInWorldSector\": {} }}",
+                       nextModelInWorldSector);
+  }
 };
 
-#pragma pack(push, 1)
-struct cStaticModel_s {
+PACKED(struct cStaticModel_s {
   cStaticModelWritable writable;
   uint8_t _padding02[6];
   db::xasset::xmodel::XModel *xmodel;
@@ -198,18 +344,33 @@ struct cStaticModel_s {
   anim::DObjAnimMat *boneMtxs;
   int32_t numBoneMtxs;
   scr::ScrString_t targetname;
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"writable\": {}, \"xmodel\": {:p}, \"contents\": {:08X}, "
+        "\"origin\": {}, \"invScaledAxis\": {}, \"absmin\": {}, \"absmax\": "
+        "{}, "
+        "\"boneMtxs\": {}, \"numBoneMtxs\": {}, \"targetname\": {} }}",
+        writable.serialize(), (const void *)xmodel, contents,
+        origin.serialize(), ::serialize(invScaledAxis), absmin.serialize(),
+        absmax.serialize(), ::serialize(boneMtxs, numBoneMtxs), numBoneMtxs,
+        ::serialize(targetname));
+  }
+});
 
 typedef cStaticModel_s cStaticModel_t;
 
 struct cNode_t {
-  cplane_t *plane;
+  db::xasset::phys::cplane_t *plane;
   int32_t children[2];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"plane\": {}, \"children\": {} }}",
+                       ::serialize(plane), ::serialize(children));
+  }
 };
 
-#pragma pack(push, 1)
-struct clipMap_t {
+PACKED(struct clipMap_t {
   const char *name;
   qboolean isInUse;
   uint8_t _padding0C[4];
@@ -265,10 +426,51 @@ struct clipMap_t {
   scr::ScrString_t miscModelTargetnameGroups[32];
   uint32_t checksum;
   uint8_t _padding2CC[4];
-};
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"name\": {}, \"isInUse\": {}, \"info\": {}, \"pInfo\": {:p}, "
+        "\"numStaticModels\": {}, \"staticModelList\": {}, \"numNodes\": {}, "
+        "\"nodes\": {}, \"numLeafs\": {}, \"leafs\": {}, \"vertCount\": "
+        "{}, "
+        "\"verts\": {}, \"triCount\": {}, \"triIndices\": {}, "
+        "\"triEdgeIsWalkable\": {:p}, "
+        "\"partitionCount\": {}, \"partitions\": {}, \"aabbTreeCount\": {}, "
+        "\"aabbTrees\": {}, \"numSubModels\": {}, \"cmodels\": {}, "
+        "\"numClusters\": {}, "
+        "\"clusterBytes\": {}, \"visibility\": {:p}, \"vised\": {}, "
+        "\"mapEnts\": {:p}, "
+        "\"box_brush\": {}, \"box_model\": {}, \"originalDynEntCount\": {}, "
+        "\"dynEntCount\": {}, \"dynEntDefList\": {}, \"dynEntPoseList\": "
+        "{}, "
+        "\"dynEntClientList\": {}, \"dynEntServerList\": {}, "
+        "\"dynEntCollList\": {}, "
+        "\"num_constraints\": {}, \"constraints\": {}, \"max_ropes\": {}, "
+        "\"ropes\": {}, "
+        "\"miscModelTargetnameGroups\": {}, \"checksum\": {:08X} }}",
+        ::serialize(name), isInUse.serialize(), info.serialize(),
+        reinterpret_cast<const void *>(pInfo), numStaticModels,
+        ::serialize(staticModelList, numStaticModels), numNodes,
+        ::serialize(nodes, numNodes), numLeafs, ::serialize(leafs, numLeafs),
+        vertCount, ::serialize(verts, vertCount), triCount,
+        ::serialize(triIndices, triCount),
+        reinterpret_cast<const void *>(triEdgeIsWalkable), partitionCount,
+        ::serialize(partitions, partitionCount), aabbTreeCount,
+        ::serialize(aabbTrees, aabbTreeCount), numSubModels,
+        ::serialize(cmodels, numSubModels), numClusters, clusterBytes,
+        reinterpret_cast<const void *>(visibility), vised.serialize(),
+        reinterpret_cast<const void *>(mapEnts), ::serialize(box_brush),
+        box_model.serialize(), originalDynEntCount, ::serialize(dynEntCount),
+        ::serialize(dynEntDefList), ::serialize(dynEntPoseList),
+        ::serialize(dynEntClientList), ::serialize(dynEntServerList),
+        ::serialize(dynEntCollList), num_constraints,
+        ::serialize(constraints, num_constraints), max_ropes,
+        ::serialize(ropes, max_ropes), ::serialize(miscModelTargetnameGroups),
+        checksum);
+  }
+});
 ASSERT_SIZE(clipMap_t, 0x2D0);
 ASSERT_OFFSET(clipMap_t, nodes, 0xC0);
-#pragma pack(pop)
 
 PACKED(struct trace_t {
   hybrid_vector normal;
@@ -293,6 +495,23 @@ PACKED(struct trace_t {
   cStaticModel_s *staticModel;
   int32_t hitPartition;
   uint8_t _padding4C[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"normal\": {}, \"fraction\": {}, \"sflags\": {:08X}, \"cflags\": "
+        "{:08X}, "
+        "\"brushType\": {}, \"brushId\": {}, \"hitType\": {}, \"hitId\": {}, "
+        "\"modelIndex\": {}, \"subModelBoneIndex\": {}, \"partName\": {}, "
+        "\"boneIndex\": {}, \"partGroup\": {}, \"allsolid\": {}, "
+        "\"startsolid\": {}, "
+        "\"walkable\": {}, \"staticModel\": {:p}, \"hitPartition\": {} }}",
+        normal.serialize(), fraction, sflags, cflags,
+        game::serialize(brushType), brushId, game::serialize(hitType), hitId,
+        modelIndex, subModelBoneIndex, ::serialize(partName), boneIndex,
+        partGroup, ::serialize(allsolid), ::serialize(startsolid),
+        ::serialize(walkable), reinterpret_cast<const void *>(staticModel),
+        hitPartition);
+  }
 });
 ASSERT_SIZE(trace_t, 0x50);
 
@@ -306,6 +525,17 @@ struct BulletFireParams {
   vec3_t end;
   vec3_t dir;
   vec3_t origDir;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"weaponEntIndex\": {}, \"ignoreEntIndex\": {}, "
+        "\"damageMultiplier\": {}, "
+        "\"methodOfDeath\": {}, \"origStart\": {}, \"start\": {}, \"end\": {}, "
+        "\"dir\": {}, \"origDir\": {} }}",
+        weaponEntIndex, ignoreEntIndex, damageMultiplier, methodOfDeath,
+        origStart.serialize(), start.serialize(), end.serialize(),
+        dir.serialize(), origDir.serialize());
+  }
 };
 
 PACKED(struct BulletTraceResults {
@@ -316,6 +546,15 @@ PACKED(struct BulletTraceResults {
   uint8_t _padding65[3];
   int32_t depthSurfaceType;
   uint8_t _padding6C[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"trace\": {}, \"hitEnt\": {}, \"hitPos\": {}, "
+                       "\"ignoreHitEnt\": {}, "
+                       "\"depthSurfaceType\": {} }}",
+                       trace.serialize(), ::serialize(hitEnt),
+                       hitPos.serialize(), ::serialize(ignoreHitEnt),
+                       depthSurfaceType);
+  }
 });
 
 PACKED(struct BulletTrace_Cmd {
@@ -334,6 +573,20 @@ PACKED(struct BulletTrace_Cmd {
   uint8_t _paddingED[2];
   int32_t command_index;
   uint8_t _paddingF4[12];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"localClientNum\": {}, \"bp\": {}, \"weapDef\": {}, "
+        "\"attacker\": {}, "
+        "\"br\": {}, \"lastSurfaceType\": {}, \"traceHit\": {}, \"weapon\": "
+        "{}, "
+        "\"tracerStart\": {}, \"drawTracer\": {}, \"isPlayer\": {}, "
+        "\"command_index\": {} }}",
+        ::serialize(localClientNum), bp.serialize(), ::serialize(weapDef),
+        ::serialize(attacker), br.serialize(), lastSurfaceType,
+        ::serialize(traceHit), weapon.serialize(), tracerStart.serialize(),
+        ::serialize(drawTracer), ::serialize(isPlayer), command_index);
+  }
 });
 
 PACKED(struct GroundTrace {
@@ -343,6 +596,14 @@ PACKED(struct GroundTrace {
   int32_t hasGround;
   int32_t validGroundNormal;
   uint8_t _padding68[8];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"trace\": {}, \"location\": {}, \"onGround\": {}, "
+                       "\"hasGround\": {}, "
+                       "\"validGroundNormal\": {} }}",
+                       trace.serialize(), location.serialize(), onGround,
+                       hasGround, validGroundNormal);
+  }
 });
 ASSERT_SIZE(GroundTrace, 0x70);
 

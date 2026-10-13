@@ -258,7 +258,7 @@ ASSERT_SIZE(ScrVarValue_t, 0x10);
 
 struct ScrVarEntityInfo_t {
   uint16_t classnum;
-  uint16_t clientNum;
+  ClientNum16_t clientNum;
 };
 
 #pragma pack(push, 1)

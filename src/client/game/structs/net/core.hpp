@@ -95,7 +95,6 @@ enum netadrtype_t : int32_t {
   NA_INVALID = -1
 };
 
-#ifndef NDEBUG
 inline constexpr const char *serialize(netadrtype_t type) {
   switch (type) {
   case NA_BOT:
@@ -112,7 +111,6 @@ inline constexpr const char *serialize(netadrtype_t type) {
     return "NA_INVALID";
   }
 }
-#endif
 
 enum netsrc_t : int32_t {
   NS_NULL = -1,
@@ -125,7 +123,6 @@ enum netsrc_t : int32_t {
   NS_PACKET = 0x5,
 };
 
-#ifndef NDEBUG
 inline constexpr const char *serialize(netsrc_t src) {
   switch (src) {
   case NS_CLIENT1:
@@ -144,7 +141,6 @@ inline constexpr const char *serialize(netsrc_t src) {
     return "NS_NULL";
   }
 }
-#endif
 
 constexpr size_t NETADR_STR_BUF_LEN =
     NET_IPV4_STR_BUF_LEN + sizeof(char) /*colon*/ +
@@ -167,11 +163,9 @@ struct netadr_t {
     return std::format("{}:{}", ipv4.toString(), port);
   }
 
-#ifndef NDEBUG
   inline std::string serialize() const noexcept {
     return std::format("{}:{}", ipv4.toString(), port);
   }
-#endif
 
   inline constexpr ToStringResult
   toString(netadr_str_t &buf, bool terminate = true) const noexcept {

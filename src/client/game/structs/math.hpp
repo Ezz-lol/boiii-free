@@ -118,6 +118,12 @@ struct Mat43 {
   static inline constexpr Mat43 from_euler(const vec4_t euler) {
     return from_euler(euler.xyz);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {}, \"w\": {} }}",
+                       x.serialize(), y.serialize(), z.serialize(),
+                       w.serialize());
+  }
 };
 
 ASSERT_CPP03_POD(Mat43);

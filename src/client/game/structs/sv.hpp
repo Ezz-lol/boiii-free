@@ -206,7 +206,16 @@ struct client_s {
   playerName_t name;
   clanAbbrev_t clanAbbrev;
   XUID xuid;
-  char __pad3[0xB5D84];
+  uint32_t doubleXPGroupMask;
+  uint32_t availableMappackFlags;
+  int32_t _unknown5650;
+  int nextReliableTime;
+  int lastPacketTime;
+  int32_t lastConnectTime;
+  int32_t nextSnapshotTime;
+  int32_t lastSnapshotTime;
+  int32_t timeoutCount;
+  char __pad3[0xB5D60];
   int32_t guid;
   scr::var::ScrVarIndex_t scriptId;
   bool isSplitscreenClient;
@@ -216,6 +225,28 @@ struct client_s {
   char __pad5[3];
   int32_t serverId;
   char __pad6[171432];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"state\": {}, \"address\": {}, "
+        "\"reliableSequence\": {}, \"reliableAcknowledge\": {}, "
+        "\"messageAcknowledge\": {}, \"gentity\": {}, \"name\": \"{}\", "
+        "\"clanAbbrev\": \"{}\", \"xuid\": {:016X}, \"doubleXPGroupMask\": "
+        "{:08X}, \"availableMappackFlags\": {:08X}, \"nextReliableTime\": {}, "
+        "\"lastPacketTime\": {}, \"lastConnectTime\": {}, "
+        "\"nextSnapshotTime\": {}, \"lastSnapshotTime\": {}, \"timeoutCount\": "
+        "{}, "
+        "\"guid\": {:08X}, \"scriptId\": {:08X}, \"isSplitscreenClient\": {}, "
+        "\"isSecondScreenClient\": {}, \"bIsTestClient\": {}, \"serverId\": "
+        "{:08X} }}",
+        net::serialize(state), address.serialize(), reliableSequence,
+        reliableAcknowledge, messageAcknowledge, ::serialize(gentity), name,
+        clanAbbrev, xuid, doubleXPGroupMask, availableMappackFlags,
+        nextReliableTime, lastPacketTime, lastConnectTime, nextSnapshotTime,
+        lastSnapshotTime, timeoutCount, guid, scriptId,
+        ::serialize(isSplitscreenClient), ::serialize(isSecondScreenClient),
+        ::serialize(bIsTestClient), serverId);
+  }
 };
 typedef client_s client_t;
 
