@@ -184,6 +184,20 @@ void con_restricted_execute_buf_stub(game::LocalClientNum_t local_client_num,
   game::cbuf::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);
 }
 
+int32_t bind_stub(const SOCKET s, const sockaddr *addr, const int32_t namelen) {
+  sockaddr_in address{};
+  if (addr->sa_family != AF_INET ||
+      namelen < static_cast<int32_t>(sizeof(address))) {
+    return bind(s, addr, namelen);
+  }
+
+  std::memcpy(&address, addr, sizeof(address));
+  if (ntohs(address.sin_port) == game::port()) {
+    address.sin_port = 0;
+  }
+  return bind(s, reinterpret_cast<const sockaddr *>(&address), sizeof(address));
+}
+
 const char *net_adr_to_string_stub(const game::net::netadr_t *address) {
   if (address->type != game::net::NA_RAWIP) {
     return net_adr_to_string_hook.invoke<const char *>(address);
@@ -440,6 +454,10 @@ struct component final : generic_component {
     net_adr_to_string_hook.create(
         game::select(0x14211A3B0, 0x142172E70, 0x140515800),
         net_adr_to_string_stub);
+
+    // Demonware's socket retries other ports itself; keep net_port for ours.
+    utils::hook::set(game::select(0x15AA6A38C, 0x15AAE9344, 0x14B4BD828),
+                     bind_stub);
 
     // Set cl_maxpackets to 100
     utils::hook::set<uint8_t>(
