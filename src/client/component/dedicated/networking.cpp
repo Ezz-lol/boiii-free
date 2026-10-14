@@ -140,17 +140,11 @@ utils::hook::detour SV_DirectConnect_hook;
 void SV_DirectConnect_RateLimited(game::net::netadr_t adr) {
   // Test clients share an address, Applying the per-IP limit to
   // them caps dedicated server bot population after a handful of bots
-  if (adr.type == game::net::NA_BOT) {
+  if (adr.type == game::net::NA_BOT || !rate_limited(adr.addr)) {
     SV_DirectConnect_hook.invoke(adr);
-    return;
-  }
-
-  if (rate_limited(adr.addr)) {
+  } else {
     fprintf(stderr, "[Security] Rejected connection from rate-limited IP\n");
-    return;
   }
-
-  SV_DirectConnect_hook.invoke(adr);
 }
 
 utils::hook::detour SV_LiveRemoveAllClientsFromAddress_hook;

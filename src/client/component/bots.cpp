@@ -19,11 +19,11 @@ namespace bots {
 namespace {
 constexpr const char BOT_CONNECT_PACKET_INFOSTRING_FMT[] =
     "connect "
-    "\"\\invited\\1\\cg_predictItems\\1\\cl_"
-    "anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\rate\\"
-    "5000\\name\\%s\\clanAbbrev\\%s\\xuid\\%s\\xnaddr\\%"
-    "s\\natType\\2\\protocol\\%d\\netfieldchk\\%d\\sessionmode\\%s\\qport\\%"
-    "d\"";
+    "\"\\invited\\1\\cg_predictItems\\1"
+    "\\cl_anonymous\\0\\color\\4\\head\\default"
+    "\\model\\multi\\snaps\\20\\rate\\5000\\name\\%s"
+    "\\clanAbbrev\\%s\\xuid\\%s\\xnaddr\\%s\\natType\\2\\protocol"
+    "\\%d\\netfieldchk\\%d\\sessionmode\\%s\\qport\\%d\"";
 constexpr char DEFAULT_BOT_CLAN_ABBREV[] = "3arc";
 
 struct BotName {
