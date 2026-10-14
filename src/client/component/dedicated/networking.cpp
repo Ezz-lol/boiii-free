@@ -142,9 +142,9 @@ void G_Say_Sanitize(game::level::gentity_s *ent, game::level::gentity_s *target,
 utils::hook::detour SV_DirectConnect_hook;
 void SV_DirectConnect_RateLimited(game::net::netadr_t adr) {
   if (rate_limited(adr)) {
-    SV_DirectConnect_hook.invoke(adr);
-  } else {
     fprintf(stderr, "[Security] Rejected connection from rate-limited IP\n");
+  } else {
+    SV_DirectConnect_hook.invoke(adr);
   }
 }
 
