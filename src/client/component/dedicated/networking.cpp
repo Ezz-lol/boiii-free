@@ -138,6 +138,13 @@ void G_Say_Sanitize(game::level::gentity_s *ent, game::level::gentity_s *target,
 // Hook for SV_DirectConnect to rate limit connections
 utils::hook::detour SV_DirectConnect_hook;
 void SV_DirectConnect_RateLimited(game::net::netadr_t adr) {
+  // Test clients share an address, Applying the per-IP limit to
+  // them caps dedicated server bot population after a handful of bots
+  if (adr.type == game::net::NA_BOT) {
+    SV_DirectConnect_hook.invoke(adr);
+    return;
+  }
+
   if (rate_limited(adr.addr)) {
     fprintf(stderr, "[Security] Rejected connection from rate-limited IP\n");
     return;
