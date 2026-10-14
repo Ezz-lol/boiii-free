@@ -67,10 +67,11 @@ void cmd_exec_stub(utils::hook::assembler &a) {
 
   a.get().mov(rcx, r10);
   a.call_aligned(has_game_settings_file_on_disk);
-  a.get().cmp(rax, 1);
+  // A C++ bool return is in AL; the upper bits of RAX aren't the result
+  a.get().test(al, al);
   a.popad64();
 
-  a.get().jnz(exec_from_fastfile);
+  a.get().jz(exec_from_fastfile);
 
   a.get().bind(exec_from_disk);
   a.jmp(game::select(0x1420e0907, 0x1420ED087, 0x1404F855E));
