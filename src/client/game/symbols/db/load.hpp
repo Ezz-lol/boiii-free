@@ -28,6 +28,7 @@ WEAK symbol<bool(const char *path, DBFile f, xzone::XZoneBuffer *fileBuffer,
     DB_LoadXFile{0x1413EF6F0, 0x1413EF6D0, 0x1401A4920};
 WEAK symbol<void(int zoneIndex, bool createDefault, qboolean suppressSync)>
     DB_UnloadXZone{0x141425A90, 0x141425A70, 0x1401DA6C0};
+WEAK symbol<void(bool, bool)> DB_FreeUnusedResources{0x141421590, 0x0, 0x0};
 WEAK symbol<void()> DB_ReleaseXAssets{0x1414247E0, 0x1414247C0, 0x1401D9870};
 WEAK symbol<void(xasset::MaterialTechniqueSetPtr *techniqueSet)>
     Load_MaterialTechniqueSetAsset{0x141426180, 0x0, 0x1401DB280};

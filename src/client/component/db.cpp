@@ -2,7 +2,9 @@
 
 #include <loader/component_loader.hpp>
 
+#include "command.hpp"
 #include "scheduler.hpp"
+#include "workshop/workshop.hpp"
 
 #include <game/game.hpp>
 #include <game/utils.hpp>
@@ -158,6 +160,13 @@ public:
                            "Print every asset that couldn't be found");
 
     if (game::is_client()) {
+      command::add("DB_FreeUnusedResources", [](const command::params &params) {
+        if (!workshop::are_xzones_loading()) {
+          game::db::load::DB_FreeUnusedResources(std::atoi(params.get(1)) != 0,
+                                                 std::atoi(params.get(2)) != 0);
+        }
+      });
+
       scheduler::schedule(
           [] {
             if (!com::Com_IsRunningUILevel()) {
