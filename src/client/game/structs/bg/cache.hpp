@@ -26,14 +26,14 @@ template <typename T> union BGCacheInstancePool {
   };
   using index_t = uint8_t;
 
-  inline constexpr void assert_range(size_t index) const {
-    assert(index < +bgCacheInstance::COUNT &&
+  inline constexpr void assert_range(index_t index) const {
+    assert(index < static_cast<index_t>(bgCacheInstance::COUNT) &&
            "index to BGCacheInstancePool must be within range "
            "bgCacheInstance::SERVER <= index < bgCacheInstance::COUNT");
   }
 
-  inline constexpr void assert_range(size_t index) volatile {
-    assert(index < +bgCacheInstance::COUNT &&
+  inline constexpr void assert_range(index_t index) volatile {
+    assert(index < static_cast<index_t>(bgCacheInstance::COUNT) &&
            "index to BGCacheInstancePool must be within range "
            "bgCacheInstance::SERVER <= index < bgCacheInstance::COUNT");
   }
@@ -71,11 +71,7 @@ template <typename T> union BGCacheInstancePool {
     return get(index);
   }
 
-  inline constexpr auto size() const noexcept {
-    return +bgCacheInstance::COUNT;
-  }
-
-  inline constexpr auto size() volatile noexcept {
+  static inline constexpr auto size() noexcept {
     return +bgCacheInstance::COUNT;
   }
 };
@@ -235,16 +231,69 @@ PACKED(struct bgCacheChecksum {
   volatile uint32_t value;
 });
 
+typedef djb2Hash_t BGCacheNameHash;
+inline constexpr BGCacheNameHash BGCACHE_NAMEHASH_NULLPTR = 0;
+inline constexpr BGCacheNameHash BGCACHE_NAMEHASH_DJB2_INITIAL_SEED = 0x1505;
+inline constexpr BGCacheNameHash BGCACHE_NAMEHASH_DJB2_CONSTANT = 0x21;
+inline constexpr djb2Hash_t hashName(const char *name) {
+  return djb2<BGCACHE_NAMEHASH_DJB2_INITIAL_SEED,
+              BGCACHE_NAMEHASH_DJB2_CONSTANT>(name);
+}
+
+#pragma pack(push, 1)
 template <typename Asset> struct bgCachedData {
   Asset *def;
-  int32_t nameHash;
+  BGCacheNameHash nameHash;
   volatile uint8_t refCount;
   uint8_t _padding0D[3];
 
   inline void reset() noexcept {
     memset(this, 0, sizeof(std::remove_pointer_t<decltype(this)>));
   }
+
+  inline constexpr void clearName() volatile {
+    nameHash = BGCACHE_NAMEHASH_NULLPTR;
+    // We can't know the size of the asset's name allocation to completely clear
+    // its allocation, but we can just zero its first byte to terminate it
+    // immediately.
+    def->name[0] = NULL;
+  }
+
+  inline constexpr void setName(const char *new_name) volatile {
+    if (new_name) {
+      nameHash = hashName(new_name);
+      strscpy(def->name, new_name);
+    } else {
+      clearName();
+    }
+  }
+
+  inline uint32_t remove_ref() volatile noexcept {
+#if defined(__clang__) || defined(__GNUC__)
+    __atomic_sub_fetch(&refCount, 1, __ATOMIC_SEQ_CST);
+#elif defined(_MSC_VER)
+    _InterlockedDecrement8(reinterpret_cast<volatile char *>(&refCount));
+#else
+    // Unsupported, but we have an obvious fallback for this case.
+    refCount -= 1;
+#endif
+    return refCount;
+  }
+
+  inline uint32_t add_ref() volatile noexcept {
+#if defined(__clang__) || defined(__GNUC__)
+    __atomic_add_fetch(&refCount, 1, __ATOMIC_SEQ_CST);
+#elif defined(_MSC_VER)
+    _InterlockedIncrement8(reinterpret_cast<volatile char *>(&refCount));
+#else
+    // Unsupported, but we have an obvious fallback for this case.
+    refCount += 1;
+#endif
+    return refCount;
+  }
 };
+#pragma pack(pop)
+
 typedef bgCachedData<db::xasset::xmodel::XModel> bgCachedModels;
 typedef bgCachedData<db::xasset::RumbleInfo> bgCachedRumbles;
 typedef bgCachedData<db::xasset::ShellshockParams> bgCachedShellshocks;
@@ -255,29 +304,17 @@ typedef bgCachedData<db::xasset::StreamerHint> bgCachedStreamerHint;
 typedef bgCachedData<db::xasset::FxEffectDefHandle> bgCachedFX;
 typedef bgCachedData<db::xasset::TagFxSet> bgCachedTagFxSet;
 
-typedef djb2Hash_t BGCacheNameHash;
 PACKED(struct bgCachedGenericData {
   str1024_t name;
-  djb2Hash_t nameHash;
+  BGCacheNameHash nameHash;
   volatile uint8_t refCount;
   uint8_t _padding0D[3];
-
-  static inline constexpr BGCacheNameHash BGCACHE_NAMEHASH_NULLPTR = 0;
-  static inline constexpr BGCacheNameHash BGCACHE_NAMEHASH_DJB2_INITIAL_SEED =
-      0x1505;
-  static inline constexpr BGCacheNameHash BGCACHE_NAMEHASH_DJB2_CONSTANT = 0x21;
 
   inline constexpr void clearName() volatile {
     nameHash = BGCACHE_NAMEHASH_NULLPTR;
     for (size_t i = 0; i < std::size(name); ++i) {
-      name[i] = '\0';
+      name[i] = NULL;
     }
-  }
-
-  inline static constexpr djb2Hash_t hashName(const char *name) {
-    return djb2<BGCACHE_NAMEHASH_DJB2_INITIAL_SEED,
-                BGCACHE_NAMEHASH_DJB2_CONSTANT>(name);
-    ;
   }
 
   inline constexpr void setName(const char *new_name) volatile {
