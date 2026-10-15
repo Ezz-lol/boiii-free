@@ -441,13 +441,6 @@ local function detailsButtons(controller)
         game.removefriend(p.steamId)
       end)
     )
-  else
-    add(
-      "MENU_SEND_FRIEND_REQUEST",
-      goBackAfter(function(p)
-        game.addfriend(p.steamId, player.name)
-      end)
-    )
   end
 
   add(
@@ -455,8 +448,20 @@ local function detailsButtons(controller)
     goBackAfter(function(p)
       FileIO.ClipboardSet(p.steamId)
     end),
-    not (inParty or inGameLobby)
+    player.friend and not (inParty or inGameLobby)
   )
+
+  -- Recent players already come with a name and friend code, so they can be
+  -- added straight to the friends list
+  if not player.friend then
+    add(
+      "Add Friend",
+      goBackAfter(function(p)
+        game.addfriend(p.steamId, player.name)
+      end),
+      not (inParty or inGameLobby)
+    )
+  end
 
   if inParty or inGameLobby then
     local lobby = Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) and Enum.LobbyType.LOBBY_TYPE_GAME
