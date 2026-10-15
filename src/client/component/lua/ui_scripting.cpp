@@ -2417,10 +2417,11 @@ public:
     ui_cod_init_hook.create(UI_CoD_Init, ui_cod_init_stub);
     ui_cod_lobbyui_init_hook.create(UI_CoD_LobbyUI_Init,
                                     ui_cod_lobbyui_init_stub);
-    // The server address is LobbyVM_OnErrorShutdown, not UI_Shutdown, so this
-    // can't use the UI_Shutdown symbol yet
-    ui_shutdown_hook.create(game::select(0x142694C90, 0x14270DE00, 0x1404A1280),
-                            ui_shutdown_stub);
+    // The dedicated server has no UI, but its lobby VM runs our Lua too
+    ui_shutdown_hook.create(
+        game::is_server() ? game::lua::lobby::vm::LobbyVM_OnErrorShutdown.get()
+                          : UI_Shutdown.get(),
+        ui_shutdown_stub);
     lua_cod_getrawfile_hook.create(Lua_CoD_GetRawFile.get(),
                                    lua_cod_getrawfile_stub);
 
