@@ -3459,7 +3459,7 @@
     diagnosticsClearProfileBtn.onclick = function () {
       showConfirm(
         "Clear Profile Data",
-        "Permanently delete boiii_players? This removes saves, settings, and custom binds and cannot be undone.",
+        "Delete boiii_players? This removes saves, settings, and custom binds. A backup is saved first, so you can restore it from Profile Backups.",
         function () {
           try {
             var result = getExternal().clearProfileData();
@@ -3470,6 +3470,7 @@
               );
             else if (result === "ok") {
               loadBinds();
+              loadProfileBackups();
               showMessage(
                 "Clear Profile Data",
                 "Profile data was removed. New defaults will be created on next launch."
@@ -3490,6 +3491,176 @@
       );
     };
   }
+
+  function addStorageRow(container, label, value, action) {
+    var row = document.createElement("div");
+    row.className = "storage-row";
+    var name = document.createElement("div");
+    name.className = "diagnostic-name";
+    name.textContent = label;
+    row.appendChild(name);
+    var size = document.createElement("div");
+    size.className = "diagnostic-details";
+    size.textContent = value;
+    row.appendChild(size);
+    if (action) row.appendChild(action);
+    container.appendChild(row);
+  }
+
+  var storageResults = document.getElementById("storageResults");
+  function checkStorage() {
+    if (!storageResults) return;
+    storageResults.innerHTML =
+      '<div class="diagnostics-empty">Checking storage...</div>';
+    window.setTimeout(function () {
+      try {
+        var usage = JSON.parse(getExternal().getStorageUsage() || "{}");
+        storageResults.innerHTML = "";
+        addStorageRow(
+          storageResults,
+          "Crash reports",
+          usage.crashCount +
+            " files, " +
+            usage.crashSize +
+            " (" +
+            usage.oldCrashCount +
+            " older than 7 days, " +
+            usage.oldCrashSize +
+            ")"
+        );
+        addStorageRow(storageResults, "Logs", usage.logsSize);
+        addStorageRow(storageResults, "Profile backups", usage.backupsSize);
+        var items = usage.items || [];
+        for (var si = 0; si < items.length; si++)
+          addStorageRow(storageResults, items[si].name, items[si].size);
+      } catch (e) {
+        storageResults.innerHTML =
+          '<div class="diagnostics-empty">Storage could not be checked.</div>';
+      }
+    }, 0);
+  }
+
+  var storageCheckBtn = document.getElementById("storageCheckBtn");
+  if (storageCheckBtn) storageCheckBtn.onclick = checkStorage;
+
+  var storageCleanBtn = document.getElementById("storageCleanBtn");
+  if (storageCleanBtn) {
+    storageCleanBtn.onclick = function () {
+      showConfirm(
+        "Delete Crash Reports",
+        "Delete crash reports older than 7 days? Recent ones are kept in case you still need to send them.",
+        function () {
+          try {
+            var parts = (getExternal().deleteOldCrashReports() || "0").split(
+              " "
+            );
+            var count = parseInt(parts[0], 10) || 0;
+            showMessage(
+              "Delete Crash Reports",
+              count
+                ? "Deleted " + count + " crash reports, freeing " + parts.slice(1).join(" ") + "."
+                : "There were no crash reports older than 7 days."
+            );
+            checkStorage();
+          } catch (e) {
+            showMessage(
+              "Delete Crash Reports",
+              "Crash reports could not be deleted."
+            );
+          }
+        },
+        "Delete"
+      );
+    };
+  }
+
+  var profileBackupList = document.getElementById("profileBackupList");
+  function loadProfileBackups() {
+    if (!profileBackupList) return;
+    var backups = [];
+    try {
+      backups = JSON.parse(getExternal().listProfileBackups() || "[]");
+    } catch (e) {}
+    profileBackupList.innerHTML = "";
+    if (!backups.length) {
+      profileBackupList.innerHTML =
+        '<div class="diagnostics-empty">No backups yet.</div>';
+      return;
+    }
+    for (var bi = 0; bi < backups.length; bi++) {
+      var restoreBtn = document.createElement("button");
+      restoreBtn.type = "button";
+      restoreBtn.className = "btn";
+      restoreBtn.textContent = "Restore";
+      restoreBtn.onclick = (function (file) {
+        return function () {
+          showConfirm(
+            "Restore Profile",
+            "Replace boiii_players with " +
+              file +
+              "? Your current profile is backed up first.",
+            function () {
+              var result = "error";
+              try {
+                result = getExternal().restoreProfileBackup(file);
+              } catch (e) {}
+              if (result === "game_running")
+                showMessage(
+                  "Restore Profile",
+                  "Close the game before restoring a profile."
+                );
+              else if (result === "ok") {
+                loadBinds();
+                showMessage("Restore Profile", "Profile restored.");
+              } else
+                showMessage(
+                  "Restore Profile",
+                  "The profile could not be restored from this backup."
+                );
+              loadProfileBackups();
+            },
+            "Restore"
+          );
+        };
+      })(backups[bi].file);
+      addStorageRow(
+        profileBackupList,
+        backups[bi].file,
+        backups[bi].size,
+        restoreBtn
+      );
+    }
+  }
+
+  var profileBackupBtn = document.getElementById("profileBackupBtn");
+  if (profileBackupBtn) {
+    profileBackupBtn.onclick = function () {
+      var file = "";
+      try {
+        file = getExternal().backUpProfile();
+      } catch (e) {}
+      showMessage(
+        "Back Up Profile",
+        file
+          ? "Profile backed up to " + file + "."
+          : "There is no profile data to back up yet."
+      );
+      loadProfileBackups();
+    };
+  }
+
+  var profileBackupsFolderBtn = document.getElementById(
+    "profileBackupsFolderBtn"
+  );
+  if (profileBackupsFolderBtn) {
+    profileBackupsFolderBtn.onclick = function () {
+      try {
+        getExternal().openBackupsFolder();
+      } catch (e) {}
+    };
+  }
+
+  loadProfileBackups();
 
   var SETTINGS_DEFAULTS = {
     closeLauncher: true,

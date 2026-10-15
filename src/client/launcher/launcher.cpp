@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 
+#include <utils/compression.hpp>
 #include <utils/http.hpp>
 #include <utils/io.hpp>
 #include <utils/nt.hpp>
@@ -1296,6 +1297,114 @@ bool relaunch_with_launch_options(const std::vector<std::string> &options) {
   }
 
   return false;
+}
+
+std::filesystem::path profile_path() {
+  return game::get_game_path() / "boiii_players";
+}
+
+std::filesystem::path backups_path() {
+  return game::get_appdata_path() / "backups";
+}
+
+std::filesystem::path crash_reports_path() {
+  return game::get_appdata_path() / "minidumps";
+}
+
+std::string timestamp_for_file() {
+  const std::time_t now = std::time(nullptr);
+  std::tm local{};
+  localtime_s(&local, &now);
+  char buffer[32]{};
+  std::strftime(buffer, sizeof(buffer), "%Y%m%d-%H%M%S", &local);
+  return buffer;
+}
+
+std::string strip_color_codes(const std::string &text) {
+  std::string result;
+  for (size_t i = 0; i < text.size(); ++i) {
+    if (text[i] == '^' && i + 1 < text.size() &&
+        std::isdigit(static_cast<unsigned char>(text[i + 1]))) {
+      ++i;
+      continue;
+    }
+    result += text[i];
+  }
+  return result;
+}
+
+// Zips boiii_players into the backups folder. Returns the backup's path, or
+// an empty path if there was nothing to back up or the zip couldn't be written.
+std::filesystem::path back_up_profile(const std::string &suffix = {}) {
+  const std::filesystem::path profile = profile_path();
+  std::error_code ec;
+  if (!std::filesystem::is_directory(profile, ec))
+    return {};
+
+  utils::compression::zip::archive archive;
+  size_t files = 0;
+  for (const std::filesystem::directory_entry &entry :
+       std::filesystem::recursive_directory_iterator(profile, ec)) {
+    if (!entry.is_regular_file(ec))
+      continue;
+    std::string data;
+    if (!utils::io::read_file(entry.path().string(), &data))
+      continue;
+    archive.add(
+        std::filesystem::relative(entry.path(), profile, ec).generic_string(),
+        std::move(data));
+    ++files;
+  }
+  if (!files)
+    return {};
+
+  std::filesystem::create_directories(backups_path(), ec);
+  const std::filesystem::path file =
+      backups_path() / ("profile-" + timestamp_for_file() + suffix + ".zip");
+  return archive.write(file.string()) ? file : std::filesystem::path{};
+}
+
+// Replaces boiii_players with the contents of a backup. Extracts to a
+// temporary folder first so a broken backup leaves the profile untouched.
+bool restore_profile(const std::filesystem::path &backup) {
+  std::string data;
+  if (!utils::io::read_file(backup.string(), &data))
+    return false;
+  const std::unordered_map<std::string, std::vector<uint8_t>> files =
+      utils::compression::zip::extract(data);
+  if (files.empty())
+    return false;
+
+  const std::filesystem::path profile = profile_path();
+  const std::filesystem::path staging =
+      profile.parent_path() / "boiii_players.restore";
+  std::error_code ec;
+  std::filesystem::remove_all(staging, ec);
+  for (const auto &[name, contents] : files) {
+    const std::filesystem::path relative =
+        std::filesystem::path(name).lexically_normal();
+    // Reject entries that would land outside the profile folder
+    if (relative.empty() || relative.is_absolute() ||
+        relative.has_root_name() || *relative.begin() == "..") {
+      std::filesystem::remove_all(staging, ec);
+      return false;
+    }
+    const std::filesystem::path target = staging / relative;
+    std::filesystem::create_directories(target.parent_path(), ec);
+    if (!utils::io::write_file(
+            target.string(),
+            std::string(reinterpret_cast<const char *>(contents.data()),
+                        contents.size()))) {
+      std::filesystem::remove_all(staging, ec);
+      return false;
+    }
+  }
+
+  std::filesystem::remove_all(profile, ec);
+  if (ec)
+    return false;
+  std::filesystem::rename(staging, profile, ec);
+  return !ec;
 }
 } // namespace
 
@@ -2754,14 +2863,189 @@ bool run() {
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
           if (is_game_process_running())
             return CComVariant("game_running");
-          const std::filesystem::path profile_path =
-              game::get_game_path() / "boiii_players";
-          if (profile_path.filename() != "boiii_players")
+          const std::filesystem::path profile = profile_path();
+          if (profile.filename() != "boiii_players")
             return CComVariant("invalid_path");
           std::error_code ec;
-          if (std::filesystem::exists(profile_path, ec))
-            std::filesystem::remove_all(profile_path, ec);
+          if (std::filesystem::exists(profile, ec)) {
+            back_up_profile("-before-clear");
+            std::filesystem::remove_all(profile, ec);
+          }
           return CComVariant(ec ? "error" : "ok");
+        });
+
+    window.get_html_frame()->register_callback(
+        "getStorageUsage",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          constexpr auto old_age = std::chrono::days(7);
+          const auto now = std::filesystem::file_time_type::clock::now();
+          std::error_code ec;
+
+          uint64_t crash_count = 0, crash_bytes = 0, old_count = 0,
+                   old_bytes = 0;
+          for (const std::filesystem::directory_entry &entry :
+               std::filesystem::directory_iterator(crash_reports_path(), ec)) {
+            if (!entry.is_regular_file(ec))
+              continue;
+            const uint64_t size = entry.file_size(ec);
+            ++crash_count;
+            crash_bytes += size;
+            if (now - entry.last_write_time(ec) > old_age) {
+              ++old_count;
+              old_bytes += size;
+            }
+          }
+
+          rapidjson::StringBuffer buffer;
+          rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+          writer.StartObject();
+          writer.Key("crashCount");
+          writer.Uint64(crash_count);
+          writer.Key("crashSize");
+          writer.String(::workshop::human_readable_size(crash_bytes).c_str());
+          writer.Key("oldCrashCount");
+          writer.Uint64(old_count);
+          writer.Key("oldCrashSize");
+          writer.String(::workshop::human_readable_size(old_bytes).c_str());
+          writer.Key("logsSize");
+          writer.String(::workshop::human_readable_size(
+                            ::workshop::compute_folder_size_bytes(
+                                game::get_game_path() / "logs"))
+                            .c_str());
+          writer.Key("backupsSize");
+          writer.String(
+              ::workshop::human_readable_size(
+                  ::workshop::compute_folder_size_bytes(backups_path()))
+                  .c_str());
+
+          struct item {
+            std::string name;
+            uint64_t bytes;
+          };
+          std::vector<item> items;
+          for (const char *folder : {"mods", "usermaps"}) {
+            for (const std::filesystem::directory_entry &entry :
+                 std::filesystem::directory_iterator(
+                     game::get_game_path() / folder, ec)) {
+              if (!entry.is_directory(ec))
+                continue;
+              mod_item_info info{};
+              const std::string name = try_parse_workshop_json(entry, info)
+                                           ? strip_color_codes(info.name)
+                                           : entry.path().filename().string();
+              items.push_back(
+                  {name, ::workshop::compute_folder_size_bytes(entry)});
+            }
+          }
+          std::ranges::sort(items, [](const item &a, const item &b) {
+            return a.bytes > b.bytes;
+          });
+          writer.Key("items");
+          writer.StartArray();
+          for (const item &entry : items) {
+            writer.StartObject();
+            writer.Key("name");
+            writer.String(entry.name.c_str());
+            writer.Key("size");
+            writer.String(::workshop::human_readable_size(entry.bytes).c_str());
+            writer.EndObject();
+          }
+          writer.EndArray();
+          writer.EndObject();
+          return CComVariant(
+              std::string(buffer.GetString(), buffer.GetSize()).c_str());
+        });
+
+    window.get_html_frame()->register_callback(
+        "deleteOldCrashReports",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          constexpr auto old_age = std::chrono::days(7);
+          const auto now = std::filesystem::file_time_type::clock::now();
+          std::error_code ec;
+          uint64_t count = 0, bytes = 0;
+          for (const std::filesystem::directory_entry &entry :
+               std::filesystem::directory_iterator(crash_reports_path(), ec)) {
+            if (!entry.is_regular_file(ec) ||
+                now - entry.last_write_time(ec) <= old_age)
+              continue;
+            const uint64_t size = entry.file_size(ec);
+            std::error_code remove_error;
+            if (std::filesystem::remove(entry.path(), remove_error)) {
+              ++count;
+              bytes += size;
+            }
+          }
+          return CComVariant(std::format("{} {}", count,
+                                         ::workshop::human_readable_size(bytes))
+                                 .c_str());
+        });
+
+    window.get_html_frame()->register_callback(
+        "backUpProfile",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          const std::filesystem::path file = back_up_profile();
+          return CComVariant(file.empty() ? ""
+                                          : file.filename().string().c_str());
+        });
+
+    window.get_html_frame()->register_callback(
+        "listProfileBackups",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          std::vector<std::filesystem::directory_entry> backups;
+          std::error_code ec;
+          for (const std::filesystem::directory_entry &entry :
+               std::filesystem::directory_iterator(backups_path(), ec)) {
+            if (entry.is_regular_file(ec) && entry.path().extension() == ".zip")
+              backups.push_back(entry);
+          }
+          std::ranges::sort(backups, [](const auto &a, const auto &b) {
+            return a.path().filename() > b.path().filename();
+          });
+
+          rapidjson::StringBuffer buffer;
+          rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+          writer.StartArray();
+          for (const std::filesystem::directory_entry &entry : backups) {
+            writer.StartObject();
+            writer.Key("file");
+            writer.String(entry.path().filename().string().c_str());
+            writer.Key("size");
+            writer.String(
+                ::workshop::human_readable_size(entry.file_size(ec)).c_str());
+            writer.EndObject();
+          }
+          writer.EndArray();
+          return CComVariant(
+              std::string(buffer.GetString(), buffer.GetSize()).c_str());
+        });
+
+    window.get_html_frame()->register_callback(
+        "restoreProfileBackup",
+        [](const std::vector<html_argument> &params) -> CComVariant {
+          if (params.empty() || !params[0].is_string())
+            return CComVariant("invalid");
+          if (is_game_process_running())
+            return CComVariant("game_running");
+          // Only names from listProfileBackups, never a path from elsewhere
+          const std::filesystem::path name(params[0].get_string());
+          if (name.has_parent_path() || name.extension() != ".zip")
+            return CComVariant("invalid");
+          const std::filesystem::path backup = backups_path() / name;
+          std::error_code ec;
+          if (!std::filesystem::is_regular_file(backup, ec))
+            return CComVariant("invalid");
+          back_up_profile("-before-restore");
+          return CComVariant(restore_profile(backup) ? "ok" : "error");
+        });
+
+    window.get_html_frame()->register_callback(
+        "openBackupsFolder",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          std::error_code ec;
+          std::filesystem::create_directories(backups_path(), ec);
+          ShellExecuteW(nullptr, L"open", backups_path().wstring().c_str(),
+                        nullptr, nullptr, SW_SHOWNORMAL);
+          return {};
         });
 
     window.get_html_frame()->register_callback(

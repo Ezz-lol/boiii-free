@@ -3563,6 +3563,17 @@ h1 {
 .diagnostic-item.error .diagnostic-marker { color: #fca5a5; background: rgba(239,68,68,.14); }
 .diagnostic-name { color: rgba(245,242,238,.9); font-size: .78rem; font-weight: 600; }
 .diagnostic-details { color: rgba(215,210,205,.48); font-size: .69rem; margin-top: 2px; overflow-wrap: anywhere; }
+.storage-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 7px;
+  background: rgba(12,11,10,.72);
+}
+.storage-row .diagnostic-details { margin-top: 0; text-align: right; }
 
 body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::after {
   animation: none !important;

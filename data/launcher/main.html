@@ -3117,8 +3117,9 @@
                     </button>
                   </div>
                   <div class="settings-row-desc diagnostics-warning">
-                    Clearing profile data permanently removes boiii_players,
-                    including settings, saves, and binds.
+                    Clearing profile data removes boiii_players, including
+                    settings, saves, and binds. A backup is saved first, see
+                    Profile Backups below.
                   </div>
                 </div>
                 <div
@@ -3127,6 +3128,52 @@
                 >
                   <div class="diagnostics-empty">
                     Run diagnostics to check the installation.
+                  </div>
+                </div>
+                <div class="settings-section">
+                  <div class="settings-section-title">Storage</div>
+                  <div class="diagnostic-actions">
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      id="storageCheckBtn"
+                    >
+                      Check Storage
+                    </button>
+                    <button type="button" class="btn" id="storageCleanBtn">
+                      Delete Crash Reports Older Than 7 Days
+                    </button>
+                  </div>
+                  <div class="settings-row-desc">
+                    Each crash report can take several hundred MB.
+                  </div>
+                  <div class="diagnostics-results" id="storageResults">
+                    <div class="diagnostics-empty">
+                      Check storage to see what is using disk space.
+                    </div>
+                  </div>
+                </div>
+                <div class="settings-section">
+                  <div class="settings-section-title">Profile Backups</div>
+                  <div class="diagnostic-actions">
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      id="profileBackupBtn"
+                    >
+                      Back Up Profile
+                    </button>
+                    <button type="button" class="btn" id="profileBackupsFolderBtn">
+                      Open Backups Folder
+                    </button>
+                  </div>
+                  <div class="settings-row-desc">
+                    Backs up boiii_players: stats, settings, binds and friends.
+                    Clearing or restoring a profile backs up the current one
+                    first.
+                  </div>
+                  <div class="diagnostics-results" id="profileBackupList">
+                    <div class="diagnostics-empty">No backups yet.</div>
                   </div>
                 </div>
               </div>
