@@ -14,6 +14,10 @@ WEAK symbol<void *(ControllerIndex_t controllerIndex, uint32_t *skus,
 WEAK symbol<const InventoryItem *(ControllerIndex_t controllerIndex,
                                   uint32_t itemId)>
     LiveInventory_GetItem{0x141DFC540, 0x141E08FD0, 0x0};
+WEAK symbol<uint32_t(ControllerIndex_t controllerIndex, uint32_t itemId)>
+    LiveInventory_GetItemQuantity{0x141DFC5A0, 0x141E09030, 0x0};
+WEAK symbol<bool(ControllerIndex_t controllerIndex)>
+    LiveInventory_AreExtraSlotsPurchased{0x141DFBEC0, 0x141E08950, 0x0};
 WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveInventory_IsValid{
     0x141DFD920, 0x141E0A3B0, 0x0};
 WEAK symbol<void(ControllerIndex_t controllerIndex)> LiveInventory_Update{

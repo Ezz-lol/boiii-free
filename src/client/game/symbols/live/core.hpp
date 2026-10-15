@@ -6,6 +6,9 @@
 
 namespace game {
 namespace live {
+WEAK symbol<bool(ControllerIndex_t controllerIndex, uint32_t incentiveId)>
+    LiveEntitlements_IsEntitlementActiveForController{0x141E05A50, 0x141E124E0,
+                                                      0x0};
 
 WEAK symbol<void(const char *comErrorString, uint32_t code)>
     Live_DelayedComError{0x141DFF6B0, 0x141E0C140, 0x0};

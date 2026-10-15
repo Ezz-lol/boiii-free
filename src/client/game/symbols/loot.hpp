@@ -8,6 +8,9 @@ WEAK symbol<LootResult> s_lastResult{0x151272C40, 0x1512F1BB0, 0x0};
 WEAK symbol<bool(ControllerIndex_t controllerIndex, int32_t crateType,
                  int32_t currency)>
     Loot_BuyCrate{0x141E759F0, 0x141E82480, 0x0};
+WEAK symbol<uint32_t(ControllerIndex_t controllerIndex, eModes mode,
+                     uint32_t itemId)>
+    Loot_GetItemQuantity{0x141E76170, 0x141E82C00, 0x0};
 WEAK symbol<bool(ControllerIndex_t controllerIndex)> Loot_RewardIsProcessing{
     0x141E74120, 0x141E80BB0, 0x0};
 WEAK symbol<uint32_t(ControllerIndex_t controllerIndex, int32_t currency)>
