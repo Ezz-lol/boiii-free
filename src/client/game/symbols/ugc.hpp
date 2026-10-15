@@ -62,6 +62,7 @@ WEAK symbol<void(LocalClientNum_t LocalClientNum)> UGC_ModChange_ApplyQueued{
     0x1420C94C0, 0x1420D5C40, 0x1404E1DD0};
 WEAK symbol<void(const char *publisherId)> UGC_ModChange_Queue{
     0x1420CA9C0, 0x1420D7140, 0x1404E2F70};
+WEAK symbol<bool()> UGC_ModLoad_XZoneLoading{0x1420F2B60, 0x0, 0x0};
 
 // Server only.
 WEAK symbol<steam::PublishedFileId_t()> UGC_DownloadedModPublisherId{

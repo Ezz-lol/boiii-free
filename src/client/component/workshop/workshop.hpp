@@ -29,6 +29,7 @@ bool check_valid_usermap_id(const std::string &mapname,
                             const std::string &base_uri = {});
 bool check_valid_mod_id(const std::string &pub_id,
                         const std::string &workshop_id);
+bool check_valid_mod_stack(const std::string &list);
 bool mod_switch_requires_fs_reinitialization(const std::string &current_mod,
                                              const std::string &new_mod);
 bool mod_load_requires_fs_reinitialization(std::string &mod_name);

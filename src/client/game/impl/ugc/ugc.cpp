@@ -15,6 +15,7 @@
 #include <steam/steam.hpp>
 
 #include <component/asset_limits.hpp>
+#include <component/mod_stack.hpp>
 #include <component/workshop/workshop.hpp>
 
 #include <str.hpp>
@@ -314,6 +315,12 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
   }
   // PATCH: load asset pool configuration from zone tree
   UGC_LoadItem_PrepareAssetPool(mod->absolutePathZoneFiles);
+  for (const std::string &id : mod_stack::get(mod->publisherId)) {
+    if (const UGCItem *extra =
+            UGC_UnwrapOptionalUGCItem(UGC_GetModByPublisherId(id.c_str()))) {
+      UGC_LoadItem_PrepareAssetPool(extra->absolutePathZoneFiles);
+    }
+  }
 
   UGC_LoadMod(localClientNum, mod, reloadFS);
 

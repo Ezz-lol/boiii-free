@@ -9,6 +9,7 @@ namespace ui {
 WEAK symbol<void(LocalClientNum_t localClientNumber, errorCode errorcode,
                  const char *errorMessage)>
     UI_OpenErrorPopupWithMessage{0x1422313C0, 0x14228DEE0, 0x0};
+WEAK symbol<void()> UIElement_RenderLoadedMod{0x1422302C0, 0x0, 0x0};
 WEAK symbol<void(bool frontend)> UI_CoD_Init{0x141F1C890, 0x141F29010,
                                              0x1404A0A50};
 WEAK symbol<void()> UI_CoD_LobbyUI_Init{0x141F1F600, 0x141F2BD80, 0x1404A1F50};
