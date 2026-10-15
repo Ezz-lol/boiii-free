@@ -6,8 +6,14 @@ if CoD.isFrontend then
   return
 end
 
-if not pcall(require, "ui.uieditor.widgets.HUD.Console.Console") then
-  return
+-- Only some builds ship the console widget; requiring a missing one logs errors
+if not CoD.ConsoleEntry then
+  if not (game and game.israwfile and game.israwfile("ui/uieditor/widgets/HUD/Console/Console.lua")) then
+    return
+  end
+  if not pcall(require, "ui.uieditor.widgets.HUD.Console.Console") then
+    return
+  end
 end
 
 if not CoD or not CoD.ConsoleEntry or type(CoD.ConsoleEntry.new) ~= "function" then

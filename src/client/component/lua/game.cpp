@@ -242,6 +242,13 @@ luaReturnCount_e ismodrawfile(lua_State *luaVM) {
   return call(luaVM, is_mod_rawfile);
 }
 
+luaReturnCount_e israwfile(lua_State *luaVM) {
+  return call(luaVM, [](const std::string &name) {
+    return DB_FindXAssetHeader(XAssetType::RAWFILE, name.c_str(), false, 0)
+               .data != nullptr;
+  });
+}
+
 luaReturnCount_e purchasevials(lua_State *luaVM) {
   return call(luaVM,
               [](const game::ControllerIndex_t controller, const int32_t cost,
@@ -641,6 +648,7 @@ public:
                                   purchasecodpoints>(),
         lua_state::luaL_LoggedReg<"game", "setstoreprice", setstoreprice>(),
         lua_state::luaL_LoggedReg<"game", "ismodrawfile", ismodrawfile>(),
+        lua_state::luaL_LoggedReg<"game", "israwfile", israwfile>(),
         lua_state::luaL_LoggedReg<"game", "purchasevials", purchasevials>(),
         lua_state::luaL_LoggedReg<"game", "purchasedistills",
                                   purchasedistills>(),
