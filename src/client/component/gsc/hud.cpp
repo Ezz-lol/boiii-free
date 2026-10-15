@@ -122,8 +122,8 @@ void unregister_clear_hudelem_cfgstr(uint16_t hudElemIdx) {
 }
 
 namespace hecmd_settext {
-static thread_local HudElemMessage message_buf = {0};
-static thread_local HudElemMessage cleaned_message_buf = {0};
+static thread_local HudElemMessage message_buf = {NULL};
+static thread_local HudElemMessage cleaned_message_buf = {NULL};
 inline void clear_message_bufs() {
   memset(message_buf, 0, std::size(message_buf));
   memset(cleaned_message_buf, 0, std::size(cleaned_message_buf));
@@ -131,11 +131,11 @@ inline void clear_message_bufs() {
 
 inline void ensure_message_bufs_clear() {
   if (message_buf[0]) {
-    memset(message_buf, 0, std::size(message_buf));
+    memset(message_buf, NULL, std::size(message_buf));
   }
 
   if (cleaned_message_buf[0]) {
-    memset(cleaned_message_buf, 0, std::size(cleaned_message_buf));
+    memset(cleaned_message_buf, NULL, std::size(cleaned_message_buf));
   }
 }
 
@@ -220,7 +220,7 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 } // namespace hecmd_settext
 
 void forget_hudelem_cfgstr_pool() {
-  for (uint16_t slot = 0; slot < ui::he::HUD_ELEMENT_POOL_SIZE; ++slot) {
+  for (uint16_t slot = 0; slot < hudelem_cfgstr_pool.size(); ++slot) {
     hudelem_cfgstr_pool[slot].clear();
   }
 }
@@ -238,9 +238,9 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
   const char *name = cl::CL_GetConfigString(index);
 #ifndef NDEBUG
   trace("[BG][Cache][{}][{}] Received config string change with index: 0x{:X}, "
-        "name: \"{}\"",
-        +bgCacheInstance::CLIENT, +localClientNum, index,
-        readable_ptr(name) ? name : "");
+        "name: {}",
+        +bgCacheInstance::CLIENT, serialize(localClientNum), index,
+        serialize(name));
 #endif
   const bool is_localized_string =
       index >= s_bgCacheTypeInfo->locstring.configStringStart &&
@@ -253,15 +253,10 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
         &s_bgCache->client.dataSet
              .localizedStrings[index -
                                s_bgCacheTypeInfo->locstring.configStringStart];
-    // An empty string means the server freed the slot, so free it here too;
-    // keeping it as "" makes the client checksum disagree with the server's
-    if (readable_ptr(name) && name[0]) {
-      data->setName(name);
-      if (!data->refCount) {
-        data->add_ref();
-      }
-    } else {
-      data->reset();
+
+    data->setName(name);
+    if (!data->refCount) {
+      data->add_ref();
     }
     s_bgCache->client.checksum.isDirty = true;
   } else {

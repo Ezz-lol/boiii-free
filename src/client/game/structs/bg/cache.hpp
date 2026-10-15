@@ -301,7 +301,7 @@ PACKED(struct bgCachedGenericData {
     _InterlockedDecrement8(reinterpret_cast<volatile char*>(&refCount));
 #else
        // Unsupported, but we have an obvious fallback for this case.
-      --refCount;
+      refCount -= 1;
 #endif
     return refCount;
   }
@@ -313,7 +313,7 @@ PACKED(struct bgCachedGenericData {
     _InterlockedIncrement8(reinterpret_cast<volatile char*>(&refCount));
 #else
        // Unsupported, but we have an obvious fallback for this case.
-      ++refCount;
+      refCount += 1;
 #endif
     return refCount;
   }
