@@ -2,6 +2,8 @@ if not Engine.IsInGame() then
   return
 end
 
+require("ui.uieditor.widgets.Scrollbars.verticalScrollbar")
+
 local function option(text, description, action)
   return { models = { displayText = text, description = description, action = action } }
 end
@@ -108,6 +110,7 @@ local function createListMenu(name, title, dataSource)
     list:setTopBottom(true, false, 136, 640)
     list:setWidgetType(CoD.List1ButtonLarge_PH)
     list:setVerticalCount(14)
+    list:setVerticalScrollbar(CoD.verticalScrollbar)
     list:setDataSource(dataSource)
     self:addElement(list)
     self.Options = list
