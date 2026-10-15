@@ -680,6 +680,17 @@ void merge_dynamic_names() {
   dynamic_name_count = total;
 }
 
+// The name list covers every build and mode, so only suggest names that
+// exist right now; the rest would just print "Unknown command"
+bool is_registered_name(const std::string &name,
+                        const std::unordered_set<std::string> &commands) {
+  if (commands.contains(to_lower_copy(name))) {
+    return true;
+  }
+  game::EngineDependentDvarMut dvar = game::Dvar_FindVar(name.c_str());
+  return static_cast<bool>(dvar);
+}
+
 bool starts_with_ci(const std::string &s, const std::string &prefix) {
   if (s.size() < prefix.size()) {
     return false;
@@ -732,6 +743,13 @@ bool collect_dvar_matches(const std::string &current,
   constexpr size_t max_matches = 50;
   matches.clear();
 
+  std::vector<std::string> command_names;
+  collect_registered_commands(command_names);
+  std::unordered_set<std::string> commands;
+  for (const std::string &name : command_names) {
+    commands.insert(to_lower_copy(name));
+  }
+
   const std::_Vector_iterator<
       std::_Vector_val<std::_Simple_types<std::basic_string<char>>>>
       begin_it =
@@ -752,6 +770,9 @@ bool collect_dvar_matches(const std::string &current,
            std::_Vector_val<std::_Simple_types<std::basic_string<char>>>>
            it = begin_it;
        it != end_it && matches.size() < max_matches; ++it) {
+    if (!is_registered_name(*it, commands)) {
+      continue;
+    }
     matches.push_back(*it);
     added_ci.insert(to_lower_copy(*it));
   }
@@ -770,7 +791,7 @@ bool collect_dvar_matches(const std::string &current,
       }
 
       const size_t pos = name_lower.find(partial_lower);
-      if (pos != std::string::npos) {
+      if (pos != std::string::npos && is_registered_name(name, commands)) {
         substring_hits.emplace_back(pos, &name);
       }
     }
