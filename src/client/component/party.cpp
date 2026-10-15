@@ -7,6 +7,7 @@
 #include "auth.hpp"
 #include "command.hpp"
 #include "friends.hpp"
+#include "mod_stack.hpp"
 #include "nat.hpp"
 #include "network.hpp"
 #include "network_password.hpp"
@@ -380,6 +381,7 @@ void handle_connect_query_response(const bool success,
   }
 
   const std::string mod_id = info.get("modId");
+  const std::string mod_stack_list = info.get("modStack");
 
   const std::string workshop_id = info.get("workshop_id").empty()
                                       ? info.get("usermapId")
@@ -408,7 +410,9 @@ void handle_connect_query_response(const bool success,
 
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
                                              base_uri) &&
-            workshop::check_valid_mod_id(mod_id, workshop_id)) {
+            workshop::check_valid_mod_id(mod_id, workshop_id) &&
+            workshop::check_valid_mod_stack(mod_stack_list)) {
+          mod_stack::set(mod_stack_list);
           connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
                           lobby);
         } else {

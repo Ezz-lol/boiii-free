@@ -21,6 +21,15 @@ WEAK symbol<void(xzone::XZoneInfo *zoneInfo, uint32_t zoneCount, bool sync,
 WEAK symbol<xasset::XAssetEntry *(xasset::XAssetEntry *entry,
                                   qboolean allowOverride)>
     DB_LinkXAssetEntry{0x1414228E0, 0x1414228C0, 0x1401D7960};
+WEAK symbol<int32_t(const xasset::XAssetEntry *candidate,
+                    const xasset::XAssetEntry *existing)>
+    DB_OverrideAsset{0x141423D20, 0x0, 0x1401D8DB0};
+WEAK symbol<int32_t(const xzone::XZoneInfo *zoneInfo, int32_t zoneCount,
+                    char (*names)[64], xzone::XZoneInfo *expanded,
+                    int32_t capacity)>
+    DB_ExpandZoneList{0x141426970, 0x0, 0x1401DBA70};
+WEAK symbol<void(xzone::XZoneInfo *zoneInfo, uint32_t zoneCount)> DB_LoadXZone{
+    0x141423A70, 0x0, 0x1401D8AD0};
 
 WEAK symbol<bool(const char *path, DBFile f, xzone::XZoneBuffer *fileBuffer,
                  const char *filename, XBlock *blocks, DB_Interrupt *interrupt,

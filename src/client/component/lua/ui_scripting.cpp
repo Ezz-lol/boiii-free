@@ -14,6 +14,7 @@
 
 #include <component/command.hpp>
 #include <component/getinfo.hpp>
+#include <component/mod_stack.hpp>
 #include <component/scheduler.hpp>
 #include <component/script.hpp>
 #include <component/toast.hpp>
@@ -623,9 +624,15 @@ constexpr frozen::unordered_set<frozen::string,
             KNOWN_MALICIOUS_MODS_ARRAY);
 
 inline bool malicious_mod_loaded() {
-  return active_mod->publisherId[0] &&
-         KNOWN_MALICIOUS_MODS.contains(
-             std::string_view(active_mod->publisherId));
+  if (!active_mod->publisherId[0]) {
+    return false;
+  }
+  // Stacked mods run their UI too, so their checks see these globals as well
+  std::vector<std::string> mods = mod_stack::get(active_mod->publisherId);
+  mods.emplace_back(active_mod->publisherId);
+  return std::ranges::any_of(mods, [](const std::string &id) {
+    return KNOWN_MALICIOUS_MODS.contains(std::string_view(id));
+  });
 }
 
 void setup_lua_globals() {
