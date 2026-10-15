@@ -21,9 +21,7 @@
 #include <steam/voice.hpp>
 
 #include <utils/http.hpp>
-
 #include <utils/string.hpp>
-#include <Xinput.h>
 
 namespace game_lua {
 using namespace game::db;
@@ -249,38 +247,6 @@ luaReturnCount_e israwfile(lua_State *luaVM) {
     return DB_FindXAssetHeader(XAssetType::RAWFILE, name.c_str(), false, 0)
                .data != nullptr;
   });
-}
-
-// XInput index of a gamepad whose A / Cross button was pressed since the last
-// call, or -1. `ignore_port` skips the pad player 1 is already using.
-int32_t gamepad_join_press(const int32_t ignore_port) {
-  using get_state_t = DWORD(WINAPI *)(DWORD, XINPUT_STATE *);
-  static const get_state_t get_state = [] {
-    HMODULE xinput = GetModuleHandleA("xinput1_3.dll");
-    if (!xinput)
-      xinput = LoadLibraryA("xinput1_4.dll");
-    return xinput ? reinterpret_cast<get_state_t>(
-                        GetProcAddress(xinput, "XInputGetState"))
-                  : nullptr;
-  }();
-  static std::array<bool, XUSER_MAX_COUNT> held{};
-
-  int32_t pressed = -1;
-  for (DWORD port = 0; port < XUSER_MAX_COUNT; ++port) {
-    XINPUT_STATE state{};
-    const bool down = get_state && get_state(port, &state) == ERROR_SUCCESS &&
-                      (state.Gamepad.wButtons & XINPUT_GAMEPAD_A);
-    if (down && !held[port] && static_cast<int32_t>(port) != ignore_port &&
-        pressed < 0) {
-      pressed = static_cast<int32_t>(port);
-    }
-    held[port] = down;
-  }
-  return pressed;
-}
-
-luaReturnCount_e getgamepadjoinpress(lua_State *luaVM) {
-  return call(luaVM, gamepad_join_press);
 }
 
 luaReturnCount_e purchasevials(lua_State *luaVM) {
@@ -683,8 +649,6 @@ public:
         lua_state::luaL_LoggedReg<"game", "setstoreprice", setstoreprice>(),
         lua_state::luaL_LoggedReg<"game", "ismodrawfile", ismodrawfile>(),
         lua_state::luaL_LoggedReg<"game", "israwfile", israwfile>(),
-        lua_state::luaL_LoggedReg<"game", "getgamepadjoinpress",
-                                  getgamepadjoinpress>(),
         lua_state::luaL_LoggedReg<"game", "purchasevials", purchasevials>(),
         lua_state::luaL_LoggedReg<"game", "purchasedistills",
                                   purchasedistills>(),
