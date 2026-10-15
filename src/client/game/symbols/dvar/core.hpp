@@ -192,6 +192,16 @@ WEAK
         Dvar_SetFromStringByName{0x14226A9E0, 0x1422C7500, 0x140579290};
 WEAK symbol<EngineDependentDvarMut(EngineDependentDvarMut dvar, eModes mode)>
     Dvar_GetSessionModeSpecificDvar{0x1422629E0, 0x1422BF500, 0x140575D90};
+WEAK symbol<void(EngineDependentDvar dvar, DvarValue *value,
+                 DvarSetSource source)>
+    Dvar_SetVariant{0x14226C510, 0x1422C9030, 0x0};
+WEAK symbol<void(void (*callback)(const char *debugName))> Dvar_ForEachName{
+    0x142260310, 0x1422BCE30, 0x0};
+// Actual name is unknown - Dvar_ForEachName with a local client number
+WEAK symbol<void(
+    LocalClientNum_t localClientNum,
+    void (*callback)(LocalClientNum_t localClientNum, const char *debugName))>
+    Dvar_ForEachNameClientNum{0x142260260, 0x1422BCD80, 0x0};
 WEAK symbol<bool(EngineDependentDvar dvar)> Dvar_GetBool{
     0x1422603B0, 0x1422BCED0, 0x140575740};
 WEAK symbol<int32_t(EngineDependentDvar dvar)> Dvar_GetDomainEnumStringCount{

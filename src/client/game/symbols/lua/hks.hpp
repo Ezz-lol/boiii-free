@@ -44,6 +44,8 @@ WEAK symbol<void(lua_State *s, hksInt32 t, hksInt32 ref)> hksi_luaL_unref{
 WEAK symbol<int32_t(lua_State *s, const HksCompilerSettings *options,
                     const char *buff, hksSize sz, const char *name)>
     hksi_hksL_loadbuffer{0x141D3F2F0, 0x141D4BD80, 0x1403F48D0};
+WEAK symbol<void *(lua_State *s)> package_require{0x141D1C6C0, 0x141D28EF0,
+                                                  0x1403D7FC0};
 WEAK symbol<int32_t(lua_State *s, const char *what, lua_Debug *ar)>
     hksi_lua_getinfo{0x141D40E40, 0x141D4D8D0, 0x1403F64B0};
 WEAK symbol<int32_t(lua_State *s, hksInt32 level, lua_Debug *ar)>

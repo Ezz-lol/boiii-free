@@ -2412,26 +2412,20 @@ public:
                       hks_load_stub);
     load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
 
-    // TODO: these inline offsets should be a symbol - strongly typed, named,
-    // and properly namespaced.
-    hks_package_require_hook.create(
-        game::select(0x141D1C6C0, 0x141D28EF0, 0x1403D7FC0),
-        hks_package_require_stub);
+    hks_package_require_hook.create(package_require.get(),
+                                    hks_package_require_stub);
     ui_cod_init_hook.create(UI_CoD_Init, ui_cod_init_stub);
     ui_cod_lobbyui_init_hook.create(UI_CoD_LobbyUI_Init,
                                     ui_cod_lobbyui_init_stub);
-    // TODO: these inline offsets should be a symbol - strongly typed, named,
-    // and properly namespaced.
+    // The server address is LobbyVM_OnErrorShutdown, not UI_Shutdown, so this
+    // can't use the UI_Shutdown symbol yet
     ui_shutdown_hook.create(game::select(0x142694C90, 0x14270DE00, 0x1404A1280),
                             ui_shutdown_stub);
     lua_cod_getrawfile_hook.create(Lua_CoD_GetRawFile.get(),
                                    lua_cod_getrawfile_stub);
 
-    // TODO: these inline offsets should be a symbol - strongly typed, named,
-    // and properly namespaced.
-    hksi_lua_getinfo_detour.create(
-        game::select(0x141D40E40, 0x141D4D8D0, 0x1403F64B0),
-        hksi_lua_getinfo_stub);
+    hksi_lua_getinfo_detour.create(hksi_lua_getinfo.get(),
+                                   hksi_lua_getinfo_stub);
 
     if (game::is_client()) {
       hks_traceback_hook.create(hksi_hks_traceback.get(), hks_traceback_stub);
@@ -2440,9 +2434,7 @@ public:
       cl_first_snapshot_hook.create(game::cl::CL_FirstSnapshot.get(),
                                     cl_first_snapshot_stub);
 
-      // TODO: these inline offsets should be a symbol - strongly typed,
-      // named, and properly namespaced.
-      lua_error_hook.create(game::select(0x141F05620, 0x141F11DA0, 0x0),
+      lua_error_hook.create(Lua_CoD_LuaStateManager_Error.get(),
                             lua_cod_luastatemanager_error_stub);
 
       scheduler::once(

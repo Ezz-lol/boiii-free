@@ -169,16 +169,12 @@ public:
     if (game::is_client()) {
       scheduler::once(read_archive_dvars,
                       scheduler::pipeline::dvars_flags_patched);
-      // TODO: this should be a symbol
-      dvar_set_variant_hook.create(game::select(0x14226C510, 0x1422C9030, 0x0),
+      dvar_set_variant_hook.create(game::Dvar_SetVariant.get(),
                                    dvar_set_variant_stub);
 
       // Show all known dvars in console
-      // TODO: this should be a symbol
-      utils::hook::jump(game::select(0x142260310, 0x1422BCE30, 0x0),
-                        dvar_for_each_name_stub);
-      // TODO: this should be a symbol
-      utils::hook::jump(game::select(0x142260260, 0x1422BCD80, 0x0),
+      utils::hook::jump(game::Dvar_ForEachName.get(), dvar_for_each_name_stub);
+      utils::hook::jump(game::Dvar_ForEachNameClientNum.get(),
                         dvar_for_each_name_client_num_stub);
     }
 

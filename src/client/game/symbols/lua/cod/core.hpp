@@ -10,6 +10,8 @@ WEAK symbol<void(hks::lua_State *, const char *)> Lua_CoD_LoadLuaFile{
 
 WEAK symbol<game::db::xasset::XAssetHeader(const char *filename)>
     Lua_CoD_GetRawFile{0x141F02860, 0x141F0EFE0, 0x1404BCB70};
+WEAK symbol<void(const char *error, hks::lua_State *s)>
+    Lua_CoD_LuaStateManager_Error{0x141F05620, 0x141F11DA0, 0x0};
 
 // If generating a `lua_State` in boiii, call this function.
 WEAK symbol<hks::lua_State *(hks::luaState_e luaState, void *memoryLocation,
