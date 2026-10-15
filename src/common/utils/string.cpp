@@ -241,6 +241,9 @@ std::string &rtrim(std::string &str) {
 std::string join(std::vector<std::string> strings,
                  const std::string &separator) {
   std::string result;
+  if (strings.empty()) {
+    return result;
+  }
   result += strings[0];
 
   for (size_t i = 1; i < strings.size(); ++i) {
@@ -254,6 +257,9 @@ std::string join(std::vector<std::string> strings,
 std::string join(std::vector<std::string_view> strings,
                  const std::string &separator) {
   std::string result;
+  if (strings.empty()) {
+    return result;
+  }
   result += strings[0];
 
   for (size_t i = 1; i < strings.size(); ++i) {
