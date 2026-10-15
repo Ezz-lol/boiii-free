@@ -30,8 +30,7 @@ struct FontIconAlias {
 };
 
 // Verified
-struct FontIcon {
-  const char *name;
+struct FontIcon : NamedXAsset {
   int32_t numEntries;
   int32_t numAliasEntries;
   FontIconEntry *fontIconEntry;

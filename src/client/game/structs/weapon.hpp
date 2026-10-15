@@ -3588,8 +3588,9 @@ PACKED(struct WeaponDobjInfo {
       return std::format("{{ \"slot\": {}, \"weapon\": {}, \"target\": {:p}, "
                          "\"dobjModelMask\": 0x{:08X} }}",
                          WeaponDobjInfo::serialize(slot), weapon.serialize(),
-                         static_cast<bool>(weapon) ? (const void *)weapDef
-                                                   : (const void *)attachment,
+                         static_cast<bool>(weapon)
+                             ? (const void *)weapDef
+                             : reinterpret_cast<const void *>(attachment),
                          dobjModelMask);
     }
   };

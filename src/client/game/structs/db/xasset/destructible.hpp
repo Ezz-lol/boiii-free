@@ -70,15 +70,15 @@ PACKED(struct DestructiblePiece {
         "\"enableLabel\": 0x{:08X}, \"hideBones\": {} }}",
         ::serialize(stages), parentPiece, parentDamagePercent,
         bulletDamageScale, explosiveDamageScale, meleeDamageScale,
-        impactDamageScale, entityDamageTransfer, (const void *)physConstraints,
-        health, ::serialize(damageSound), (const void *)burnEffect,
+        impactDamageScale, entityDamageTransfer,
+        reinterpret_cast<const void *>(physConstraints), health,
+        ::serialize(damageSound), reinterpret_cast<const void *>(burnEffect),
         ::serialize(burnSound), enableLabel, ::serialize(hideBones));
   }
 });
 ASSERT_SIZE(DestructiblePiece, 0x3C8);
 
-PACKED(struct DestructibleDef {
-  const char *name;
+PACKED(struct DestructibleDef : NamedXAsset {
   db::xasset::xmodel::XModelPtr model;
   db::xasset::xmodel::XModelPtr pristineModel;
   int32_t numPieces;
@@ -88,6 +88,8 @@ PACKED(struct DestructibleDef {
   qboolean syncBaseHealthWithEntity;
 
   std::string serialize() const noexcept;
+
+  IMPL_SLICE_METHODS(pieces, numPieces, Pieces);
 });
 // Verified
 ASSERT_SIZE(DestructibleDef, 0x30);

@@ -1,8 +1,8 @@
-#ifndef STRUCTS_DB_CORE_HPP
-#define STRUCTS_DB_CORE_HPP
+#pragma once
 
-#include "../macros.hpp"
 #include <cstdint>
+
+#include <game/structs/macros.hpp>
 
 namespace game {
 namespace db {
@@ -11,9 +11,10 @@ typedef int DBFile;
 struct XBlock {
   uint8_t *data;
   uint64_t size;
+
+  IMPL_SLICE_METHODS(data, size, Data);
 };
 ASSERT_SIZE(XBlock, 0x10);
 
 } // namespace db
 } // namespace game
-#endif

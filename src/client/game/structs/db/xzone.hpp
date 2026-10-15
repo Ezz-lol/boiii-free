@@ -3,8 +3,10 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "../core.hpp"
-#include "core.hpp"
+#include <game/structs/core.hpp>
+#include <game/structs/db/core.hpp>
+
+#include <structs/str.hpp>
 
 namespace game {
 namespace db {
@@ -26,18 +28,20 @@ enum class XZoneState : int32_t {
 };
 
 // sizeof=0x10
-#pragma pack(push, 1)
-struct XZoneBuffer {
+PACKED(struct XZoneBuffer {
   const void *data;
   size_t dataSize;
-};
+
+  inline std::span<const uint8_t> buffer() const noexcept {
+    return std::span(reinterpret_cast<const uint8_t *>(data), dataSize);
+  }
+});
 ASSERT_SIZE(XZoneBuffer, 0x10);
-#pragma pack(pop)
 
 struct XZoneInfoInternal {
-  char name[64];           // Correct
-  int allocFlags;          // Correct
-  int freeFlags;           // Correct
+  str64_t name;            // Correct
+  int32_t allocFlags;      // Correct
+  int32_t freeFlags;       // Correct
   XZoneInfoInternal *next; // Most likely correct
   /*
     Almost certainly a pointer, unsure on what _to_.
@@ -53,50 +57,44 @@ struct XZoneInfoInternal {
 ASSERT_SIZE(XZoneInfoInternal, 0x58);
 
 /*
-   Correct. allocFlags and freeFlags are verified, and
-   allocSlot-freeSlot are used as in earlier engines with size of allocSlot -
+  Verified. allocFlags and freeFlags are verified, and
+  allocSlot-freeSlot are used as in earlier engines with size of allocSlot -
   end of XZoneBuffer confirmed as 0x18 (2 * 4 + sizeof(XZoneBuffer) == 0x18)
 */
-#pragma pack(push, 1)
-struct XZoneInfo {
+PACKED(struct XZoneInfo {
   const char *name;
   int32_t allocFlags;
   int32_t freeFlags;
   int32_t allocSlot;
   int32_t freeSlot;
   XZoneBuffer fileBuffer;
-};
+});
 ASSERT_SIZE(XZoneInfo, 0x28);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct XZoneName // Size must be 96 == 0x60
-{
-  char name[64];
-  int32_t flags;
-  int32_t slot;
-  ZoneType zoneType;
-  uint8_t _padding4C[4];
-  size_t size;
-  XZoneState state;
-  bool streamPreloaded;
-  uint8_t _padding5d[3];
-};
+PACKED(struct XZoneName // Size must be 96 == 0x60
+       {
+         char name[64];
+         int32_t flags;
+         int32_t slot;
+         ZoneType zoneType;
+         uint8_t _padding4C[4];
+         size_t size;
+         XZoneState state;
+         bool streamPreloaded;
+         uint8_t _padding5d[3];
+       });
 ASSERT_SIZE(XZoneName, 0x60);
-#pragma pack(pop)
 
-// Verified correct
-#pragma pack(push, 1)
-struct XZone {
+// Verified
+PACKED(struct XZone {
   uint16_t index;
   uint8_t _padding02[2];
-  int flags;
-  int slot;
+  int32_t flags;
+  int32_t slot;
   uint8_t _padding0C[4];
   db::XBlock blocks[10];
-};
+});
 ASSERT_SIZE(XZone, 0xB0);
-#pragma pack(pop)
 
 } // namespace xzone
 } // namespace db

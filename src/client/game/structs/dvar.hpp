@@ -4,7 +4,7 @@
 #include "game/ptr.hpp"
 #include "macros.hpp"
 #include "quake/vec.hpp"
-#include <macros.hpp>
+#include <macros/macros.hpp>
 #include <structs/func.hpp>
 
 #include <cstddef>

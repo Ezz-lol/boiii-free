@@ -14,8 +14,7 @@ namespace db {
 namespace xasset {
 namespace phys {
 
-struct PhysPreset {
-  const char *name;
+struct PhysPreset : NamedXAsset {
   int32_t flags;
   float mass;
   float bounce;
@@ -301,8 +300,7 @@ PACKED(struct PhysConstraint {
 });
 ASSERT_SIZE(PhysConstraint, 0xD0);
 
-PACKED(struct PhysConstraints {
-  const char *name;
+PACKED(struct PhysConstraints : NamedXAsset {
   uint32_t count;
   uint8_t _padding0C[4];
   PhysConstraint data[8];

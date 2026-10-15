@@ -110,9 +110,10 @@ struct broad_phase_base {
         "\"m_env_collision_flags\": 0x{:08X}, "
         "\"m_my_collision_type_flags\": 0x{:08X} }}",
         m_trace_aabb_min_whace.serialize(), m_trace_aabb_max_whace.serialize(),
-        m_trace_translation.serialize(), m_flags, (const void *)m_list_bpb_next,
-        (const void *)m_list_bpb_cluster_next, m_sap_node, m_user_data,
-        m_env_collision_flags, m_my_collision_type_flags);
+        m_trace_translation.serialize(), m_flags,
+        reinterpret_cast<const void *>(m_list_bpb_next),
+        reinterpret_cast<const void *>(m_list_bpb_cluster_next), m_sap_node,
+        m_user_data, m_env_collision_flags, m_my_collision_type_flags);
   }
 };
 ASSERT_SIZE(broad_phase_base, 0x60);
@@ -294,10 +295,11 @@ public:
         m_gravity_acc_vec.serialize(), m_t_vel.serialize(), m_a_vel.serialize(),
         m_last_t_vel.serialize(), m_last_a_vel.serialize(),
         m_force_sum.serialize(), m_torque_sum.serialize(), m_inv_mass,
-        m_max_avel, m_max_delta_t, m_flags, m_tick, (const void *)m_node,
-        m_constraint_count, m_contact_count, m_stable_min_contact_count,
-        m_stable_energy_time, m_largest_vel_sq, m_t_drag_coef, m_a_drag_coef,
-        m_userdata, m_partition_node.serialize());
+        m_max_avel, m_max_delta_t, m_flags, m_tick,
+        reinterpret_cast<const void *>(m_node), m_constraint_count,
+        m_contact_count, m_stable_min_contact_count, m_stable_energy_time,
+        m_largest_vel_sq, m_t_drag_coef, m_a_drag_coef, m_userdata,
+        m_partition_node.serialize());
   }
 };
 ASSERT_SIZE(rigid_body, 0x1B0);
@@ -711,8 +713,6 @@ struct DestructibleState {
                        time);
   }
 };
-
-typedef int32_t XPartBits[12];
 
 PACKED(struct Destructible {
   int32_t entNum;

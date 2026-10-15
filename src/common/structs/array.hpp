@@ -3,7 +3,7 @@
 #include <bit>
 #include <cassert>
 #include <cstdint>
-#include <macros.hpp>
+#include <macros/macros.hpp>
 
 template <typename T, const IntegralLike auto N>
 using array = T[static_cast<size_t>(N)];

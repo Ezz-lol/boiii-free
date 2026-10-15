@@ -1,5 +1,4 @@
-#ifndef GAME_STRUCTS_DB_XASSETS_HPP
-#define GAME_STRUCTS_DB_XASSETS_HPP
+#pragma once
 
 #include <cstdint>
 #include <format>
@@ -102,6 +101,8 @@ typedef StreamerHint *StreamerHintPtr;
 namespace maptable {
 struct MapTable;
 }
+
+typedef array<int32_t, 12> XPartBits;
 
 enum class XAssetType : int32_t {
   PHYSPRESET = 0x0,
@@ -550,8 +551,7 @@ ASSERT_SIZE(FxSpawnDef, 0x10);
 
 typedef uint32_t contents_t;
 
-struct __attribute__((aligned(8))) MaterialInfo {
-  const char *name;
+struct __attribute__((aligned(8))) MaterialInfo : NamedXAsset {
   uint32_t namehash;
   uint32_t gameFlags;
   uint8_t layerSortDecal;
@@ -876,8 +876,7 @@ typedef const FxEffectDef *FxEffectDefHandle;
 typedef uint8_t FxNormalsShape;
 
 // sizeof=0x98
-struct FxEffectDef {
-  const char *name;
+struct FxEffectDef : NamedXAsset {
   FxEffectDefFlags flags;
   uint8_t efPriority;
   uint8_t _paddingB[1];
@@ -1290,8 +1289,7 @@ struct CharacterHead;
 
 typedef PlayerRoleLevels *PlayerRoleLevelsPtr;
 // Verified
-PACKED(struct CustomizationTable {
-  const char *name;
+PACKED(struct CustomizationTable : NamedXAsset {
   uint32_t numPlayerRoles;
   uint8_t _padding0C[4];
   PlayerRoleLevelsPtr *playerRoles;
@@ -1393,8 +1391,7 @@ struct CharacterBodyType_FrontendImages {
 };
 
 // Verified
-struct CustomizationTable_FEImages {
-  const char *name;
+struct CustomizationTable_FEImages : NamedXAsset {
   uint32_t numBodyTypes;
   CharacterBodyType_FrontendImages *bodyTypes;
 
@@ -1408,13 +1405,14 @@ struct CustomizationTable_FEImages {
 ASSERT_SIZE(CustomizationTable_FEImages, 0x18);
 
 // Verified
-struct CustomizationColorInfo {
-  const char *name;
+struct CustomizationColorInfo : NamedXAsset {
   XString displayName;
   gfx::GfxColor uiColor;
   gfx::GfxImage *icon;
   uint32_t numCamoMaterials;
   CamoMaterial *camoMaterials;
+
+  IMPL_SLICE_METHODS(camoMaterials, numCamoMaterials, CamoMaterials);
 
   inline std::string serialize() const noexcept {
     return std::format(
@@ -1427,9 +1425,6 @@ struct CustomizationColorInfo {
 };
 ASSERT_SIZE(CustomizationColorInfo, 0x30);
 
-struct XSurface;
-typedef int32_t XPartBits[12];
-
 struct KeyValuePair {
   int32_t keyHash;
   const char *value;
@@ -1441,8 +1436,7 @@ struct KeyValuePair {
 };
 
 // Verified
-struct KeyValuePairs {
-  const char *name;
+struct KeyValuePairs : NamedXAsset {
   int32_t numVariables;
   KeyValuePair *keyValuePairs;
 
@@ -1661,52 +1655,6 @@ struct ManagedNoteTrackList {
   }
 };
 
-#pragma pack(push, 1)
-struct XSurfaceShared {
-  uint32_t flags;
-  uint32_t vertCount;
-  uint32_t skinVertCount;
-  uint32_t indexCount;
-  uint32_t blendTargetVertCount;
-  uint32_t blendShapeVertCount;
-  uint8_t *data;
-  uint32_t dataSize;
-  uint32_t posOffset;
-  uint32_t vertsOffset;
-  uint32_t indicesOffset;
-  uint32_t skinWeightsOffset;
-  uint32_t blendShapeVertsOffset;
-  gfx::GfxVertexBuffer vbPos;
-  gfx::GfxVertexBuffer vbVerts;
-  gfx::GfxVertexBuffer vbSkinWeights;
-  gfx::GfxIndexBuffer ibIndices;
-  gfx::GfxBuffer bBlendTargets;
-  uint32_t blendTargetCount;
-  uint8_t _padding7C[4];
-  const scr::ScrString_t *blendTargetNames;
-  gfx::BlendTargetRemap *blendTargetRemap;
-
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"flags\": 0x{:08X}, \"vertCount\": {}, \"skinVertCount\": {}, "
-        "\"indexCount\": {}, "
-        "\"blendTargetVertCount\": {}, \"blendShapeVertCount\": {}, \"data\": "
-        "{:p}, \"dataSize\": {}, "
-        "\"posOffset\": {}, \"vertsOffset\": {}, \"indicesOffset\": {}, "
-        "\"skinWeightsOffset\": {}, "
-        "\"blendShapeVertsOffset\": {}, \"blendTargetCount\": {}, "
-        "\"blendTargetNames\": {}, "
-        "\"blendTargetRemap\": {} }}",
-        flags, vertCount, skinVertCount, indexCount, blendTargetVertCount,
-        blendShapeVertCount, reinterpret_cast<const void *>(data), dataSize,
-        posOffset, vertsOffset, indicesOffset, skinWeightsOffset,
-        blendShapeVertsOffset, blendTargetCount,
-        ::serialize(blendTargetNames, blendTargetCount),
-        ::serialize(blendTargetRemap, blendTargetCount));
-  }
-};
-#pragma pack(pop)
-
 PACKED(struct LocalizeEntry {
   const char *value;
   const char *name;
@@ -1766,7 +1714,25 @@ struct __declspec(align(8)) Collmap {
   }
 };
 
-struct CharacterItemInfo;
+struct ColorOptionSet {
+  uint32_t numOptions;
+  CustomizationColorInfo **colors;
+
+  IMPL_SLICE_METHODS(colors, numOptions, Colors);
+};
+
+struct CharacterItemInfo {
+  const char *displayName;
+  gfx::GfxImage *icon;
+  xmodel::XModelPtr models[11];
+  uint32_t accentColorCount;
+  ColorOptionSet *colorOptions;
+  int impactType[2];
+  ScriptBundlePtr gibDef;
+
+  IMPL_SLICE_METHODS(colorOptions, accentColorCount, ColorOptions);
+};
+
 enum class CharacterGenderTypes : uint32_t {
   MALE = 0x0,
   MP = 0x0,
@@ -1788,8 +1754,7 @@ inline constexpr const char *serialize(const CharacterGenderTypes gender) {
   }
 }
 
-struct CharacterBodyType {
-  const char *name;
+struct CharacterBodyType : NamedXAsset {
   const char *displayName;
   const char *description;
   const char *heroWeapon;
@@ -1834,7 +1799,7 @@ struct CharacterBodyType {
   xmodel::XModelPtr dogTagEnemy;
   XString cardBackIcon;
   XString realName;
-  int age;
+  int32_t age;
   XString genderString;
   XString bio;
   XString weaponCardBackIcon;
@@ -1847,6 +1812,9 @@ struct CharacterBodyType {
   XString abilityCardBackDesc;
   XString abilitySubItemDesc;
   XString abilitySchema;
+
+  IMPL_SLICE_METHODS(bodyInfo, numBodyInfos, BodyInfo);
+  IMPL_SLICE_METHODS(helmetInfo, numHelmetInfos, HelmetInfo);
 
   inline std::string serialize() const noexcept {
     return std::format(
@@ -1881,11 +1849,11 @@ struct CharacterBodyType {
         "\"abilitySubItemDesc\": {}, \"abilitySchema\": {} }}",
         ::serialize(name), ::serialize(displayName), ::serialize(description),
         ::serialize(heroWeapon), ::serialize(heroAbility),
-        ::serialize(bodySoundContext), (const void *)mpDialog,
-        ::serialize(chrName), (const void *)rewardIcon, ::serialize(background),
-        ::serialize(backgroundWithCharacter), ::serialize(lockedImage),
-        ::serialize(personalizeRender), ::serialize(frozenMomentRender),
-        ::serialize(frozenMomentOverlay),
+        ::serialize(bodySoundContext), reinterpret_cast<const void *>(mpDialog),
+        ::serialize(chrName), reinterpret_cast<const void *>(rewardIcon),
+        ::serialize(background), ::serialize(backgroundWithCharacter),
+        ::serialize(lockedImage), ::serialize(personalizeRender),
+        ::serialize(frozenMomentRender), ::serialize(frozenMomentOverlay),
         reinterpret_cast<const void *>(defaultHeroRender),
         reinterpret_cast<const void *>(defaultHeroRenderAbility),
         reinterpret_cast<const void *>(positionDraftPortrait),
@@ -1921,4 +1889,3 @@ struct CharacterBodyType {
 } // namespace xasset
 } // namespace db
 } // namespace game
-#endif

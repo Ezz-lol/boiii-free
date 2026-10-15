@@ -5,7 +5,7 @@
 #include <numbers>
 
 #include <game/structs/macros.hpp>
-#include <macros.hpp>
+#include <macros/macros.hpp>
 
 namespace game {
 

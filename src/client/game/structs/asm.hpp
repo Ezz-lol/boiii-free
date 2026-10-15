@@ -452,8 +452,9 @@ struct AnimSelectorTable {
         "{:p}, "
         "\"numRows\": {}, \"outParamsGroup1\": {}, \"blendInColumn\": {}, "
         "\"blendOutColumn\": {}, \"aimTableColumn\": {} }}",
-        name, ::serialize(columns, numColumns), numColumns, (const void *)rows,
-        numRows, outParamsGroup1.serialize(), blendInColumn, blendOutColumn,
+        name, ::serialize(columns, numColumns), numColumns,
+        reinterpret_cast<const void *>(rows), numRows,
+        outParamsGroup1.serialize(), blendInColumn, blendOutColumn,
         aimTableColumn);
   }
 };
@@ -1421,7 +1422,8 @@ struct __attribute__((aligned(8))) locBlendPair_t {
   inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"start\": {:p}, \"end\": {:p}, \"strideType\": {} }}",
-        (const void *)start, (const void *)end, strideType);
+        reinterpret_cast<const void *>(start),
+        reinterpret_cast<const void *>(end), strideType);
   }
 };
 
@@ -1980,9 +1982,11 @@ struct __attribute__((aligned(8))) ViewModelInfo {
         "\"hasAnimTree\": {}, \"tree\": {:p}, \"anims\": {:p}, \"partBits\": "
         "{}, "
         "\"hand\": {}, \"altModels\": {}, \"numAltModels\": {} }}",
-        (const void *)viewModelDObj, (const void *)viewModelDObjLegs,
+        reinterpret_cast<const void *>(viewModelDObj),
+        reinterpret_cast<const void *>(viewModelDObjLegs),
         weaponDobjInfo.serialize(), ::serialize(hasAnimTree),
-        (const void *)tree, (const void *)anims, ::serialize(partBits),
+        reinterpret_cast<const void *>(tree),
+        reinterpret_cast<const void *>(anims), ::serialize(partBits),
         ::serialize(hand),
         ::serialize(reinterpret_cast<const uintptr_t *const>(&altModels[0]),
                     std::size(altModels)),

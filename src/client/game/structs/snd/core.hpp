@@ -1168,9 +1168,11 @@ PACKED(struct SndEntState {
         "\"ambientRoomId\": 0x{:08X}, \"orientation\": {}, \"origin\": {}, "
         "\"velocity\": {}, "
         "\"lastUsed\": {}, \"hasPosition\": 0x{:08X} }}",
-        ::serialize(contexts), handle.serialize(), (const void *)next,
-        (const void *)ambientRoom, ambientRoomId, ::serialize(orientation),
-        origin.serialize(), velocity.serialize(), lastUsed, hasPosition);
+        ::serialize(contexts), handle.serialize(),
+        reinterpret_cast<const void *>(next),
+        reinterpret_cast<const void *>(ambientRoom), ambientRoomId,
+        ::serialize(orientation), origin.serialize(), velocity.serialize(),
+        lastUsed, hasPosition);
   }
 });
 

@@ -1,6 +1,6 @@
 #include "info_string.hpp"
 #include "string.hpp"
-#include <macros.hpp>
+#include <macros/macros.hpp>
 
 namespace utils {
 info_string::info_string(const std::string &buffer) { this->parse(buffer); }

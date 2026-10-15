@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <game/structs/macros.hpp>
-#include <macros.hpp>
+#include <macros/macros.hpp>
 
 namespace game {
 namespace scr {

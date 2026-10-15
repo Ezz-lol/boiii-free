@@ -571,7 +571,8 @@ PACKED(struct VehicleSoundDef {
         "\"driveBySoundRadius\": {}, \"driveBySounds\": {}, "
         "\"aircraftPresets\": {}, \"aircraftSounds\": {}, \"surfaceSounds\": "
         "{} }}",
-        ::serialize(name), engine.serialize(), (const void *)engineGraph,
+        ::serialize(name), engine.serialize(),
+        reinterpret_cast<const void *>(engineGraph),
         ::serialize(driveBySoundRadius), ::serialize(driveBySounds),
         ::serialize(aircraftPresets), ::serialize(aircraftSounds),
         ::serialize(surfaceSounds));
@@ -2106,12 +2107,12 @@ PACKED(struct NitrousVehicle {
         ::serialize(m_last_all_wheel_contact_was_wall),
         ::serialize(m_is_being_drop_deployed), m_last_origin.serialize(),
         m_last_angles.serialize(), m_buoyancyOffset, ::serialize(m_mover_info),
-        ::serialize(m_mutex), id, refcount, (const void *)m_wheels,
-        m_desired_speed_factor, m_acceleration_factor, m_power_braking_factor,
-        m_braking_factor, m_coasting_factor, m_reference_wheel_radius,
-        m_steer_current_angle, m_steer_max_angle, m_steer_speed,
-        m_steer_front_pt_loc.serialize(), m_steer_front_back_length,
-        m_min_turning_radius, m_state_flags);
+        ::serialize(m_mutex), id, refcount,
+        reinterpret_cast<const void *>(m_wheels), m_desired_speed_factor,
+        m_acceleration_factor, m_power_braking_factor, m_braking_factor,
+        m_coasting_factor, m_reference_wheel_radius, m_steer_current_angle,
+        m_steer_max_angle, m_steer_speed, m_steer_front_pt_loc.serialize(),
+        m_steer_front_back_length, m_min_turning_radius, m_state_flags);
   }
 });
 ASSERT_OFFSET(NitrousVehicle, m_flags, 0x2F8);
@@ -3187,8 +3188,8 @@ PACKED(struct vehicle_t {
         cornerCache.serialize(), hasTargetYaw.serialize(),
         boneIndex.serialize(), ::serialize(seats),
         secTurretAiControlled.serialize(), addToCompass.serialize(),
-        (const void *)nitrousVehicle, vehicle_cache.serialize(),
-        tmodeVehicleVisibility);
+        reinterpret_cast<const void *>(nitrousVehicle),
+        vehicle_cache.serialize(), tmodeVehicleVisibility);
   }
 });
 ASSERT_OFFSET(vehicle_t, nitrousVehicle, 0x7B8);

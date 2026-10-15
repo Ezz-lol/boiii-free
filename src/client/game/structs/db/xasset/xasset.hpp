@@ -10,3 +10,4 @@
 #include "world.hpp"        // IWYU pragma: export
 #include "xbone.hpp"        // IWYU pragma: export
 #include "xmodel.hpp"       // IWYU pragma: export
+#include "xsurface.hpp"     // IWYU pragma: export

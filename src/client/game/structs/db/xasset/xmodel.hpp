@@ -1,7 +1,8 @@
 #pragma once
 
-#include "game/structs/db/xasset/core.hpp"
-#include "game/structs/db/xasset/xbone.hpp"
+#include <game/structs/db/xasset/core.hpp>
+#include <game/structs/db/xasset/xbone.hpp>
+#include <game/structs/db/xasset/xsurface.hpp>
 #include <game/structs/fp16.hpp>
 #include <game/structs/macros.hpp>
 
@@ -20,13 +21,17 @@ namespace phys {
 struct PhysPreset;
 }
 
+namespace xsurface {
+struct XSurface;
+struct XSurfaceShared;
+} // namespace xsurface
+
 namespace xmodel {
 
 // Verified
-struct __declspec(align(4)) XModelMesh {
-  const char *name;
-  XSurface *surfs;
-  XSurfaceShared *shared;
+struct __declspec(align(4)) XModelMesh : NamedXAsset {
+  xsurface::XSurface *surfs;
+  xsurface::XSurfaceShared *shared;
   XPakEntryInfo xpakEntry;
   XPartBits partBits;
   float avgRenderTriArea;
@@ -35,17 +40,9 @@ struct __declspec(align(4)) XModelMesh {
   uint8_t numSurfs;
   uint8_t lodEstimate;
 
-  inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"name\": {}, \"surfs\": {:p}, \"shared\": {}, \"xpakEntry\": "
-        "{}, "
-        "\"partBits\": {}, \"avgRenderTriArea\": {}, \"avgCollisionTriArea\": "
-        "{}, "
-        "\"nameHash\": 0x{:08X}, \"numSurfs\": {}, \"lodEstimate\": {} }}",
-        ::serialize(name), reinterpret_cast<const void *>(surfs),
-        ::serialize(shared), xpakEntry.serialize(), ::serialize(partBits),
-        avgRenderTriArea, avgCollisionTriArea, nameHash, numSurfs, lodEstimate);
-  }
+  std::string serialize() const noexcept;
+
+  IMPL_SLICE_METHODS(surfs, numSurfs, Surfs);
 };
 ASSERT_SIZE(XModelMesh, 0x78);
 
@@ -143,13 +140,13 @@ typedef XModelCollTri_s XModelCollTri;
 
 struct XModelCollSurf_s {
   XModelCollTri *collTris;
-  int numCollTris;
+  int32_t numCollTris;
   vec3_t mins;
   vec3_t maxs;
   BoneIndex boneIdx;
   uint8_t _padding26[2];
   contents_t contents;
-  int surfFlags;
+  int32_t surfFlags;
 
   inline std::string serialize() const noexcept {
     return std::format(

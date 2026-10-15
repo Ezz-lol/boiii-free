@@ -22,7 +22,6 @@ namespace db {
 namespace xasset {
 struct Material;
 struct MaterialMemory;
-struct XSurfaceShared;
 
 namespace xmodel {
 struct XModel;
@@ -30,6 +29,10 @@ typedef XModel *XModelPtr;
 } // namespace xmodel
 } // namespace xasset
 } // namespace db
+
+namespace xsurface {
+struct XSurfaceShared;
+}
 
 namespace gfx {
 
@@ -2082,7 +2085,7 @@ PACKED(struct GfxEntityPreFrame {
   uint32_t blendShapeVertOffset;
   uint32_t blendShapeVertOffsetLast;
   uint8_t _padding54[4];
-  db::xasset::XSurfaceShared *blendShapeVertOffsetLastShared;
+  xsurface::XSurfaceShared *blendShapeVertOffsetLastShared;
 
   inline std::string serialize() const noexcept {
     return std::format(

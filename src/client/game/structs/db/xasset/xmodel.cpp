@@ -39,6 +39,19 @@ std::string XModel::serialize() const noexcept {
       ::serialize(submodels, numSubmodels), nameHash,
       ::serialize(combinedPartBits));
 }
+
+std::string XModelMesh::serialize() const noexcept {
+  return std::format(
+      "{{ \"name\": {}, \"surfs\": {:p}, \"shared\": {}, \"xpakEntry\": "
+      "{}, "
+      "\"partBits\": {}, \"avgRenderTriArea\": {}, \"avgCollisionTriArea\": "
+      "{}, "
+      "\"nameHash\": 0x{:08X}, \"numSurfs\": {}, \"lodEstimate\": {} }}",
+      ::serialize(name), reinterpret_cast<const void *>(surfs),
+      ::serialize(shared), xpakEntry.serialize(), ::serialize(partBits),
+      avgRenderTriArea, avgCollisionTriArea, nameHash, numSurfs, lodEstimate);
+}
+
 } // namespace xmodel
 } // namespace xasset
 } // namespace db

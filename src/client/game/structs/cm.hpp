@@ -351,7 +351,7 @@ PACKED(struct cStaticModel_s {
         "\"origin\": {}, \"invScaledAxis\": {}, \"absmin\": {}, \"absmax\": "
         "{}, "
         "\"boneMtxs\": {}, \"numBoneMtxs\": {}, \"targetname\": 0x{:08X} }}",
-        writable.serialize(), (const void *)xmodel, contents,
+        writable.serialize(), reinterpret_cast<const void *>(xmodel), contents,
         origin.serialize(), ::serialize(invScaledAxis), absmin.serialize(),
         absmax.serialize(), ::serialize(boneMtxs, numBoneMtxs), numBoneMtxs,
         targetname);

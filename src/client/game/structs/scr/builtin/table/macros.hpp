@@ -4,8 +4,8 @@
 #include <cstdint> // IWYU pragma: export
 #include <ranges>  // IWYU pragma: export
 
-#include <hash.hpp>   // IWYU pragma: export
-#include <macros.hpp> // IWYU pragma: export
+#include <hash.hpp>          // IWYU pragma: export
+#include <macros/macros.hpp> // IWYU pragma: export
 
 #include <frozen/unordered_map.h> // IWYU pragma: export
 

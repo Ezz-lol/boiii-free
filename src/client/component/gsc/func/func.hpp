@@ -1,7 +1,7 @@
 #pragma once
 
 #include <game/game.hpp>
-#include <macros.hpp>
+#include <macros/macros.hpp>
 #include <utils/string.hpp>
 
 namespace gsc {

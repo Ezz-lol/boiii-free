@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <game/structs/db/xasset/core.hpp>
 #include <game/structs/gfx/core.hpp>
 #include <game/structs/quake/vec.hpp>
 #include <game/structs/scr/primitives.hpp>
@@ -147,18 +148,21 @@ struct PathData {
   uint8_t *smoothCache;
   int32_t nodeTreeCount;
   pathnode_tree_t *nodeTree;
+
+  IMPL_SLICE_METHODS(nodes, nodeCount, Nodes);
+  IMPL_SLICE_METHODS(nodeTree, nodeTreeCount, NodeTree);
+  IMPL_SLICE_METHODS(smoothCache, smoothBytes, SmoothCache);
+  IMPL_SLICE_METHODS(pathVis, visBytes, PathVis);
 };
 
 // Verified
-struct GameWorld {
-  const char *name;
+struct GameWorld : NamedXAsset {
   PathData path;
 };
 ASSERT_SIZE(GameWorld, 0x50);
 
 // Verified
-struct GfxWorld {
-  const char *name;
+struct GfxWorld : NamedXAsset {
   const char *baseName;
   int32_t planeCount;
   int32_t nodeCount;
@@ -283,14 +287,12 @@ struct ComUmbraVolume {
   vec3_t max;
 };
 
-struct ComUmbraGate {
-  const char *name;
+struct ComUmbraGate : NamedXAsset {
   int32_t umbraId;
   int32_t gateIndex;
 };
 
-struct ComUmbraTome {
-  const char *name;
+struct ComUmbraTome : NamedXAsset {
   uint32_t numVolumes;
   ComUmbraVolume *volumes;
   uint32_t indicesSize;
@@ -299,6 +301,9 @@ struct ComUmbraTome {
   uint32_t numGates;
   ComUmbraGate *gates;
   uint8_t _unknown40[0x10];
+
+  IMPL_SLICE_METHODS(volumes, numVolumes, Volumes);
+  IMPL_SLICE_METHODS(gates, numGates, Gates);
 };
 // Verified
 ASSERT_SIZE(ComUmbraTome, 0x50);
@@ -317,6 +322,8 @@ struct ComProbeExploder {
   int32_t nameHash;
   int32_t triggerCount;
   ComProbeTriggerData *triggerData;
+
+  IMPL_SLICE_METHODS(triggerData, triggerCount, TriggerData);
 };
 
 struct __attribute__((aligned(2))) ComLightTriggerData {
@@ -332,12 +339,16 @@ struct ComLightExploder {
   int32_t nameHash;
   int32_t triggerCount;
   ComLightTriggerData *triggerData;
+
+  IMPL_SLICE_METHODS(triggerData, triggerCount, TriggerData);
 };
 
-struct ComPrimaryLight;
+struct ComPrimaryLight {
+  gfx::GfxConfig_Light config;
+  int32_t cookieIndex;
+};
 
-struct ComWorld {
-  const char *name;
+struct ComWorld : NamedXAsset {
   qboolean isInUse;
   uint32_t primaryLightCount;
   ComPrimaryLight *primaryLights;
@@ -352,6 +363,11 @@ struct ComWorld {
   uint32_t umbraTomeCount;
   ComUmbraTome *umbraTomes;
   uint8_t _unknown68[0x20];
+
+  IMPL_SLICE_METHODS(primaryLights, primaryLightCount, PrimaryLights);
+  IMPL_SLICE_METHODS(lightExploders, lightExploderCount, LightExploders);
+  IMPL_SLICE_METHODS(probeExploders, probeExploderCount, ProbeExploders);
+  IMPL_SLICE_METHODS(umbraTomes, umbraTomeCount, UmbraTomes);
 };
 ASSERT_SIZE(ComWorld, 0x88); // Correct size
 

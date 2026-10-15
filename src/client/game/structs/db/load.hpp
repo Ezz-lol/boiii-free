@@ -13,7 +13,7 @@ namespace db {
 
 typedef int32_t DBFile;
 
-typedef void DB_Interrupt(void);
+typedef fastcall_t<void()> DB_Interrupt;
 
 struct alignas(128) DB_LOAD_STREAM {
   uint8_t decompressedData[262144];

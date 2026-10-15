@@ -1,11 +1,11 @@
 #pragma once
 
-#include "macros.hpp"
-
 #include <array>
 #include <cstdint>
 
 #include <structs/array.hpp>
+
+#include <macros/macros.hpp>
 
 // std::tolower is not a constexpr
 inline constexpr char tolower(char c) noexcept {

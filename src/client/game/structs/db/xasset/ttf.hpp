@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+
+#include <game/structs/db/xasset/core.hpp>
 #include <game/structs/macros.hpp>
 
 namespace game {
@@ -16,8 +18,7 @@ struct TTFKerningEntry {
 };
 
 // Verified
-PACKED(struct TTFDef {
-  const char *name;
+PACKED(struct TTFDef : NamedXAsset {
   int32_t fileLen;
   uint8_t _padding0C[4];
   const char *file;

@@ -2,8 +2,11 @@
 
 #include <bit>
 #include <cassert>
-#include <macros.hpp>
+#include <macros/macros.hpp>
 #include <type_traits>
+
+// Required for IMPL_SLICE_METHODS macros
+#include <span> // IWYU pragma: export
 
 // Automatically pad a partially defined (reverse-engineered, in our case)
 // struct to a fixed, known-correct total length
@@ -179,3 +182,42 @@ template <IntegralLike<uint64_t> T> consteval uint32_t min_bits_mask(T val_in) {
   int32_t min_bits = min_bits_unsigned(val);
   return (1 << min_bits) - 1;
 }
+
+#ifndef IMPL_SLICE_METHODS
+#define IMPL_SLICE_METHODS(field, count, capitalized)                          \
+  inline std::span<const strip_pointer_t<decltype(field)>> get##capitalized()  \
+      const noexcept {                                                         \
+    return std::span(field, static_cast<size_t>(count));                       \
+  }                                                                            \
+                                                                               \
+  inline std::span<strip_pointer_t<decltype(field)>>                           \
+  get##capitalized() noexcept {                                                \
+    return std::span(field, static_cast<size_t>(count));                       \
+  }
+#endif
+
+#ifndef IMPL_CONST_SLICE_METHODS
+#define IMPL_CONST_SLICE_METHODS(field, count, capitalized)                    \
+  inline std::span<const strip_pointer_t<decltype(field)>> get##capitalized()  \
+      const noexcept {                                                         \
+    return std::span(field, static_cast<size_t>(count));                       \
+  }                                                                            \
+                                                                               \
+  inline std::span<const strip_pointer_t<decltype(field)>>                     \
+  get##capitalized() noexcept {                                                \
+    return std::span(field, static_cast<size_t>(count));                       \
+  }
+#endif
+
+#ifndef IMPL_VOLATILE_SLICE_METHODS
+#define IMPL_VOLATILE_SLICE_METHODS(field, count, capitalized)                 \
+  inline std::span<const volatile strip_pointer_t<decltype(field)>>            \
+  get##capitalized() const noexcept {                                          \
+    return std::span(field, static_cast<size_t>(count));                       \
+  }                                                                            \
+                                                                               \
+  inline std::span<volatile strip_pointer_t<decltype(field)>>                  \
+  get##capitalized() noexcept {                                                \
+    return std::span(field, static_cast<size_t>(count));                       \
+  }
+#endif

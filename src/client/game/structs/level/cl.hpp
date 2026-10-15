@@ -451,8 +451,7 @@ struct Character {
 typedef Character *CharacterPtr;
 typedef CharacterPtr CharacterHandle;
 
-#pragma pack(push, 1)
-struct GfxEntityPreFrame {
+PACKED(struct GfxEntityPreFrame {
   uint32_t activePartBits[12];
   int32_t modelCount;
   int32_t numBones;
@@ -464,18 +463,16 @@ struct GfxEntityPreFrame {
   uint32_t blendShapeVertOffset;
   uint32_t blendShapeVertOffsetLast;
   uint8_t _padding54[4];
-  db::xasset::XSurfaceShared *blendShapeVertOffsetLastShared;
-};
+  db::xasset::xsurface::XSurfaceShared *blendShapeVertOffsetLastShared;
+});
 ASSERT_SIZE(GfxEntityPreFrame, 0x60);
-#pragma pack(pop)
 
 struct CEntFx {
   int32_t triggerTime;
   db::xasset::FxUniqueHandle effect;
 };
 ASSERT_SIZE(CEntFx, 0x8);
-#pragma pack(push, 1)
-struct CEntActorInfo {
+PACKED(struct CEntActorInfo {
   int32_t proneType;
   float pitch;
   float roll;
@@ -491,9 +488,8 @@ struct CEntActorInfo {
   float lookAtBlend;
   uint8_t lookAtFlags;
   uint8_t _padding25[3];
-};
+});
 ASSERT_SIZE(CEntActorInfo, 0x28);
-#pragma pack(pop)
 
 struct CEntGeneral {
   contents_t contents;
@@ -504,8 +500,7 @@ struct CEntGeneral {
 };
 ASSERT_SIZE(CEntGeneral, 0x24);
 
-#pragma pack(push, 1)
-struct cpose_t {
+PACKED(struct cpose_t {
   entityType8_t eType;
   entityType8_t eTypePrev;
   LocalClientNum8_t localClientNum;
@@ -535,9 +530,8 @@ struct cpose_t {
   gfx::ShaderConstantSet constantSet;
   bool skipControllers;
   uint8_t _padding221[3];
-};
+});
 ASSERT_SIZE(cpose_t, 0x330);
-#pragma pack(pop)
 
 enum class FaceNotifyEvent : uint64_t {
   CASUAL = 0x0,
@@ -817,16 +811,16 @@ enum class ShockViewTypes : int32_t {
 };
 
 struct ShellshockScreenBlend {
-  int blurredFadeTime;
-  int blurredEffectTime;
-  int flashWhiteFadeTime;
-  int flashShotFadeTime;
+  int32_t blurredFadeTime;
+  int32_t blurredEffectTime;
+  int32_t flashWhiteFadeTime;
+  int32_t flashShotFadeTime;
   ShockViewTypes type;
 };
 
 struct ShellshockView {
-  int fadeTime;
-  int kickPeriod;
+  int32_t fadeTime;
+  int32_t kickPeriod;
   float kickRadius;
 };
 
@@ -838,28 +832,28 @@ struct __attribute__((aligned(8))) ShellshockSound {
   snd::SndAliasId endAbort;
   const char *roomtype;
   const char *snapshot;
-  int fadeInTime;
-  int fadeOutTime;
+  int32_t fadeInTime;
+  int32_t fadeOutTime;
   float drylevel;
   float wetlevel;
-  int modEndDelay;
-  int loopFadeTime;
-  int loopEndDelay;
+  int32_t modEndDelay;
+  int32_t loopFadeTime;
+  int32_t loopEndDelay;
 };
 struct ShellshockLookControl {
   bool affect;
   bool disableAimAssistLockOn;
   bool disableAimAssistSlowDown;
-  int fadeInTime;
-  int fadeOutTime;
+  int32_t fadeInTime;
+  int32_t fadeOutTime;
   float mouseSensitivity;
   float maxPitchSpeed;
   float maxYawSpeed;
 };
 struct ShellshockVisionSet {
   const char *name;
-  int inTime;
-  int outTime;
+  int32_t inTime;
+  int32_t outTime;
 };
 struct __attribute__((aligned(4))) ShellshockMovement {
   float scale;
@@ -871,7 +865,7 @@ struct ShellshockAnimation {
 
 struct __attribute__((aligned(8))) ShellshockParams {
   const char *name;
-  int duration;
+  int32_t duration;
   ShellshockScreenBlend screenBlend;
   ShellshockView view;
   ShellshockSound sound;
@@ -1307,8 +1301,8 @@ struct ShieldHitDelayedEvent {
 
 struct CompassScrambler {
   vec2_t pos;
-  int startTime;
-  int handle;
+  int32_t startTime;
+  int32_t handle;
 };
 
 template <typename T> using CentityPool = array<T, 0x700>;
@@ -1941,33 +1935,33 @@ struct cgPool {
 };
 
 struct __attribute__((aligned(8))) cgs_t {
-  int viewX;
-  int viewY;
-  int viewWidth;
-  int viewHeight;
+  int32_t viewX;
+  int32_t viewY;
+  int32_t viewWidth;
+  int32_t viewHeight;
   float viewAspect;
   float sceneViewportX;
   float sceneViewportY;
   float sceneViewportWidth;
   float sceneViewportHeight;
-  int serverCommandSequence;
-  int processedSnapshotNum;
+  int32_t serverCommandSequence;
+  int32_t processedSnapshotNum;
   bool localServer;
-  char gametype[32];
-  char szHostName[256];
-  int maxclients;
-  int privateClients;
-  char mappath[64];
+  str32_t gametype;
+  str256_t szHostName;
+  int32_t maxclients;
+  int32_t privateClients;
+  zoneName_t mappath;
   name_t mapname;
-  int gameEndTime;
-  int voteTime;
-  int voteYes;
-  int voteNo;
-  char voteString[256];
-  int redCrosshair;
+  int32_t gameEndTime;
+  int32_t voteTime;
+  int32_t voteYes;
+  int32_t voteNo;
+  str256_t voteString;
+  int32_t redCrosshair;
   db::xasset::FxEffectDefHandle fxs[1280];
   db::xasset::FxEffectDefHandle killcamRewindFx[75];
-  int killcamRewindFxCount;
+  int32_t killcamRewindFxCount;
   db::xasset::FxEffectDefHandle playerFireFx[3];
   ShellshockParams *holdBreathParams;
   float compassWidth;

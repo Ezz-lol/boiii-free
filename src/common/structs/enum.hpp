@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bit>
-#include <macros.hpp>
+#include <macros/macros.hpp>
 /*
   `enum`s can't have templated underlying type,
   so we re-create an enum-like interface here with templated `Underlying` type.
