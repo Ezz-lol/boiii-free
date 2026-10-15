@@ -12,6 +12,7 @@
 #include "command.hpp"
 #include "currency.hpp"
 #include "local_db.hpp"
+#include "loot.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"
 
@@ -24,6 +25,9 @@ namespace {
 using game::ControllerIndex_t;
 using game::StorageFileType;
 using game::live::inventory::InventoryItem;
+using game::live::inventory::LiveInventory_IsValid;
+using game::live::inventory::LiveInventory_UpdateItemQuantity;
+using game::live::inventory::LiveInventory_UpdatePlayerBalance;
 using namespace game::ddl;
 using namespace game::live::storage;
 using namespace game::loot;
@@ -36,51 +40,18 @@ utils::hook::detour currency_hook, spend_hook, increment_hook, consume_hook;
 utils::hook::detour inventory_update_hook, buy_crate_hook, purchase_hook,
     get_item_hook;
 
-// `bool Loot_RewardIsProcessing(const ControllerIndex_t controllerIndex)`
-// FIXME: this symbol should be moved to the proper namespace and file under
-// src/client/game/symbols, named with function name matching that used by the
-// engine, and typed correctly with parameter names
-game::symbol<bool(ControllerIndex_t controllerIndex)> Loot_RewardIsProcessing{
-    0x141E74120, 0x141E80BB0, 0x0};
-// `bool __fastcall LiveInventory_IsValid(const ControllerIndex_t
-// controllerIndex)`
-// FIXME: this symbol should be moved to the proper namespace and file under
-// src/client/game/symbols, named with function name matching that used by the
-// engine, and typed correctly with parameter names
-game::symbol<bool(ControllerIndex_t controllerIndex)> LiveInventory_IsValid{
-    0x141DFD920, 0x141E0A3B0, 0x0};
-// `bool LiveInventory_UpdatePlayerBalance(const ControllerIndex_t
-// controllerIndex, InventoryCurrency currencyType, uint32_t newValue)`
-// FIXME: this symbol should be moved to the proper namespace and file under
-// src/client/game/symbols, named with function name matching that used by the
-// engine, and typed correctly with parameter names
-game::symbol<bool(ControllerIndex_t, int, int)>
-    LiveInventory_UpdatePlayerBalance{0x141DFE0C0, 0x141E0AB50, 0x0};
-// `bool LiveInventory_UpdateItemQuantity(const ControllerIndex_t
-// controllerIndex, const uint32_t itemId, const uint32_t newAmount, const
-// uint32_t modDateTime, const uint32_t collisionField)`
-// FIXME: this symbol should be moved to the proper namespace and file under
-// src/client/game/symbols, named with function name matching that used by the
-// engine, and typed correctly with parameter names
-game::symbol<bool(ControllerIndex_t, uint32_t, uint32_t, uint32_t, uint32_t,
-                  uint16_t)>
-    LiveInventory_UpdateItemQuantity{0x141DFDFA0, 0x141E0AA30, 0x0};
-// `const char * StringTable_GetColumnValueForRow(const StringTable *table,
-// const int32_t row, const int32_t column)`
-// FIXME: this symbol should be moved to the proper namespace and file under
-// src/client/game/symbols, named with function name matching that used by the
-// engine, and typed correctly with parameter names
-game::symbol<const char *(const StringTable *, int, int)>
-    StringTable_GetColumnValueForRow{0x142251B40, 0x1422AE660, 0x0};
-// `const char * StringTable_Lookup(const StringTable *table, const
-// int32_t comparisonColumn, const char *value, const int32_t valueColumn)`
-// FIXME: this symbol should be moved to the proper namespace and file under
-// src/client/game/symbols, named with function name matching that used by the
-// engine, and typed correctly with parameter names
-game::symbol<const char *(const StringTable *, int, const char *, int)>
-    StringTable_Lookup{0x142251CD0, 0x1422AE7F0, 0x0};
-
 inline bool enabled() { return local_currency && local_currency.get_bool(); }
+
+// Engine dvars without a symbol for every supported build, looked up once
+game::EngineDependentDvarMut engine_dvar(const char *name) {
+  static std::unordered_map<std::string_view, game::EngineDependentDvarMut>
+      dvars;
+  game::EngineDependentDvarMut &dvar = dvars[name];
+  if (!dvar) {
+    dvar = game::get_dvar(name);
+  }
+  return dvar;
+}
 
 StorageFileType stats_type(bool zombies) {
   const bool online = game::com::Com_SessionMode_GetNetworkMode() ==
@@ -725,9 +696,7 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
   }
 
   if (!valid_controller_index(controller) || count < 1 || count > 3 ||
-      /* FIXME: We have this stored in a global. Why are we needlessly looking
-          up the dvar by name? This needs to be fixed. */
-      !game::get_dvar_bool("loot_enabled").value_or(false) ||
+      !engine_dvar("loot_enabled").get_bool() ||
       !LiveInventory_IsValid(controller) ||
       Loot_RewardIsProcessing(controller) || game::com::Com_IsInGame() ||
       game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES) {
@@ -875,9 +844,8 @@ void *consume_items(ControllerIndex_t controller, uint32_t *ids, int32_t count,
     return nullptr;
   }
   const std::vector<gum> &pool = gum_pool();
-  // FIXME: what is "ponytail:"? This needs to be cleaned up.
-  // ponytail: stock callers consume one item; batch support needs a native task
-  // completion.
+  // The game only consumes one item at a time. Consuming several at once would
+  // need the native inventory task to complete for each, so leave that to it.
   if (count != 1) {
     return consume_hook.invoke<void *>(controller, ids, count, amounts);
   }
@@ -888,9 +856,7 @@ void *consume_items(ControllerIndex_t controller, uint32_t *ids, int32_t count,
   if (found == pool.end()) {
     return consume_hook.invoke<void *>(controller, ids, count, amounts);
   }
-  if (/* FIXME: We have this stored in a global. Why are we needlessly looking
-         up the dvar by name? This needs to be fixed. */
-      game::get_dvar_bool("cg_unlockall_gobblegums").value_or(false)) {
+  if (loot::unlockall_gobblegums()) {
     return nullptr;
   }
   stats data(controller, true);
@@ -1437,20 +1403,17 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
     return false;
   }
 
+  game::EngineDependentDvarMut distill_cost_dvar =
+      engine_dvar("loot_recipe_distill_cost");
   const int32_t distill_cost =
-      /* FIXME: We have this stored in a global. Why are we needlessly looking
-         up the dvar by name? This needs to be fixed. */
-      game::get_dvar_int("loot_recipe_distill_cost").value_or(10);
+      distill_cost_dvar ? distill_cost_dvar.get_int() : 10;
   game::EngineDependentDvarMut &distill_balance =
       use_free_distills ? free_distills : paid_distills;
   if (distill_cost <= 0 || distill_balance.get_int() < distill_cost) {
     return false;
   }
 
-  /* FIXME: We have this stored in a global. Why are we needlessly looking
-   up the dvar by name? This needs to be fixed. */
-  const bool unlockall =
-      game::get_dvar_bool("cg_unlockall_gobblegums").value_or(false);
+  const bool unlockall = loot::unlockall_gobblegums();
 
   stats data(controller, true);
   for (int32_t column = 3;; column += 2) {
@@ -1532,26 +1495,20 @@ std::optional<uint32_t> item_quantity(ControllerIndex_t controller,
       sku && item_count(*sku)) {
     return 1;
   }
-  const std::optional<uint32_t> free_id =
-      /* FIXME: We have this stored in a global. Why are we needlessly looking
-         up the dvar by name? This needs to be fixed. */
-      game::get_dvar_uint("loot_distill_free_balance_id");
-  const std::optional<uint32_t> paid_id =
-      /* FIXME: We have this stored in a global. Why are we needlessly looking
-         up the dvar by name? This needs to be fixed. */
-      game::get_dvar_uint("loot_distill_paid_balance_id");
-  if (free_id.has_value() && inventory_id == *free_id) {
+  game::EngineDependentDvarMut free_id =
+      engine_dvar("loot_distill_free_balance_id");
+  game::EngineDependentDvarMut paid_id =
+      engine_dvar("loot_distill_paid_balance_id");
+  if (free_id && inventory_id == free_id.get_uint()) {
     return free_distills.get_uint();
   }
-  if (paid_id.has_value() && inventory_id == *paid_id) {
+  if (paid_id && inventory_id == paid_id.get_uint()) {
     return paid_distills.get_uint();
   }
   const std::vector<gum> &pool = gum_pool();
   for (const gum &item : pool) {
     if (item.id == inventory_id) {
-      if (/* FIXME: We have this stored in a global. Why are we needlessly
-             looking up the dvar by name? This needs to be fixed. */
-          game::get_dvar_bool("cg_unlockall_gobblegums").value_or(false)) {
+      if (loot::unlockall_gobblegums()) {
         return 999;
       }
       const stats data(controller, true);
@@ -1695,34 +1652,19 @@ struct component final : client_component {
         "cg_free_distill_expiry", 0, 0, std::numeric_limits<int32_t>::max(),
         game::DvarFlags{.archive = 1}, "Next free Distill claim time");
 
-    // Loot_GetCurrency
-    // FIXME: these inline offsets should be a symbol - strongly typed, named,
-    // and properly namespaced.
-    currency_hook.create(game::select(0x141DFC680, 0x141E09110, 0x0),
-                         get_currency);
-    // Loot_SpendVials
-    // FIXME: these inline offsets should be a symbol - strongly typed, named,
-    // and properly namespaced.
-    spend_hook.create(game::select(0x141E76DD0, 0x141E83860, 0x0), spend_vials);
-    // Loot_IncCurrency
-    // FIXME: these inline offsets should be a symbol - strongly typed, named,
-    // and properly namespaced.
-    increment_hook.create(game::select(0x141E761C0, 0x141E82C50, 0x0),
+    currency_hook.create(game::loot::Loot_GetCurrency.get(), get_currency);
+    spend_hook.create(game::loot::Loot_SpendVials.get(), spend_vials);
+    increment_hook.create(game::loot::Loot_IncCurrency.get(),
                           increment_currency);
 
     // `Loot_IncCurrency` call in `Lua_CoD_LuaCall_IncrementCurrency`
-    utils::hook::call(game::select(0x141F14842, 0x141F20FC2, 0x0),
-                      increment_from_lua);
-    // LiveInventory_ConsumeItem
-    // FIXME: these inline offsets should be a symbol - strongly typed, named,
-    // and properly namespaced.
-    consume_hook.create(game::select(0x141DFC180, 0x141E08C10, 0x0),
+    utils::hook::call(
+        game::lua::cod::api::Lua_CoD_LuaCall_IncrementCurrency.offset(0x72),
+        increment_from_lua);
+    consume_hook.create(game::live::inventory::LiveInventory_ConsumeItem.get(),
                         consume_items);
-    // LiveInventory_Update
-    // FIXME: these inline offsets should be a symbol - strongly typed, named,
-    // and properly namespaced.
-    inventory_update_hook.create(game::select(0x141DFDF10, 0x141E0A9A0, 0x0),
-                                 inventory_update);
+    inventory_update_hook.create(
+        game::live::inventory::LiveInventory_Update.get(), inventory_update);
 
     buy_crate_hook.create(game::loot::Loot_BuyCrate.get(), buy_crate);
     purchase_hook.create(

@@ -6,6 +6,7 @@
 
 #include "command.hpp"
 #include "currency.hpp"
+#include "loot.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"
 #include <game/game.hpp>
@@ -213,6 +214,11 @@ bool GScr_IsItemPurchasedForClientNum_AlwaysTrue(
   return true;
 }
 }; // namespace
+
+bool unlockall_gobblegums() {
+  return dvar_cg_unlockall_gobblegums &&
+         dvar_cg_unlockall_gobblegums.get_bool();
+}
 
 struct component final : generic_component {
   DEFINE_COMPONENT_NAME("loot");
