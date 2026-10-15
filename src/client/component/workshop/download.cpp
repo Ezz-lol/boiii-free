@@ -156,9 +156,12 @@ download_result run_download(const std::string &id, const std::string &kind,
   if (result == download_result::success) {
     request_content_reload(title);
     const auto reconnect = get_pending_download_reconnect();
+    const bool more = std::ranges::any_of(queue::list(), [](const auto &e) {
+      return e.state == queue::item_state::queued;
+    });
     scheduler::once(
-        [title, reconnect] {
-          if (!reconnect.empty()) {
+        [title, reconnect, more] {
+          if (!reconnect.empty() && !more) {
             download_overlay::show_confirmation(
                 "Download Complete",
                 title + " downloaded successfully!\n\nDo you want to connect "
