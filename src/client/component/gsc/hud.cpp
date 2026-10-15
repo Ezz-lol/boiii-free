@@ -115,6 +115,7 @@ void unregister_clear_hudelem_cfgstr(uint16_t hudElemIdx) {
     sv::SV_SetConfigString_Impl(entry->abs_idx(), "");
 
     s_bgCache->server.dataSet.localizedStrings[entry->get_idx()].reset();
+    s_bgCache->server.checksum.isDirty = true;
 
     hudelem_cfgstr_pool[hudElemIdx].clear();
   }
@@ -252,9 +253,15 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
         &s_bgCache->client.dataSet
              .localizedStrings[index -
                                s_bgCacheTypeInfo->locstring.configStringStart];
-    data->setName(name);
-    if (!data->refCount) {
-      data->add_ref();
+    // An empty string means the server freed the slot, so free it here too;
+    // keeping it as "" makes the client checksum disagree with the server's
+    if (readable_ptr(name) && name[0]) {
+      data->setName(name);
+      if (!data->refCount) {
+        data->add_ref();
+      }
+    } else {
+      data->reset();
     }
     s_bgCache->client.checksum.isDirty = true;
   } else {
