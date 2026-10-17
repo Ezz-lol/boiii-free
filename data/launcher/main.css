@@ -1416,11 +1416,6 @@ h1 {
 .bb-table th { background: rgba(249,115,22,0.08); color: rgba(249,115,22,0.8); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; }
 
 .workshop-loading {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1432,11 +1427,6 @@ h1 {
 }
 
 .workshop-browse-empty {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;

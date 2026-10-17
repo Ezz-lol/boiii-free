@@ -940,6 +940,8 @@
   }
 
   function showWorkshopLoading() {
+    if (workshopBrowsePagination)
+      workshopBrowsePagination.style.display = "none";
     workshopBrowseGrid.innerHTML =
       '<div class="workshop-loading"><div class="loading-spinner"></div><span>Loading workshop items...</span></div>';
   }
