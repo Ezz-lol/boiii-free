@@ -214,7 +214,7 @@ void foreach_test_client(
 
 void foreach_test_client(
     const std::function<void(sv::client_s &cl)> &callback) {
-  foreach_client(
+  foreach_test_client(
       [&callback](sv::client_s &client, ClientNum_t) { callback(client); });
 }
 
