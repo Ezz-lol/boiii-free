@@ -35,7 +35,7 @@ std::vector<BotName> load_bots_names() {
   constexpr const BotName DEFAULT_BOT_NAMES[] = {{"Skwll", "DEV"},
                                                  {"amkillam", "DEV"},
                                                  {"Frozedy", "DEV"},
-                                                 {"Level", "DEV"}, 
+                                                 {"Level", "DEV"},
 
                                                  {"Ava", "WIFE"},
 
