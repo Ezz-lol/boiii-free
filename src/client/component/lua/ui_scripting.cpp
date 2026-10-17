@@ -17,6 +17,7 @@
 #include <component/scheduler.hpp>
 #include <component/script.hpp>
 #include <component/toast.hpp>
+#include <component/workshop/workshop.hpp>
 
 #include "utils/pe.hpp"
 #include <utils/finally.hpp>
@@ -1524,6 +1525,48 @@ inline constexpr const frozen_case_insensitive_unordered_set BLACKLISTED_DLLS =
     make_frozen_case_insensitive_unordered_set(BLACKLISTED_DLL_ARRAY);
 
 utils::hook::detour load_dll_hook;
+
+// Mods built for Steam load their DLLs from
+// workshop/content/311210/<id>/..., but our Workshop items are installed in
+// mods/ or usermaps/. Finds the same file in the installed copy.
+std::optional<std::filesystem::path>
+find_installed_workshop_file(const std::filesystem::path &path) {
+  const std::string generic = utils::string::to_lower(path.generic_string());
+  const std::string marker =
+      std::format("workshop/content/{}/", game::APP_ID_STR);
+  const size_t start = generic.find(marker);
+  if (start == std::string::npos) {
+    return std::nullopt;
+  }
+
+  const std::filesystem::path rest(
+      path.generic_string().substr(start + marker.size()));
+  std::filesystem::path::const_iterator part = rest.begin();
+  if (part == rest.end()) {
+    return std::nullopt;
+  }
+  const std::string id = part->string();
+  std::filesystem::path relative;
+  for (++part; part != rest.end(); ++part) {
+    relative /= *part;
+  }
+  if (id.empty() || relative.empty()) {
+    return std::nullopt;
+  }
+
+  const std::filesystem::path installed = workshop::find_installed(id);
+  if (installed.empty()) {
+    return std::nullopt;
+  }
+  std::error_code ec;
+  for (const std::filesystem::path &candidate :
+       {installed / relative, installed / "zone" / relative}) {
+    if (std::filesystem::is_regular_file(candidate, ec)) {
+      return candidate;
+    }
+  }
+  return std::nullopt;
+}
 luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
                                            const char *func_name) {
 #ifndef STUB_LOAD
@@ -1539,8 +1582,18 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
     STUB_LOAD();
   }
 
+  std::string redirected;
   if (filename) {
     std::filesystem::path file_path = filename;
+
+    if (!std::filesystem::exists(file_path)) {
+      if (const std::optional<std::filesystem::path> installed =
+              find_installed_workshop_file(file_path)) {
+        file_path = *installed;
+        redirected = file_path.string();
+        filename = redirected.c_str();
+      }
+    }
 
     if (!std::filesystem::exists(file_path) ||
         !std::filesystem::is_regular_file(file_path)) {
