@@ -1556,44 +1556,6 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
   return Scr_Error_hook.invoke(inst, error, terminal);
 }
 
-utils::hook::detour Hunk_UserFree_hook;
-void Hunk_UserFree_NotScriptPoolAlloc(hunk::HunkUser *user, void *ptr) {
-  if (!allocator.find(ptr)) {
-    bool should_skip = false;
-
-    script_gdbs.for_each(
-        [&should_skip,
-         ptr](const concurrent_hash_map<std::string,
-                                        std::vector<uint8_t>>::value_type &v) {
-          if (!should_skip && contains(v.second.data(), v.second.size(), ptr)) {
-            should_skip = true;
-          }
-        });
-
-    if (!should_skip) {
-      script_sources.for_each(
-          [&should_skip,
-           ptr](const concurrent_hash_map<std::string, std::string>::value_type
-                    &v) {
-            if (!should_skip &&
-                contains(v.second.data(), v.second.size(), ptr)) {
-              should_skip = true;
-            }
-          });
-
-      if (!should_skip) {
-        if (user == *hunk::g_scriptDebugHunk) {
-          if (ptr) {
-            free(ptr);
-          }
-        } else {
-          return Hunk_UserFree_hook.invoke(user, ptr);
-        }
-      }
-    }
-  }
-}
-
 utils::hook::detour CG_TestServerScriptChecksum_hook;
 
 utils::hook::detour LoadScriptGDB2_hook;
@@ -1624,8 +1586,6 @@ struct component final : generic_component {
     Scr_Error_hook.create(Scr_Error, Scr_Error_LogAll);
 
     LoadScriptGDB_hook.create(LoadScriptGDB, LoadScriptGDB_Impl);
-    Hunk_UserFree_hook.create(hunk::Hunk_UserFree,
-                              Hunk_UserFree_NotScriptPoolAlloc);
     LoadScriptGDB2_hook.create(LoadScriptGDB2, LoadScriptGDB2_Impl);
 
     Scr_FindObjFileInfo_hook.create(Scr_FindObjFileInfo,
