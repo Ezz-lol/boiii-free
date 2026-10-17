@@ -128,6 +128,9 @@ WEAK symbol<const char *> BUILD_MACHINE{0x1432FC230, 0x14337B220, 0x14110B3D0};
 WEAK symbol<const char *> BUILD_TYPE{0x1432FC238, 0x14337B228, 0x14110B3D8};
 WEAK symbol<const char *> BUILD_TIME{0x1432FC240, 0x14337B230, 0x14110B3E0};
 
+WEAK symbol<bool(const char *key, const char *section, const char **cursor)>
+    KeyValuePairs_GetNextValue{0x1420FBEE0, 0x0, 0x0};
+
 WEAK symbol<int32_t(BuildIntField field)> Com_GetBuildIntField{
     0x1420E2C10, 0x1420EF390, 0x1404FA8B0};
 WEAK symbol<const char *(BuildStringField field)> Com_GetBuildStringField{

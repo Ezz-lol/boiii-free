@@ -2,6 +2,7 @@
 
 #include <loader/component_loader.hpp>
 
+#include "../mod_stack.hpp"
 #include "../scheduler.hpp"
 #include "../workshop/workshop.hpp"
 #include <game/game.hpp>
@@ -167,14 +168,19 @@ void check_mod() {
     return;
   }
 
-  const std::filesystem::path folder = workshop::find_installed(mod);
-  if (folder.empty()) {
-    warn(std::format("Mod '{}' (fs_game) was not found. Put it in {}", mod,
-                     (game::get_game_path() / "mods" / mod).string()));
-  } else if (!has_workshop_json(folder)) {
-    warn(std::format("Mod '{}' in {} has no workshop.json, so the game "
-                     "can't load it.",
-                     mod, folder.string()));
+  std::vector<std::string> mods = mod_stack::get(mod);
+  mods.insert(mods.begin(), mod);
+  for (const std::string &id : mods) {
+    const char *source = id == mod ? "fs_game" : "fs_extramods";
+    const std::filesystem::path folder = workshop::find_installed(id);
+    if (folder.empty()) {
+      warn(std::format("Mod '{}' ({}) was not found. Put it in {}", id, source,
+                       (game::get_game_path() / "mods" / id).string()));
+    } else if (!has_workshop_json(folder)) {
+      warn(std::format("Mod '{}' ({}) in {} has no workshop.json, so the "
+                       "game can't load it.",
+                       id, source, folder.string()));
+    }
   }
 }
 

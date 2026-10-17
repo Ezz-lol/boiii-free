@@ -8,6 +8,7 @@
 #include "auth.hpp"
 #include "friends.hpp"
 #include "getinfo.hpp"
+#include "mod_stack.hpp"
 #include "nat.hpp"
 #include "network.hpp"
 #include "party.hpp"
@@ -425,11 +426,11 @@ void join_lobby(const game::net::netadr_t &host,
   const game::lobby::LobbyType target = parts[5] == "game"
                                             ? game::lobby::LobbyType::GAME
                                             : game::lobby::LobbyType::PRIVATE;
-  std::vector<std::string> content{"", "", ""};
+  std::vector<std::string> content{"", "", "", ""};
   size_t name_index = 6;
   if (parts[6].starts_with("c:")) {
     content = utils::string::split(parts[6].substr(2), ':');
-    content.resize(3);
+    content.resize(4);
     name_index = 7;
   }
   std::string name;
@@ -462,13 +463,17 @@ void join_lobby(const game::net::netadr_t &host,
   const std::string &mod = content[0];
   const std::string &map = content[1];
   const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
-  if (game_join_fallback &&
-      mod != (loaded_mod == "usermaps" ? std::string{} : loaded_mod)) {
+  mod_stack::set(content[3]);
+  const bool same_mods =
+      mod == (loaded_mod == "usermaps" ? std::string{} : loaded_mod) &&
+      mod_stack::is_loaded();
+  if (game_join_fallback && !same_mods) {
     fail({});
     return;
   }
 
   if (!workshop::check_valid_mod_id(mod, {}) ||
+      !workshop::check_valid_mod_stack(content[3]) ||
       (!map.empty() &&
        !workshop::check_valid_usermap_id(map, content[2], {}, {}))) {
     game_join_fallback = {};
@@ -479,7 +484,7 @@ void join_lobby(const game::net::netadr_t &host,
     return;
   }
 
-  if (mod != (loaded_mod == "usermaps" ? std::string{} : loaded_mod)) {
+  if (!same_mods) {
     workshop::setup_same_mod_as_host(game::LOCAL_CLIENT_0, {}, mod);
     scheduler::once(
         [friend_id = joining.friend_id] {
@@ -634,16 +639,17 @@ void receive_lobby_join(const game::net::netadr_t &sender,
   add_peer(peer.addrBuff, sender);
   const std::string mod = workshop::get_mod_publisher_id();
   const std::string map(game::get_dvar_string("ui_mapname").value_or(""));
-  network::send(
-      sender, "lobbyHost",
-      std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0], host->xuid,
-                  to_hex(host->serializedAdr.addrBuff,
-                         sizeof(host->serializedAdr.addrBuff)),
-                  to_hex(&host->secId, sizeof(host->secId)),
-                  to_hex(&host->secKey, sizeof(host->secKey)),
-                  game_lobby ? "game" : "party",
-                  mod == "usermaps" ? std::string{} : mod, map,
-                  workshop::get_usermap_publisher_id(map), host->name));
+  network::send(sender, "lobbyHost",
+                std::format("{} {:x} {} {} {} {} c:{}:{}:{}:{} {}", parts[0],
+                            host->xuid,
+                            to_hex(host->serializedAdr.addrBuff,
+                                   sizeof(host->serializedAdr.addrBuff)),
+                            to_hex(&host->secId, sizeof(host->secId)),
+                            to_hex(&host->secKey, sizeof(host->secKey)),
+                            game_lobby ? "game" : "party",
+                            mod == "usermaps" ? std::string{} : mod, map,
+                            workshop::get_usermap_publisher_id(map),
+                            mod_stack::serialize(), host->name));
 }
 
 bool from_lobby_request(const game::net::netadr_t &sender,

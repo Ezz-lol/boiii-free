@@ -197,6 +197,36 @@ if CoD.LobbyBase and CoD.LobbyBase.ShouldBeginLAN then
   end
 end
 
+if CoD.LobbyBase and CoD.LobbyBase.UGCActivity and ModStack then
+  local ugcActivity = CoD.LobbyBase.UGCActivity
+  CoD.LobbyBase.UGCActivity = function(element, event)
+    if not event.modName or event.modName == "" then
+      return ugcActivity(element, event)
+    end
+    local name = event.modName
+    local entries = Engine.Mods_Lists_GetInfoEntries(
+      LuaEnums.MODS_BASE_PATH,
+      0,
+      Engine.Mods_Lists_GetInfoEntriesCount(LuaEnums.MODS_BASE_PATH)
+    )
+    for _, entry in pairs(entries or {}) do
+      if entry.ugcName == event.modName and entry.name then
+        name = entry.name
+      end
+    end
+    if event.type == "load" or event.type == "loaded" then
+      local count = 1
+      for _ in string.gmatch(ModStack.Get(event.modName), "[^,]+") do
+        count = count + 1
+      end
+      if count > 1 then
+        name = tostring(count) .. " mods"
+      end
+    end
+    return ugcActivity(element, { type = event.type, modName = name })
+  end
+end
+
 if ScoreboardMuteButtonPromptHidden then
   local muteButtonPromptHidden = ScoreboardMuteButtonPromptHidden
   ScoreboardMuteButtonPromptHidden = function(element, controller)

@@ -14,6 +14,7 @@
 
 #include <component/download_overlay.hpp>
 #include <component/fastdl.hpp>
+#include <component/mod_stack.hpp>
 #include <component/network.hpp>
 #include <component/party.hpp>
 #include <component/scheduler.hpp>
@@ -985,6 +986,61 @@ bool check_valid_mod_id(const std::string &mod,
   return true;
 }
 
+bool check_valid_mod_stack(const std::string &list) {
+  std::vector<std::string> missing;
+  for (const std::string &mod : utils::string::split(list, ',')) {
+    if (!mod.empty() && !has_mod(mod)) {
+      missing.push_back(mod);
+    }
+  }
+  if (missing.empty()) {
+    return true;
+  }
+
+  if (!std::ranges::all_of(missing, [](const std::string &mod) {
+        return utils::string::is_numeric(mod);
+      })) {
+    const std::string names = utils::string::join(missing, ", ");
+    scheduler::once(
+        [names] {
+          game::ui::UI_OpenErrorPopupWithMessage(
+              game::LOCAL_CLIENT_0, game::errorCode::UI,
+              utils::string::va("This server uses mods that are not on the "
+                                "Steam Workshop: %s\nAsk the server owner "
+                                "where to get them.",
+                                names.c_str()));
+        },
+        scheduler::main);
+    return false;
+  }
+
+  scheduler::once(
+      [missing] {
+        std::string message = "This server uses mods you don't have yet:\n";
+        for (const std::string &mod : missing) {
+          const workshop_info info = get_steam_workshop_info(mod);
+          message += "- " + (info.title.empty() ? mod : info.title);
+          if (info.file_size > 0) {
+            message += " (" + human_readable_size(info.file_size) + ")";
+          }
+          message += "\n";
+        }
+        message += "\nDownload them now? You can join once they are all "
+                   "installed.";
+        download_overlay::show_confirmation(
+            missing.size() == 1
+                ? std::string("Download mod?")
+                : std::format("Download {} mods?", missing.size()),
+            message, [missing] {
+              for (const std::string &mod : missing) {
+                start_download(mod, "Mod");
+              }
+            });
+      },
+      scheduler::async);
+  return false;
+}
+
 bool mod_load_requires_fs_reinitialization(const std::string &mod_name) {
   return !mod_name.empty() && mod_name != "usermaps";
 }
@@ -1005,7 +1061,7 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
                             const std::string &usermap, const std::string &mod,
                             bool force_fs_reinit) {
   const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
-  if (loaded_mod != mod) {
+  if (loaded_mod != mod || !mod_stack::is_loaded()) {
     if (!usermap.empty() || !mod.empty()) {
       bool fs_reinit_required =
           force_fs_reinit ||

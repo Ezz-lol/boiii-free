@@ -6,6 +6,7 @@
 #include <steam/steam.hpp>
 
 #include "auth.hpp"
+#include "mod_stack.hpp"
 #include "nat.hpp"
 #include "network.hpp"
 #include "network_password.hpp"
@@ -126,6 +127,7 @@ struct component final : generic_component {
                    "hardcoremode", false)));
       info.set("modName", workshop::get_mod_resized_name());
       info.set("modId", workshop::get_mod_publisher_id());
+      info.set("modStack", mod_stack::serialize());
       info.set("rounds_played",
                std::to_string(*game::level::level_rounds_played));
       info.set("shortversion", SHORTVERSION);
