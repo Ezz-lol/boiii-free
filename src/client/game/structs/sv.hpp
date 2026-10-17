@@ -205,7 +205,7 @@ struct client_s {
   level::gentity_t *gentity;
   playerName_t name;
   clanAbbrev_t clanAbbrev;
-  XUID xuid;
+  XUID xuid; // Client exe only, use get_xuid/set_xuid
   uint32_t doubleXPGroupMask;
   uint32_t availableMappackFlags;
   int32_t _unknown5650;
@@ -225,6 +225,12 @@ struct client_s {
   char __pad5[3];
   int32_t serverId;
   char __pad6[171432];
+
+  // The dedicated server has an extra 4 byte field at 0x55C8, which moves the
+  // xuid to 0x55D0 there. These read and write it at the right place for the
+  // running exe.
+  XUID get_xuid() const noexcept;
+  void set_xuid(XUID value) noexcept;
 
   std::string serialize() const noexcept;
 };
