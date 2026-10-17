@@ -307,7 +307,8 @@ void distribute_player_xuid(const game::net::netadr_t &target,
 
     game::foreach_connected_client(
         [&](const game::sv::client_s &client, const game::ClientNum_t index) {
-          if (client.xuid != localXuid1 && client.xuid != localXuid2) {
+          const game::XUID client_xuid = client.get_xuid();
+          if (client_xuid != localXuid1 && client_xuid != localXuid2) {
             if (client.address.type != game::net::NA_BOT) {
               network::send(client.address, "playerXuid", buffer.get_buffer());
             }
@@ -315,7 +316,7 @@ void distribute_player_xuid(const game::net::netadr_t &target,
             if (index != player_index && target.type != game::net::NA_BOT) {
               utils::byte_buffer current_buffer{};
               current_buffer.write(static_cast<uint32_t>(index));
-              current_buffer.write(client.xuid);
+              current_buffer.write(client_xuid);
 
               network::send(target, "playerXuid", current_buffer.get_buffer());
             }
@@ -336,8 +337,8 @@ void handle_new_player(const game::net::netadr_t &target) {
     game::first_connected_client(
         [&player_index, &target, xuid](game::sv::client_s &client,
                                        const game::ClientNum_t index) {
-          if (client.address == target && client.xuid == 0) {
-            client.xuid = xuid;
+          if (client.address == target && client.get_xuid() == 0) {
+            client.set_xuid(xuid);
             player_index = index;
             return true;
           }
@@ -577,7 +578,7 @@ game::XUID get_guid(const game::ClientNum_t clientNum) {
 
       if (game::access_connected_client(
               clientNum, [&xuid](const game::sv::client_s &client) {
-                xuid = client.xuid;
+                xuid = client.get_xuid();
               })) {
         return xuid;
       }

@@ -155,7 +155,7 @@ void SV_LiveRemoveAllClientsFromAddress_RemoveSingle(game::sv::client_s *client,
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT,
                         "Client '%s' (%llX) disconnected: %s\n", client->name,
-                        static_cast<unsigned long long>(client->xuid),
+                        static_cast<unsigned long long>(client->get_xuid()),
                         reason ? reason : "no reason given");
   game::sv::SV_Live_RemoveClient(client, reason);
 }
@@ -196,6 +196,7 @@ void SV_AddServerCommand_MinimizeLuiNotifyPackets(game::sv::client_s *client,
                                                   game::net::svscmd_type type,
                                                   const char *cmd) {
   std::string cmd_str = cmd ? std::string(cmd) : "";
+  const game::XUID xuid = client->get_xuid();
 
   /*
     `luinotify` reliable commands have format "D %d %d %d %d", or "D %d %d %d".
@@ -208,11 +209,9 @@ void SV_AddServerCommand_MinimizeLuiNotifyPackets(game::sv::client_s *client,
 
       // If this command was sent less than 1000 ms ago, skip.
       if (client_luinotify_cmd_last_sequence_time.contains(cmd_str) &&
-          client_luinotify_cmd_last_sequence_time[cmd_str].contains(
-              client->xuid) &&
+          client_luinotify_cmd_last_sequence_time[cmd_str].contains(xuid) &&
           game::sv::svs->time -
-                  client_luinotify_cmd_last_sequence_time[cmd_str]
-                                                         [client->xuid] <
+                  client_luinotify_cmd_last_sequence_time[cmd_str][xuid] <
               1000) {
         return;
       }
@@ -224,8 +223,7 @@ void SV_AddServerCommand_MinimizeLuiNotifyPackets(game::sv::client_s *client,
       // last command sent, even if sent > 1 second ago. This is valid because
       // we can guarantee that menu state was not modified otherwise in the
       // interim.
-      if (client_last_cmd.contains(client->xuid) &&
-          client_last_cmd[client->xuid] == cmd_str) {
+      if (client_last_cmd.contains(xuid) && client_last_cmd[xuid] == cmd_str) {
         return;
       }
     }
@@ -234,13 +232,13 @@ void SV_AddServerCommand_MinimizeLuiNotifyPackets(game::sv::client_s *client,
   {
     std::scoped_lock client_luinotify_cmd_last_sequence_time_lock(
         client_luinotify_cmd_last_sequence_time_mutex);
-    client_luinotify_cmd_last_sequence_time[cmd_str][client->xuid] =
+    client_luinotify_cmd_last_sequence_time[cmd_str][xuid] =
         game::sv::svs->time;
   }
 
   {
     std::scoped_lock client_last_cmd_lock(client_last_cmd_mutex);
-    client_last_cmd[client->xuid] = cmd_str;
+    client_last_cmd[xuid] = cmd_str;
   }
 
   SV_AddServerCommand_hook.invoke(client, type, cmd);

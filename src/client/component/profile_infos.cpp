@@ -72,7 +72,7 @@ xuidSet_t get_connected_client_xuids() {
   connected_clients.reserve(game::get_max_client_count());
 
   game::foreach_connected_client([&](const game::sv::client_s &client) {
-    connected_clients.emplace(client.xuid);
+    connected_clients.emplace(client.get_xuid());
   });
 
   return connected_clients;

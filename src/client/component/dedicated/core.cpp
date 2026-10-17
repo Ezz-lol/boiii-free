@@ -47,7 +47,7 @@ void spawn_server_stub(game::ControllerIndex_t controllerIndex,
 
 uint64_t sv_get_player_xuid_stub(const int client_num) {
   const game::sv::client_s *clients = *game::sv::svs_clients;
-  return clients ? clients[client_num].xuid : 0;
+  return clients ? clients[client_num].get_xuid() : 0;
 }
 
 void info_set_value_for_key_stub(char *s, const char *key,
