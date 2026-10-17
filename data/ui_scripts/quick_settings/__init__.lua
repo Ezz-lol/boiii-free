@@ -48,15 +48,42 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
     addToggle(setting[1], setting[2], setting[3])
   end
 
+  -- A value set outside this menu isn't one of the fixed steps. List it too,
+  -- or the menu falls back to the first option and overwrites the dvar.
+  local function addCurrentValue(values, current)
+    if type(current) ~= "number" then
+      return false
+    end
+    for _, value in ipairs(values) do
+      if value == current then
+        return false
+      end
+    end
+    table.insert(values, current)
+    table.sort(values)
+    return true
+  end
+
   -- FOV (65-120 in steps of 5)
   local fovOptions = {}
   local currentFov = 80
   pcall(function()
     currentFov = Engine.DvarInt(nil, "cg_fov_default")
   end)
+  local fovValues = {}
   for fov = 65, 120, 5 do
+    table.insert(fovValues, fov)
+  end
+  local fovCustom = addCurrentValue(fovValues, currentFov)
+  for _, fov in ipairs(fovValues) do
+    local label = tostring(fov)
+    if fov == 80 then
+      label = "80 (Default)"
+    elseif fovCustom and fov == currentFov then
+      label = fov .. " (Custom)"
+    end
     table.insert(fovOptions, {
-      option = fov == 80 and "80 (Default)" or tostring(fov),
+      option = label,
       value = fov,
       default = fov == currentFov,
     })
@@ -112,9 +139,16 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
     currentFps = Engine.DvarInt(nil, "com_maxfps")
   end)
   local fpsValues = { 0, 30, 60, 90, 120, 144, 165, 240, 300, 500 }
+  local fpsCustom = addCurrentValue(fpsValues, currentFps)
   for _, fps in ipairs(fpsValues) do
+    local label = tostring(fps)
+    if fps == 0 then
+      label = "Unlimited"
+    elseif fpsCustom and fps == currentFps then
+      label = fps .. " (Custom)"
+    end
     table.insert(fpsOptions, {
-      option = fps == 0 and "Unlimited" or tostring(fps),
+      option = label,
       value = fps,
       default = fps == currentFps,
     })
