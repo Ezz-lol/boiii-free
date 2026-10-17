@@ -5,6 +5,27 @@
 namespace game {
 namespace sv {
 
+namespace {
+constexpr size_t DEDICATED_XUID_OFFSET = 0x55D0;
+}
+
+XUID client_s::get_xuid() const noexcept {
+  if (is_server()) {
+    return *reinterpret_cast<const XUID *>(
+        reinterpret_cast<const char *>(this) + DEDICATED_XUID_OFFSET);
+  }
+  return xuid;
+}
+
+void client_s::set_xuid(const XUID value) noexcept {
+  if (is_server()) {
+    *reinterpret_cast<XUID *>(reinterpret_cast<char *>(this) +
+                              DEDICATED_XUID_OFFSET) = value;
+  } else {
+    xuid = value;
+  }
+}
+
 std::string client_s::serialize() const noexcept {
   return std::format(
       "{{ \"state\": {}, \"address\": {}, "
@@ -22,7 +43,7 @@ std::string client_s::serialize() const noexcept {
       "{:08X} }}",
       net::serialize(state), address.serialize(), reliableSequence,
       reliableAcknowledge, messageAcknowledge, ::serialize(gentity), name,
-      clanAbbrev, xuid, doubleXPGroupMask, availableMappackFlags,
+      clanAbbrev, get_xuid(), doubleXPGroupMask, availableMappackFlags,
       nextReliableTime, lastPacketTime, lastConnectTime, nextSnapshotTime,
       lastSnapshotTime, timeoutCount, guid, scriptId,
       ::serialize(isSplitscreenClient), ::serialize(isSecondScreenClient),
