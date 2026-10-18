@@ -182,10 +182,7 @@ void foreach_connected_client(
 void first_connected_client(
     const std::function<bool(sv::client_s &cl, ClientNum_t index)> &callback) {
   first_client([&callback](sv::client_s &client, const ClientNum_t index) {
-    if (client.state != net::clientState_t::FREE) {
-      return callback(client, index);
-    }
-    return false;
+    return client.state != net::clientState_t::FREE && callback(client, index);
   });
 }
 

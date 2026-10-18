@@ -3,7 +3,10 @@
 #include <cstdint>
 
 #include <game/structs/core.hpp>
+#include <game/structs/lobby/core.hpp>
+#include <game/structs/lobby/info.hpp>
 #include <game/structs/net/core.hpp>
+
 namespace game {
 namespace lobby {
 
@@ -173,6 +176,16 @@ union LobbyP2PMsgHandlersTable {
 
   DEFINE_LOBBYMSGHANDLER_TABLE_METHODS();
 };
+
+// Verified
+PACKED(struct Msg_InfoResponse {
+  uint32_t nonce;
+  LobbyUIScreen uiScreen;
+  dw::net::bdNATType natType;
+  uint8_t _padding09[7];
+  info::InfoResponseLobby lobby[2];
+});
+
 } // namespace msg
 } // namespace lobby
 } // namespace game

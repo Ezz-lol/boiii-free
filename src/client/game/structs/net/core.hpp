@@ -198,10 +198,12 @@ struct bdSecurityKey {
 
 typedef bdSecurityKey XNKEY;
 
+// Verified
 struct SerializedAdr {
-  uint8_t valid;
-  uint8_t addrBuff[37];
+  bool valid;
+  XNADDR addrBuff;
 };
+ASSERT_SIZE(SerializedAdr, 0x26);
 
 struct XSESSION_INFO {
   XNKID sessionID;

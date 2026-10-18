@@ -10,6 +10,8 @@
 namespace game {
 namespace lobby {
 
+typedef int32_t LobbyUIScreen;
+
 enum class ClientContentTransferState : uint32_t {
   INACTIVE = 0x0,
   DIRTY = 0x1,

@@ -46,6 +46,7 @@
 #include "stream.hpp"      // IWYU pragma: export
 #include "sv.hpp"          // IWYU pragma: export
 #include "sys.hpp"         // IWYU pragma: export
+#include "task.hpp"        // IWYU pragma: export
 #include "ugc.hpp"         // IWYU pragma: export
 #include "ui/ui.hpp"       // IWYU pragma: export
 #include "user.hpp"        // IWYU pragma: export
