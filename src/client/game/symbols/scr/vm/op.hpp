@@ -49,6 +49,8 @@ WEAK symbol<VM_OP_FUNC> VM_OP_CallBuiltin_Handler{0x1412CE480, 0x1412CE460,
                                                   0x14015C3C0};
 WEAK symbol<VM_OP_FUNC> VM_OP_CallBuiltinMethod_Handler{
     0x1412CE3C0, 0x1412CE3A0, 0x14015C300};
+WEAK symbol<VM_OP_FUNC> VM_OP_EvalArrayRef_Handler{0x1412D02D0, 0x1412D02B0,
+                                                   0x14015DE40};
 WEAK symbol<VM_OP_FUNC> VM_OP_ScriptFunctionCallClass_Handler{
     0x1412CEB40, 0x1412CEB20, 0x14015CA30};
 WEAK symbol<VM_OP_FUNC> VM_OP_ScriptFunctionCall_Handler{

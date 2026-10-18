@@ -87,7 +87,7 @@ WEAK symbol<void(LocalClientNum_t localClientNum)> CL_FirstSnapshot{
     0x141320E80, 0x141320E60, 0x0};
 
 WEAK symbol<LocalClientNum_t> primaryLocalClientNum{0x1433A256C, 0x14342155C,
-                                                    0x0};
+                                                    0x14112E01C};
 WEAK symbol<LocalClientNum_t> cl_maxLocalClients{0x145323720, 0x1453A2720, 0x0};
 WEAK symbol<bool> cl_serverLoadingMap{0x14532373F, 0x1453A273F, 0x0};
 } // namespace cl

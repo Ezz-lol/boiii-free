@@ -148,6 +148,75 @@ inline void handle_invalid_mt_allocs() {
   MT_Free_hook.create(MT_Free, MT_Free_IfValid);
 }
 
+/*
+  Using a weapon as an array key (array[weapon] = xxx) leaks a reference to the
+  weapon script variable on every write, so long running servers slowly fill
+  the variable pool. Store weapon keys as object keys instead, and push them
+  back as objects in GetArrayKeys, which otherwise skips object keys
+*/
+// Replaces the ScrVar_GetVariableByWeapon call: finds or creates the array
+// entry with the weapon as an object key, then releases the stack's reference
+// to it
+ScrVarIndex_t ScrVar_GetVariableByWeapon_ObjectKey(const scriptInstance_t inst,
+                                                   const ScrVarIndex_t parentId,
+                                                   const ScrVarIndex_t id) {
+  ScrVarIndex_t entry = ScrVar_FindVariable(inst, parentId, id);
+  if (!entry) {
+    entry = ScrVar_NewVariableById(inst, parentId, id);
+  }
+  ScrVar_ReleaseVariable(inst, id);
+  return entry;
+}
+
+// Same as the engine's ScrVar_AddArrayKeys, but pushes object keys instead of
+// skipping them
+void ScrVar_AddArrayKeys_ObjectKeys(const scriptInstance_t inst,
+                                    const ScrVarIndex_t parentId) {
+  Scr_MakeArray(inst);
+
+  volatile ScrVar_t *vars = vm::gScrVarGlob->instance[inst].scriptVariables;
+  const ScrVarType type = vars[parentId].value.type;
+  if (type < ScrVarType::THREAD || type > ScrVarType::REMOVED_THREAD) {
+    return;
+  }
+
+  // The engine walks from the last child to the first
+  for (ScrVarIndex_t id = vars[parentId].value.u.lastChild; id;
+       id = vars[id].prevSibling) {
+    const ScrVarNameIndex_t key = vars[id].nameIndex;
+
+    switch (vars[id].nameType & 7) {
+    case 1:
+    case 2:
+      Scr_AddInt(inst, static_cast<int32_t>(key));
+      break;
+    case 3:
+      Scr_AddConstString(inst, static_cast<ScrString_t>(key));
+      break;
+    case 4:
+      Scr_AddObject(inst, static_cast<ScrVarIndex_t>(key));
+      break;
+    case 5: {
+      weapon::Weapon weapon{};
+      weapon.weaponData = vars[key].o.object_o;
+      Scr_AddWeapon(inst, weapon, *cl::primaryLocalClientNum);
+      break;
+    }
+    default:
+      break;
+    }
+
+    Scr_AddArray(inst);
+  }
+}
+
+inline void fix_weapon_key_leak() {
+  utils::hook::call(vm::op::VM_OP_EvalArrayRef_Handler.offset(
+                        game::select_value(0x276, 0x276, 0x2D7)),
+                    ScrVar_GetVariableByWeapon_ObjectKey);
+  utils::hook::jump(ScrVar_AddArrayKeys, ScrVar_AddArrayKeys_ObjectKeys);
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("scrvar");
 
@@ -155,6 +224,8 @@ public:
   void post_unpack() override {
     handle_invalid_scrvars();
     handle_invalid_mt_allocs();
+
+    fix_weapon_key_leak();
   }
 };
 } // namespace scrvar
