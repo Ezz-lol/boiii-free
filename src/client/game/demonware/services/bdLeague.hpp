@@ -1,5 +1,7 @@
 #pragma once
 
+#include "game/demonware/service.hpp"
+
 namespace demonware {
 class bdLeague final : public service {
 public:

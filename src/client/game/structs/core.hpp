@@ -36,10 +36,14 @@ typedef uint8_t bdUByte8;
 typedef char bdNChar8;
 typedef uint32_t bdUInt;
 typedef int32_t bdInt;
+typedef bdInt bdInt32;
 typedef uint32_t bdUInt32;
 typedef uint16_t bdUInt16;
 typedef bdUInt16 bdPort;
 typedef bool bdBool;
+typedef int16_t bdWord;
+typedef uint16_t bdUWord;
+typedef bdUInt ulong32;
 
 typedef int16_t BoneIndex;
 typedef int32_t time32_t;

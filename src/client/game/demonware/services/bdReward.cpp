@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include "bdReward.hpp"
 
 namespace demonware {
 bdReward::bdReward() : service(139, "bdReward") {

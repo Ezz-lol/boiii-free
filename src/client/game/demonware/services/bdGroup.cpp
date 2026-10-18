@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include "bdGroup.hpp"
 
 namespace demonware {
 bdGroup::bdGroup() : service(28, "bdGroup") {

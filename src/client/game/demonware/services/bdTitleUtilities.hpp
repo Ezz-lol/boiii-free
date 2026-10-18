@@ -1,5 +1,7 @@
 #pragma once
 
+#include "game/demonware/service.hpp"
+
 namespace demonware {
 class bdTitleUtilities final : public service {
 public:

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bit_buffer.hpp"
-#include "byte_buffer.hpp"
 #include "data_types.hpp"
 
 namespace demonware {
@@ -95,7 +94,7 @@ public:
 
   uint64_t send() {
     static uint64_t id = 0x0000000000000000;
-    const auto transaction_id = ++id;
+    const uint64_t transaction_id = ++id;
 
     byte_buffer buffer;
     buffer.write_uint64(transaction_id);
@@ -107,7 +106,7 @@ public:
       if (!this->objects_.empty()) {
         buffer.write_uint32(static_cast<uint32_t>(this->objects_.size()));
 
-        for (auto &object : this->objects_) {
+        for (std::unique_ptr<bdTaskResult> &object : this->objects_) {
           object->serialize(&buffer);
         }
 

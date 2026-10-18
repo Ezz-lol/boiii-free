@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include "bdRichPresence.hpp"
 
 namespace demonware {
 bdRichPresence::bdRichPresence() : service(68, "bdRichPresence") {

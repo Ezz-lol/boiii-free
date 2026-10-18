@@ -1,7 +1,7 @@
 #pragma once
 
 #include <game/structs/core.hpp>
-#include <game/structs/dw/net.hpp>
+#include <game/structs/dw/net/core.hpp>
 #include <game/structs/net/net.hpp>
 
 #include <cstdint>

@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include "bdFacebook.hpp"
 
 namespace demonware {
 bdFacebook::bdFacebook() : service(36, "bdFacebook") {

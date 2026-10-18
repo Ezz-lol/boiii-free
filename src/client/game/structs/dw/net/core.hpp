@@ -1,9 +1,12 @@
 #pragma once
-#include "core.hpp"
+
+#include <game/structs/dw/core.hpp>
 
 namespace game {
 namespace dw {
 namespace net {
+
+typedef int32_t bdDNSHandle;
 
 enum class bdNATType : uint8_t {
   NAT_UNKNOWN = 0x0,
@@ -12,8 +15,7 @@ enum class bdNATType : uint8_t {
   NAT_STRICT = 0x3,
 };
 
-#pragma pack(push, 1)
-class bdSockAddr {
+PACKED(class bdSockAddr {
 public:
   union {
     struct {
@@ -38,9 +40,8 @@ public:
   } inUn;
   bdUInt16 m_family;
   uint8_t _padding82[2];
-};
+});
 ASSERT_SIZE(bdSockAddr, 0x84);
-#pragma pack(pop)
 
 typedef class bdSockAddr bdInAddr;
 
@@ -49,17 +50,14 @@ public:
   bdInAddr m_addr;
 };
 
-#pragma pack(push, 1)
-class bdAddr {
+PACKED(class bdAddr {
 public:
   bdInetAddr m_address;
   bdPort m_port;
   uint8_t _padding86[2];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-class bdCommonAddr : bdReferencable {
+PACKED(class bdCommonAddr : bdReferencable {
 public:
   bdArray<bdAddr> m_localAddrs;
   bdAddr m_publicAddr;
@@ -67,8 +65,7 @@ public:
   bdUInt m_hash;
   bdBool m_isLoopback;
   uint8_t _paddingB1[7];
-};
-#pragma pack(pop)
+});
 
 typedef bdReference<bdCommonAddr> bdCommonAddrRef;
 

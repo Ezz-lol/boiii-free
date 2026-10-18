@@ -1,4 +1,35 @@
 #pragma once
 
-#include "core.hpp" // IWYU pragma: export
-#include "net.hpp"  // IWYU pragma: export
+#include "anticheat.hpp"               // IWYU pragma: export
+#include "codonline/codonline.hpp"     // IWYU pragma: export
+#include "commerce/commerce.hpp"       // IWYU pragma: export
+#include "content/content.hpp"         // IWYU pragma: export
+#include "core.hpp"                    // IWYU pragma: export
+#include "counter.hpp"                 // IWYU pragma: export
+#include "crypt.hpp"                   // IWYU pragma: export
+#include "dml.hpp"                     // IWYU pragma: export
+#include "event/event.hpp"             // IWYU pragma: export
+#include "featureban.hpp"              // IWYU pragma: export
+#include "hash.hpp"                    // IWYU pragma: export
+#include "identity/identity.hpp"       // IWYU pragma: export
+#include "key/key.hpp"                 // IWYU pragma: export
+#include "linkcode.hpp"                // IWYU pragma: export
+#include "linkedaccount.hpp"           // IWYU pragma: export
+#include "lobby/lobby.hpp"             // IWYU pragma: export
+#include "matchmaking/matchmaking.hpp" // IWYU pragma: export
+#include "net/net.hpp"                 // IWYU pragma: export
+#include "presence/presence.hpp"       // IWYU pragma: export
+#include "publisher/publisher.hpp"     // IWYU pragma: export
+#include "relay.hpp"                   // IWYU pragma: export
+#include "reward.hpp"                  // IWYU pragma: export
+#include "social/social.hpp"           // IWYU pragma: export
+#include "stats.hpp"                   // IWYU pragma: export
+#include "storage/storage.hpp"         // IWYU pragma: export
+#include "subscription.hpp"            // IWYU pragma: export
+#include "tag.hpp"                     // IWYU pragma: export
+#include "task/task.hpp"               // IWYU pragma: export
+#include "tencent.hpp"                 // IWYU pragma: export
+#include "thread.hpp"                  // IWYU pragma: export
+#include "title.hpp"                   // IWYU pragma: export
+#include "user/user.hpp"               // IWYU pragma: export
+#include "vote/vote.hpp"               // IWYU pragma: export

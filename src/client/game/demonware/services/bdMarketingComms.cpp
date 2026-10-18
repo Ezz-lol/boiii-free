@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include "bdMarketingComms.hpp"
 
 namespace demonware {
 bdMarketingComms::bdMarketingComms() : service(104, "bdMarketingComms") {
@@ -9,16 +9,16 @@ bdMarketingComms::bdMarketingComms() : service(104, "bdMarketingComms") {
 }
 
 void bdMarketingComms::getMessages(service_server *server,
-                                   byte_buffer * /*buffer*/) const {
+                                   [[maybe_unused]] byte_buffer *buffer) const {
   // TODO:
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
 void bdMarketingComms::reportFullMessagesViewed(
-    service_server *server, byte_buffer * /*buffer*/) const {
+    service_server *server, [[maybe_unused]] byte_buffer *buffer) const {
   // TODO:
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 } // namespace demonware

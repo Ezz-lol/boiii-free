@@ -1,6 +1,7 @@
+#include <memory>
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include "bdMatchMaking.hpp"
 #include <steam/steam.hpp>
 
 namespace demonware {
@@ -13,11 +14,11 @@ bdMatchMaking::bdMatchMaking() : service(21, "bdMatchMaking") {
 }
 
 void bdMatchMaking::create_session(service_server *server,
-                                   byte_buffer * /*buffer*/) const {
-  auto id = std::make_unique<bdSessionID>();
+                                   [[maybe_unused]] byte_buffer *buffer) const {
+  std::unique_ptr<bdSessionID> id = std::make_unique<bdSessionID>();
   id->session_id = steam::SteamUser()->GetSteamID().bits;
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.add(id);
   reply.send();
 }
@@ -36,7 +37,7 @@ void bdMatchMaking::update_session(service_server *server,
   bdCommonAddr addr;
   addr.deserialize(&addr_buf);*/
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
@@ -48,24 +49,25 @@ void bdMatchMaking::delete_session(service_server *server,
   byte_buffer out_data;
   id.serialize(&out_data);
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
 void bdMatchMaking::get_performance(service_server *server,
                                     byte_buffer * /*buffer*/) const {
-  auto result = std::make_unique<bdPerformanceValue>();
+  std::unique_ptr<bdPerformanceValue> result =
+      std::make_unique<bdPerformanceValue>();
   result->user_id = steam::SteamUser()->GetSteamID().bits;
   result->performance = 10;
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.add(result);
   reply.send();
 }
 
 void bdMatchMaking::find_sessions(service_server *server,
                                   byte_buffer * /*buffer*/) const {
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
 
   // for (auto& session : sessions)
   {

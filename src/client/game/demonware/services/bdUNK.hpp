@@ -1,5 +1,7 @@
 #pragma once
 
+#include "game/demonware/service.hpp"
+
 namespace demonware {
 template <uint8_t Id> class bdUNK final : public service {
 public:

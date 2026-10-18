@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include "bdEventLog.hpp"
 
 namespace demonware {
 bdEventLog::bdEventLog() : service(67, "bdEventLog") {

@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include "bdObjectStore.hpp"
 
 namespace demonware {
 bdObjectStore::bdObjectStore() : service(15, "bdObjectStore") {
@@ -9,7 +9,7 @@ bdObjectStore::bdObjectStore() : service(15, "bdObjectStore") {
 
 void bdObjectStore::getUserObjects(service_server *server,
                                    byte_buffer * /*buffer*/) const {
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 } // namespace demonware

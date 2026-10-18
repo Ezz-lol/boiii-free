@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../reply.hpp"
+#include "game/demonware/reply.hpp"
 
 namespace demonware {
 class service_server {

@@ -9,6 +9,57 @@
 namespace game {
 namespace dw {
 
+namespace task {
+namespace manage {
+struct bdRemoteTaskManager;
+}
+} // namespace task
+
+template <typename T> class __declspec(align(8)) bdLinkedList {
+public:
+  typedef T Node;
+
+  Node *m_head;
+  Node *m_tail;
+  bdUInt m_size;
+};
+
+template <typename T> struct bdQueue {
+  bdLinkedList<T> m_list;
+};
+
+class bdSerializable {
+public:
+  // TODO
+  struct VTbl {};
+
+  VTbl *vtbl;
+  uint8_t gap8[16];
+};
+ASSERT_SIZE(bdSerializable, 0x18);
+
+typedef void *bdMutexHandle;
+
+class bdMutex {
+public:
+  bdMutexHandle m_handle;
+};
+
+typedef void *bdSemaphoreHandle;
+
+class bdSemaphore {
+public:
+  // TODO
+  struct VTbl {};
+  VTbl *vtbl;
+  bdSemaphoreHandle m_handle;
+};
+
+class bdString {
+public:
+  bdNChar8 *m_string;
+};
+
 // Unverified. Probably still correct.
 enum class taskCompleteResults : uint32_t {
   TASK_NOTCOMPLETE = 0x0,
@@ -109,8 +160,7 @@ class bdReferencable : public _bdReferencable<bdReferencableVTbl> {};
 ASSERT_SIZE(bdReferencable, 0x10);
 #pragma pack(pop)
 
-#pragma pack(push, 1)
-class bdByteBuffer : public bdReferencable {
+PACKED(class bdByteBuffer : public bdReferencable {
 public:
   bdUInt m_size;
   uint8_t _padding14[4];
@@ -121,31 +171,31 @@ public:
   bdBool m_typeCheckedCopy;
   bdBool m_allocatedData;
   uint8_t _padding33[5];
-};
+});
 ASSERT_SIZE(bdByteBuffer, 0x38);
 typedef bdReference<bdByteBuffer> bdByteBufferRef;
-#pragma pack(pop)
 
 class bdStopwatch {
 public:
   bdUInt64 m_start;
 };
 
-#pragma pack(push, 1)
-class bdTaskResult {
+PACKED(class bdTaskResult {
 public:
-  int32_t (**_vptr$bdTaskResult)(void);
+  // TODO
+  struct VTbl {};
+
+  VTbl *vtable;
   uint8_t _padding[16];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-class bdTaskResultProcessor {
+PACKED(class bdTaskResultProcessor {
 public:
-  int32_t (**_vptr$bdTaskResultProcessor)(void);
-};
+  // TODO
+  struct VTbl {};
 
-#pragma pack(pop)
+  VTbl *vtable;
+});
 
 template <typename VTbl = bdReferencableVTbl>
 class bdTask : public _bdReferencable<VTbl> {
@@ -516,8 +566,7 @@ public:
       deserialize;
 };
 
-#pragma pack(push, 1)
-class bdRemoteTask : public bdTask<bdRemoteTaskVTbl> {
+PACKED(class bdRemoteTask : public bdTask<bdRemoteTaskVTbl> {
 public:
   bdStopwatch m_timer;
   bdFloat32 m_timeout;
@@ -536,10 +585,9 @@ public:
   bdUByte8 m_serviceId;
   bdUByte8 m_taskId;
   uint8_t _padding62[6];
-};
+});
 ASSERT_SIZE(bdRemoteTask, 0x68);
 typedef bdReference<bdRemoteTask> bdRemoteTaskRef;
-#pragma pack(pop)
 
 template <typename T> class bdArray {
 public:
@@ -879,7 +927,10 @@ public:
 
 class bdUserAccountID {
 public:
-  int32_t (**_vptr$bdUserAccountID)(void);
+  // TODO
+  struct VTbl {};
+
+  VTbl *vtbl;
   bdNChar8 m_accountType[10];
   bdOnlineUserID m_userID;
 };

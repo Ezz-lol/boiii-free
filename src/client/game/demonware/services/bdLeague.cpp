@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include "bdLeague.hpp"
 
 namespace demonware {
 bdLeague::bdLeague() : service(81, "bdLeague") {
