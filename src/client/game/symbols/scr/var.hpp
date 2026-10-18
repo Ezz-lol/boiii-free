@@ -10,6 +10,8 @@ namespace scr {
 namespace var {
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst)> ScrVar_AllocArray{
     0x1412D94A0, 0x1412D9480, 0x140165A50};
+WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t parentId)>
+    ScrVar_AddArrayKeys{0x1412D8D30, 0x1412D8D10, 0x1401651A0};
 WEAK symbol<void(scriptInstance_t inst, volatile ScrVarValue_t *value)>
     ScrVar_AddRefValue{0x1412D9370, 0x1412D9350, 0x1401657E0};
 WEAK symbol<void(scriptInstance_t inst, volatile ScrVarValue_t *value)>
@@ -27,6 +29,9 @@ WEAK symbol<void(scriptInstance_t inst, ScrString_t stringValue)>
     Scr_AddArrayStringIndexed{0x1412E95F0, 0x1412E95D0, 0x14016EE50};
 WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id)> Scr_AddObject{
     0x1412E99C0, 0x1412E99A0, 0x14016F290};
+WEAK symbol<void(scriptInstance_t inst, weapon::Weapon weapon,
+                 LocalClientNum_t localClientNum)>
+    Scr_AddWeapon{0x1412EA0C0, 0x1412EA0A0, 0x14016F990};
 WEAK symbol<ScrVarValue_t *(ScrVarValue_t *retstr, scriptInstance_t inst,
                             ScrVarIndex_t id)>
     ScrVar_EvalVariable{0x1412DDF50, 0x1412DDF30, 0x14016A5B0};
@@ -90,7 +95,7 @@ WEAK symbol<uint32_t(scriptInstance_t inst, ScrVarCanonicalName_t canonId,
     ScrVar_FindField{0x1412DE270, 0x1412DE250, 0x0};
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId,
                           ScrVarNameIndex_t nameIndex)>
-    ScrVar_FindVariable{0x1412DE2B0, 0x1412DE290, 0x0};
+    ScrVar_FindVariable{0x1412DE2B0, 0x1412DE290, 0x14016A910};
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId)>
     ScrVar_FirstChild{0x1412DE3D0, 0x1412DE3B0, 0x0};
 WEAK symbol<void(scriptInstance_t inst, EntRefUnion entRefUnion,
@@ -109,7 +114,7 @@ WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId,
     ScrVar_GetVariableByIndex{0x1412DED90, 0x1412DED70, 0x0};
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId,
                           ScrVarNameIndex_t nameIndex)>
-    ScrVar_GetVariableByWeapon{0x1412DEEA0, 0x1412DEE80, 0x0};
+    ScrVar_GetVariableByWeapon{0x1412DEEA0, 0x1412DEE80, 0x14016B500};
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, EntRefUnion entRefUnion,
                           LocalClientNum_t clientNum)>
     ScrVar_GetWeaponId{0x1412DEF20, 0x1412DEF00, 0x0};
@@ -140,7 +145,7 @@ WEAK symbol<ScrVarNameType_t(scriptInstance_t inst, ScrVarIndex_t id)>
     ScrVar_NameType{0x1412DF650, 0x1412DF630, 0x0};
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId,
                           ScrVarIndex_t nameId)>
-    ScrVar_NewVariableById{0x1412DF6E0, 0x1412DF6C0, 0x0};
+    ScrVar_NewVariableById{0x1412DF6E0, 0x1412DF6C0, 0x14016BE30};
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId,
                           ScrVarNameIndex_t index)>
     ScrVar_NewVariableByIndex{0x1412DF7C0, 0x1412DF7A0, 0x14016BF10};
