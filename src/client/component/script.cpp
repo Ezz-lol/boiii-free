@@ -9,6 +9,7 @@
 #include <component/gsc/compiler/compiler.hpp>
 #include <component/gsc/func/replacefunc.hpp>
 #include <component/mod_previews.hpp>
+#include <component/mod_stack.hpp>
 #include <component/scheduler.hpp>
 #include <loader/component_loader.hpp>
 
@@ -976,6 +977,12 @@ void load_scripts() {
   load_tree("scripts", false);
   // The "custom_scripts" tree is for new scripts we must execute
   load_tree("custom_scripts", true);
+  // Each stacked mod's entry script runs as its own renamed copy
+  for (const auto &[name, data] : mod_stack::script_copies()) {
+    print_loading_script(name);
+    load_script(name, data);
+    queue_script_execution(name);
+  }
 }
 
 void load_rawfile_buf(const std::string &name, const std::string &data) {
