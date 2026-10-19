@@ -509,6 +509,16 @@ public:
     utils::hook::set<uint8_t>(game::select(0x14069D8D7, 0x14069D8D7, 0x0),
                               0xEB);
 
+    // Dont drop clients with MP_HOST_COMMS_FAILURE when a stat changes more
+    // than the anti-boosting limits allow (65536 XP, 300 kills, etc), which
+    // long matches or XP scales can hit, Treat the stat changes as valid for the player
+    if (game::is_new_client()) {
+      utils::hook::call(
+          game::live::stats::LiveStats_CompareStatsVsStableBuffer.offset(
+              0x130),
+          return_const<0>);
+    }
+
     cl_yaw_speed = game::register_dvar_float(
         "cl_yawspeed", 140.0f, std::numeric_limits<float>::min(),
         std::numeric_limits<float>::max(), game::DVAR_NONE,
