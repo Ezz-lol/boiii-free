@@ -77,9 +77,14 @@ void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
 
   auth::clear_stored_guids();
   auth::clear_stored_challenge();
+  // Dedicated servers always have usermaps loaded, even on stock maps. Stock
+  // maps don't need it, so don't reload just to load or unload it
+  const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
+  const bool skip_usermaps =
+      mod_id == "usermaps" && usermap_id.empty() && loaded_mod != "usermaps";
   workshop::setup_same_mod_as_host(
       game::com::Com_ControllerIndex_GetLocalClientNum(controllerIndex),
-      usermap_id, mod_id, true);
+      usermap_id, skip_usermaps ? std::string{} : mod_id, true);
 
   game::net::XSESSION_INFO info{};
 
