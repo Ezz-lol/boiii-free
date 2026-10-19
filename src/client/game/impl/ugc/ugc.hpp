@@ -21,6 +21,13 @@ inline const UGCItem *UGC_UnwrapOptionalUGCItem(OptionalConstUGCItemRef ref) {
   return nullptr;
 }
 
+inline OptionalUGCItemRef
+UGC_GetUsermapByInternalName(const std::string_view &internalName) {
+  return usermapsPool.find([internalName](UGCItem &usermap) {
+    return usermap.internalName == internalName;
+  });
+}
+
 OptionalUGCItemRef UGC_GetModByPublisherId(const char *publisherId);
 OptionalUGCItemRef UGC_GetUsermapByPublisherId(const char *publisherId);
 UGCItem *UGC_GetByPublisherId_Impl(ZoneType zoneType, const char *publisherId);
