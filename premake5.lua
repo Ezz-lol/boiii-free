@@ -296,6 +296,7 @@ if os.host() == "windows" then
 else
   toolset("clang")
 end
+linker({ "LLD" })
 startproject("client")
 location("./build")
 objdir("%{wks.location}/obj")
