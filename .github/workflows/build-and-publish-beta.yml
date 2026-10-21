@@ -39,7 +39,10 @@ jobs:
           # Use '[17.0,)' for VS 2022 (C++23 Preview)
           # Use '[18.0,)' for VS 2026 (Full C++23 Support)
           vs-version: "[18.0,)"
-
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "23.1.4"
       - name: Install premake5
         uses: Jarod42/install-premake5@v7
         with:

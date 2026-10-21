@@ -441,22 +441,22 @@ local optimizationFlags = {
   "-fvectorize",
   "-floop-interchange",
 
-  -- General IR optimizations
+  -- General IR optimization
   "-flifetime-dse",
   "-fstrict-aliasing",
   "-fclangir",
 
-  -- Function inlining optimizations
+  -- Function inlining optimization
   "-finline-functions",
   -- Note: this flag increases binary size by ~100KB as of writing this.
   -- Only inlines functions explicitly marked as `inline`, so this is still
   -- likely preferable.
   "-finline-hint-functions",
 
-  -- Compile time optimizations
+  -- Compile time optimization
   "-pipe",
 
-  -- Misc. optimizations
+  -- Misc. optimization
   "-fomit-frame-pointer",
   "-fcf-protection=none",
 }
