@@ -42,7 +42,7 @@ union ScrPool<T, T_Array, true> {
 
   using index_t = uint8_t;
 
-  inline constexpr void assert_range(size_t index) const {
+  inline constexpr void assert_range(index_t index) const {
     assert(index < static_cast<index_t>(std::size(instance)) &&
            "index to ScrPool must be within range SCRIPTINSTANCE_SERVER <= "
            "index < SCRIPTINSTANCE_MAX");
@@ -174,7 +174,6 @@ typedef XCam *XCamPtr;
 typedef XModel *XModelPtr;
 struct SurfaceFXTableDef;
 
-// sizeof=0x8
 union KVPItemUnion {
   uint64_t primitive;
   gfx::GfxImagePtr image;
@@ -193,7 +192,6 @@ union ScriptBundleKVPData {
 };
 ASSERT_SIZE(ScriptBundleKVPData, 4);
 
-// sizeof=0x18
 struct ScriptBundleKVP {
   ScrString_t key;
   ScrString_t value;
@@ -203,7 +201,6 @@ struct ScriptBundleKVP {
 };
 ASSERT_SIZE(ScriptBundleKVP, 0x18);
 
-// sizeof=0x10
 struct ScriptBundleObject {
   uint32_t kvpCount;
   uint8_t _padding04[4];
@@ -211,7 +208,6 @@ struct ScriptBundleObject {
 };
 ASSERT_SIZE(ScriptBundleObject, 0x10);
 
-// sizeof=0x30
 struct ScriptBundle {
   const char *name;
   ScrString_t type;
@@ -1750,7 +1746,15 @@ struct GSC_ANIMTREE_ITEM {
 ASSERT_SIZE(GSC_ANIMTREE_ITEM, 8);
 
 PACKED(struct GSC_OBJ {
-  str8_t magic;
+  static inline constexpr uint8_t T7_LATEST_VERSION = 0x1C;
+  static inline constexpr char IW_ASSET_EXT[3] = {'G', 'S', 'C'};
+  static inline constexpr size_t MAGIC_LEN =
+      iw_asset_magic_len(sizeof(IW_ASSET_EXT));
+  static inline constexpr std::array<char, MAGIC_LEN> T7_MAGIC =
+      iw_asset_magic(IW_ASSET_EXT, T7_LATEST_VERSION);
+  typedef str<MAGIC_LEN> magic_t;
+
+  magic_t magic;
   uint32_t source_crc;
   uint32_t include_offset;
   uint32_t animtree_offset;
@@ -1777,40 +1781,24 @@ PACKED(struct GSC_OBJ {
   uint8_t flags;
   uint8_t _padding47[1];
 
-  inline constexpr void setMagic(const str8_t &val) noexcept {
-    magic[0] = val[0];
-    magic[1] = val[1];
-    magic[2] = val[2];
-    magic[3] = val[3];
-    magic[4] = val[4];
-    magic[5] = val[5];
-    magic[6] = val[6];
-    magic[7] = val[7];
+  inline constexpr void setMagic(const magic_t &val) noexcept {
+    constexpr_memcpy(magic, val);
   }
 
   inline constexpr void setMagic(
-      const std::array<char, sizeof(uint64_t)> &val) noexcept {
-    magic[0] = val[0];
-    magic[1] = val[1];
-    magic[2] = val[2];
-    magic[3] = val[3];
-    magic[4] = val[4];
-    magic[5] = val[5];
-    magic[6] = val[6];
-    magic[7] = val[7];
+      const std::array<char, MAGIC_LEN> &val) noexcept {
+    constexpr_memcpy(std::span<char, MAGIC_LEN>(magic),
+                     std::span<const char, MAGIC_LEN>(val));
   }
 
-  inline constexpr bool hasMagic(const std::array<char, sizeof(uint64_t)> &val)
+  inline constexpr bool hasMagic(const std::array<char, MAGIC_LEN> &val)
       const noexcept {
-    return magic[0] == val[0] && magic[1] == val[1] && magic[2] == val[2] &&
-           magic[3] == val[3] && magic[4] == val[4] && magic[5] == val[5] &&
-           magic[6] == val[6] && magic[7] == val[7];
+    return constexpr_memcmp(std::span<const char, MAGIC_LEN>(magic),
+                            std::span<const char, MAGIC_LEN>(val)) == 0;
   }
 
-  inline constexpr bool hasMagic(const str8_t &val) const noexcept {
-    return magic[0] == val[0] && magic[1] == val[1] && magic[2] == val[2] &&
-           magic[3] == val[3] && magic[4] == val[4] && magic[5] == val[5] &&
-           magic[6] == val[6] && magic[7] == val[7];
+  inline constexpr bool hasMagic(const magic_t &val) const noexcept {
+    return constexpr_memcmp(magic, val) == 0;
   }
 
   inline const char *get_name() const noexcept {
@@ -1891,17 +1879,6 @@ PACKED(struct GSC_OBJ {
                      animtree_count);
   }
 
-  static inline constexpr uint8_t T7_LATEST_VERSION = 0x1C;
-  static inline constexpr const std::array<char, sizeof(uint64_t)> T7_MAGIC = {
-      IW_ASSET_SHEBANG,
-      'G',
-      'S',
-      'C',
-      CR,
-      LF,
-      NULL,
-      static_cast<char>(T7_LATEST_VERSION)};
-
   static inline constexpr GSC_OBJ t7() noexcept {
     GSC_OBJ result = {};
     result.setMagic(T7_MAGIC);
@@ -1911,14 +1888,12 @@ PACKED(struct GSC_OBJ {
 ASSERT_OFFSET(GSC_OBJ, cseg_size, 0x30);
 ASSERT_SIZE(GSC_OBJ, 0x48);
 
-#pragma pack(push, 1)
-struct ScriptParseTree {
+PACKED(struct ScriptParseTree {
   const char *name;
   size_t len;
   GSC_OBJ *buffer;
-};
+});
 ASSERT_SIZE(ScriptParseTree, 0x18);
-#pragma pack(pop)
 
 union scrChecksum_t {
   struct {
@@ -1939,7 +1914,18 @@ ASSERT_SIZE(scrChecksum_t, sizeof(uint32_t) * 3);
 ASSERT_CPP03_POD(scrChecksum_t);
 
 PACKED(struct GSC_GDB {
-  str8_t magic;
+  static inline constexpr char IW_ASSET_EXT[3] = {'G', 'D', 'B'};
+  static inline constexpr size_t MAGIC_LEN =
+      iw_asset_magic_len(sizeof(IW_ASSET_EXT));
+
+  static inline constexpr uint8_t T7_LATEST_VERSION = 0x13;
+  static inline constexpr std::array<char, MAGIC_LEN> T7_MAGIC =
+      iw_asset_magic(IW_ASSET_EXT, T7_LATEST_VERSION);
+  static inline constexpr uint32_t T7_VERSION = 0;
+
+  typedef str<MAGIC_LEN> magic_t;
+
+  magic_t magic;
   uint32_t version;
   uint32_t source_crc;
   uint32_t lineinfo_offset;
@@ -1949,39 +1935,14 @@ PACKED(struct GSC_GDB {
   uint32_t stringtable_offset;
   uint32_t stringtable_count;
 
-  static inline constexpr uint8_t T7_LATEST_VERSION = 0x13;
-  static inline constexpr const std::array<char, sizeof(uint64_t)> T7_MAGIC = {
-      IW_ASSET_SHEBANG,
-      'G',
-      'D',
-      'B',
-      CR,
-      LF,
-      NULL,
-      static_cast<char>(T7_LATEST_VERSION)};
-  static inline constexpr const uint32_t T7_VERSION = 0;
-
-  inline constexpr void setMagic(const str8_t &val) noexcept {
-    magic[0] = val[0];
-    magic[1] = val[1];
-    magic[2] = val[2];
-    magic[3] = val[3];
-    magic[4] = val[4];
-    magic[5] = val[5];
-    magic[6] = val[6];
-    magic[7] = val[7];
+  inline constexpr void setMagic(const magic_t &val) noexcept {
+    constexpr_memcpy(magic, val);
   }
 
   inline constexpr void setMagic(
-      const std::array<char, sizeof(uint64_t)> &val) noexcept {
-    magic[0] = val[0];
-    magic[1] = val[1];
-    magic[2] = val[2];
-    magic[3] = val[3];
-    magic[4] = val[4];
-    magic[5] = val[5];
-    magic[6] = val[6];
-    magic[7] = val[7];
+      const std::array<char, MAGIC_LEN> &val) noexcept {
+    constexpr_memcpy(std::span<char, MAGIC_LEN>(magic),
+                     std::span<const char, MAGIC_LEN>(val));
   }
 
   static inline constexpr GSC_GDB t7() noexcept {
@@ -1990,17 +1951,14 @@ PACKED(struct GSC_GDB {
     return result;
   }
 
-  inline constexpr bool hasMagic(const std::array<char, sizeof(uint64_t)> &val)
+  inline constexpr bool hasMagic(const std::array<char, MAGIC_LEN> &val)
       const noexcept {
-    return magic[0] == val[0] && magic[1] == val[1] && magic[2] == val[2] &&
-           magic[3] == val[3] && magic[4] == val[4] && magic[5] == val[5] &&
-           magic[6] == val[6] && magic[7] == val[7];
+    return constexpr_memcmp(std::span<const char, MAGIC_LEN>(magic),
+                            std::span<const char, MAGIC_LEN>(val)) == 0;
   }
 
-  inline constexpr bool hasMagic(const str8_t &val) const noexcept {
-    return magic[0] == val[0] && magic[1] == val[1] && magic[2] == val[2] &&
-           magic[3] == val[3] && magic[4] == val[4] && magic[5] == val[5] &&
-           magic[6] == val[6] && magic[7] == val[7];
+  inline constexpr bool hasMagic(const magic_t &val) const noexcept {
+    return constexpr_memcmp(magic, val) == 0;
   }
 
   inline const uint64_t *lineinfo() const noexcept {
@@ -2040,7 +1998,6 @@ PACKED(struct GSC_GDB {
     }
     return line;
   }
-  // static inline constexpr const uint32_t T7_SRC_CRC = 0xCA50E0EF;
 });
 ASSERT_OFFSET(GSC_GDB, magic, 0x0);
 ASSERT_OFFSET(GSC_GDB, version, 0x8);

@@ -1100,14 +1100,14 @@ public:
       T result;
 
       if constexpr (T_Size > sizeof(uint32_t)) {
-        memcpy(result, get_uint64(), T_Size);
+        constexpr_memcpy(result, get_uint64(), T_Size);
         return result;
       } else if constexpr (T_Size > sizeof(uint16_t)) {
-        memcpy(result, get_uint32(), T_Size);
+        constexpr_memcpy(result, get_uint32(), T_Size);
       } else if constexpr (T_Size > sizeof(uint8_t)) {
-        memcpy(result, get_uint16(), T_Size);
+        constexpr_memcpy(result, get_uint16(), T_Size);
       } else {
-        memcpy(result, get_bool(), T_Size /* 1 */);
+        constexpr_memcpy(result, get_bool(), T_Size /* 1 */);
       }
       return result;
     }
@@ -1153,55 +1153,6 @@ public:
   inline std::optional<std::string_view> get_string() noexcept {
     const char *str = get_cstring();
     return str ? std::optional(std::string_view(str)) : std::nullopt;
-  }
-  template <typename T> inline constexpr T get() noexcept {
-    constexpr size_t T_Size = sizeof(T);
-    if constexpr (std::is_same_v<T, int32_t>) {
-      return get_int();
-    }
-    if constexpr (std::is_same_v<T, uint32_t>) {
-      return get_uint();
-    }
-    if constexpr (std::is_same_v<T, int64_t>) {
-      return get_int64();
-    }
-    if constexpr (std::is_same_v<T, uint64_t>) {
-      return get_uint64();
-    }
-    if constexpr (std::is_same_v<T, bool>) {
-      return get_bool();
-    }
-    if constexpr (std::is_same_v<T, const char *>) {
-      return get_cstring();
-    }
-    if constexpr (std::is_same_v<T, std::optional<std::string_view>>) {
-      return get_string();
-    }
-    if constexpr (std::is_same_v<T, std::string>) {
-      return get_string().value_or("");
-    }
-    if constexpr (std::is_same_v<T, std::string_view>) {
-      return get_string().value_or("");
-    }
-
-    if constexpr (T_Size <= sizeof(uint64_t)) {
-      T result;
-
-      if constexpr (T_Size > sizeof(uint32_t)) {
-        memcpy(result, get_uint64(), T_Size);
-        return result;
-      } else if constexpr (T_Size > sizeof(uint16_t)) {
-        memcpy(result, get_uint32(), T_Size);
-      } else if constexpr (T_Size > sizeof(uint8_t)) {
-        memcpy(result, get_uint16(), T_Size);
-      } else {
-        memcpy(result, get_bool(), T_Size /* 1 */);
-      }
-      return result;
-    }
-
-    unreachable();
-    return {};
   }
 
   constexpr operator EngineDependentDvar() noexcept;
@@ -1936,14 +1887,12 @@ union EngineDependentDvarPool {
 
 typedef fastcallPtr_t<void(EngineDependentDvarMut dvar)> modifiedCallback;
 
-#pragma pack(push, 1)
-struct dvarCallBack_t {
+PACKED(struct dvarCallBack_t {
   bool needsCallback;
   uint8_t _padding01[7];
   modifiedCallback callback;
   EngineDependentDvar dvar;
-};
-#pragma pack(pop)
+});
 
 struct DvarCallbackPool {
   dvarCallBack_t pool[0x100];

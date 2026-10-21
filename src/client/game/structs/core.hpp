@@ -59,6 +59,17 @@ inline constexpr const char CR = '\r';
 inline constexpr const char LF = '\n';
 inline constexpr const char CRLF[2] = {'\r', '\n'};
 
+inline constexpr size_t iw_asset_magic_len(const size_t ext_len) {
+  return sizeof(IW_ASSET_SHEBANG) + ext_len + sizeof(CRLF) +
+         sizeof(char(NULL)) + sizeof(char) /* latest version */;
+}
+
+template <const size_t ExtensionLen>
+inline constexpr std::array<char, iw_asset_magic_len(ExtensionLen)>
+iw_asset_magic(const char (&ext)[ExtensionLen], const uint8_t latest_version) {
+  return concat_bytes<char>(IW_ASSET_SHEBANG, ext, CRLF, NULL, latest_version);
+}
+
 enum class CampaignMode : int32_t {
   DEFAULT = 0,
   ZOMBIES = 1,
@@ -67,6 +78,7 @@ enum class CampaignMode : int32_t {
 };
 
 enum class ContentFlagBits : uint32_t {
+  // Explicitly used for unknown content by engine
   UNKNOWN = 0x1,
   ORIGINALMAPS = 0x2,
   DLC0ZM = 0x4,
@@ -89,6 +101,7 @@ union ContentFlags {
   uint32_t mask;
 
   struct {
+    // Explicitly used for unknown content by engine
     uint32_t unknown : 1;      // 0x1
     uint32_t originalMaps : 1; // 0x2
     uint32_t dlc0zm : 1;       // 0x4
@@ -105,7 +118,7 @@ union ContentFlags {
     uint32_t dlc6 : 1;         // 0x2000
     uint32_t dlcPC : 1;        // 0x4000
 
-    uint32_t reserved : 17;
+    uint32_t : 17;
   } bits;
 
   template <IntegralLike T> inline constexpr operator T() const noexcept {
@@ -157,22 +170,23 @@ union ContentFlags {
   }
 
   static inline constexpr ContentFlags allContent() noexcept {
-    return ContentFlags{.bits = {.unknown = 0,
-                                 .originalMaps = 1,
-                                 .dlc0zm = 1,
-                                 .dlc0mp = 1,
-                                 .dlc1 = 1,
-                                 .dlc2 = 1,
-                                 .dlc3 = 1,
-                                 .dlc4 = 1,
-                                 .dlc5 = 1,
-                                 .dlc1zm = 1,
-                                 .dlc2zm = 1,
-                                 .dlc3zm = 1,
-                                 .dlc4zm = 1,
-                                 .dlc6 = 1,
-                                 .dlcPC = 1,
-                                 .reserved = 0}};
+    return ContentFlags{.bits = {
+                            .unknown = 0,
+                            .originalMaps = 1,
+                            .dlc0zm = 1,
+                            .dlc0mp = 1,
+                            .dlc1 = 1,
+                            .dlc2 = 1,
+                            .dlc3 = 1,
+                            .dlc4 = 1,
+                            .dlc5 = 1,
+                            .dlc1zm = 1,
+                            .dlc2zm = 1,
+                            .dlc3zm = 1,
+                            .dlc4zm = 1,
+                            .dlc6 = 1,
+                            .dlcPC = 1,
+                        }};
   }
 };
 
