@@ -39,6 +39,10 @@ local function clang_cl_flag(clang_flag)
   return "/clang:" .. clang_flag
 end
 
+local function clang_ld_flag(ld_flag)
+  return "-Wl," .. ld_flag
+end
+
 local function split_env_flags(env_var_name)
   local value = os.getenv(env_var_name)
   local flags = {}
@@ -395,20 +399,34 @@ local archFlags = {
 local parserFlags = {
   "-fbracket-depth=1024",
 }
+
+local linkerOptimizationFlags = {
+  -- Link-time optimization
+  "-opt:lldltocgo=3",
+  "-opt:lldlto=3",
+
+  -- Data de-duplication
+  "-opt:ref", -- Removes dead code, unreferenced data
+
+  -- General function de-duplication
+  "-opt:icf=safe",
+  "-opt:lldtailmerge",
+
+  -- Symbol table and debug data removal
+  "-debug:none",
+}
+
 local optimizationFlags = {
   -- General
   "-Oz",
 
   -- Link-time optimization
   "-flto=full",
-  "-Wl,-opt:lldltocgo=3",
-  "-Wl,-opt:lldlto=3",
 
   -- Data de-duplication
   "-fdata-sections",
   "-fmerge-all-constants",
   "-fvisibility=hidden",
-  "-Wl,-opt:ref", -- Removes dead code, unreferenced data
 
   -- Virtual function de-duplication
   "-fwhole-program-vtables",
@@ -417,8 +435,6 @@ local optimizationFlags = {
 
   -- General function de-duplication
   "-ffunction-sections",
-  "-Wl,-opt:icf=safe",
-  "-Wl,-opt:lldtailmerge",
 
   -- Loop optimization
   "-funroll-loops",
@@ -436,9 +452,6 @@ local optimizationFlags = {
   -- Only inlines functions explicitly marked as `inline`, so this is still
   -- likely preferable.
   "-finline-hint-functions",
-
-  -- Symbol table and debug data removal
-  "-Wl,-debug:none",
 
   -- Compile time optimizations
   "-pipe",
@@ -462,12 +475,13 @@ local warningFlags = {
 }
 local clOptimizationFlags = map(optimizationFlags, clang_cl_flag)
 buildoptions(mergeTables(warningFlags, clArchFlags, clOptimizationFlags))
-linkoptions(mergeTables({ "/IGNORE:4702" }, clOptimizationFlags))
+linkoptions(mergeTables({ "/IGNORE:4702" }, linkerOptimizationFlags))
 filter({})
 filter({ "configurations:Release", "toolset:not msc*" })
 
-buildoptions(mergeTables(archFlags, optimizationFlags))
-linkoptions(optimizationFlags)
+local clangOptimizationFlags = mergeTables(optimizationFlags, map(linkerOptimizationFlags, clang_ld_flag))
+buildoptions(mergeTables(archFlags, clangOptimizationFlags))
+linkoptions(clangOptimizationFlags)
 filter({})
 
 filter("configurations:Debug")
