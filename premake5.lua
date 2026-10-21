@@ -478,16 +478,32 @@ local clangLinkerOptimizationFlags = map(linkerOptimizationFlags, clang_ld_flag)
 local clArchFlags = map(archFlags, clang_cl_flag)
 local clParserFlags = map(parserFlags, clang_cl_flag)
 
+local disabledWarnings = {
+  "unused-command-line-argument",
+  "microsoft-cast",
+  "dangling-else",
+  "unused",
+  "format",
+  "sign-compare",
+}
+
+local warningFlags = {}
+
+for _, flag in pairs(disabledWarnings) do
+  table.insert(warningFlags, "-Wno-" .. flag)
+  table.insert(warningFlags, "-Wno-error=" .. flag)
+  table.insert(warningFlags, "-Wno-clang-diagnostic-" .. flag)
+  table.insert(warningFlags, "-Wno-error=clang-diagnostic-" .. flag)
+
+  table.insert(warningFlags, "-Wno-error=" .. flag)
+  table.insert(warningFlags, "-Wno-error=error=" .. flag)
+  table.insert(warningFlags, "-Wno-clang-diagnostic-error=" .. flag)
+  table.insert(warningFlags, "-Wno-error=clang-diagnostic-error=" .. flag)
+end
+
 filter({ "configurations:Release", "toolset:msc*" })
 optimize("Size")
-local warningFlags = {
-  "-Wno-unused-command-line-argument",
-  "-Wno-microsoft-cast",
-  "-Wno-dangling-else",
-  "-Wno-unused",
-  "-Wno-format",
-  "-Wno-sign-compare",
-}
+
 buildoptions(mergeTables(warningFlags, clArchFlags))
 linkoptions({ "/IGNORE:4702", "/LTCG" })
 filter({})
