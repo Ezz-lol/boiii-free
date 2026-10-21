@@ -17,11 +17,11 @@ local function cstrquote(value)
   return result
 end
 
-local function mergeTables(...)
+local function mergeArrays(...)
   local result = {}
   for _, currentTable in ipairs({ ... }) do
-    for k, v in pairs(currentTable) do
-      result[k] = v
+    for _, v in pairs(currentTable) do
+      table.insert(result, v)
     end
   end
   return result
@@ -471,6 +471,11 @@ local toolsetConfigurationFlags = {
 
   -- Enable all C++ MS extensions
   "-fms-extensions",
+
+  -- Compile for Windows subsystem
+  "-Wl,/subsystem:windows",
+
+  "-static",
 }
 
 local clangLinkerOptimizationFlags = map(linkerOptimizationFlags, clang_ld_flag)
@@ -495,8 +500,8 @@ linkoptions({ "/IGNORE:4702", "/LTCG" })
 filter({})
 filter({ "configurations:Release", "toolset:not msc*" })
 
-buildoptions(mergeTables(archFlags, optimizationFlags, toolsetConfigurationFlags))
-linkoptions(mergeTables(archFlags, toolsetConfigurationFlags, optimizationFlags, clangLinkerOptimizationFlags))
+buildoptions(mergeArrays(archFlags, optimizationFlags, toolsetConfigurationFlags))
+linkoptions(mergeArrays(archFlags, toolsetConfigurationFlags, optimizationFlags, clangLinkerOptimizationFlags))
 filter({})
 
 filter("configurations:Debug")
@@ -504,7 +509,7 @@ optimize("Debug")
 defines({ "DEBUG", "_DEBUG", "_CRT_DEBUG" })
 filter({})
 filter({ "configurations:Debug", "toolset:msc*" })
-buildoptions(mergeTables({
+buildoptions(mergeArrays({
   "/MDd",
 }, clParserFlags, clArchFlags))
 linkoptions({
@@ -516,13 +521,13 @@ linkoptions({
 })
 filter({})
 filter({ "configurations:Debug", "toolset:not msc*" })
-buildoptions(mergeTables(archFlags, toolsetConfigurationFlags, {
+buildoptions(mergeArrays(archFlags, toolsetConfigurationFlags, {
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
   "-Wl,/NODEFAULTLIB:libucrt.lib",
   "-l libcmtd.lib",
 }))
-linkoptions(mergeTables(archFlags, toolsetConfigurationFlags, {
+linkoptions(mergeArrays(archFlags, toolsetConfigurationFlags, {
   "-fms-runtime-lib=static_dbg",
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",

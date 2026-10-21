@@ -704,15 +704,13 @@ cxxflags=(
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"--target=x86_64-windows-msvc"
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
-ldflags=("-static"
-	"-isystem"
+ldflags=("-isystem"
 	"${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
 	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"--target=x86_64-windows-msvc"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
-	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
-	"-Wl,/subsystem:windows")
+	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}")
 
 if [ -d "$WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED" ] || [ -L "$WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED" ]; then
 	cflags+=("-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}")

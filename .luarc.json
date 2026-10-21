@@ -9,6 +9,7 @@
       "cppdialect",
       "defines",
       "dependson",
+      "disablewarnings",
       "editandcontinue",
       "enable64bitchecks",
       "exceptionhandling",
