@@ -41,21 +41,6 @@ jobs:
           fetch-depth: 0
           lfs: false
 
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v3
-        with:
-          # Use '[17.0,)' for VS 2022 (C++23 Preview)
-          # Use '[18.0,)' for VS 2026 (Full C++23 Support)
-          vs-version: "[18.0,)"
-
-      - name: Install premake5
-        uses: Jarod42/install-premake5@v7
-        with:
-          msdev: vs2026
-
-      - name: Generate project files
-        run: premake5 vs2026
-
       - name: Get version from trigger tag
         id: get-version
         run: |
@@ -63,11 +48,20 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Set up problem matching
-        uses: ammaraskar/msvc-problem-matcher@master
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: 23
+      - name: Install premake5
+        uses: Jarod42/install-premake5@v7
+        with:
+          msdev: vs2026
+
+      - name: Generate project files
+        run: premake5 ninja
 
       - name: Build Release
-        run: msbuild /m /v:normal /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=ClangCL build/boiii.slnx
+        run: ninja Release_x64 -Cbuild -j32
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

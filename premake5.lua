@@ -482,9 +482,8 @@ local warningFlags = {
   "-Wno-format",
   "-Wno-sign-compare",
 }
-local clOptimizationFlags = map(mergeTables(optimizationFlags, clangLinkerOptimizationFlags), clang_cl_flag)
-buildoptions(mergeTables(warningFlags, clArchFlags, clOptimizationFlags))
-linkoptions(mergeTables({ "/IGNORE:4702" }, clOptimizationFlags))
+buildoptions(mergeTables(warningFlags, clArchFlags))
+linkoptions({ "/IGNORE:4702", "/LTCG" })
 filter({})
 filter({ "configurations:Release", "toolset:not msc*" })
 

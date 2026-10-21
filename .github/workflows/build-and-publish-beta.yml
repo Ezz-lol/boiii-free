@@ -45,11 +45,8 @@ jobs:
       - name: Generate project files
         run: premake5 ninja
 
-      - name: Set up problem matching
-        uses: ammaraskar/msvc-problem-matcher@master
-
       - name: Build Release
-        run: ninja Release_x64 -Cbuild -j0
+        run: ninja Release_x64 -Cbuild -j32
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

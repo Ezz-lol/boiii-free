@@ -396,6 +396,8 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
 - [Visual Studio 2022 or newer](https://visualstudio.microsoft.com/downloads/)
   (Community Edition is free), with the **Desktop development with C++**
   workload
+- [Ninja](https://github.com/ninja-build/ninja) for optimized and efficient
+  build execution
 - [Git](https://git-scm.com/downloads)
 - Windows 10/11 SDK
 - [clang-format](https://releases.llvm.org/) (for C/C++ formatting — install via

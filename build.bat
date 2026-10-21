@@ -2,21 +2,12 @@
 setlocal
 pushd "%~dp0"
 
-echo Generating Visual Studio project files...
-call generate.bat
+echo Generating Ninja build files...
+premake5 %* ninja 
 set "exit_code=%errorlevel%"
 if not "%exit_code%"=="0" goto :finish
 
-echo.
-echo Building boiii - Release x64...
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ErrorActionPreference = 'Stop';" ^
-  "$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe';" ^
-  "if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio or Build Tools was not found. Install the Desktop development with C++ workload.' };" ^
-  "$msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1;" ^
-  "if (-not $msbuild) { throw 'MSBuild was not found. Install the Desktop development with C++ workload.' };" ^
-  "& $msbuild 'build\boiii.sln' /m /v:normal /p:Configuration=Release /p:Platform=x64;" ^
-  "exit $LASTEXITCODE"
+ninja Release_x64 -Cbuild
 set "exit_code=%errorlevel%"
 
 :finish
