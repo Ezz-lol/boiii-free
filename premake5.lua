@@ -350,7 +350,6 @@ filter({})
 
 filter("configurations:Release")
 intrinsics("On")
-linktimeoptimization("On")
 defines({ "NDEBUG" })
 -- flags({ "FatalCompileWarnings" })
 filter({})
@@ -494,6 +493,7 @@ disablewarnings({
 
 filter({ "configurations:Release", "toolset:msc*" })
 optimize("Size")
+linktimeoptimization("On")
 
 buildoptions(clArchFlags)
 linkoptions({ "/IGNORE:4702", "/LTCG" })
