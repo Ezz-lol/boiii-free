@@ -94,10 +94,10 @@ bool starts_with(const std::string_view &text,
                  const std::string_view &substring);
 bool ends_with(const std::string_view &text, const std::string_view &substring);
 
-bool is_numeric(const std::string &text);
+bool is_numeric(const std::string_view &text);
 
-std::string dump_hex(const std::string &data,
-                     const std::string &separator = " ");
+std::string dump_hex(const std::string_view &data,
+                     const std::string_view &separator = " ");
 
 std::string get_clipboard_data();
 

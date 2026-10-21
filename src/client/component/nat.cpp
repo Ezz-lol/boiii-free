@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 
+#include "game/impl/ugc/ugc.hpp"
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
@@ -87,7 +88,7 @@ void finish_lookup(const std::string &request) {
   lookup_callback done;
   std::vector<friend_presence> results;
   {
-    std::lock_guard lock(lookup_mutex);
+    std::scoped_lock lock(lookup_mutex);
     const lookupMap_t::iterator found = lookup_requests.find(request);
     if (found == lookup_requests.end())
       return;
@@ -235,18 +236,20 @@ bool from_hex(const std::string &text, void *out, const size_t size) {
   return true;
 }
 
-std::string peer_key(const uint8_t *address) {
-  return {reinterpret_cast<const char *>(address), sizeof(game::net::XNADDR)};
+std::string peer_key(const game::net::XNADDR &address) {
+  return std::string(reinterpret_cast<const char *>(address.addrBuff),
+                     sizeof(game::net::XNADDR));
 }
 
-void add_peer(const uint8_t *address, const game::net::netadr_t &endpoint) {
-  std::lock_guard lock(peers_mutex);
+void add_peer(const game::net::XNADDR &address,
+              const game::net::netadr_t &endpoint) {
+  std::scoped_lock lock(peers_mutex);
   lobby_peers.insert_or_assign(peer_key(address), endpoint);
 }
 
-std::optional<game::net::netadr_t> find_peer(const uint8_t *address) {
+std::optional<game::net::netadr_t> find_peer(const game::net::XNADDR &address) {
   constexpr size_t ENDPOINT_SIZE = 6;
-  std::lock_guard lock(peers_mutex);
+  std::scoped_lock lock(peers_mutex);
   if (const lobbyPeerMap_t::iterator peer = lobby_peers.find(peer_key(address));
       peer != lobby_peers.end())
     return peer->second;
@@ -263,7 +266,7 @@ std::optional<game::net::netadr_t> find_peer(const uint8_t *address) {
 }
 
 bool dw_common_addr_to_netadr_stub(game::net::netadr_t *netadr,
-                                   const uint8_t *common_addr,
+                                   const game::net::XNADDR &common_addr,
                                    const game::net::bdSecurityID *sec_id) {
   if (const std::optional<game::net::netadr_t> peer = find_peer(common_addr)) {
     *netadr = *peer;
@@ -280,7 +283,7 @@ int32_t dw_get_connection_status_stub(const game::net::netadr_t *netadr) {
              : dw_get_connection_status_hook.invoke<int32_t>(netadr);
 }
 
-game::lobby::session::HostInfo *lobby_host_info(
+game::net::HostInfo *lobby_host_info(
     const game::lobby::LobbyType type = game::lobby::LobbyType::PRIVATE) {
   if (game::is_legacy_client() || !game::lobby::LobbyHost_IsHost(type))
     return nullptr;
@@ -310,14 +313,14 @@ void show_error(const std::string &message) {
 
 void connect_to(const game::net::netadr_t &endpoint) {
   const std::string address = network::address_to_string(endpoint);
-  if (address.empty())
-    return;
-  party::connect(endpoint);
+  if (!address.empty()) {
+    party::connect(endpoint);
+  }
 }
 
 void request_lobby(const game::net::netadr_t &host, const std::string &token,
                    std::function<void()> fallback = {}) {
-  const game::lobby::session::HostInfo *own = lobby_host_info();
+  const game::net::HostInfo *own = lobby_host_info();
   if (!own) {
     if (fallback) {
       fallback();
@@ -336,10 +339,10 @@ void request_lobby(const game::net::netadr_t &host, const std::string &token,
 }
 
 void complete_join(const game::net::netadr_t &endpoint) {
-  if (!joining.active)
-    return;
-  joining.active = false;
-  request_lobby(endpoint, joining.token);
+  if (joining.active) {
+    joining.active = false;
+    request_lobby(endpoint, joining.token);
+  }
 }
 
 void show_join_failure(const uint16_t port) {
@@ -412,7 +415,7 @@ void lobby_join_complete(int32_t, const game::lobby::join::JoinResult result) {
 
 void join_lobby(const game::net::netadr_t &host,
                 const std::vector<std::string> &parts) {
-  game::lobby::session::HostInfo info{};
+  game::net::HostInfo info{};
   info.xuid = std::strtoull(parts[1].c_str(), nullptr, 16);
   info.serializedAdr.valid = 1;
   if (!info.xuid ||
@@ -623,27 +626,32 @@ void receive_lobby_join(const game::net::netadr_t &sender,
     return;
   }
 
-  const game::lobby::session::HostInfo *game_lobby =
+  const game::net::HostInfo *game_lobby =
       lobby_host_info(game::lobby::LobbyType::GAME);
-  const game::lobby::session::HostInfo *host =
-      game_lobby ? game_lobby : lobby_host_info();
+  const game::net::HostInfo *host = game_lobby ? game_lobby : lobby_host_info();
   game::net::XNADDR peer{};
   if (!host || !from_hex(parts[1], peer.addrBuff, sizeof(peer.addrBuff)))
     return;
 
-  add_peer(peer.addrBuff, sender);
+  add_peer(peer, sender);
   const std::string mod = workshop::get_mod_publisher_id();
   const std::string map(game::get_dvar_string("ui_mapname").value_or(""));
-  network::send(
-      sender, "lobbyHost",
-      std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0], host->xuid,
-                  to_hex(host->serializedAdr.addrBuff,
-                         sizeof(host->serializedAdr.addrBuff)),
-                  to_hex(&host->secId, sizeof(host->secId)),
-                  to_hex(&host->secKey, sizeof(host->secKey)),
-                  game_lobby ? "game" : "party",
-                  mod == "usermaps" ? std::string{} : mod, map,
-                  workshop::get_usermap_publisher_id(map), host->name));
+
+  const game::ugc::OptionalUGCItemRef usermap_item =
+      game::ugc::UGC_GetUsermapByInternalName(map);
+  const std::optional<std::string_view> usermap_id =
+      usermap_item.has_value() ? std::optional(usermap_item->get().publisherId)
+                               : std::nullopt;
+  network::send(sender, "lobbyHost",
+                std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0],
+                            host->xuid,
+                            to_hex(host->serializedAdr.addrBuff,
+                                   sizeof(host->serializedAdr.addrBuff)),
+                            to_hex(&host->secId, sizeof(host->secId)),
+                            to_hex(&host->secKey, sizeof(host->secKey)),
+                            game_lobby ? "game" : "party",
+                            mod == "usermaps" ? std::string{} : mod, map,
+                            usermap_id.value_or(""), host->name));
 }
 
 bool from_lobby_request(const game::net::netadr_t &sender,
@@ -769,7 +777,7 @@ void receive_friend_presence(const game::net::netadr_t &sender,
   const game::net::netadr_t endpoint = network::address_from_string(parts[4]);
   bool complete{};
   {
-    std::lock_guard lock(lookup_mutex);
+    std::scoped_lock lock(lookup_mutex);
     const lookupMap_t::iterator request = lookup_requests.find(parts[1]);
     if (request == lookup_requests.end() ||
         !request->second.pending.erase(steam_id)) {
@@ -798,7 +806,7 @@ void receive_friend_status(const game::net::netadr_t &sender,
   const game::XUID steam_id = std::strtoull(parts[2].c_str(), nullptr, 10);
   bool complete{};
   {
-    std::lock_guard lock(lookup_mutex);
+    std::scoped_lock lock(lookup_mutex);
     const lookupMap_t::iterator request = lookup_requests.find(parts[1]);
     if (request == lookup_requests.end() ||
         !request->second.pending.erase(steam_id)) {
@@ -891,7 +899,7 @@ void join_match_lobby(const game::net::netadr_t &host,
 }
 
 bool is_lobby_peer(const game::net::netadr_t &address) {
-  std::lock_guard lock(peers_mutex);
+  std::scoped_lock lock(peers_mutex);
   return std::ranges::any_of(
       lobby_peers, [&address](lobbyPeerMap_t::value_type &peer) {
         return network::are_addresses_equal(peer.second, address);
@@ -944,7 +952,7 @@ void refresh_friends(const std::vector<game::XUID> &steam_ids,
 
   std::string request;
   {
-    std::lock_guard lock(lookup_mutex);
+    std::scoped_lock lock(lookup_mutex);
     do {
       request = new_token();
     } while (lookup_requests.contains(request));
@@ -996,7 +1004,7 @@ public:
   }
 
   void pre_destroy() override {
-    std::lock_guard lock(lookup_mutex);
+    std::scoped_lock lock(lookup_mutex);
     lookup_requests.clear();
   }
 };

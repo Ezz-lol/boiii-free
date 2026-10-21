@@ -87,8 +87,8 @@ bool ends_with(const std::string_view &text,
   return std::equal(substring.rbegin(), substring.rend(), text.rbegin());
 }
 
-bool is_numeric(const std::string &text) {
-  std::string::const_iterator it = text.begin();
+bool is_numeric(const std::string_view &text) {
+  std::string_view::const_iterator it = text.begin();
   while (it != text.end() && std::isdigit(static_cast<uint8_t>(*it))) {
     ++it;
   }
@@ -96,7 +96,8 @@ bool is_numeric(const std::string &text) {
   return !text.empty() && it == text.end();
 }
 
-std::string dump_hex(const std::string &data, const std::string &separator) {
+std::string dump_hex(const std::string_view &data,
+                     const std::string_view &separator) {
   std::string result;
 
   for (uint32_t i = 0; i < data.size(); ++i) {

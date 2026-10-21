@@ -208,25 +208,23 @@ rapidjson::Document load_settings_doc() {
 }
 
 std::string get_setting(const rapidjson::Document &doc, const char *key) {
-  auto it = doc.FindMember(key);
-  if (it != doc.MemberEnd() && it->value.IsString()) {
-    return it->value.GetString();
-  }
-  return {};
+  rapidjson::Document::ConstMemberIterator it = doc.FindMember(key);
+  return it != doc.MemberEnd() && it->value.IsString() ? it->value.GetString()
+                                                       : std::string();
 }
 
 bool is_enabled(const rapidjson::Document &doc) {
   // Check master enable flag
   const std::string val = get_setting(doc, "asset_limits_enabled");
-  if (!val.empty() && val != "1")
-    return false;
+  if (val.empty() || val == "1") {
+    // Check disable_asset_pools flag (inverted)
+    const std::string disable_val = get_setting(doc, "disable_asset_pools");
+    if (disable_val != "1") {
+      return true;
+    }
+  }
 
-  // Check disable_asset_pools flag (inverted)
-  const std::string disable_val = get_setting(doc, "disable_asset_pools");
-  if (disable_val == "1")
-    return false;
-
-  return true;
+  return false;
 }
 
 uint32_t get_pool_size(const rapidjson::Document &doc,
@@ -247,14 +245,13 @@ uint32_t get_pool_size(const rapidjson::Document &doc,
 void apply_asset_limits() {
   const rapidjson::Document doc = load_settings_doc();
 
-  if (!is_enabled(doc)) {
+  if (is_enabled(doc)) {
+    for (const default_pool_config &cfg : default_pool_configs) {
+      const uint32_t size = get_pool_size(doc, cfg);
+      pool::reallocate_asset_pool(cfg.type, size);
+    }
+  } else {
     printf("Asset pool expansion disabled by user settings\n");
-    return;
-  }
-
-  for (const default_pool_config &cfg : default_pool_configs) {
-    const uint32_t size = get_pool_size(doc, cfg);
-    pool::reallocate_asset_pool(cfg.type, size);
   }
 }
 

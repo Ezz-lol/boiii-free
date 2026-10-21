@@ -7,6 +7,7 @@
 #include "auth.hpp"
 #include "command.hpp"
 #include "friends.hpp"
+#include "game/impl/ugc/ugc.hpp"
 #include "nat.hpp"
 #include "network.hpp"
 #include "network_password.hpp"
@@ -24,6 +25,9 @@
 #include <utils/string.hpp>
 
 #include <game/impl/cl/cl.hpp>
+
+#include <frozen/string.h>
+#include <frozen/unordered_map.h>
 
 namespace party {
 game::EngineDependentDvarMut cl_connected_to_dedi;
@@ -71,9 +75,10 @@ utils::concurrency::container<std::vector<server_query>> &get_server_queries() {
 
 void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
                       const game::net::netadr_t &addr,
-                      const std::string &mapname, const std::string &gamemode,
-                      const std::string &usermap_id,
-                      const std::string &mod_id) {
+                      const std::string_view &mapname,
+                      const std::string_view &gamemode,
+                      const std::string_view &usermap_id,
+                      const std::string_view &mod_id) {
 
   auth::clear_stored_guids();
   auth::clear_stored_challenge();
@@ -85,11 +90,9 @@ void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
 
   int32_t publicSlots = 0;
   for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
-       localClientIdx < game::LOCAL_CLIENT_COUNT; localClientIdx++) {
-
+       localClientIdx < game::LOCAL_CLIENT_COUNT; ++localClientIdx) {
     if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
-
-      publicSlots++;
+      ++publicSlots;
     }
   }
 
@@ -110,22 +113,59 @@ void launch_mode(const game::eModes mode) {
       scheduler::main);
 }
 
-struct map_mode {
-  game::eModes mode;
-  const char *name;
-  const char *gametype;
+struct GameModeConfiguration {
+  game::eModes mode = game::eModes::INVALID;
+  game::name_t name = {NULL};
+  game::name_t gametype = {NULL};
+
+  inline constexpr GameModeConfiguration() noexcept {}
+
+  inline constexpr GameModeConfiguration(const game::eModes mode) noexcept
+      : mode(mode) {}
+
+  inline constexpr GameModeConfiguration(
+      const game::eModes mode, const std::string_view &name_val) noexcept
+      : mode(mode) {
+    strscpy(name, name_val);
+  }
+
+  inline constexpr GameModeConfiguration(
+      const game::eModes mode, const std::string_view &name_val,
+      const std::string_view &gametype_val) noexcept
+      : mode(mode) {
+    strscpy(name, name_val);
+    strscpy(gametype, gametype_val);
+  }
 };
 
-std::optional<map_mode> get_map_mode(const std::string_view mapname) {
-  if (mapname.starts_with("zm_")) {
-    return map_mode{game::eModes::ZOMBIES, "zm", "zclassic"};
+static constexpr GameModeConfiguration
+    DEFAULT_GAMEMODE_CONFIGURATION_ARRAY[+game::eModes::COUNT] = {
+        // Zombies
+        GameModeConfiguration(game::eModes::ZOMBIES, "zm", "zclassic"),
+        // Multiplayer
+        GameModeConfiguration(game::eModes::MULTIPLAYER, "mp", "tdm"),
+        // Campaign
+        GameModeConfiguration(game::eModes::CAMPAIGN, "cp", "coop")};
+
+static constexpr frozen::unordered_map<frozen::string, GameModeConfiguration,
+                                       +game::eModes::COUNT>
+    DEFAULT_GAMEMODE_CONFIGURATIONS = frozen::make_unordered_map(
+        map_array(DEFAULT_GAMEMODE_CONFIGURATION_ARRAY,
+                  [](const GameModeConfiguration &config) constexpr {
+                    return std::pair<frozen::string, GameModeConfiguration>(
+                        config.name, config);
+                  }));
+
+inline constexpr std::optional<GameModeConfiguration>
+get_default_gamemode_config_for_map(const std::string_view &map) {
+  const size_t prefix_idx = map.find("_");
+  if (prefix_idx != std::string_view::npos) {
+    const std::string_view prefix = map.substr(0, prefix_idx);
+    if (DEFAULT_GAMEMODE_CONFIGURATIONS.contains(prefix)) {
+      return DEFAULT_GAMEMODE_CONFIGURATIONS.at(prefix);
+    }
   }
-  if (mapname.starts_with("mp_")) {
-    return map_mode{game::eModes::MULTIPLAYER, "mp", "tdm"};
-  }
-  if (mapname.starts_with("cp_")) {
-    return map_mode{game::eModes::CAMPAIGN, "cp", "coop"};
-  }
+
   return std::nullopt;
 }
 
@@ -134,15 +174,19 @@ bool is_frontend_ready() {
          game::live::Live_IsDemonwareFetchingDone(game::CONTROLLER_INDEX_FIRST);
 }
 
-bool is_mode_ready(const map_mode &mode) {
+bool is_mode_ready(const GameModeConfiguration &mode) {
   return game::com::Com_SessionMode_IsMode(mode.mode) &&
          workshop::is_xzone_loaded(utils::string::va("%s_common", mode.name));
 }
 
-void leave_frontend_gametype(const map_mode &mode) {
-  for (auto *dvar : {&game::g_gametype, &game::sv_gametype}) {
-    if (**dvar && (*dvar)->get_string().value_or("") == "frontend") {
-      (*dvar)->set(mode.gametype);
+void leave_frontend_gametype(const GameModeConfiguration &mode) {
+  for (const game::symbol<game::EngineDependentDvarMut> *dvar :
+       {&game::g_gametype, &game::sv_gametype}) {
+    const game::symbol<game::EngineDependentDvarMut> &ref = *dvar;
+    if (ref->nonnull() && ref->map_string([](const std::string_view &gametype) {
+          return gametype == "frontend";
+        })) {
+      ref->set(mode.gametype);
     }
   }
 }
@@ -169,14 +213,14 @@ void run_when(const std::function<bool()> &ready, const std::string &text) {
 }
 
 template <utils::hook::detour *Hook> void sv_map_in_mode_stub() {
-  std::optional<map_mode> mode;
+  std::optional<GameModeConfiguration> mode;
   std::string mapname;
   std::string text;
   {
     const command::params_sv params{};
     if (params.size() > 1 && game::is_new_client() &&
         !game::com::Com_IsInGame()) {
-      mode = get_map_mode(params[1]);
+      mode = get_default_gamemode_config_for_map(params[1]);
       mapname = params[1];
       text = params.join(0) + "\n";
     }
@@ -233,9 +277,11 @@ bool ensure_networkmode_online() {
 }
 
 void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
-                     const std::string &mapname, const std::string &gametype,
-                     const std::string &usermap_id, const std::string &mod_id,
-                     const std::string &lobby) {
+                     const std::string_view &mapname,
+                     const std::string_view &gametype,
+                     const std::string_view &usermap_id,
+                     const std::string_view &mod_id,
+                     const std::string_view &lobby) {
   const auto connect = [=] {
     game::com::Com_SessionMode_SetGameMode(
         game::eGameModes::MATCHMAKING_PLAYLIST);
@@ -394,35 +440,34 @@ void handle_connect_query_response(const bool success,
       static_cast<game::eModes>(std::atoi(playmode.data()));
   // const game::XUID xuid = strtoull(info.get("xuid").data(), nullptr, 16);
 
-  scheduler::once(
-      [=] {
-        const char *addr_str =
-            utils::string::va("%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b,
-                              target.ipv4.c, target.ipv4.d, target.port);
+  const game::ugc::OptionalUGCItemRef usermap_item =
+      game::ugc::UGC_GetUsermapByInternalName(mapname);
+  if (usermap_item.has_value()) {
+    const std::string_view &usermap_id = usermap_item->get().publisherId;
+    const std::string addr_str = target.toString();
+    scheduler::once(
+        [=] {
+          // Always save latest address for mod reconnect (mod unload/reload)
+          workshop::set_pending_mod_reconnect(addr_str);
 
-        // Always save latest address for mod reconnect (mod unload/reload)
-        workshop::set_pending_mod_reconnect(addr_str);
-
-        const std::string usermap_id =
-            workshop::get_usermap_publisher_id(mapname);
-
-        if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
-                                             base_uri) &&
-            workshop::check_valid_mod_id(mod_id, workshop_id)) {
-          connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
-                          lobby);
-        } else {
-          const char *msg = utils::string::va(
-              "Missing or invalid workshop/map dependencies for server %s.",
-              addr_str);
-          printf("Connect failed: %s\n", msg);
-          toast::show("Connect failed", "Missing workshop/map dependencies",
-                      "t7_icon_connect_overlays");
-          // Save download reconnect
-          workshop::set_pending_download_reconnect(addr_str);
-        }
-      },
-      scheduler::main);
+          if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
+                                               base_uri) &&
+              workshop::check_valid_mod_id(mod_id, workshop_id)) {
+            connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
+                            lobby);
+          } else {
+            const char *msg = utils::string::va(
+                "Missing or invalid workshop/map dependencies for server %s.",
+                addr_str.c_str());
+            printf("Connect failed: %s\n", msg);
+            toast::show("Connect failed", "Missing workshop/map dependencies",
+                        "t7_icon_connect_overlays");
+            // Save download reconnect
+            workshop::set_pending_download_reconnect(addr_str);
+          }
+        },
+        scheduler::main);
+  }
 }
 
 void connect_finish(const game::net::netadr_t &target) {
