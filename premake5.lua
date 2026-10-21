@@ -463,9 +463,14 @@ local optimizationFlags = {
   -- Misc. optimization
   "-fomit-frame-pointer",
   "-fcf-protection=none",
+}
 
+local toolsetConfigurationFlags = {
   -- Use LLD as linker
   "-fuse-ld=lld",
+
+  -- Enable all C++ MS extensions
+  "-fms-extensions",
 }
 
 local clangLinkerOptimizationFlags = map(linkerOptimizationFlags, clang_ld_flag)
@@ -489,8 +494,8 @@ filter({})
 filter({ "configurations:Release", "toolset:not msc*" })
 
 local clangOptimizationFlags = mergeTables(optimizationFlags, clangLinkerOptimizationFlags)
-buildoptions(mergeTables(archFlags, clangOptimizationFlags))
-linkoptions(clangOptimizationFlags)
+buildoptions(mergeTables(warningFlags, archFlags, clangOptimizationFlags, toolsetConfigurationFlags))
+linkoptions(mergeTables(warningFlags, clangOptimizationFlags, toolsetConfigurationFlags))
 filter({})
 
 filter("configurations:Debug")
@@ -510,20 +515,19 @@ linkoptions({
 })
 filter({})
 filter({ "configurations:Debug", "toolset:not msc*" })
-buildoptions(mergeTables(archFlags, {
+buildoptions(mergeTables(archFlags, toolsetConfigurationFlags, {
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
   "-Wl,/NODEFAULTLIB:libucrt.lib",
   "-l libcmtd.lib",
 }))
-linkoptions({
-  "-fms-extensions",
+linkoptions(mergeTables(toolsetConfigurationFlags, {
   "-fms-runtime-lib=static_dbg",
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
   "-Wl,/NODEFAULTLIB:libucrt.lib",
   "-l libcmtd.lib",
-})
+}))
 filter({})
 
 project("common")

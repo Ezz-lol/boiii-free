@@ -696,26 +696,19 @@ WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH="${msvc_toolchain_sysroot}/include"
 
 cflags=(
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
-	"-fms-extensions"
-	"-fuse-ld=lld"
 	"--target=x86_64-windows-msvc"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 cxxflags=(
-	"-std=c++20"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
-	"-fms-extensions"
-	"-fuse-ld=lld"
 	"--target=x86_64-windows-msvc"
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 ldflags=("-static"
-	"-fms-extensions"
 	"-isystem"
 	"${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
 	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
-	"-fuse-ld=lld"
 	"--target=x86_64-windows-msvc"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
