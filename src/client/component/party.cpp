@@ -184,8 +184,9 @@ void leave_frontend_gametype(const GameModeConfiguration &mode) {
        {&game::g_gametype, &game::sv_gametype}) {
     const game::symbol<game::EngineDependentDvarMut> &ref = *dvar;
     if (ref->nonnull() && ref->map_string([](const std::string_view &gametype) {
-          return gametype == "frontend";
-        })) {
+                               return gametype == "frontend";
+                             })
+                              .value_or(false)) {
       ref->set(mode.gametype);
     }
   }
