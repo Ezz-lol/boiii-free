@@ -733,26 +733,6 @@ if [ "$VERBOSE" -eq 1 ]; then
 	resflags+=("--verbose")
 fi
 
-disabled_warnings=(
-	"unknown-warning-option"
-	"microsoft-cast"
-	"dangling-else"
-	"nonportable-include-path"
-	"error=implicit-function-declaration"
-	"error=microsoft-case"
-	"error=dangling-else"
-	"system-headers"
-	"sign-compare"
-	"format"
-	"unused-command-line-argument"
-)
-
-for warning in "${disabled_warnings[@]}"; do
-	cflags+=("-Wno-$warning" "-Wno-error=$warning" "-Wno-clang-diagnostic-$warning" "-Wno-error=clang-diagnostic-$warning")
-	cxxflags+=("-Wno-$warning" "-Wno-error=$warning" "-Wno-clang-diagnostic-$warning" "-Wno-error=clang-diagnostic-$warning")
-	ldflags+=("-Wno-$warning" "-Wno-error=$warning" "-Wno-clang-diagnostic-$warning" "-Wno-error=clang-diagnostic-$warning")
-done
-
 TEMP_CFLAGS="${cflags[*]}"
 TEMP_CXXFLAGS="${cxxflags[*]}"
 TEMP_LDFLAGS="${ldflags[*]}"

@@ -478,36 +478,25 @@ local clangLinkerOptimizationFlags = map(linkerOptimizationFlags, clang_ld_flag)
 local clArchFlags = map(archFlags, clang_cl_flag)
 local clParserFlags = map(parserFlags, clang_cl_flag)
 
-local disabledWarnings = {
+disablewarnings({
   "unused-command-line-argument",
   "microsoft-cast",
   "dangling-else",
   "unused",
   "format",
   "sign-compare",
-}
-
-local warningFlags = {}
-
-for _, flag in pairs(disabledWarnings) do
-  table.insert(warningFlags, "-Wno-" .. flag)
-  table.insert(warningFlags, "-Wno-error=" .. flag)
-  table.insert(warningFlags, "-Wno-clang-diagnostic-" .. flag)
-  table.insert(warningFlags, "-Wno-error=clang-diagnostic-" .. flag)
-end
+})
 
 filter({ "configurations:Release", "toolset:msc*" })
 optimize("Size")
 
-buildoptions(mergeTables(warningFlags, clArchFlags))
+buildoptions(clArchFlags)
 linkoptions({ "/IGNORE:4702", "/LTCG" })
 filter({})
 filter({ "configurations:Release", "toolset:not msc*" })
 
-buildoptions(mergeTables(warningFlags, archFlags, optimizationFlags, toolsetConfigurationFlags))
-linkoptions(
-  mergeTables(warningFlags, archFlags, toolsetConfigurationFlags, optimizationFlags, clangLinkerOptimizationFlags)
-)
+buildoptions(mergeTables(archFlags, optimizationFlags, toolsetConfigurationFlags))
+linkoptions(mergeTables(archFlags, toolsetConfigurationFlags, optimizationFlags, clangLinkerOptimizationFlags))
 filter({})
 
 filter("configurations:Debug")
@@ -527,13 +516,13 @@ linkoptions({
 })
 filter({})
 filter({ "configurations:Debug", "toolset:not msc*" })
-buildoptions(mergeTables(archFlags, toolsetConfigurationFlags, warningFlags, {
+buildoptions(mergeTables(archFlags, toolsetConfigurationFlags, {
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
   "-Wl,/NODEFAULTLIB:libucrt.lib",
   "-l libcmtd.lib",
 }))
-linkoptions(mergeTables(archFlags, toolsetConfigurationFlags, warningFlags, {
+linkoptions(mergeTables(archFlags, toolsetConfigurationFlags, {
   "-fms-runtime-lib=static_dbg",
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
@@ -547,10 +536,7 @@ kind("StaticLib")
 language("C++")
 
 filter({ "toolset: msc*" })
-buildoptions({ "-Qunused-arguments", "-Wno-dangling-else" })
-filter({})
-filter({ "toolset:not msc*" })
-buildoptions({ "-Wno-dangling-else" })
+buildoptions({ "-Qunused-arguments" })
 filter({})
 
 files({ "./src/common/**.hpp", "./src/common/**.cpp" })
@@ -571,10 +557,7 @@ kind("WindowedApp")
 language("C++")
 
 filter({ "toolset: msc*" })
-buildoptions({ "-Qunused-arguments", "-Wno-dangling-else" })
-filter({})
-filter({ "toolset:not msc*" })
-buildoptions({ "-Wno-dangling-else" })
+buildoptions({ "-Qunused-arguments" })
 filter({})
 
 targetname("boiii")
@@ -616,10 +599,7 @@ kind("SharedLib")
 language("C++")
 
 filter({ "toolset: msc*" })
-buildoptions({ "-Qunused-arguments", "-Wno-dangling-else" })
-filter({})
-filter({ "toolset:not msc*" })
-buildoptions({ "-Wno-dangling-else" })
+buildoptions({ "-Qunused-arguments" })
 filter({})
 
 symbols("Off")
