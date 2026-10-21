@@ -61,7 +61,7 @@ jobs:
         run: premake5 ninja
 
       - name: Build Release
-        run: ninja Release_x64 -Cbuild -j32
+        run: ninja Release_x64 -Cbuild
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
