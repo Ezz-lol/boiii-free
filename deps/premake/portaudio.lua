@@ -35,7 +35,6 @@ function portaudio.import()
 end
 
 function portaudio.includes()
-  portaudio.defines()
   includedirs({
     portaudio.include,
     path.join(portaudio.source, "os/win"),
