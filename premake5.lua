@@ -494,11 +494,6 @@ for _, flag in pairs(disabledWarnings) do
   table.insert(warningFlags, "-Wno-error=" .. flag)
   table.insert(warningFlags, "-Wno-clang-diagnostic-" .. flag)
   table.insert(warningFlags, "-Wno-error=clang-diagnostic-" .. flag)
-
-  table.insert(warningFlags, "-Wno-error=" .. flag)
-  table.insert(warningFlags, "-Wno-error=error=" .. flag)
-  table.insert(warningFlags, "-Wno-clang-diagnostic-error=" .. flag)
-  table.insert(warningFlags, "-Wno-error=clang-diagnostic-error=" .. flag)
 end
 
 filter({ "configurations:Release", "toolset:msc*" })
@@ -509,9 +504,10 @@ linkoptions({ "/IGNORE:4702", "/LTCG" })
 filter({})
 filter({ "configurations:Release", "toolset:not msc*" })
 
-local clangOptimizationFlags = mergeTables(optimizationFlags, clangLinkerOptimizationFlags)
-buildoptions(mergeTables(warningFlags, archFlags, clangOptimizationFlags, toolsetConfigurationFlags))
-linkoptions(mergeTables(warningFlags, clangOptimizationFlags, toolsetConfigurationFlags))
+buildoptions(mergeTables(warningFlags, archFlags, optimizationFlags, toolsetConfigurationFlags))
+linkoptions(
+  mergeTables(warningFlags, archFlags, toolsetConfigurationFlags, optimizationFlags, clangLinkerOptimizationFlags)
+)
 filter({})
 
 filter("configurations:Debug")
@@ -531,13 +527,13 @@ linkoptions({
 })
 filter({})
 filter({ "configurations:Debug", "toolset:not msc*" })
-buildoptions(mergeTables(archFlags, toolsetConfigurationFlags, {
+buildoptions(mergeTables(archFlags, toolsetConfigurationFlags, warningFlags, {
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
   "-Wl,/NODEFAULTLIB:libucrt.lib",
   "-l libcmtd.lib",
 }))
-linkoptions(mergeTables(toolsetConfigurationFlags, {
+linkoptions(mergeTables(archFlags, toolsetConfigurationFlags, warningFlags, {
   "-fms-runtime-lib=static_dbg",
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
