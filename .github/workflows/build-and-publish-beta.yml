@@ -41,7 +41,7 @@ jobs:
         uses: Jarod42/install-premake5@v7
         with:
           msdev: vs2026
-          ref: 5.0.0
+          ref: v5.0.0
 
       - name: Generate project files
         run: premake5 ninja
