@@ -544,12 +544,7 @@ execute_build() {
 
 	BUILD_EXECUTOR_CMD+=(
 		"-C${BUILD_DIR}"
-		"-j${NUM_THREADS}"
-		"-l${NUM_THREADS}")
-
-	if [ "$BUILD_EXECUTOR_TYPE" -eq "$BUILD_EXECUTOR_TYPE_GMAKE" ]; then
-		BUILD_EXECUTOR_CMD+=("--environment-overrides")
-	fi
+		"-j${NUM_THREADS}")
 
 	cross_env \
 		env SHELL="${bash_path}" \
@@ -710,9 +705,6 @@ WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED="${msvc_toolchain_sysroot}/lib/${TARGET_T
 WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH="${msvc_toolchain_sysroot}/include"
 
 cflags=(
-	"-Oz"
-	"-march=${MARCH}" "-m64"
-	"-mno-sse4.1" "-mno-sse4.2"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-fms-extensions"
 	"-fuse-ld=lld"
@@ -722,16 +714,12 @@ cflags=(
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 cxxflags=(
 	"-std=c++20"
-	"-Oz"
-	"-march=${MARCH}" "-m64"
-	"-mno-sse4.1" "-mno-sse4.2"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-fms-extensions"
 	"-fuse-ld=lld"
 	"--target=x86_64-windows-msvc"
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 ldflags=("-static"
-	"-march=${MARCH}" "-m64"
 	"-fms-extensions"
 	"-isystem"
 	"${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"

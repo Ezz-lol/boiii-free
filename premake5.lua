@@ -17,6 +17,28 @@ local function cstrquote(value)
   return result
 end
 
+local function mergeTables(...)
+  local result = {}
+  for _, currentTable in ipairs({ ... }) do
+    for k, v in pairs(currentTable) do
+      result[k] = v
+    end
+  end
+  return result
+end
+
+local function map(tbl, cb)
+  local new_tbl = {}
+  for i, v in ipairs(tbl) do
+    new_tbl[i] = cb(v)
+  end
+  return new_tbl
+end
+
+local function clang_cl_flag(clang_flag)
+  return "/clang:" .. clang_flag
+end
+
 local function split_env_flags(env_var_name)
   local value = os.getenv(env_var_name)
   local flags = {}
@@ -284,7 +306,13 @@ architecture("x86_64")
 platforms("x64")
 
 systemversion("latest")
+filter("configurations:Release")
+symbols("Off")
+filter({})
+filter("configurations:Debug")
 symbols("On")
+filter({})
+
 staticruntime("On")
 editandcontinue("Off")
 warnings("Extra")
@@ -313,7 +341,8 @@ defines({ "_WINDOWS", "WIN32" })
 filter({})
 
 filter("configurations:Release")
-optimize("Size")
+intrinsics("On")
+linktimeoptimization("On")
 defines({ "NDEBUG" })
 -- flags({ "FatalCompileWarnings" })
 filter({})
@@ -356,56 +385,89 @@ if _OPTIONS["copy-to"] then
   postbuildcommands({ copy_recursively .. ' "$(TargetPath)" "' .. _OPTIONS["copy-to"] .. '"' })
 end
 
+local archFlags = {
+  "-march=x86-64",
+  "-m64",
+  -- Only used after positive test for support at runtime.
+  "-mno-sse4.1",
+  "-mno-sse4.2",
+}
+local parserFlags = {
+  "-fbracket-depth=1024",
+}
+local optimizationFlags = {
+  -- General
+  "-Oz",
+
+  -- Link-time optimization
+  "-flto=full",
+  "-Wl,-opt:lldltocgo=3",
+  "-Wl,-opt:lldlto=3",
+
+  -- Data de-duplication
+  "-fdata-sections",
+  "-fmerge-all-constants",
+  "-fvisibility=hidden",
+  "-Wl,-opt:ref", -- Removes dead code, unreferenced data
+
+  -- Virtual function de-duplication
+  "-fwhole-program-vtables",
+  "-fvirtual-function-elimination",
+  "-fdevirtualize-speculatively",
+
+  -- General function de-duplication
+  "-ffunction-sections",
+  "-Wl,-opt:icf=safe",
+  "-Wl,-opt:lldtailmerge",
+
+  -- Loop optimization
+  "-funroll-loops",
+  "-fvectorize",
+  "-floop-interchange",
+
+  -- General IR optimizations
+  "-flifetime-dse",
+  "-fstrict-aliasing",
+  "-fclangir",
+
+  -- Function inlining optimizations
+  "-finline-functions",
+  -- Note: this flag increases binary size by ~100KB as of writing this.
+  -- Only inlines functions explicitly marked as `inline`, so this is still
+  -- likely preferable.
+  "-finline-hint-functions",
+
+  -- Symbol table and debug data removal
+  "-Wl,-debug:none",
+
+  -- Compile time optimizations
+  "-pipe",
+
+  -- Misc. optimizations
+  "-fomit-frame-pointer",
+  "-fcf-protection=none",
+}
+
+local clArchFlags = map(archFlags, clang_cl_flag)
+local clParserFlags = map(parserFlags, clang_cl_flag)
+
 filter({ "configurations:Release", "toolset:msc*" })
--- buildoptions({ "/GL" })
-buildoptions({
+local warningFlags = {
   "-Wno-unused-command-line-argument",
   "-Wno-microsoft-cast",
   "-Wno-dangling-else",
   "-Wno-unused",
   "-Wno-format",
   "-Wno-sign-compare",
-  "/clang:-march=x86-64",
-  "/clang:-fbracket-depth=1024",
-  -- Only used after positive test for support at runtime.
-  -- We need to compile with these CPU features regardless of end-user
-  -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
-  -- can be emitted at all.
-  "/clang:-mno-sse4.1",
-  "/clang:-mno-sse4.2",
-})
-linkoptions({ "/IGNORE:4702", "/LTCG" })
+}
+local clOptimizationFlags = map(optimizationFlags, clang_cl_flag)
+buildoptions(mergeTables(warningFlags, clArchFlags, clOptimizationFlags))
+linkoptions(mergeTables({ "/IGNORE:4702" }, clOptimizationFlags))
 filter({})
 filter({ "configurations:Release", "toolset:not msc*" })
-buildoptions({
-  "-march=x86-64",
-  "-mno-sse4.1",
-  "-mno-sse4.2",
-  "-ffat-lto-objects",
-  "-flto=full",
-  "-fwhole-program-vtables",
-  "-fvisibility=hidden",
-  "-ffunction-sections",
-  "-fdata-sections",
-  "-Wl,-fat-lto-objects",
-  "-Wl,-opt:lldltocgo=3",
-  "-Wl,-opt:lldlto=3",
-  "-Wl,-opt:icf=safe",
-  "-Wl,-opt:ref",
-})
-linkoptions({
-  "-ffat-lto-objects",
-  "-flto=full",
-  "-fwhole-program-vtables",
-  "-fvisibility=hidden",
-  "-ffunction-sections",
-  "-fdata-sections",
-  "-Wl,-fat-lto-objects",
-  "-Wl,-opt:lldltocgo=3",
-  "-Wl,-opt:lldlto=3",
-  "-Wl,-opt:icf=safe",
-  "-Wl,-opt:ref",
-})
+
+buildoptions(mergeTables(archFlags, optimizationFlags))
+linkoptions(optimizationFlags)
 filter({})
 
 filter("configurations:Debug")
@@ -413,17 +475,9 @@ optimize("Debug")
 defines({ "DEBUG", "_DEBUG", "_CRT_DEBUG" })
 filter({})
 filter({ "configurations:Debug", "toolset:msc*" })
-buildoptions({
+buildoptions(mergeTables({
   "/MDd",
-  "/clang:-march=x86-64",
-  "/clang:-fbracket-depth=1024",
-  -- Only used after positive test for support at runtime.
-  -- We need to compile with these CPU features regardless of end-user
-  -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
-  -- can be emitted at all.
-  "/clang:-mno-sse4.1",
-  "/clang:-mno-sse4.2",
-})
+}, clParserFlags, clArchFlags))
 linkoptions({
   "/DEBUG",
   "/NODEFAULTLIB:libcmt.lib",
@@ -433,15 +487,12 @@ linkoptions({
 })
 filter({})
 filter({ "configurations:Debug", "toolset:not msc*" })
-buildoptions({
-  "-march=x86-64",
-  "-mno-sse4.1",
-  "-mno-sse4.2",
+buildoptions(mergeTables(archFlags, {
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
   "-Wl,/NODEFAULTLIB:libucrt.lib",
   "-l libcmtd.lib",
-})
+}))
 linkoptions({
   "-fms-extensions",
   "-fms-runtime-lib=static_dbg",
@@ -535,6 +586,9 @@ filter({})
 symbols("Off")
 exceptionhandling("Off")
 
+optimize("Off")
+intrinsics("Off")
+
 runtimechecks("Off")
 buffersecuritycheck("Off")
 nodefaultlib("On")
@@ -559,8 +613,13 @@ linkoptions({
 })
 filter({})
 
-removebuildoptions({ "-fwhole-program-vtables" })
-removelinkoptions({ "/LTCG", "-fwhole-program-vtables" })
+removebuildoptions({ "-fwhole-program-vtables", "-fvirtual-function-elimination", "-fdevirtualize-speculatively" })
+removelinkoptions({
+  "/LTCG",
+  "-fwhole-program-vtables",
+  "-fvirtual-function-elimination",
+  "-fdevirtualize-speculatively",
+})
 
 files({ "./src/tlsdll/**.rc", "./src/tlsdll/**.hpp", "./src/tlsdll/**.cpp", "./src/tlsdll/resources/**.*" })
 

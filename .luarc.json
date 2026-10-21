@@ -19,11 +19,13 @@
       "include",
       "includedirs",
       "incrementallink",
+      "intrinsics",
       "kind",
       "language",
       "libdirs",
       "linkoptions",
       "links",
+      "linktimeoptimization",
       "location",
       "manifest",
       "minimalrebuild",
@@ -59,6 +61,7 @@
       "targetname",
       "toolset",
       "warnings",
+      "wholearchive",
       "workspace"
     ]
   }
