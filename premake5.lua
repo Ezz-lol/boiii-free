@@ -2,7 +2,7 @@ GIT_VERSIONING_COMMAND = "git describe --tags --always"
 GIT_CURRENT_BRANCH_COMMAND = "git symbolic-ref -q --short HEAD"
 
 -- Quote the given string input as a C string
-function cstrquote(value)
+local function cstrquote(value)
   if value == nil then
     return '""'
   end
@@ -15,6 +15,17 @@ function cstrquote(value)
   result = result:gsub("\b", "\\b")
   result = '"' .. result .. '"'
   return result
+end
+
+local function split_env_flags(env_var_name)
+  local value = os.getenv(env_var_name)
+  local flags = {}
+  if value then
+    for flag in string.gmatch(value, "[^%s]+") do
+      table.insert(flags, flag)
+    end
+  end
+  return flags
 end
 
 -- Converts tags in "vX.X.X" format and given revision number Y to an array of numbers {X,X,X,Y}.
@@ -311,6 +322,34 @@ defines({ "NDEBUG" })
 -- flags({ "FatalCompileWarnings" })
 filter({})
 
+-- Read flags from the environment
+local env_cflags = split_env_flags("CFLAGS")
+local env_cxxflags = split_env_flags("CXXFLAGS")
+local env_ldflags = split_env_flags("LDFLAGS")
+local env_resflags = split_env_flags("RESFLAGS")
+
+-- Append CFLAGS to all C/C++ source compilation args
+if #env_cflags > 0 then
+  buildoptions({ env_cflags })
+end
+
+-- Append CXXFLAGS to C++ source compilation args
+if #env_cxxflags > 0 then
+  filter("language:C++")
+  buildoptions({ env_cxxflags })
+  filter({})
+end
+
+-- Append LDFLAGS to linker args
+if #env_ldflags > 0 then
+  linkoptions({ env_ldflags })
+end
+
+-- Append RESFLAGS to resource compiler args
+if #env_resflags > 0 then
+  resoptions({ env_resflags })
+end
+
 filter({ "configurations:Release", "toolset:msc*" })
 -- buildoptions({ "/GL" })
 buildoptions({
@@ -480,7 +519,7 @@ if not hasVersion then
   if os.host() == "windows" then
     prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "premake5 generate-buildinfo", "popd" })
   else
-    prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
+    prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo && cd - >/dev/null" })
   end
 end
 
@@ -557,6 +596,6 @@ if not hasVersion then
   if os.host() == "windows" then
     prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "premake5 generate-buildinfo", "popd" })
   else
-    prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
+    prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo && cd - >/dev/null" })
   end
 end

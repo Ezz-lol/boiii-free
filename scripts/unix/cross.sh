@@ -711,20 +711,20 @@ WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH="${msvc_toolchain_sysroot}/include"
 
 cflags=(
 	"-Oz"
-	"-march=${MARCH}" "-m64" "-mno-sse4.1" "-mno-sse4.2"
+	"-march=${MARCH}" "-m64"
+	"-mno-sse4.1" "-mno-sse4.2"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-fms-extensions"
 	"-fuse-ld=lld"
 	"--target=x86_64-windows-msvc"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
-	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 cxxflags=(
 	"-std=c++20"
 	"-Oz"
-	"-march=${MARCH}" "-m64" "-mno-sse4.1" "-mno-sse4.2"
-	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/c++/msstl/"
+	"-march=${MARCH}" "-m64"
+	"-mno-sse4.1" "-mno-sse4.2"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-fms-extensions"
 	"-fuse-ld=lld"
@@ -736,14 +736,19 @@ ldflags=("-static"
 	"-isystem"
 	"${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
-	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}"
 	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"-fuse-ld=lld"
 	"--target=x86_64-windows-msvc"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
-	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"-Wl,/subsystem:windows")
+
+if [ -d "$WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED" ] || [ -L "$WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED" ]; then
+	cflags+=("-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}")
+	ldflags+=("-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}"
+		"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}")
+fi
+
 if [ "$RELEASE" -eq 1 ]; then
 	ldflags+=("-Wl,/release")
 fi
@@ -802,8 +807,7 @@ BUILD_DEPS=(
 if tidy; then
 	if ! cross_env \
 		clang-tidy "${EXEC_ARGS[@]}" -- \
-		-I"${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" \
-		-I"${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/c++/msstl/"; then
+		-I"${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"; then
 		exit 1
 	fi
 
