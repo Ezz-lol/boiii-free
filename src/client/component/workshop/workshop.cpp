@@ -647,11 +647,11 @@ std::string get_pending_download_reconnect() {
   return addr;
 }
 
-std::uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
+uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
   std::error_code ec;
   if (!std::filesystem::exists(folder, ec))
     return 0;
-  std::uint64_t total = 0;
+  uint64_t total = 0;
   for (const std::filesystem::directory_entry &entry :
        std::filesystem::recursive_directory_iterator(
            folder, std::filesystem::directory_options::skip_permission_denied,
@@ -660,15 +660,15 @@ std::uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
       break;
     if (!entry.is_regular_file(ec))
       continue;
-    total += static_cast<std::uint64_t>(
-        std::filesystem::file_size(entry.path(), ec));
+    total +=
+        static_cast<uint64_t>(std::filesystem::file_size(entry.path(), ec));
     if (ec)
       break;
   }
   return total;
 }
 
-std::string human_readable_size(std::uint64_t bytes) {
+std::string human_readable_size(uint64_t bytes) {
   const char *suffixes[] = {"B", "KB", "MB", "GB", "TB"};
   double value = static_cast<double>(bytes);
   int idx = 0;
@@ -681,7 +681,7 @@ std::string human_readable_size(std::uint64_t bytes) {
   return buf;
 }
 
-std::uint64_t parse_human_size_to_bytes(const std::string_view &text) {
+uint64_t parse_human_size_to_bytes(const std::string_view &text) {
   std::smatch m;
   std::regex re(R"((\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB))", std::regex::icase);
   const std::string text_copy = std::string(text);
@@ -705,11 +705,10 @@ std::uint64_t parse_human_size_to_bytes(const std::string_view &text) {
   const double bytes = value * mul;
   if (bytes <= 0.0)
     return 0;
-  return static_cast<std::uint64_t>(bytes);
+  return static_cast<uint64_t>(bytes);
 }
 
-std::uint64_t
-scrape_workshop_file_size_bytes(const std::string_view &workshop_id) {
+uint64_t scrape_workshop_file_size_bytes(const std::string_view &workshop_id) {
   utils::http::headers h;
   h["User-Agent"] =
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
@@ -739,8 +738,8 @@ scrape_workshop_file_size_bytes(const std::string_view &workshop_id) {
     return out;
   };
 
-  const auto labels = column("detailsStatLeft");
-  const auto values = column("detailsStatRight");
+  const std::vector<std::string> labels = column("detailsStatLeft");
+  const std::vector<std::string> values = column("detailsStatRight");
   for (size_t i = 0; i < std::min(labels.size(), values.size()); ++i) {
     if (labels[i].find("size") == std::string::npos &&
         labels[i].find("tamanho") == std::string::npos &&
@@ -748,12 +747,12 @@ scrape_workshop_file_size_bytes(const std::string_view &workshop_id) {
         labels[i].find("tama") == std::string::npos &&
         labels[i].find("gr") == std::string::npos)
       continue;
-    auto text = values[i];
+    std::basic_string<char> text = values[i];
     if (text.find('.') == std::string::npos)
       std::replace(text.begin(), text.end(), ',', '.');
     else
       std::erase(text, ',');
-    if (const auto bytes = parse_human_size_to_bytes(text))
+    if (const uint64_t bytes = parse_human_size_to_bytes(text))
       return bytes;
   }
   return 0;
@@ -768,7 +767,7 @@ std::vector<item_details> get_details(const std::vector<std::string> &ids) {
     for (size_t i = 0; i < count; ++i)
       body += "&publishedfileids[" + std::to_string(i) + "]=" + ids[start + i];
 
-    const auto resp = utils::http::post_data(
+    const std::optional<std::string> resp = utils::http::post_data(
         "https://api.steampowered.com/ISteamRemoteStorage/"
         "GetPublishedFileDetails/v1/",
         body, 15);
@@ -779,62 +778,66 @@ std::vector<item_details> get_details(const std::vector<std::string> &ids) {
         !doc["response"]["publishedfiledetails"].IsArray())
       continue;
 
-    for (const auto &entry :
+    for (const rapidjson::Document::Array::ValueType &entry :
          doc["response"]["publishedfiledetails"].GetArray()) {
       const auto string_of = [&](const char *key) {
-        const auto it = entry.FindMember(key);
+        const rapidjson::Document::Array::ValueType::ConstMemberIterator it =
+            entry.FindMember(key);
         return it != entry.MemberEnd() && it->value.IsString()
                    ? std::string(it->value.GetString())
                    : std::string();
       };
-      const auto number_of = [&](const char *key) -> std::uint64_t {
-        const auto it = entry.FindMember(key);
+      const auto number_of = [&](const char *key) -> uint64_t {
+        const rapidjson::Document::Array::ValueType::ConstMemberIterator it =
+            entry.FindMember(key);
         if (it == entry.MemberEnd())
           return 0;
         if (it->value.IsString())
           return std::strtoull(it->value.GetString(), nullptr, 10);
         return it->value.IsNumber()
-                   ? static_cast<std::uint64_t>(it->value.GetDouble())
+                   ? static_cast<uint64_t>(it->value.GetDouble())
                    : 0;
       };
 
-      if (!entry.IsObject())
-        continue;
-      const auto app_id = number_of("consumer_app_id");
-      if (app_id && app_id != game::APP_ID)
-        continue;
+      if (entry.IsObject()) {
+        const uint64_t app_id = number_of("consumer_app_id");
+        if (!app_id || app_id == game::APP_ID) {
+          item_details item{};
+          item.id = string_of("publishedfileid");
+          if (!item.id.empty()) {
+            item.title = string_of("title");
+            item.description = string_of("description");
+            item.preview_url = string_of("preview_url");
+            item.file_size = number_of("file_size");
+            item.time_updated = number_of("time_updated");
+            item.subs = static_cast<std::int64_t>(
+                number_of("lifetime_subscriptions")
+                    ? number_of("lifetime_subscriptions")
+                    : number_of("subscriptions"));
+            item.favorites =
+                static_cast<std::int64_t>(number_of("lifetime_favorited")
+                                              ? number_of("lifetime_favorited")
+                                              : number_of("favorited"));
 
-      item_details item{};
-      item.id = string_of("publishedfileid");
-      if (item.id.empty())
-        continue;
-      item.title = string_of("title");
-      item.description = string_of("description");
-      item.preview_url = string_of("preview_url");
-      item.file_size = number_of("file_size");
-      item.time_updated = number_of("time_updated");
-      item.subs =
-          static_cast<std::int64_t>(number_of("lifetime_subscriptions")
-                                        ? number_of("lifetime_subscriptions")
-                                        : number_of("subscriptions"));
-      item.favorites = static_cast<std::int64_t>(
-          number_of("lifetime_favorited") ? number_of("lifetime_favorited")
-                                          : number_of("favorited"));
-
-      bool map = false;
-      bool mod = false;
-      if (entry.HasMember("tags") && entry["tags"].IsArray()) {
-        for (const auto &tag : entry["tags"].GetArray()) {
-          if (tag.IsObject() && tag.HasMember("tag") && tag["tag"].IsString()) {
-            item.tags.emplace_back(tag["tag"].GetString());
-            const auto kind = normalize_kind(item.tags.back());
-            map |= kind == "Map";
-            mod |= kind == "Mod";
+            bool map = false;
+            bool mod = false;
+            if (entry.HasMember("tags") && entry["tags"].IsArray()) {
+              for (const rapidjson::GenericValue<rapidjson::UTF8<>> &tag :
+                   entry["tags"].GetArray()) {
+                if (tag.IsObject() && tag.HasMember("tag") &&
+                    tag["tag"].IsString()) {
+                  item.tags.emplace_back(tag["tag"].GetString());
+                  const std::string kind = normalize_kind(item.tags.back());
+                  map |= kind == "Map";
+                  mod |= kind == "Mod";
+                }
+              }
+            }
+            item.kind = mod && !map ? "Mod" : "Map";
+            result.push_back(std::move(item));
           }
         }
       }
-      item.kind = mod && !map ? "Mod" : "Map";
-      result.push_back(std::move(item));
     }
   }
   return result;
@@ -844,7 +847,8 @@ workshop_info get_steam_workshop_info(const std::string_view &workshop_id) {
   workshop_info info{};
   if (workshop_id.empty())
     return info;
-  const auto details = get_details({std::string(workshop_id)});
+  const std::vector<item_details> details =
+      get_details({std::string(workshop_id)});
   if (!details.empty()) {
     info.title = details[0].title;
     info.file_size = details[0].file_size;

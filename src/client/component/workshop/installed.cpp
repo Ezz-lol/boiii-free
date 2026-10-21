@@ -13,7 +13,7 @@
 
 namespace workshop {
 namespace {
-constexpr auto CACHE_TTL = 3s;
+constexpr std::chrono::seconds CACHE_TTL = 3s;
 
 std::mutex cache_mutex;
 std::vector<installed_item> cache;
@@ -23,13 +23,13 @@ bool cache_valid = false;
 std::mutex reload_mutex;
 std::vector<std::string> finished_in_match;
 
-std::filesystem::path root_for(const std::string &kind) {
+std::filesystem::path root_for(const std::string_view &kind) {
   return game::get_game_path() / (kind == "Map" ? "usermaps" : "mods");
 }
 
 std::optional<rapidjson::Document>
 read_workshop_json(const std::filesystem::path &dir) {
-  for (const auto &file :
+  for (const std::filesystem::path &file :
        {dir / "workshop.json", dir / "zone" / "workshop.json"}) {
     std::string json;
     rapidjson::Document doc;
@@ -44,7 +44,7 @@ read_workshop_json(const std::filesystem::path &dir) {
 std::string json_string(const rapidjson::Document &doc,
                         std::initializer_list<const char *> keys) {
   for (const char *key : keys) {
-    const auto it = doc.FindMember(key);
+    const rapidjson::Document::ConstMemberIterator it = doc.FindMember(key);
     if (it != doc.MemberEnd() && it->value.IsString() &&
         it->value.GetStringLength()) {
       return it->value.GetString();
@@ -54,18 +54,19 @@ std::string json_string(const rapidjson::Document &doc,
 }
 
 std::string detect_kind(const std::filesystem::path &dir) {
-  if (const auto doc = read_workshop_json(dir)) {
-    const auto kind = normalize_kind(json_string(*doc, {"Type", "type"}));
+  if (const std::optional<rapidjson::Document> doc = read_workshop_json(dir)) {
+    const std::string kind =
+        normalize_kind(json_string(*doc, {"Type", "type"}));
     if (!kind.empty())
       return kind;
   }
 
   bool has_map_zone = false;
   std::error_code ec;
-  for (const auto &zone_dir : {dir / "zone", dir}) {
-    for (const auto &entry :
+  for (const std::filesystem::path &zone_dir : {dir / "zone", dir}) {
+    for (const std::filesystem::directory_entry &entry :
          std::filesystem::directory_iterator(zone_dir, ec)) {
-      const auto name =
+      const std::string name =
           utils::string::to_lower(entry.path().filename().string());
       if (name == "mod.ff" || name == "core_mod.ff")
         return "Mod";
@@ -77,13 +78,15 @@ std::string detect_kind(const std::filesystem::path &dir) {
   return has_map_zone ? "Map" : "";
 }
 
-void scan_root(const std::string &kind, std::vector<installed_item> &items) {
+void scan_root(const std::string_view &kind,
+               std::vector<installed_item> &items) {
   std::error_code ec;
-  for (const auto &entry :
+  for (const std::filesystem::directory_entry &entry :
        std::filesystem::directory_iterator(root_for(kind), ec)) {
     if (!entry.is_directory(ec) || entry.path().extension() == ".deleting")
       continue;
-    const auto doc = read_workshop_json(entry.path());
+    const std::optional<rapidjson::Document> doc =
+        read_workshop_json(entry.path());
     if (!doc)
       continue;
 
@@ -127,8 +130,8 @@ void reload_now() {
 }
 } // namespace
 
-std::string normalize_kind(const std::string &kind) {
-  const auto k = utils::string::to_lower(kind);
+std::string normalize_kind(const std::string_view &kind) {
+  const std::string k = utils::string::to_lower(std::string(kind));
   if (k.starts_with("map") || k.starts_with("usermap") ||
       k.starts_with("custom map"))
     return "Map";
@@ -150,18 +153,19 @@ std::vector<installed_item> list_installed() {
   return cache;
 }
 
-std::filesystem::path find_installed(const std::string &id) {
+std::filesystem::path find_installed(const std::string_view &id) {
   if (id.empty())
     return {};
-  for (const auto &item : list_installed()) {
+  for (const installed_item &item : list_installed()) {
     if (item.id == id || item.folder == id)
       return item.path;
   }
 
   std::error_code ec;
-  for (const auto &root : {root_for("Map"), root_for("Mod"),
-                           game::get_game_path().parent_path().parent_path() /
-                               "workshop" / "content" / game::APP_ID_STR}) {
+  for (const std::filesystem::path &root :
+       {root_for("Map"), root_for("Mod"),
+        game::get_game_path().parent_path().parent_path() / "workshop" /
+            "content" / game::APP_ID_STR}) {
     if (compute_folder_size_bytes(root / id) > 1024)
       return root / id;
   }
@@ -169,19 +173,19 @@ std::filesystem::path find_installed(const std::string &id) {
 }
 
 std::filesystem::path install_folder(const std::filesystem::path &download,
-                                     const std::string &id,
-                                     const std::string &kind_hint) {
-  auto kind = detect_kind(download);
+                                     const std::string_view &id,
+                                     const std::string_view &kind_hint) {
+  std::string kind = detect_kind(download);
   if (kind.empty())
     kind = normalize_kind(kind_hint);
   if (kind.empty())
     kind = "Map";
 
-  const auto existing = find_installed(id);
+  const std::filesystem::path existing = find_installed(id);
   const bool replaces = existing.parent_path() == root_for("Map") ||
                         existing.parent_path() == root_for("Mod");
-  const auto root = root_for(kind);
-  const auto target =
+  const std::filesystem::path root = root_for(kind);
+  const std::filesystem::path target =
       root / (replaces ? existing.filename() : std::filesystem::path(id));
 
   std::error_code ec;
@@ -196,20 +200,21 @@ std::filesystem::path install_folder(const std::filesystem::path &download,
     std::filesystem::copy(download, target,
                           std::filesystem::copy_options::recursive, ec);
     if (ec) {
-      printf("[ Workshop ] Could not install %s: %s\n", id.c_str(),
+      printf("[ Workshop ] Could not install %s: %s\n", id.data(),
              ec.message().c_str());
       return {};
     }
     std::filesystem::remove_all(download, ec);
   }
 
-  const auto now = std::filesystem::file_time_type::clock::now();
+  const std::filesystem::file_time_type::clock::time_point now =
+      std::filesystem::file_time_type::clock::now();
   std::filesystem::last_write_time(target, now, ec);
   invalidate_cache();
   return target;
 }
 
-bool delete_installed(const std::string &id, std::string &error) {
+bool delete_installed(const std::string_view &id, std::string &error) {
   if (is_any_download_active() &&
       (queue::current_id().empty() || queue::current_id() == id)) {
     error = "Wait for the current download to finish.";
@@ -218,7 +223,7 @@ bool delete_installed(const std::string &id, std::string &error) {
 
   invalidate_cache();
   bool found = false;
-  for (const auto &item : list_installed()) {
+  for (const installed_item &item : list_installed()) {
     if (item.id != id && item.folder != id)
       continue;
     found = true;
@@ -228,7 +233,7 @@ bool delete_installed(const std::string &id, std::string &error) {
     }
 
     std::error_code ec;
-    auto trash = std::filesystem::path(item.path);
+    std::filesystem::path trash = std::filesystem::path(item.path);
     trash += ".deleting";
     std::filesystem::remove_all(trash, ec);
     std::filesystem::rename(item.path, trash, ec);
@@ -247,7 +252,7 @@ bool delete_installed(const std::string &id, std::string &error) {
   return true;
 }
 
-void request_content_reload(const std::string &finished_title) {
+void request_content_reload(const std::string_view &finished_title) {
   invalidate_cache();
   scheduler::once(
       [finished_title] {
@@ -256,7 +261,7 @@ void request_content_reload(const std::string &finished_title) {
           return;
         }
         std::lock_guard lock(reload_mutex);
-        finished_in_match.push_back(finished_title);
+        finished_in_match.push_back(std::string(finished_title));
       },
       scheduler::main);
 }

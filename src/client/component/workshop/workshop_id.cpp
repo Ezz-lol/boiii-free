@@ -147,8 +147,8 @@ void get_map_id_from_json() {
     printf("%s", loaded_mod_id.c_str());
     write_pubid_to_file(loaded_mod_id);
   } else {
-    const std::string &usermaps_path =
-        std::filesystem::current_path().string() + "/usermaps";
+    const std::filesystem::path &usermaps_path =
+        std::filesystem::current_path() / "usermaps";
     std::error_code ec;
     if (!std::filesystem::is_directory(usermaps_path, ec)) {
       return;
@@ -156,7 +156,7 @@ void get_map_id_from_json() {
 
     std::string_view mapname = game::get_mapname().value_or("");
 
-    for (const auto &entry :
+    for (const std::filesystem::directory_entry &entry :
          std::filesystem::directory_iterator(usermaps_path, ec)) {
       std::filesystem::path workshop_json = entry.path() / "workshop.json";
       std::filesystem::path workshop_json_zone =

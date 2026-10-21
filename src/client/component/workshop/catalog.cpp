@@ -29,9 +29,9 @@ std::string cover_id;
 std::string applied_cover;
 std::atomic<int> preview_downloads{0};
 
-std::string url_encode(const std::string &value) {
+std::string url_encode(const std::string_view &value) {
   std::string out;
-  for (const unsigned char c : value) {
+  for (const uint8_t c : value) {
     if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
       out.push_back(static_cast<char>(c));
     } else {
@@ -41,7 +41,7 @@ std::string url_encode(const std::string &value) {
   return out;
 }
 
-void collect_ids(const std::string &html, const std::string &prefix,
+void collect_ids(const std::string_view &html, const std::string_view &prefix,
                  std::vector<std::string> &ids,
                  std::unordered_set<std::string> &seen) {
   for (size_t pos = html.find(prefix);
@@ -49,38 +49,39 @@ void collect_ids(const std::string &html, const std::string &prefix,
        pos = html.find(prefix, pos)) {
     pos += prefix.size();
     std::string id;
-    while (pos < html.size() &&
-           std::isdigit(static_cast<unsigned char>(html[pos])))
+    while (pos < html.size() && std::isdigit(static_cast<uint8_t>(html[pos])))
       id.push_back(html[pos++]);
     if (id.size() >= 8 && seen.insert(id).second)
       ids.push_back(id);
   }
 }
 
-void remember_page_sizes(const std::string &html) {
+void remember_page_sizes(const std::string_view &html) {
   const std::string key = "file_size";
   for (size_t pos = html.find(key); pos != std::string::npos;
        pos = html.find(key, pos + key.size())) {
-    const auto digits = html.find_first_of("0123456789", pos + key.size());
-    const auto id_at = html.rfind("publishedfileid", pos);
+    const size_t digits = html.find_first_of("0123456789", pos + key.size());
+    const size_t id_at = html.rfind("publishedfileid", pos);
     if (digits == std::string::npos || digits > pos + 40 ||
         id_at == std::string::npos || pos - id_at > 4000)
       continue;
-    const auto id_digits = html.find_first_of("0123456789", id_at + 16);
-    const auto id_end = html.find_first_not_of("0123456789", id_digits);
-    const auto bytes = std::strtoull(html.c_str() + digits, nullptr, 10);
+    const size_t id_digits = html.find_first_of("0123456789", id_at + 16);
+    const size_t id_end = html.find_first_not_of("0123456789", id_digits);
+    const size_t bytes = std::strtoull(html.data() + digits, nullptr, 10);
     if (bytes && id_digits < id_at + 64 && id_end - id_digits >= 6)
-      known_sizes[html.substr(id_digits, id_end - id_digits)] = bytes;
+      known_sizes[std::string(html.substr(id_digits, id_end - id_digits))] =
+          bytes;
   }
 }
 
-bool matches_query(const item_details &item, const std::string &query) {
-  const auto hay = utils::string::to_lower(item.title + " " + item.description);
+bool matches_query(const item_details &item, const std::string_view &query) {
+  const std::string hay =
+      utils::string::to_lower(item.title + " " + item.description);
   int needed = 0;
   int hits = 0;
   std::string term;
-  for (const char c : utils::string::to_lower(query) + " ") {
-    if (std::isalnum(static_cast<unsigned char>(c))) {
+  for (const char c : utils::string::to_lower(std::string(query)) + " ") {
+    if (std::isalnum(static_cast<uint8_t>(c))) {
       term.push_back(c);
       continue;
     }
@@ -95,7 +96,7 @@ bool matches_query(const item_details &item, const std::string &query) {
   return needed <= 1 ? hits >= needed : hits >= std::max(2, (needed + 1) / 2);
 }
 
-std::string strip_tags(const std::string &text) {
+std::string strip_tags(const std::string_view &text) {
   std::string plain;
   bool in_tag = false;
   for (const char c : text) {
@@ -109,29 +110,31 @@ std::string strip_tags(const std::string &text) {
   return plain;
 }
 
-std::vector<item_details> fetch_page(int page, const std::string &query) {
+std::vector<item_details> fetch_page(int page, const std::string_view &query) {
   utils::http::headers headers;
   headers["User-Agent"] = USER_AGENT;
   headers["Accept-Language"] = "en-US,en;q=0.9";
 
-  const auto base =
-      "https://steamcommunity.com/workshop/browse/?appid=" +
-      std::string(game::APP_ID_STR) +
-      "&childpublishedfileid=0&numperpage=30&p=" + std::to_string(page);
+  const std::string base =
+      std::format("https://steamcommunity.com/workshop/browse/"
+                  "?appid={}&childpublishedfileid=0&numperpage=30&p={}",
+                  game::APP_ID_STR, page);
   std::vector<std::string> urls;
   if (query.empty()) {
-    urls.push_back(
-        base + "&section=readytouseitems&browsesort=trend&actualsort=trend");
+    urls.push_back(std::format(
+        "{}&section=readytouseitems&browsesort=trend&actualsort=trend", base));
   } else {
-    const auto search = "&browsesort=textsearch&actualsort=textsearch&"
-                        "searchtext=" +
-                        url_encode(query);
-    urls.push_back(base + "&section=readytouseitems" + search);
-    urls.push_back(base + search);
+    const std::string search =
+        std::format("&browsesort=textsearch&actualsort=textsearch&"
+                    "searchtext={}",
+                    url_encode(query));
+    urls.push_back(std::format("{}&section=readytouseitems{}", base, search));
+    urls.push_back(std::format("{}{}", base, search));
   }
 
-  for (const auto &url : urls) {
-    const auto html = utils::http::get_data(url, headers, {}, 15);
+  for (const std::string &url : urls) {
+    const std::optional<std::string> html =
+        utils::http::get_data(url, headers, {}, 15);
     if (!html)
       continue;
 
@@ -166,35 +169,36 @@ std::vector<item_details> fetch_page(int page, const std::string &query) {
   return {};
 }
 
-std::filesystem::path preview_path(const std::string &id) {
-  return game::get_appdata_path() / "workshop_previews" / (id + ".png");
+std::filesystem::path preview_path(const std::string_view &id) {
+  return game::get_appdata_path() / "workshop_previews" /
+         std::format("{}.png", id);
 }
 
-bool has_preview(const std::string &id) {
+bool has_preview(const std::string_view &id) {
   return utils::io::file_size(preview_path(id).string()) > 16;
 }
 
-bool is_engine_image(const std::string &body) {
-  const auto *u = reinterpret_cast<const unsigned char *>(body.data());
+bool is_engine_image(const std::string_view &body) {
+  const uint8_t *u = reinterpret_cast<const uint8_t *>(body.data());
   return body.size() > 16 &&
          ((u[0] == 0x89 && u[1] == 'P' && u[2] == 'N' && u[3] == 'G') ||
           (u[0] == 0xFF && u[1] == 0xD8 && u[2] == 0xFF) ||
           body.starts_with("GIF8") || body.starts_with("BM"));
 }
 
-std::string og_image(const std::string &html) {
-  const auto key = html.find("og:image");
-  const auto content = key == std::string::npos
-                           ? std::string::npos
-                           : html.find("content=\"", key > 80 ? key - 80 : 0);
+std::string og_image(const std::string_view &html) {
+  const size_t key = html.find("og:image");
+  const size_t content = key == std::string::npos
+                             ? std::string::npos
+                             : html.find("content=\"", key > 80 ? key - 80 : 0);
   if (content == std::string::npos)
     return {};
-  const auto start = content + 9;
-  return html.substr(start, html.find('"', start) - start);
+  const size_t start = content + 9;
+  return std::string(html.substr(start, html.find('"', start) - start));
 }
 
 void bind_cover(const game::gfx::GfxTexture &loaded) {
-  auto *image =
+  game::gfx::GfxImage *image =
       game::db::xasset::DB_FindXAssetHeader(game::db::xasset::XAssetType::IMAGE,
                                             "img_t7_mod_preview", 1, -1)
           .image;
@@ -204,7 +208,7 @@ void bind_cover(const game::gfx::GfxTexture &loaded) {
     game::gfx::Gfx_TexturePool_ReleaseRef(image->texture, 0);
     image->texture.basemap->lpVtbl->Release(image->texture.basemap);
   }
-  auto texture = loaded;
+  game::gfx::GfxTexture texture = loaded;
   if (!texture.basemap) {
     texture = (*game::gfx::loadedGfxImage.get())->texture;
     game::gfx::Gfx_TexturePool_AddRef(texture, 0);
@@ -219,11 +223,12 @@ void apply_cover() {
     std::lock_guard lock(preview_mutex);
     id = cover_id;
   }
-  const auto loading = game::get_appdata_path() /
-                       "data/ui_scripts/workshop_menu/loadingworkshop.png";
-  const auto wanted = id.empty()        ? std::string{}
-                      : has_preview(id) ? preview_path(id).string()
-                                        : loading.string();
+  const std::filesystem::path loading =
+      game::get_appdata_path() /
+      "data/ui_scripts/workshop_menu/loadingworkshop.png";
+  const std::string wanted = id.empty()        ? std::string{}
+                             : has_preview(id) ? preview_path(id).string()
+                                               : loading.string();
   if (wanted == applied_cover)
     return;
   applied_cover = wanted;
@@ -233,7 +238,7 @@ void apply_cover() {
 }
 } // namespace
 
-void request_catalog_page(const std::string &query, int page) {
+void request_catalog_page(const std::string_view &query, int page) {
   page = std::max(page, 1);
   {
     std::lock_guard lock(catalog_mutex);
@@ -245,10 +250,10 @@ void request_catalog_page(const std::string &query, int page) {
     status = {true, false, page, status.generation + 1, {}};
   }
 
-  const auto request = ++catalog_request;
+  const uint64_t request = ++catalog_request;
   std::thread([query, page, request] {
-    auto items = fetch_page(page, query);
-    for (const auto &item : items)
+    std::vector<item_details> items = fetch_page(page, query);
+    for (const item_details &item : items)
       request_preview(item.id, item.preview_url);
 
     std::lock_guard lock(catalog_mutex);
@@ -274,12 +279,12 @@ catalog_status get_catalog_status() {
   return status;
 }
 
-void request_preview(const std::string &id, const std::string &url) {
+void request_preview(const std::string_view &id, const std::string_view &url) {
   if (id.empty() || has_preview(id))
     return;
   {
     std::lock_guard lock(preview_mutex);
-    if (!preview_busy.insert(id).second)
+    if (!preview_busy.insert(std::string(id)).second)
       return;
   }
 
@@ -294,22 +299,24 @@ void request_preview(const std::string &id, const std::string &url) {
 
     std::vector<std::string> urls;
     if (!url.empty()) {
-      urls.push_back(url);
-      urls.push_back(url + (url.find('?') == std::string::npos ? "?" : "&") +
-                     "imw=512&ima=fit&impolicy=Letterbox");
+      urls.push_back(std::string(url));
+      urls.push_back(
+          std::format("{}{}imw=512&ima=fit&impolicy=Letterbox", url,
+                      url.find('?') == std::string::npos ? "?" : "&"));
     }
-    urls.push_back("https://steamcommunity.com/sharedfiles/filedetails/?id=" +
-                   id);
+    urls.push_back(std::format(
+        "https://steamcommunity.com/sharedfiles/filedetails/?id={}", id));
 
     for (size_t i = 0; i < urls.size(); ++i) {
-      const auto body = utils::http::get_data(urls[i], headers, {}, 10);
+      const std::optional<std::string> body =
+          utils::http::get_data(urls[i], headers, {}, 10);
       if (!body)
         continue;
       if (is_engine_image(*body)) {
         utils::io::write_file(preview_path(id).string(), *body);
         break;
       }
-      const auto image = og_image(*body);
+      const std::string image = og_image(*body);
       if (!image.empty() && i + 1 == urls.size()) {
         urls.push_back(image);
         urls.push_back(image + "?imw=512&ima=fit&impolicy=Letterbox");
@@ -318,11 +325,11 @@ void request_preview(const std::string &id, const std::string &url) {
 
     --preview_downloads;
     std::lock_guard lock(preview_mutex);
-    preview_busy.erase(id);
+    preview_busy.erase(std::string(id));
   }).detach();
 }
 
-void set_preview_cover(const std::string &id) {
+void set_preview_cover(const std::string_view &id) {
   std::lock_guard lock(preview_mutex);
   cover_id = id;
 }

@@ -24,7 +24,7 @@ bool cancelled(const download_job &job) {
 download_result
 download_with_steamcmd(const download_job &job,
                        const std::filesystem::path &destination) {
-  const auto dir = game::get_game_path() / "steamcmd";
+  const std::filesystem::path dir = game::get_game_path() / "steamcmd";
   const bool wine = utils::nt::is_wine();
   const auto report = [&](download_status status) {
     if (job.report)
@@ -33,7 +33,10 @@ download_with_steamcmd(const download_job &job,
 
   std::string error;
   if (!steamcmd::ensure_installed(
-          dir, wine, [&](const std::string &status) { report({status}); },
+          dir, wine,
+          [&](const std::string_view &status) {
+            report({std::string(status)});
+          },
           error)) {
     printf("[ Workshop ] %s\n", error.c_str());
     return download_result::setup_failed;
@@ -41,8 +44,10 @@ download_with_steamcmd(const download_job &job,
 
   const auto find_content = [&]() -> std::filesystem::path {
     std::error_code ec;
-    for (const auto &root : steamcmd::workshop_roots(dir, wine)) {
-      const auto folder = root / "content" / game::APP_ID_STR / job.id;
+    for (const std::filesystem::path &root :
+         steamcmd::workshop_roots(dir, wine)) {
+      const std::filesystem::path folder =
+          root / "content" / game::APP_ID_STR / job.id;
       if (std::filesystem::exists(folder, ec))
         return folder;
     }
@@ -50,8 +55,8 @@ download_with_steamcmd(const download_job &job,
   };
 
   steamcmd::clear_downloads(dir);
-  const int max_tries = get_workshop_retry_attempts();
-  int fast_fails = 0;
+  const int32_t max_tries = get_workshop_retry_attempts();
+  int32_t fast_fails = 0;
   for (int tries = 1; find_content().empty(); ++tries) {
     if (cancelled(job))
       return download_result::cancelled;
@@ -75,7 +80,8 @@ download_with_steamcmd(const download_job &job,
       continue;
     }
 
-    const auto started = std::chrono::steady_clock::now();
+    const std::chrono::steady_clock::time_point started =
+        std::chrono::steady_clock::now();
     steamcmd::progress tracker(dir);
     while (!steamcmd.wait(1s)) {
       if (cancelled(job) || (job.pause && job.pause->load())) {
@@ -111,7 +117,8 @@ download_with_steamcmd(const download_job &job,
   return ec ? download_result::install_failed : download_result::success;
 }
 
-download_result run_download(const std::string &id, const std::string &kind,
+download_result run_download(const std::string_view &id,
+                             const std::string_view &kind,
                              const bool show_overlay) {
   if (launcher_downloading.load()) {
     scheduler::once(
@@ -124,10 +131,12 @@ download_result run_download(const std::string &id, const std::string &kind,
 
   downloading_workshop_item = true;
   cancel_requested = false;
-  const auto info = get_steam_workshop_info(id);
-  const auto title = info.title.empty() ? "Workshop item " + id : info.title;
+  const workshop_info info = get_steam_workshop_info(id);
+  const std::string title =
+      info.title.empty() ? std::format("Workshop item {}", id) : info.title;
 
-  download_job job{id, kind, &cancel_requested, nullptr, {}};
+  download_job job{
+      std::string(id), std::string(kind), &cancel_requested, nullptr, {}};
   job.report = [&](const download_status &status) {
     download_overlay::download_state state;
     state.active = true;
@@ -149,16 +158,17 @@ download_result run_download(const std::string &id, const std::string &kind,
   };
   job.report({"Connecting to Steam..."});
 
-  const auto result = download_item(job);
+  const download_result result = download_item(job);
   download_overlay::clear();
   downloading_workshop_item = false;
 
   if (result == download_result::success) {
     request_content_reload(title);
-    const auto reconnect = get_pending_download_reconnect();
-    const bool more = std::ranges::any_of(queue::list(), [](const auto &e) {
-      return e.state == queue::item_state::queued;
-    });
+    const std::string reconnect = get_pending_download_reconnect();
+    const bool more =
+        std::ranges::any_of(queue::list(), [](const queue::entry &e) {
+          return e.state == queue::item_state::queued;
+        });
     scheduler::once(
         [title, reconnect, more] {
           if (!reconnect.empty() && !more) {
@@ -213,8 +223,8 @@ const char *describe(const download_result result) {
 
 download_result download_item(const download_job &job,
                               std::filesystem::path *installed) {
-  const auto game_path = game::get_game_path();
-  const auto info = get_steam_workshop_info(job.id);
+  const std::filesystem::path game_path = game::get_game_path();
+  const workshop_info info = get_steam_workshop_info(job.id);
 
   ULARGE_INTEGER free_bytes{};
   if (info.file_size &&
@@ -223,7 +233,8 @@ download_result download_item(const download_job &job,
     return download_result::no_space;
   }
 
-  const auto staging = game_path / "workshop_downloads" / job.id;
+  const std::filesystem::path staging =
+      game_path / "workshop_downloads" / job.id;
   std::error_code ec;
   std::filesystem::remove_all(staging, ec);
   std::filesystem::create_directories(staging, ec);
@@ -259,9 +270,9 @@ download_result download_item(const download_job &job,
     }
   });
 
-  auto result = download_from_steam(job.id, staging, job, progress)
-                    ? download_result::success
-                    : download_result::failed;
+  download_result result = download_from_steam(job.id, staging, job, progress)
+                               ? download_result::success
+                               : download_result::failed;
   done = true;
   reporter.join();
 
@@ -277,7 +288,8 @@ download_result download_item(const download_job &job,
   if (result == download_result::success) {
     if (job.report)
       job.report({"Installing..."});
-    const auto target = install_folder(staging, job.id, job.kind);
+    const std::filesystem::path target =
+        install_folder(staging, job.id, job.kind);
     if (target.empty())
       result = download_result::install_failed;
     else if (installed)
@@ -288,7 +300,7 @@ download_result download_item(const download_job &job,
   return result;
 }
 
-void start_download(const std::string &id, const std::string &kind) {
+void start_download(const std::string_view &id, const std::string_view &kind) {
   queue::add(id, kind);
 }
 
@@ -310,7 +322,7 @@ std::optional<entry> current;
 std::deque<entry> history;
 std::atomic<uint32_t> generation_counter{1};
 
-auto by_id(const std::string &id) {
+auto by_id(const std::string_view &id) {
   return [&id](const entry &e) { return e.id == id; };
 }
 
@@ -329,7 +341,8 @@ void worker() {
       ++generation_counter;
     }
 
-    const auto result = run_download(next.id, next.kind, next.show_overlay);
+    const download_result result =
+        run_download(next.id, next.kind, next.show_overlay);
 
     std::lock_guard lock(mutex);
     next.state = result == download_result::success     ? item_state::done
@@ -360,8 +373,8 @@ const char *state_name(const item_state state) {
   }
 }
 
-bool add(const std::string &id, const std::string &kind,
-         const std::string &title, const uint64_t file_size,
+bool add(const std::string_view &id, const std::string_view &kind,
+         const std::string_view &title, const uint64_t file_size,
          const bool show_overlay) {
   if (id.empty() || !utils::string::is_numeric(id))
     return false;
@@ -374,8 +387,9 @@ bool add(const std::string &id, const std::string &kind,
     if ((current && current->id == id) ||
         std::ranges::any_of(pending, by_id(id)))
       return false;
-    pending.push_back({id, kind, title.empty() ? id : title, file_size,
-                       item_state::queued, -1, show_overlay});
+    pending.push_back({std::string(id), std::string(kind),
+                       title.empty() ? std::string(id) : std::string(title),
+                       file_size, item_state::queued, -1, show_overlay});
     std::erase_if(history, by_id(id));
     ++generation_counter;
   }
@@ -383,7 +397,7 @@ bool add(const std::string &id, const std::string &kind,
   return true;
 }
 
-bool remove(const std::string &id) {
+bool remove(const std::string_view &id) {
   std::lock_guard lock(mutex);
   if (!std::erase_if(pending, by_id(id)))
     return false;
@@ -391,17 +405,18 @@ bool remove(const std::string &id) {
   return true;
 }
 
-bool move(const std::string &id, const int delta) {
+bool move(const std::string_view &id, const int32_t delta) {
   std::lock_guard lock(mutex);
-  const auto it = std::ranges::find_if(pending, by_id(id));
+  const std::ranges::borrowed_iterator_t<decltype(pending) &> it =
+      std::ranges::find_if(pending, by_id(id));
   if (it == pending.end())
     return false;
-  const auto from = static_cast<int>(it - pending.begin());
-  const auto to =
+  const int32_t from = static_cast<int>(it - pending.begin());
+  const int32_t to =
       std::clamp(from + delta, 0, static_cast<int>(pending.size()) - 1);
   if (from == to)
     return false;
-  auto item = std::move(*it);
+  std::remove_reference_t<entry &> item = std::move(*it);
   pending.erase(it);
   pending.insert(pending.begin() + to, std::move(item));
   ++generation_counter;
@@ -422,22 +437,23 @@ std::vector<entry> list() {
     out.push_back(*current);
     out.back().position = 0;
   }
-  int position = 0;
-  for (const auto &e : pending) {
+  int32_t position = 0;
+  for (const entry &e : pending) {
     out.push_back(e);
     out.back().position = ++position;
   }
-  for (const auto &e : history) {
+  for (const entry &e : history) {
     out.push_back(e);
   }
   return out;
 }
 
-int position(const std::string &id) {
+int position(const std::string_view &id) {
   std::lock_guard lock(mutex);
   if (current && current->id == id)
     return 0;
-  const auto it = std::ranges::find_if(pending, by_id(id));
+  const std::ranges::borrowed_iterator_t<decltype(pending) &> it =
+      std::ranges::find_if(pending, by_id(id));
   return it == pending.end() ? -1 : static_cast<int>(it - pending.begin()) + 1;
 }
 

@@ -35,7 +35,7 @@ std::string read_text(const std::filesystem::path &path) {
 
 std::string unix_path(const std::filesystem::path &path) {
   using wine_get_unix_file_name_t = char *(__cdecl *)(const wchar_t *);
-  static const auto convert =
+  static const wine_get_unix_file_name_t convert =
       reinterpret_cast<wine_get_unix_file_name_t>(GetProcAddress(
           GetModuleHandleW(L"kernel32.dll"), "wine_get_unix_file_name"));
   char *const result = convert ? convert(path.wstring().c_str()) : nullptr;
@@ -64,10 +64,10 @@ process::~process() {
     CloseHandle(pi_.hThread);
 }
 
-bool process::start(const std::string &args) {
+bool process::start(const std::string_view &args) {
   if (!wine_) {
     std::string command =
-        "\"" + (dir_ / "steamcmd.exe").string() + "\" " + args;
+        std::format("\"{}/steacmd.exe\" {}", dir_.string(), args);
     STARTUPINFOA si{};
     si.cb = sizeof(si);
     return CreateProcessA(nullptr, command.data(), nullptr, nullptr, FALSE,
@@ -209,7 +209,8 @@ void progress::update(process &steamcmd) {
     return;
   }
   const uint64_t now_bytes = steamcmd.transferred_bytes();
-  const auto now = std::chrono::steady_clock::now();
+  const std::chrono::steady_clock::time_point now =
+      std::chrono::steady_clock::now();
   const double seconds =
       std::chrono::duration<double>(now - last_sample_).count();
   if (seconds > 0.0) {
@@ -245,9 +246,10 @@ int64_t progress::eta_seconds() const {
                          : -1;
 }
 
-bool ensure_installed(const std::filesystem::path &dir, const bool wine,
-                      const std::function<void(const std::string &)> &status,
-                      std::string &error) {
+bool ensure_installed(
+    const std::filesystem::path &dir, const bool wine,
+    const std::function<void(const std::string_view &)> &status,
+    std::string &error) {
   std::error_code ec;
   std::filesystem::create_directories(dir, ec);
 

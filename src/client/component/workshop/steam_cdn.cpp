@@ -97,7 +97,7 @@ void pb_fixed64(std::string &o, uint32_t field, uint64_t v) {
   wr_u32(o, static_cast<uint32_t>(v >> 32));
 }
 
-void pb_bytes(std::string &o, uint32_t field, const std::string &s) {
+void pb_bytes(std::string &o, uint32_t field, const std::string_view &s) {
   pb_tag(o, field, 2);
   pb_varint(o, s.size());
   o.append(s);
@@ -167,8 +167,8 @@ struct pb_in {
   template <typename F> void fields(F &&handle) {
     uint64_t tag = 0;
     while (p < end && read_var(tag)) {
-      const auto field = static_cast<uint32_t>(tag >> 3);
-      const auto wt = static_cast<uint32_t>(tag & 7);
+      const uint32_t field = static_cast<uint32_t>(tag >> 3);
+      const uint32_t wt = static_cast<uint32_t>(tag & 7);
       if (!handle(field, wt) && !skip(wt))
         return;
     }
@@ -181,8 +181,8 @@ struct pb_in {
   }
 };
 
-pb_in as_in(const std::string &s) {
-  const auto *p = reinterpret_cast<const uint8_t *>(s.data());
+pb_in as_in(const std::string_view &s) {
+  const uint8_t *p = reinterpret_cast<const uint8_t *>(s.data());
   return {p, p + s.size()};
 }
 
@@ -211,13 +211,13 @@ std::string inflate_window(const uint8_t *data, size_t n, int window_bits,
   return out;
 }
 
-std::string unzip_first_entry(const std::string &blob) {
-  const auto *b = reinterpret_cast<const uint8_t *>(blob.data());
+std::string unzip_first_entry(const std::string_view &blob) {
+  const uint8_t *b = reinterpret_cast<const uint8_t *>(blob.data());
   if (blob.size() < 30 || !is_zip(b, blob.size()))
     return {};
-  const auto method = static_cast<uint16_t>(b[8] | (b[9] << 8));
-  const auto comp_size = rd_u32(b + 18);
-  const auto uncomp_size = rd_u32(b + 22);
+  const uint16_t method = static_cast<uint16_t>(b[8] | (b[9] << 8));
+  const uint32_t comp_size = rd_u32(b + 18);
+  const uint32_t uncomp_size = rd_u32(b + 22);
   const size_t data_off = 30ull + static_cast<uint16_t>(b[26] | (b[27] << 8)) +
                           static_cast<uint16_t>(b[28] | (b[29] << 8));
   if (blob.size() < data_off)
@@ -226,19 +226,19 @@ std::string unzip_first_entry(const std::string &blob) {
   if (comp_size > 0 && comp_size <= n)
     n = comp_size;
   if (method == 0)
-    return blob.substr(data_off, n);
+    return std::string(blob.substr(data_off, n));
   if (method == 8)
     return inflate_window(b + data_off, n, -MAX_WBITS, uncomp_size);
   return {};
 }
 
-bool aes256_decrypt(const std::string &key, const uint8_t *data, size_t len,
-                    std::string &out) {
+bool aes256_decrypt(const std::string_view &key, const uint8_t *data,
+                    size_t len, std::string &out) {
   if (key.size() != 32 || len < 32 || (len % 16) != 0)
     return false;
   register_cipher(&aes_desc);
   const int idx = find_cipher("aes");
-  const auto *k = reinterpret_cast<const uint8_t *>(key.data());
+  const uint8_t *k = reinterpret_cast<const uint8_t *>(key.data());
 
   uint8_t iv[16];
   symmetric_ECB ecb{};
@@ -258,11 +258,11 @@ bool aes256_decrypt(const std::string &key, const uint8_t *data, size_t len,
   if (!ok)
     return false;
 
-  const auto pad = static_cast<unsigned char>(buf.back());
+  const uint8_t pad = static_cast<uint8_t>(buf.back());
   if (pad == 0 || pad > 16)
     return false;
   for (size_t i = 0; i < pad; ++i) {
-    if (static_cast<unsigned char>(buf[buf.size() - 1 - i]) != pad)
+    if (static_cast<uint8_t>(buf[buf.size() - 1 - i]) != pad)
       return false;
   }
   buf.resize(buf.size() - pad);
@@ -270,12 +270,12 @@ bool aes256_decrypt(const std::string &key, const uint8_t *data, size_t len,
   return true;
 }
 
-std::string to_hex(const std::string &bytes) {
+std::string to_hex(const std::string_view &bytes) {
   static constexpr char digits[] = "0123456789abcdef";
   std::string hex;
-  for (const auto c : bytes) {
-    hex.push_back(digits[static_cast<unsigned char>(c) >> 4]);
-    hex.push_back(digits[static_cast<unsigned char>(c) & 0xF]);
+  for (const char c : bytes) {
+    hex.push_back(digits[static_cast<uint8_t>(c) >> 4]);
+    hex.push_back(digits[static_cast<uint8_t>(c) & 0xF]);
   }
   return hex;
 }
@@ -310,7 +310,8 @@ bool lzma_decode(const uint8_t *props, const uint8_t *src, size_t src_len,
     return false;
   }
 
-  auto *options = static_cast<lzma_options_lzma *>(filters[0].options);
+  lzma_options_lzma *options =
+      static_cast<lzma_options_lzma *>(filters[0].options);
   options->ext_flags = LZMA_LZMA1EXT_ALLOW_EOPM;
   options->ext_size_low = static_cast<uint32_t>(dst_len);
   options->ext_size_high = static_cast<uint32_t>(uint64_t{dst_len} >> 32);
@@ -323,8 +324,9 @@ bool lzma_decode(const uint8_t *props, const uint8_t *src, size_t src_len,
   return result == LZMA_OK && out_pos == dst_len;
 }
 
-bool decode_chunk(const std::string &depot_key, const std::string &encrypted,
-                  uint32_t crc, uint32_t uncompressed, std::string &plain) {
+bool decode_chunk(const std::string_view &depot_key,
+                  const std::string_view &encrypted, uint32_t crc,
+                  uint32_t uncompressed, std::string &plain) {
   std::string data;
   if (!aes256_decrypt(depot_key,
                       reinterpret_cast<const uint8_t *>(encrypted.data()),
@@ -333,20 +335,20 @@ bool decode_chunk(const std::string &depot_key, const std::string &encrypted,
     return false;
   }
 
-  const auto *b = reinterpret_cast<const uint8_t *>(data.data());
+  const uint8_t *b = reinterpret_cast<const uint8_t *>(data.data());
   std::string out;
   if (b[0] == 'V' && b[1] == 'S' && b[2] == 'Z' && b[3] == 'a') {
-    const auto size =
+    const int32_t size =
         *reinterpret_cast<const int32_t *>(data.data() + data.size() - 11);
     if (size <= 0)
       return false;
     out.resize(static_cast<size_t>(size));
-    const auto got =
+    const size_t got =
         ZSTD_decompress(out.data(), out.size(), b + 8, data.size() - 8 - 15);
     if (ZSTD_isError(got) || got != out.size())
       return false;
   } else if (b[0] == 'V' && b[1] == 'Z' && b[2] == 'a') {
-    const auto size =
+    const int32_t size =
         *reinterpret_cast<const int32_t *>(data.data() + data.size() - 6);
     if (size <= 0)
       return false;
@@ -385,18 +387,19 @@ struct file_mapping {
   std::vector<chunk_info> chunks;
 };
 
-bool parse_manifest(const std::string &blob, const std::string &depot_key,
+bool parse_manifest(const std::string_view &blob,
+                    const std::string_view &depot_key,
                     std::vector<file_mapping> &files) {
-  const auto *p = reinterpret_cast<const uint8_t *>(blob.data());
-  const auto *end = p + blob.size();
+  const uint8_t *p = reinterpret_cast<const uint8_t *>(blob.data());
+  const uint8_t *end = p + blob.size();
   std::string payload;
   bool encrypted_names = false;
 
   while (p + 8 <= end) {
-    const auto magic = rd_u32(p);
+    const uint32_t magic = rd_u32(p);
     if (magic == MANIFEST_END_MAGIC)
       break;
-    const auto len = rd_u32(p + 4);
+    const uint32_t len = rd_u32(p + 4);
     p += 8;
     if (p + len > end)
       return false;
@@ -459,8 +462,8 @@ bool parse_manifest(const std::string &blob, const std::string &depot_key,
   });
 
   if (encrypted_names) {
-    for (auto &fm : files) {
-      const auto raw = utils::cryptography::base64::decode(fm.filename);
+    for (file_mapping &fm : files) {
+      const std::string raw = utils::cryptography::base64::decode(fm.filename);
       std::string name;
       if (!aes256_decrypt(depot_key,
                           reinterpret_cast<const uint8_t *>(raw.data()),
@@ -512,13 +515,13 @@ CURL *new_binary_session() {
   return curl;
 }
 
-std::optional<std::string> get_binary(const std::string &url) {
+std::optional<std::string> get_binary(const std::string_view &url) {
   CURL *curl = new_binary_session();
   if (!curl)
     return {};
   std::string body;
   long status = 0;
-  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+  curl_easy_setopt(curl, CURLOPT_URL, url.data());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, append_body);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
   curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip,deflate");
@@ -537,7 +540,7 @@ public:
 
   bool connect() {
     std::vector<std::string> hosts;
-    if (const auto list =
+    if (const std::optional<std::string> list =
             get_binary("https://api.steampowered.com/ISteamDirectory/"
                        "GetCMListForConnect/v1/?cellid=0")) {
       rapidjson::Document doc;
@@ -545,7 +548,8 @@ public:
           doc.HasMember("response") &&
           doc["response"].HasMember("serverlist") &&
           doc["response"]["serverlist"].IsArray()) {
-        for (const auto &entry : doc["response"]["serverlist"].GetArray()) {
+        for (const rapidjson::Document::Array::ValueType &entry :
+             doc["response"]["serverlist"].GetArray()) {
           if (entry.IsObject() && entry.HasMember("type") &&
               entry["type"].IsString() &&
               std::string_view(entry["type"].GetString()) == "websockets" &&
@@ -566,7 +570,7 @@ public:
     if (hosts.size() > 8)
       hosts.resize(8);
 
-    for (const auto &host : hosts) {
+    for (const std::string &host : hosts) {
       if (ctx_.cancelled())
         return false;
       if (open(host) && logon())
@@ -625,7 +629,7 @@ public:
     std::string body;
     pb_uint(body, 1, depot);
     pb_uint(body, 2, game::APP_ID);
-    const auto job = job_++;
+    const uint64_t job = job_++;
     steam_packet pkt{};
     if (!send(EMSG_DEPOT_KEY, job, {}, body) ||
         !wait_job(job, EMSG_DEPOT_KEY_RESPONSE, pkt, 20s))
@@ -664,7 +668,7 @@ public:
     return code;
   }
 
-  std::string get_cdn_token(uint32_t depot, const std::string &host) {
+  std::string get_cdn_token(uint32_t depot, const std::string_view &host) {
     std::string req;
     pb_uint(req, 1, depot);
     pb_bytes(req, 2, host);
@@ -707,12 +711,13 @@ private:
     socket_ = connection_ = session_ = nullptr;
   }
 
-  bool open(const std::string &endpoint) {
-    const auto colon = endpoint.rfind(':');
-    const std::string host = endpoint.substr(0, colon);
-    const auto port = static_cast<INTERNET_PORT>(
-        colon == std::string::npos ? 443
-                                   : std::stoul(endpoint.substr(colon + 1)));
+  bool open(const std::string_view &endpoint) {
+    const size_t colon = endpoint.rfind(':');
+    const std::string_view &host = endpoint.substr(0, colon);
+    const INTERNET_PORT port = static_cast<INTERNET_PORT>(
+        colon == std::string::npos
+            ? 443
+            : std::stoul(std::string(endpoint.substr(colon + 1))));
     const std::wstring whost(host.begin(), host.end());
 
     session_ = WinHttpOpen(L"Valve/Steam HTTP Client 1.0",
@@ -746,8 +751,8 @@ private:
     return send(EMSG_HELLO, JOB_NONE, {}, hello);
   }
 
-  bool send(uint32_t emsg, uint64_t job_source, const std::string &job_name,
-            const std::string &body) {
+  bool send(uint32_t emsg, uint64_t job_source,
+            const std::string_view &job_name, const std::string_view &body) {
     std::string header;
     pb_fixed64(header, 1, steam_id_);
     pb_uint(header, 2, static_cast<uint32_t>(session_id_));
@@ -789,7 +794,7 @@ private:
   void dispatch(const uint8_t *data, size_t n, std::vector<steam_packet> &out) {
     if (n < 8 || (rd_u32(data) & PROTO_MASK) == 0)
       return;
-    const auto header_len = rd_u32(data + 4);
+    const uint32_t header_len = rd_u32(data + 4);
     if (8ull + header_len > n)
       return;
 
@@ -835,9 +840,9 @@ private:
       inner = inflate_window(reinterpret_cast<const uint8_t *>(inner.data()),
                              inner.size(), 16 + MAX_WBITS, 0);
     }
-    const auto *ip = reinterpret_cast<const uint8_t *>(inner.data());
+    const uint8_t *ip = reinterpret_cast<const uint8_t *>(inner.data());
     for (size_t off = 0; off + 4 <= inner.size();) {
-      const auto size = rd_u32(ip + off);
+      const uint32_t size = rd_u32(ip + off);
       off += 4;
       if (size == 0 || off + size > inner.size())
         break;
@@ -848,7 +853,8 @@ private:
 
   bool wait_job(uint64_t job, uint32_t emsg, steam_packet &out,
                 std::chrono::milliseconds timeout) {
-    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    const std::chrono::steady_clock::time_point deadline =
+        std::chrono::steady_clock::now() + timeout;
     while (std::chrono::steady_clock::now() < deadline && !ctx_.cancelled()) {
       if (std::chrono::steady_clock::now() - last_beat_ >
           std::chrono::seconds(heartbeat_sec_)) {
@@ -881,7 +887,7 @@ private:
     pb_uint(body, 7, EOS_WIN10);
     pb_bytes(body, 30, make_machine_id());
     pb_bytes(body, 80, "anonymous");
-    const auto job = job_++;
+    const uint64_t job = job_++;
     steam_packet pkt{};
     if (!send(EMSG_LOGON, job, {}, body) ||
         !wait_job(job, EMSG_LOGON_RESPONSE, pkt, 15s))
@@ -908,9 +914,9 @@ private:
     return true;
   }
 
-  bool call(const std::string &name, const std::string &req,
+  bool call(const std::string_view &name, const std::string_view &req,
             steam_packet &out) {
-    const auto job = job_++;
+    const uint64_t job = job_++;
     return send(EMSG_SERVICE_METHOD_CALL, job, name, req) &&
            wait_job(job, EMSG_SERVICE_METHOD_RESPONSE, out, 20s) &&
            (out.eresult == 1 || !out.body.empty());
@@ -919,7 +925,7 @@ private:
 
 std::vector<std::string> cdn_hosts() {
   std::vector<std::string> hosts;
-  const auto resp = utils::http::get_data(
+  const std::optional<std::string> resp = utils::http::get_data(
       "https://api.steampowered.com/IContentServerDirectoryService/"
       "GetServersForSteamPipe/v1/?cell_id=0&max_servers=20",
       {}, {}, 2);
@@ -928,7 +934,8 @@ std::vector<std::string> cdn_hosts() {
       !doc.HasMember("response") || !doc["response"].HasMember("servers") ||
       !doc["response"]["servers"].IsArray())
     return hosts;
-  for (const auto &server : doc["response"]["servers"].GetArray()) {
+  for (const rapidjson::Document::Array::ValueType &server :
+       doc["response"]["servers"].GetArray()) {
     for (const char *key : {"vhost", "host"}) {
       if (server.IsObject() && server.HasMember(key) &&
           server[key].IsString()) {
@@ -940,21 +947,26 @@ std::vector<std::string> cdn_hosts() {
   return hosts;
 }
 
-std::string with_token(const std::string &url, const std::string &token) {
-  if (token.empty())
-    return url;
-  const char *separator = url.find('?') == std::string::npos ? "?" : "&";
-  return url + separator +
-         (token.find('=') == std::string::npos ? "token=" + token : token);
+std::string with_token(const std::string_view &url,
+                       const std::string_view &token) {
+  if (token.empty()) {
+    return std::string(url);
+  }
+  const char token_param_sep = url.find('?') == std::string::npos ? '?' : '&';
+  const std::string token_param = token.find('=') == std::string::npos
+                                      ? "token=" + std::string(token)
+                                      : std::string(token);
+  return std::string(url) + token_param_sep + token_param;
 }
 
-bool is_safe_relative(const std::string &name) {
+bool is_safe_relative(const std::string_view &name) {
   if (name.empty() || name.size() > 240 || name[0] == '/' || name[0] == '\\' ||
       name.find(':') != std::string::npos)
     return false;
-  for (const auto &segment : std::filesystem::path(name)) {
-    if (segment == "." || segment == ".." || segment.empty())
+  for (const std::filesystem::path &segment : std::filesystem::path(name)) {
+    if (segment == "." || segment == ".." || segment.empty()) {
       return false;
+    }
   }
   return true;
 }
@@ -965,30 +977,30 @@ struct chunk_transfer {
 };
 
 size_t receive_chunk(char *ptr, size_t size, size_t nmemb, void *userdata) {
-  auto *transfer = static_cast<chunk_transfer *>(userdata);
+  chunk_transfer *transfer = static_cast<chunk_transfer *>(userdata);
   transfer->body.append(ptr, size * nmemb);
   transfer->progress->received += size * nmemb;
   return size * nmemb;
 }
 
 bool fetch_chunk(CURL *curl, const context &ctx, const chunk_info &chunk,
-                 const std::string &key, const std::vector<std::string> &hosts,
-                 uint32_t depot, const std::string &token, std::string &plain) {
-  const auto hex = to_hex(chunk.sha);
-  for (int attempt = 0; attempt < CHUNK_ATTEMPTS && !ctx.cancelled();
+                 const std::string_view &key,
+                 const std::vector<std::string> &hosts, uint32_t depot,
+                 const std::string_view &token, std::string &plain) {
+  const std::string hex = to_hex(chunk.sha);
+  for (int32_t attempt = 0; attempt < CHUNK_ATTEMPTS && !ctx.cancelled();
        ++attempt) {
     if (attempt > 0) {
       ctx.progress.retrying = true;
       std::this_thread::sleep_for(2s);
     }
     ctx.wait_while_paused();
-    for (const auto &host : hosts) {
+    for (const std::string &host : hosts) {
       if (ctx.cancelled())
         return false;
       chunk_transfer transfer{{}, &ctx.progress};
-      const auto url = with_token("https://" + host + "/depot/" +
-                                      std::to_string(depot) + "/chunk/" + hex,
-                                  token);
+      const std::string url = with_token(
+          std::format("https://{}/depot/{}/chunk/{}", host, depot, hex), token);
       long status = 0;
       curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, receive_chunk);
@@ -1006,14 +1018,14 @@ bool fetch_chunk(CURL *curl, const context &ctx, const chunk_info &chunk,
 }
 
 bool write_file(const context &ctx, const file_mapping &file,
-                const std::filesystem::path &root, const std::string &key,
+                const std::filesystem::path &root, const std::string_view &key,
                 const std::vector<std::string> &hosts, uint32_t depot,
-                const std::string &token) {
+                const std::string_view &token) {
   if (!is_safe_relative(file.filename)) {
     printf("[ Workshop ] Rejected unsafe path %s\n", file.filename.c_str());
     return false;
   }
-  const auto path = root / file.filename;
+  const std::filesystem::path path = root / file.filename;
   std::error_code ec;
   if (file.flags & DIR_FLAG) {
     std::filesystem::create_directories(path, ec);
@@ -1040,7 +1052,7 @@ bool write_file(const context &ctx, const file_mapping &file,
   std::atomic<size_t> next{0};
   std::atomic<bool> failed{false};
   std::vector<std::thread> workers;
-  const auto count = std::clamp<size_t>(file.chunks.size(), 1, MAX_WORKERS);
+  const uint64_t count = std::clamp<size_t>(file.chunks.size(), 1, MAX_WORKERS);
   for (size_t i = 0; i < count; ++i) {
     workers.emplace_back([&] {
       HANDLE handle = CreateFileW(
@@ -1051,7 +1063,7 @@ bool write_file(const context &ctx, const file_mapping &file,
         const size_t index = next++;
         if (index >= file.chunks.size())
           break;
-        const auto &chunk = file.chunks[index];
+        const chunk_info &chunk = file.chunks[index];
         std::string plain;
         LARGE_INTEGER pos{};
         pos.QuadPart = static_cast<LONGLONG>(chunk.offset);
@@ -1079,10 +1091,10 @@ bool write_file(const context &ctx, const file_mapping &file,
   return !failed && !ctx.cancelled();
 }
 
-std::string unwrap_manifest(std::string blob, const std::string &key) {
+std::string unwrap_manifest(std::string blob, const std::string_view &key) {
   const auto unzip = [](std::string &data) {
     if (is_zip(reinterpret_cast<const uint8_t *>(data.data()), data.size())) {
-      auto unzipped = unzip_first_entry(data);
+      std::string unzipped = unzip_first_entry(data);
       if (!unzipped.empty())
         data = std::move(unzipped);
     }
@@ -1109,16 +1121,16 @@ bool download_content(steam3 &steam, const context &ctx, uint64_t hcontent,
     return false;
   }
 
-  const auto code = steam.get_manifest_code(depot, hcontent);
-  const auto hosts = cdn_hosts();
+  const uint64_t code = steam.get_manifest_code(depot, hcontent);
+  const std::vector<std::string> hosts = cdn_hosts();
   if (hosts.empty()) {
     printf("[ Workshop ] No Steam content servers available\n");
     return false;
   }
-  const auto token = steam.get_cdn_token(depot, hosts.front());
+  const std::string token = steam.get_cdn_token(depot, hosts.front());
 
   std::optional<std::string> manifest;
-  for (const auto &host : hosts) {
+  for (const std::string &host : hosts) {
     if (ctx.cancelled())
       return false;
     std::string url = "https://" + host + "/depot/" + std::to_string(depot) +
@@ -1139,7 +1151,7 @@ bool download_content(steam3 &steam, const context &ctx, uint64_t hcontent,
   }
 
   uint64_t total = 0;
-  for (const auto &file : files) {
+  for (const file_mapping &file : files) {
     if (!(file.flags & DIR_FLAG))
       total += file.size;
   }
@@ -1148,7 +1160,7 @@ bool download_content(steam3 &steam, const context &ctx, uint64_t hcontent,
   std::ranges::sort(files, [](const file_mapping &a, const file_mapping &b) {
     return a.chunks.size() > b.chunks.size();
   });
-  for (const auto &file : files) {
+  for (const file_mapping &file : files) {
     if (!write_file(ctx, file, destination, key, hosts, depot, token)) {
       if (!ctx.cancelled())
         printf("[ Workshop ] Failed to download %s\n", file.filename.c_str());
@@ -1179,26 +1191,26 @@ bool download_pubfile(steam3 &steam, const context &ctx, uint64_t id,
 
   std::string name =
       info.filename.empty() ? std::to_string(id) + ".bin" : info.filename;
-  const auto data = get_binary(info.file_url);
+  const std::optional<std::string> data = get_binary(info.file_url);
   return data && is_safe_relative(name) &&
          utils::io::write_file((destination / name).string(), *data);
 }
 } // namespace
 
-bool download_from_steam(const std::string &workshop_id,
+bool download_from_steam(const std::string_view &workshop_id,
                          const std::filesystem::path &destination,
                          const download_job &job, cdn_progress &progress) {
-  const auto id = std::strtoull(workshop_id.c_str(), nullptr, 10);
-  if (!id)
-    return false;
-
-  try {
-    const context ctx{job, progress};
-    steam3 steam(ctx);
-    return steam.connect() && download_pubfile(steam, ctx, id, destination);
-  } catch (const std::exception &ex) {
-    printf("[ Workshop ] Steam download failed: %s\n", ex.what());
-    return false;
+  const uint64_t id = std::strtoull(workshop_id.data(), nullptr, 10);
+  if (id) {
+    try {
+      const context ctx{job, progress};
+      steam3 steam(ctx);
+      return steam.connect() && download_pubfile(steam, ctx, id, destination);
+    } catch (const std::exception &ex) {
+      printf("[ Workshop ] Steam download failed: %s\n", ex.what());
+    }
   }
+
+  return false;
 }
 } // namespace workshop

@@ -11,7 +11,7 @@ public:
   process(const process &) = delete;
   process &operator=(const process &) = delete;
 
-  bool start(const std::string &args);
+  bool start(const std::string_view &args);
   bool wait(std::chrono::milliseconds timeout);
   void terminate();
   uint32_t exit_code();
@@ -52,9 +52,10 @@ private:
   std::chrono::steady_clock::time_point last_sample_{};
 };
 
-bool ensure_installed(const std::filesystem::path &dir, bool wine,
-                      const std::function<void(const std::string &)> &status,
-                      std::string &error);
+bool ensure_installed(
+    const std::filesystem::path &dir, bool wine,
+    const std::function<void(const std::string_view &)> &status,
+    std::string &error);
 void clear_downloads(const std::filesystem::path &dir);
 std::vector<std::filesystem::path>
 workshop_roots(const std::filesystem::path &dir, bool wine);
