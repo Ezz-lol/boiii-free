@@ -764,7 +764,7 @@ PACKED(struct level_locals_t {
   bool initializing;
   bool clientIsSpawning;
   uint8_t _padding86[2];
-  int32_t maxclients;
+  ClientNum_t maxclients;
   lobby::LobbyClientPool<int32_t> teamSortedClients;
   uint8_t _paddingD4[12];
   objective_t objectives[128];

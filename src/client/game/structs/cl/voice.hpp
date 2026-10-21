@@ -9,6 +9,8 @@ namespace voice {
 PACKED(struct ClientVoicePacket_t {
   uint8_t data[256];
   int32_t dataSize;
+
+  IMPL_SLICE_METHODS(data, dataSize, Data);
 });
 
 PACKED(struct voiceCommunication_t {
@@ -16,6 +18,8 @@ PACKED(struct voiceCommunication_t {
   int32_t voicePacketCount;
   int32_t voicePacketLastTransmit;
   int32_t voiceTotalBytes;
+
+  IMPL_SLICE_METHODS(voicePackets, voicePacketCount, VoicePackets);
 });
 } // namespace voice
 } // namespace cl

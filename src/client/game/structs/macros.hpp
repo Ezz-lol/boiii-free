@@ -145,17 +145,6 @@ template <typename T> consteval bool is_cpp03_pod() { return CPP03PoD<T>; }
           bool, (std::is_scalar_v<name> || std::is_aggregate_v<name>), true>,  \
       #name " must be an aggregate or scalar type!");
 
-#ifndef INLINE_MEMSET
-#if defined(__clang__) || defined(__GNUC__)
-#define INLINE_MEMSET(buf, val, count) __builtin_memset(buf, val, count)
-#elif defined(_MSC_VER)
-#pragma instrinsic(memset)
-#define INLINE_MEMSET(buf, val, count) memset(buf, val, count)
-#else
-#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
-#endif
-#endif
-
 #define BITS_PER_BYTE CHAR_BIT
 template <typename T> inline constexpr size_t bitsizeof() noexcept {
   return sizeof(T) * BITS_PER_BYTE;
@@ -185,12 +174,14 @@ template <IntegralLike<uint64_t> T> consteval uint32_t min_bits_mask(T val_in) {
 
 #ifndef IMPL_SLICE_METHODS
 #define IMPL_SLICE_METHODS(field, count, capitalized)                          \
-  inline std::span<const strip_pointer_t<decltype(field)>> get##capitalized()  \
-      const noexcept {                                                         \
+  inline std::span<                                                            \
+      const std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>       \
+  get##capitalized() const noexcept {                                          \
     return std::span(field, static_cast<size_t>(count));                       \
   }                                                                            \
                                                                                \
-  inline std::span<strip_pointer_t<decltype(field)>>                           \
+  inline std::span<                                                            \
+      std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>             \
   get##capitalized() noexcept {                                                \
     return std::span(field, static_cast<size_t>(count));                       \
   }
@@ -198,12 +189,14 @@ template <IntegralLike<uint64_t> T> consteval uint32_t min_bits_mask(T val_in) {
 
 #ifndef IMPL_CONST_SLICE_METHODS
 #define IMPL_CONST_SLICE_METHODS(field, count, capitalized)                    \
-  inline std::span<const strip_pointer_t<decltype(field)>> get##capitalized()  \
-      const noexcept {                                                         \
+  inline std::span<                                                            \
+      const std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>       \
+  get##capitalized() const noexcept {                                          \
     return std::span(field, static_cast<size_t>(count));                       \
   }                                                                            \
                                                                                \
-  inline std::span<const strip_pointer_t<decltype(field)>>                     \
+  inline std::span<                                                            \
+      const std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>       \
   get##capitalized() noexcept {                                                \
     return std::span(field, static_cast<size_t>(count));                       \
   }
@@ -211,12 +204,14 @@ template <IntegralLike<uint64_t> T> consteval uint32_t min_bits_mask(T val_in) {
 
 #ifndef IMPL_VOLATILE_SLICE_METHODS
 #define IMPL_VOLATILE_SLICE_METHODS(field, count, capitalized)                 \
-  inline std::span<const volatile strip_pointer_t<decltype(field)>>            \
+  inline std::span<const volatile std::remove_all_extents_t<                   \
+      strip_pointer_t<decltype(field)>>>                                       \
   get##capitalized() const noexcept {                                          \
     return std::span(field, static_cast<size_t>(count));                       \
   }                                                                            \
                                                                                \
-  inline std::span<volatile strip_pointer_t<decltype(field)>>                  \
+  inline std::span<                                                            \
+      volatile std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>    \
   get##capitalized() noexcept {                                                \
     return std::span(field, static_cast<size_t>(count));                       \
   }

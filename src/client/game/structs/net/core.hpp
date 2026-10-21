@@ -183,7 +183,64 @@ struct netadr_t {
 };
 
 struct XNADDR {
-  uint8_t addrBuff[37];
+  static inline constexpr size_t SIZE = 37;
+
+  uint8_t addrBuff[SIZE];
+
+  inline constexpr operator const decltype(addrBuff) & () const noexcept {
+    return addrBuff;
+  }
+
+  inline constexpr operator decltype(addrBuff) & () noexcept {
+    return addrBuff;
+  }
+
+  inline constexpr operator std::span<const uint8_t, SIZE>() const noexcept {
+    return std::span<const uint8_t, SIZE>(addrBuff, SIZE);
+  }
+
+  inline constexpr operator std::span<uint8_t, SIZE>() noexcept {
+    return std::span<uint8_t, SIZE>(addrBuff, SIZE);
+  }
+
+  inline constexpr operator const uint8_t *() const noexcept {
+    return addrBuff;
+  }
+
+  inline constexpr operator uint8_t *() noexcept { return addrBuff; }
+
+  inline constexpr operator const void *() const noexcept { return addrBuff; }
+
+  inline constexpr operator void *() noexcept { return addrBuff; }
+
+  inline static constexpr auto size() noexcept { return SIZE; }
+
+  typedef uint8_t index_t;
+  inline constexpr void assert_range([[maybe_unused]] index_t index) const {
+    assert(index < static_cast<index_t>(SIZE) &&
+           "index to XNADDR must be < addrBuff length");
+  }
+  template <IntegralLike<index_t> Index>
+  inline constexpr const uint8_t &get(Index index_arg) const noexcept {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return addrBuff[index];
+  }
+  template <IntegralLike<index_t> Index>
+  inline constexpr uint8_t &get(Index index_arg) noexcept {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return addrBuff[index];
+  }
+
+  template <IntegralLike<index_t> Index>
+  inline constexpr const uint8_t &operator[](Index index) const noexcept {
+    return get(index);
+  }
+  template <IntegralLike<index_t> Index>
+  inline constexpr uint8_t &operator[](Index index) noexcept {
+    return get(index);
+  }
 };
 
 struct bdSecurityID {
@@ -241,15 +298,20 @@ struct PacketMode {
   PacketModeList mode;
 };
 
-struct HostInfo {
+// Verified
+PACKED(struct HostInfo {
   XUID xuid;
   name_t name;
   netadr_t netAdr;
   SerializedAdr serializedAdr;
   bdSecurityID secId;
   bdSecurityKey secKey;
+  uint8_t _padding76[2];
   uint32_t serverLocation;
-};
+  uint8_t _padding7C[4];
+});
+ASSERT_SIZE(HostInfo, 0x80);
+
 enum svscmd_type {
   SV_CMD_CAN_IGNORE = 0x0,
   SV_CMD_RELIABLE = 0x1,

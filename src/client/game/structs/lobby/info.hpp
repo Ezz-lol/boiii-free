@@ -11,7 +11,7 @@ namespace info {
 // Verified
 PACKED(struct LobbyUGCInfo {
   char publisherId[32];
-  int32_t version;
+  uint32_t version;
 });
 ASSERT_SIZE(LobbyUGCInfo, 0x24);
 

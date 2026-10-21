@@ -7,6 +7,7 @@ namespace dw {
 namespace social {
 namespace profile {
 class bdProfileInfo : public bdTaskResult, bdSerializable {
+public:
   bdEntityID m_entityID;
 };
 

@@ -8,6 +8,7 @@ namespace vote {
 namespace rank {
 
 class bdVoteRankStatsInfo : public stats::bdStatsInfo {
+public:
   bdEntityID m_fileOwnerID;
   bdNChar8 m_fileOwnerName[65];
   bdUInt32 m_totalVotes;

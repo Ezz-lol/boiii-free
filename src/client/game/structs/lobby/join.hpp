@@ -111,12 +111,23 @@ enum class JoinClientState : int32_t {
 };
 IMPL_ENUM_OPERATORS(JoinClientState);
 
+// Verified
 struct JoinPartyMember {
   XUID xuid;
   LobbyID lobbyID;
   float skillRating;
   float skillVariance;
+  union {
+    uint32_t probationEndTime[2];
+    struct {
+      // Serialized as "pprobation" in lobby message packet
+      uint32_t publicProbationEndTime;
+      // Serialized as "aprobation" in lobby message packet
+      uint32_t arenaProbationEndTime;
+    };
+  };
 };
+ASSERT_SIZE(JoinPartyMember, 0x20);
 
 typedef fastcallPtr_t<void(int32_t, JoinResult result)> joinCompleteCallback;
 
@@ -137,8 +148,20 @@ struct Join {
   Agreement agreement;
   Agreement debugAgreement;
   JoinType joinType;
+  uint8_t _unknown282C[0xC];
   JoinResult joinResult;
 };
+ASSERT_OFFSET(Join, joinResult, 0x2838);
+
+struct JoinClient {
+  JoinClientState state;
+  uint8_t _padding04[4];
+  JoinHost potentialHost;
+  LobbyType sourceLobbyType;
+  ControllerIndex_t controllerIndex;
+};
+// Verified
+ASSERT_SIZE(JoinClient, 0xB0);
 
 } // namespace join
 } // namespace lobby

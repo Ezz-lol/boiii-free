@@ -8,8 +8,8 @@ namespace dw {
 namespace net {
 
 namespace intercept {
-struct bdDownloadInterceptor;
-struct bdUploadInterceptor;
+class bdDownloadInterceptor;
+class bdUploadInterceptor;
 } // namespace intercept
 
 namespace http {

@@ -8,7 +8,7 @@ namespace game {
 namespace lobby {
 namespace join {
 
-WEAK symbol<lobby::join::Join> s_join{0x1556CB6D0, 0x15574A640, 0x0};
+WEAK symbol<lobby::join::Join> s_join{0x1556CB6D0, 0x15574A640, 0x14857E170};
 
 WEAK symbol<bool(int32_t actionId, ControllerIndex_t controllerIndex,
                  LobbyType sourceLobbyType, LobbyType targetLobbyType,

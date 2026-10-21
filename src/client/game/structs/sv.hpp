@@ -192,7 +192,7 @@ enum class ReliableCommand : char {
   RESERVED_UNUSED_Z = 'z'        // 0x80
 };
 
-struct client_s {
+PACKED(struct client_s {
   net::clientState_t state;
   char __pad0[0x28];
   net::netadr_t address;
@@ -227,7 +227,7 @@ struct client_s {
   char __pad6[171432];
 
   std::string serialize() const noexcept;
-};
+});
 typedef client_s client_t;
 
 #ifdef __cplusplus
@@ -353,7 +353,7 @@ PACKED(struct serverStaticHeader_t {
   int32_t nextArchivedSnapshotFrames;
   int32_t archivedEntityCount;
   int32_t num_entities;
-  int32_t maxclients;
+  ClientNum_t maxclients;
   int32_t fps;
   qboolean clientArchive;
   uint8_t _padding144[4];

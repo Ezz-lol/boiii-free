@@ -183,19 +183,23 @@ template <typename T>
 using AtomicLobbyClientOptionalPool =
     atomicarray<std::optional<T>, MAX_PLAYERS>;
 
+// Verified
 struct LobbyParams {
   LobbyNetworkMode networkMode;
   LobbyMainMode mainMode;
 };
 
-struct JoinHost {
+// Verified
+PACKED(struct JoinHost {
   net::HostInfo info;
   LobbyType lobbyType;
   LobbyParams lobbyParams;
+  uint8_t _padding8C[4];
   uint64_t reservationKey;
   int32_t retryTime;
   int32_t retryCount;
-};
+});
+ASSERT_SIZE(JoinHost, 0xA0);
 
 struct AgreementStatus {
   XUID xuid;
@@ -239,19 +243,9 @@ struct ServerInfo {
   int32_t unk6;
 };
 
-// =====================================================================
-// LobbyMsg struct - matches in-memory layout at the point of inspection.
-// game::net::msg::msg_t is 0x38 bytes, followed by msgType at offset 0x38.
-// =====================================================================
-struct LobbyMsg {
-  game::net::msg::msg_t msg; // 0x00 - 0x37
-  int32_t msgType;           // 0x38
-  char encodeFlags;          // 0x3C
-  int32_t packageType;       // 0x40
-};
-
 typedef uint64_t LobbyID;
 
+// Verified
 PACKED(struct ClientProgression {
   uint8_t rank;
   uint8_t prestige;
@@ -259,12 +253,18 @@ PACKED(struct ClientProgression {
   uint8_t paragonIconId;
   uint8_t _padding05[1];
 });
+ASSERT_SIZE(ClientProgression, 0x6);
 
+template <typename T> using BubbleGumBuffLobbyArray = array<T, 5>;
+
+// Verified
 struct BubbleGumBuffsLobbyClientInfo {
-  uint8_t bubbleGumBuffs[5];
-  uint8_t bubbleGumBuffConsumableCount[5];
+  BubbleGumBuffLobbyArray<uint8_t> bubbleGumBuffs;
+  BubbleGumBuffLobbyArray<uint8_t> bubbleGumBuffConsumableCount;
 };
+ASSERT_SIZE(BubbleGumBuffsLobbyClientInfo, 0xA);
 
+// Verified
 struct CharacterCustomizationLobbyClientInfo {
   uint8_t selectedCharacterType;
   uint8_t selectedCharacterMode;
@@ -273,7 +273,9 @@ struct CharacterCustomizationLobbyClientInfo {
   uint8_t selectedCharacterItem[2];
   uint8_t selectedCharacterItemColors[2][3];
 };
+ASSERT_SIZE(CharacterCustomizationLobbyClientInfo, 0xC);
 
+// Verified
 PACKED(struct Variant {
   char variantName[17];
   uint8_t _padding11[3];
@@ -287,13 +289,17 @@ PACKED(struct Variant {
   int32_t variantIndex;
   int32_t sortIndex;
 });
+ASSERT_SIZE(Variant, 0x54);
 
+// Verified
 struct CollectibleInfo {
   bool isSet;
   name_t mapName;
   uint8_t collectibleIndex;
 };
+ASSERT_SIZE(CollectibleInfo, 0x22);
 
+// Verified
 PACKED(struct MutableClientInfo {
   LobbyID lobbyID;
   char clantag[5];
@@ -308,9 +314,9 @@ PACKED(struct MutableClientInfo {
   Variant showcaseWeapon;
   CollectibleInfo collectibles[9];
   uint8_t _padding1CA[2];
+  // TODO: define flags as bit-packed union
   uint32_t flags;
   BGEmblemBackgroundID backgroundId;
-  uint8_t _padding1D2[2];
   uint32_t musicUnlocks[3];
   float skillRating;
   float skillVariance;
@@ -321,7 +327,15 @@ PACKED(struct MutableClientInfo {
   uint8_t ddlBuff[512];
   uint16_t ddlBuffSize;
   uint8_t _padding3F2[2];
-  uint32_t probationEndTime[2];
+  union {
+    uint32_t probationEndTime[2];
+    struct {
+      // Serialized as "pprobation" in lobby message packet
+      uint32_t publicProbationEndTime;
+      // Serialized as "aprobation" in lobby message packet
+      uint32_t arenaProbationEndTime;
+    };
+  };
   uint8_t chunkStatuses[3];
   bool isStarterPack;
   ContentFlags dlcBits;
@@ -331,6 +345,8 @@ PACKED(struct MutableClientInfo {
   bool isInFrontend;
   uint8_t _padding40B[1];
   connstate_t connectionState;
+
+  IMPL_SLICE_METHODS(ddlBuff, ddlBuffSize, DdlBuff);
 });
 ASSERT_SIZE(MutableClientInfo, 0x410);
 
@@ -338,26 +354,37 @@ struct SharedDataCenterInfo {
   uint16_t shortId;
   uint8_t rtt[10];
 };
+ASSERT_SIZE(SharedDataCenterInfo, 0xC);
 
+// Verified
 PACKED(struct FixedClientInfo {
   XUID xuid;
-  char gamertag[32];
+  name_t gamertag;
   dw::net::bdCommonAddrRef commonAdr;
   int32_t qport;
   uint8_t latencyBand;
-  uint8_t _padding35[3];
-  int granted;
-  int consumed;
-  int date;
-  int daily;
+  bool isGuest;
+  uint8_t _padding36[2];
+  int32_t granted;
+  int32_t consumed;
+  int32_t date;
+  int32_t daily;
   uint8_t connectionType;
   uint8_t _padding49[1];
   SharedDataCenterInfo datacenter[10];
   uint16_t countryCode;
   float latitude;
   float longitude;
-  uint8_t _paddingCC[4];
+  bool experimentActive;
+  uint8_t _paddingCD[3];
 });
+ASSERT_SIZE(FixedClientInfo, 0xD0);
 
+// Verified
+PACKED(struct LANClientInfo {
+  XUID xuid;
+  name_t gamertag;
+});
+ASSERT_SIZE(LANClientInfo, 0x28);
 } // namespace lobby
 } // namespace game

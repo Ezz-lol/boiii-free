@@ -16,6 +16,7 @@ public:
 };
 
 class bdLinkedAccountsResult : public bdTaskResult {
+public:
   bdUserAccountID m_userAccount;
   bdUserAccountID m_linkedAccountsResult[16];
   bdUInt32 m_numLinkedAccounts;

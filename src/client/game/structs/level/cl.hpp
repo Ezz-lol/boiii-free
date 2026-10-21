@@ -1949,7 +1949,7 @@ struct __attribute__((aligned(8))) cgs_t {
   bool localServer;
   str32_t gametype;
   str256_t szHostName;
-  int32_t maxclients;
+  ClientNum_t maxclients;
   int32_t privateClients;
   zoneName_t mappath;
   name_t mapname;

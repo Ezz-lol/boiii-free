@@ -42,7 +42,7 @@ WEAK symbol<bool(ControllerIndex_t controllerIndex,
 WEAK symbol<bool(ControllerIndex_t controllerIndex, LobbyType lobbyType)>
     CanProcessVoiceData{0x141EE4CB0, 0x0, 0x1404A2580};
 WEAK symbol<void(ControllerIndex_t controllerIndex, net::netadr_t *adr,
-                 XUID xuid, LobbyMsg *msg)>
+                 XUID xuid, msg::LobbyMsg *msg)>
     HandleVoicePacket{0x141ED3410, 0x0, 0x140491620};
 WEAK symbol<void(
     ControllerIndex_t controllerIndex, session::LobbySession *lobbySession,

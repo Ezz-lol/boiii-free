@@ -141,6 +141,10 @@ class bdUmbrella;
 namespace uno {
 class bdUno;
 }
+
+namespace steam {
+class bdSteam;
+}
 } // namespace identity
 
 namespace user {
@@ -227,6 +231,7 @@ public:
   identity::umbrella::bdUmbrella *m_umbrella;
   identity::uno::bdUno *m_uno;
   user::groups::bdUserGroups *m_userGroups;
+  identity::steam::bdSteam *m_steam;
   presence::rich::bdRichPresenceService *m_richPresence;
   presence::bdPresenceService *m_presence;
   commerce::bdCommerce *m_commerce;

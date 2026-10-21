@@ -936,6 +936,13 @@ ASSERT_SIZE(DvarLimits, 0x10);
 union EngineDependentDvar;
 union EngineDependentDvarMut;
 
+template <typename T>
+concept PrimitiveDvarValue =
+    AnyOf<T>::template In<std::string, std::string_view,
+                          std::optional<std::string>,
+                          std::optional<std::string_view>> ||
+    SizeLessThanOrEqualTo<T, sizeof(uint64_t)>;
+
 #pragma pack(push, 1)
 template <typename T_DvarValue> struct dvar {
 public:
@@ -995,31 +1002,26 @@ public:
   }
 
   inline dvar<T_DvarValue> *sessionModeSpecific() noexcept {
-    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      return _current.sessionModeSpecific();
-    }
-    return nullptr;
+    return type() == dvarType_t::SESSIONMODE_BASE_DVAR
+               ? _current.sessionModeSpecific()
+               : nullptr;
   }
   inline const dvar<T_DvarValue> *sessionModeSpecific() const noexcept {
-    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      return _current.sessionModeSpecific();
-    }
-    return nullptr;
+    return type() == dvarType_t::SESSIONMODE_BASE_DVAR
+               ? _current.sessionModeSpecific()
+               : nullptr;
   }
 
   inline dvar<T_DvarValue> *sessionModeSpecific(eModes mode) noexcept {
-    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      return _current.sessionModeSpecific(mode);
-    }
-
-    return nullptr;
+    return type() == dvarType_t::SESSIONMODE_BASE_DVAR
+               ? _current.sessionModeSpecific(mode)
+               : nullptr;
   }
   inline const dvar<T_DvarValue> *
   sessionModeSpecific(eModes mode) const noexcept {
-    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      return _current.sessionModeSpecific(mode);
-    }
-    return nullptr;
+    return type() == dvarType_t::SESSIONMODE_BASE_DVAR
+               ? _current.sessionModeSpecific(mode)
+               : nullptr;
   }
 
   inline constexpr const uint64_t &encryptedValue() const noexcept {
@@ -1066,7 +1068,17 @@ public:
     const char *str = get_cstring();
     return str ? std::optional(std::string_view(str)) : std::nullopt;
   }
-  template <typename T> inline constexpr T get() const noexcept {
+
+  template <typename Func>
+  inline std::optional<std::invoke_result_t<Func, const std::string_view &>>
+  map_string(const Func &func) const noexcept {
+    const std::optional<std::string_view> str = get_string();
+    if (str.has_value()) {
+      return func(str.value());
+    }
+    return std::nullopt;
+  }
+  template <PrimitiveDvarValue T> inline constexpr T get() const noexcept {
     constexpr size_t T_Size = sizeof(T);
     if constexpr (std::is_same_v<T, int32_t>) {
       return get_int();
@@ -1088,6 +1100,11 @@ public:
     }
     if constexpr (std::is_same_v<T, std::optional<std::string_view>>) {
       return get_string();
+    }
+    if constexpr (std::is_same_v<T, std::optional<std::string>>) {
+      const std::optional<std::string_view> val = get_string();
+      return val.has_value() ? std::optional(std::string(val.value()))
+                             : std::nullopt;
     }
     if constexpr (std::is_same_v<T, std::string>) {
       return get_string().value_or("");
@@ -1111,9 +1128,6 @@ public:
       }
       return result;
     }
-
-    unreachable();
-    return {};
   }
 
   constexpr operator EngineDependentDvar() const noexcept;
@@ -1179,182 +1193,117 @@ ASSERT_OFFSET(encryptedDvar_t, _current, 0x28);
 ASSERT_SIZE(encryptedDvar_t, 0xA0);
 ASSERT_CPP03_POD(encryptedDvar_t);
 
+#ifndef ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH
+#define ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(call)                            \
+  is_server() ? sv->call : cl->call
+#endif
+
 union EngineDependentDvarMut {
   dvar_t *sv;
   encryptedDvar_t *cl;
 
   dvarCallBack_t *modifiedCallback() noexcept {
-    if (is_server()) {
-      return sv->modifiedCallback();
-    }
-    return cl->modifiedCallback();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(modifiedCallback());
   }
 
   inline std::optional<std::string> set(const char *val,
                                         bool execModifiedCallback = true) {
-    if (is_server()) {
-      return sv->set(val, execModifiedCallback);
-    }
-    return cl->set(val, execModifiedCallback);
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(
+        set(val, execModifiedCallback));
   }
   inline std::optional<float> set(float val, bool execModifiedCallback = true) {
-    if (is_server()) {
-      return sv->set(val, execModifiedCallback);
-    }
-    return cl->set(val, execModifiedCallback);
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(
+        set(val, execModifiedCallback));
   }
   inline std::optional<uint64_t> set(uint64_t val,
                                      bool execModifiedCallback = true) {
-    if (is_server()) {
-      return sv->set(val, execModifiedCallback);
-    }
-    return cl->set(val, execModifiedCallback);
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(
+        set(val, execModifiedCallback));
   }
   inline std::optional<int64_t> set(int64_t val,
                                     bool execModifiedCallback = true) {
-    if (is_server()) {
-      return sv->set(val, execModifiedCallback);
-    }
-    return cl->set(val, execModifiedCallback);
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(
+        set(val, execModifiedCallback));
   }
   inline std::optional<int32_t> set(int32_t val,
                                     bool execModifiedCallback = true) {
-    if (is_server()) {
-      return sv->set(val, execModifiedCallback);
-    }
-    return cl->set(val, execModifiedCallback);
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(
+        set(val, execModifiedCallback));
   }
   inline std::optional<uint32_t> set(uint32_t val,
                                      bool execModifiedCallback = true) {
-    if (is_server()) {
-      return sv->set(val, execModifiedCallback);
-    }
-    return cl->set(val, execModifiedCallback);
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(
+        set(val, execModifiedCallback));
   }
   inline std::optional<bool> set(bool val, bool execModifiedCallback = true) {
-    if (is_server()) {
-      return sv->set(val, execModifiedCallback);
-    }
-    return cl->set(val, execModifiedCallback);
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(
+        set(val, execModifiedCallback));
   }
 
   inline int32_t get_int() const {
-    if (is_server()) {
-      return sv->get_int();
-    }
-    return cl->get_int();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_int());
   }
   inline uint32_t get_uint() const {
-    if (is_server()) {
-      return sv->get_uint();
-    }
-    return cl->get_uint();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_uint());
   }
   inline int64_t get_int64() const {
-    if (is_server()) {
-      return sv->get_int64();
-    }
-    return cl->get_int64();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_int64());
   }
   inline uint64_t get_uint64() const {
-    if (is_server()) {
-      return sv->get_uint64();
-    }
-    return cl->get_uint64();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_uint64());
   }
   inline bool get_bool() const {
-    if (is_server()) {
-      return sv->get_bool();
-    }
-    return cl->get_bool();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_bool());
   }
   inline float get_float() const {
-    if (is_server()) {
-      return sv->get_float();
-    }
-    return cl->get_float();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_float());
   }
   inline std::optional<std::string_view> get_string() const {
-    if (is_server()) {
-      return sv->get_string();
-    }
-    return cl->get_string();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_string());
   }
   inline const char *get_cstring() const noexcept {
-    if (is_server()) {
-      return sv->get_cstring();
-    }
-    return cl->get_cstring();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_cstring());
   }
   template <typename T> inline T get() const {
-    if (is_server()) {
-      return sv->get<T>();
-    }
-    return cl->get<T>();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get<T>());
+  }
+
+  template <typename Func>
+  inline std::optional<std::invoke_result_t<Func, const std::string_view &>>
+  map_string(const Func &func) const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(map_string(func));
   }
 
   inline uint64_t encryptedValue() const noexcept {
-    if (is_server()) {
-      return 0;
-    }
-    return cl->encryptedValue();
-  }
-
-  inline uint64_t encryptedValue() noexcept {
-    if (is_server()) {
-      return 0;
-    }
-    return cl->encryptedValue();
+    return is_server() ? 0 : cl->encryptedValue();
   }
 
   inline dvarStrHash_t &name() noexcept {
-    if (is_server()) {
-      return sv->name();
-    }
-    return cl->name();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(name());
   }
   inline dvarStrHash_t name() const noexcept {
-    if (is_server()) {
-      return sv->name();
-    }
-    return cl->name();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(name());
   }
-  inline void setDebugName(const char *name) noexcept {
-    if (is_server()) {
-      sv->debugName() = name;
-    } else {
-      cl->debugName() = name;
-    }
-  }
+
   inline ConstCharPtr &debugName() noexcept {
-    if (is_server()) {
-      return sv->debugName();
-    }
-    return cl->debugName();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(debugName());
   }
   inline const char *debugName() const noexcept {
-    if (is_server()) {
-      return sv->debugName();
-    }
-    return cl->debugName();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(debugName());
   }
+
   inline ConstCharPtr &description() noexcept {
-    if (is_server()) {
-      return sv->description();
-    }
-    return cl->description();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(description());
   }
   inline const char *description() const noexcept {
-    if (is_server()) {
-      return sv->description();
-    }
-    return cl->description();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(description());
   }
   inline DvarFlags &flags() noexcept {
-    if (is_server()) {
-      return sv->flags();
-    }
-    return cl->flags();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(flags());
+  }
+
+  inline DvarFlags flags() const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(flags());
   }
 
   template <DvarFlagLike T> inline void removeFlags(T flags) noexcept {
@@ -1368,25 +1317,13 @@ union EngineDependentDvarMut {
     flags().set(flags);
   }
 
-  inline void clearFlags() noexcept { flags().set(0); }
-  inline DvarFlags flags() const noexcept {
-    if (is_server()) {
-      return sv->flags();
-    }
-    return cl->flags();
-  }
+  inline void clearFlags() noexcept { flags().clear(); }
 
   inline dvarType_t &type() noexcept {
-    if (is_server()) {
-      return sv->type();
-    }
-    return cl->type();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(type());
   }
   inline dvarType_t type() const noexcept {
-    if (is_server()) {
-      return sv->type();
-    }
-    return cl->type();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(type());
   }
   inline EngineDependentDvarMut sessionModeSpecific() const {
     EngineDependentDvarMut result{nullptr};
@@ -1410,28 +1347,16 @@ union EngineDependentDvarMut {
   }
 
   inline bool &modified() noexcept {
-    if (is_server()) {
-      return sv->modified();
-    }
-    return cl->modified();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(modified());
   }
   inline bool modified() const noexcept {
-    if (is_server()) {
-      return sv->modified();
-    }
-    return cl->modified();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(modified());
   }
   inline DvarLimits &domain() noexcept {
-    if (is_server()) {
-      return sv->domain();
-    }
-    return cl->domain();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(domain());
   }
   inline DvarLimits &domain() const noexcept {
-    if (is_server()) {
-      return sv->domain();
-    }
-    return cl->domain();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(domain());
   }
   inline EngineDependentDvarMut setHashNext(dvar_t *next) {
     EngineDependentDvarMut result = hashNext();
@@ -1533,7 +1458,7 @@ union EngineDependentDvarMut {
   }
 };
 
-ASSERT_SIZE(EngineDependentDvarMut, 8);
+ASSERT_SIZE(EngineDependentDvarMut, sizeof(dvar_t *));
 ASSERT_CPP03_POD(EngineDependentDvarMut);
 
 union EngineDependentDvar {
@@ -1541,104 +1466,58 @@ union EngineDependentDvar {
   const encryptedDvar_t *cl;
 
   inline uint64_t encryptedValue() const noexcept {
-    if (is_server()) {
-      return 0;
-    }
-    return cl->encryptedValue();
-  }
-
-  inline uint64_t encryptedValue() noexcept {
-    if (is_server()) {
-      return 0;
-    }
-    return cl->encryptedValue();
+    return is_server() ? 0 : cl->encryptedValue();
   }
 
   inline int32_t get_int() const noexcept {
-    if (is_server()) {
-      return sv->get_int();
-    }
-    return cl->get_int();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_int());
   }
   inline uint32_t get_uint() const noexcept {
-    if (is_server()) {
-      return sv->get_uint();
-    }
-    return cl->get_uint();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_uint());
   }
   inline int64_t get_int64() const noexcept {
-    if (is_server()) {
-      return sv->get_int64();
-    }
-    return cl->get_int64();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_int64());
   }
   inline uint64_t get_uint64() const noexcept {
-    if (is_server()) {
-      return sv->get_uint64();
-    }
-    return cl->get_uint64();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_uint64());
   }
   inline bool get_bool() const noexcept {
-    if (is_server()) {
-      return sv->get_bool();
-    }
-    return cl->get_bool();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_bool());
   }
   inline float get_float() const noexcept {
-    if (is_server()) {
-      return sv->get_float();
-    }
-    return cl->get_float();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_float());
   }
   inline std::optional<std::string_view> get_string() const noexcept {
-    if (is_server()) {
-      return sv->get_string();
-    }
-    return cl->get_string();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_string());
   }
   inline const char *get_cstring() const noexcept {
-    if (is_server()) {
-      return sv->get_cstring();
-    }
-    return cl->get_cstring();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_cstring());
   }
   template <typename T> inline T get() const noexcept {
-    if (is_server()) {
-      return sv->get<T>();
-    }
-    return cl->get<T>();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get<T>());
+  }
+
+  template <typename Func>
+  inline std::optional<std::invoke_result_t<Func, const std::string_view &>>
+  map_string(const Func &func) const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(map_string(func));
   }
 
   inline dvarStrHash_t name() const noexcept {
-    if (is_server()) {
-      return sv->name();
-    }
-    return cl->name();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(name());
   }
 
   inline const char *debugName() const noexcept {
-    if (is_server()) {
-      return sv->debugName();
-    }
-    return cl->debugName();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(debugName());
   }
   inline const char *description() const noexcept {
-    if (is_server()) {
-      return sv->description();
-    }
-    return cl->description();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(description());
   }
   inline DvarFlags flags() const noexcept {
-    if (is_server()) {
-      return sv->flags();
-    }
-    return cl->flags();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(flags());
   }
   inline dvarType_t type() const noexcept {
-    if (is_server()) {
-      return sv->type();
-    }
-    return cl->type();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(type());
   }
 
   inline const SessionModePool<EngineDependentDvar> &indirect() const noexcept {
@@ -1684,16 +1563,10 @@ union EngineDependentDvar {
   }
 
   inline bool modified() const noexcept {
-    if (is_server()) {
-      return sv->modified();
-    }
-    return cl->modified();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(modified());
   }
   inline DvarLimits domain() const noexcept {
-    if (is_server()) {
-      return sv->domain();
-    }
-    return cl->domain();
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(domain());
   }
   inline EngineDependentDvar hashNext() const noexcept {
     EngineDependentDvar result{};
@@ -1751,7 +1624,7 @@ union EngineDependentDvar {
   }
 };
 
-ASSERT_SIZE(EngineDependentDvar, 8);
+ASSERT_SIZE(EngineDependentDvar, sizeof(dvar_t *));
 ASSERT_CPP03_POD(EngineDependentDvar);
 
 inline constexpr bool operator==(const EngineDependentDvarMut &lhs,

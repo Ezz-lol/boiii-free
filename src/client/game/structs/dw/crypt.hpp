@@ -55,6 +55,7 @@ struct symmetric_CBC {
 };
 
 class bdCypherAES : public bdCypher {
+public:
   bdUInt32 m_keySize;
   uint8_t _padding14[4];
   symmetric_CBC m_cbc;

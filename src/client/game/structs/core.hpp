@@ -1942,7 +1942,7 @@ enum class CharacterItemType : uint32_t {
 };
 IMPL_ENUM_OPERATORS(CharacterItemType);
 
-using BGEmblemBackgroundID = int16_t;
+typedef int32_t BGEmblemBackgroundID;
 
 typedef int32_t BitArrayChunk;
 constexpr const size_t BITARRAY_CHUNK_BITS = bitsizeof<BitArrayChunk>();

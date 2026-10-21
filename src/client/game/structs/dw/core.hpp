@@ -11,7 +11,7 @@ namespace dw {
 
 namespace task {
 namespace manage {
-struct bdRemoteTaskManager;
+class bdRemoteTaskManager;
 }
 } // namespace task
 
