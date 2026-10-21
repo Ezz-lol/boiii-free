@@ -291,11 +291,14 @@ newaction({
 dependencies.load()
 
 workspace("boiii")
-if os.host() == "windows" then
-  toolset("msc-clangcl")
-else
-  toolset("clang")
-end
+
+filter("action:vs*")
+toolset("msc-clangcl")
+filter({})
+filter("action:not vs*")
+toolset("clang")
+filter({})
+
 linker("LLD")
 startproject("client")
 location("./build")
