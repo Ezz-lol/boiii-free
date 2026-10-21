@@ -6,14 +6,14 @@ can mix styles when it helps.
 
 ## Quick links
 
-- [Where Scripts Can Live](#where-scripts-can-live)
-- [Compiler and Loader Notes](#compiler-and-loader-notes)
+- [Where scripts can live](#where-scripts-can-live)
+- [Compiler and loader notes](#compiler-and-loader-notes)
 - [Hooks](#hooks)
-- [Commands and Output](#commands-and-output)
+- [Commands and output](#commands-and-output)
 - [File and data helpers](#file-and-data-helpers)
-- [Player Helpers](#player-helpers)
-- [HUD Text](#hud-text)
-- [Misc Utilities](#misc-utilities)
+- [Player helpers](#player-helpers)
+- [HUD text](#hud-text)
+- [Small helpers](#small-helpers)
 
 ## Where scripts can live
 
@@ -408,6 +408,21 @@ Notes:
 - Sent dvars are tracked, and BOIII resets them when the script system shuts
   down so the client is not left with stale overrides from an old match.
 
+## noclip
+
+Toggles noclip mode for a player.
+
+```gsc
+player noclip();
+```
+
+Returns the new noclip state (1 if enabled, 0 if disabled).
+
+Notes:
+
+- This can only be called on a player entity.
+- The toggle is applied to the player's movement flags.
+
 # HUD text
 
 The server-side HUD text path was patched so repeated text updates do not hit
@@ -658,6 +673,7 @@ player settag("dev");
 player resetname();
 player resettag();
 player setclientdvar("cg_fov 120");
+player noclip();
 ```
 
 That is just a cleaner script-side syntax for the same builtins.
