@@ -474,6 +474,7 @@ local clArchFlags = map(archFlags, clang_cl_flag)
 local clParserFlags = map(parserFlags, clang_cl_flag)
 
 filter({ "configurations:Release", "toolset:msc*" })
+optimize("Size")
 local warningFlags = {
   "-Wno-unused-command-line-argument",
   "-Wno-microsoft-cast",
