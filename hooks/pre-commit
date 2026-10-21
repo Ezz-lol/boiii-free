@@ -47,13 +47,15 @@ path_remove_tree_by_name() {
 	IFS='/' read -ra PATH_PARTS <<<"$input_path"
 
 	local out_path
-	out_path=""
+	out_path="/"
 
 	for part in "${PATH_PARTS[@]}"; do
-		if [[ "$part" == "$dir_name" ]]; then
-			break
+		if [ -n "$part" ]; then
+			if [[ "$part" == "$dir_name" ]]; then
+				break
+			fi
+			out_path="${out_path%/}/${part}"
 		fi
-		out_path="${out_path}/${part}"
 	done
 	normalize_path "$out_path"
 }
@@ -221,8 +223,11 @@ diff_files() {
 REPO_ROOT="$(repo_dir)"
 . "${REPO_ROOT}/scripts/unix/env.sh"
 
+FMT_DEPENDENCIES=("clang-format" "stylua" "yarn")
+
 # Ensure git and clang-format are present
-check_dependencies
+# shellcheck disable=SC2119
+check_dependencies "${FMT_DEPENDENCIES[@]}"
 
 if ! [ -e "$REPO_ROOT" ] || ! [ -d "$REPO_ROOT" ] || ! [ -d "${REPO_ROOT}/.git" ]; then
 	echo "Error: Unable to determine the root of the git repository." >&2

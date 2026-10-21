@@ -3560,7 +3560,11 @@
             showMessage(
               "Delete Crash Reports",
               count
-                ? "Deleted " + count + " crash reports, freeing " + parts.slice(1).join(" ") + "."
+                ? "Deleted " +
+                    count +
+                    " crash reports, freeing " +
+                    parts.slice(1).join(" ") +
+                    "."
                 : "There were no crash reports older than 7 days."
             );
             checkStorage();

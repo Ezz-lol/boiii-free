@@ -3,27 +3,29 @@
 script_dir() {
 	local script_dirname
 	script_dirname="$(dirname "$0")"
-	if [ -L "$script_dirname" ]; then
-		script_dirname="$(readlink -f "$script_dirname")"
-	fi
 
-	realpath "$script_dirname"
+	if ! realpath "$script_dirname" 2>/dev/null; then
+		echo "$script_dirname"
+	fi
 }
 
 # Returns the root of the containing git repository
 repo_dir() {
 	local repo_dir
 	repo_dir="$(git -C "$(script_dir)" rev-parse --show-toplevel)"
-	if [ -L "$repo_dir" ]; then
-		repo_dir="$(readlink -f "$repo_dir")"
+	if ! realpath "$repo_dir" 2>/dev/null; then
+		echo "$repo_dir"
 	fi
-	realpath "$repo_dir"
 }
 
+. "$(repo_dir)/scripts/unix/env.sh"
+
 REPO_DIR="$(repo_dir)"
-. "${REPO_DIR}/scripts/unix/env.sh"
 BUILD_DIR="${REPO_DIR}/build"
 
+SCRIPT_DIR="$(script_dir)"
+
+BUILD_EXECUTOR="ninja"
 CLEAN=0
 RELEASE=0
 OUTPUT_DIR=""
@@ -35,6 +37,28 @@ NUM_THREADS="$(num_threads)"
 BOIII_EXE="boiii.exe"
 TLS_DLL="tlsdll.dll"
 VERBOSE=0
+
+# Enumeration-like encodings for possible configured build executor
+BUILD_EXECUTOR_TYPE_GMAKE=0
+BUILD_EXECUTOR_TYPE_NINJA=1
+BUILD_EXECUTOR_TYPE_INVALID=-1
+
+# Parses configured build executor name and returns equivalent build executor enumeration.
+# Used to assign enumeration to global later, allowing usage in conditionals without the overhead of
+# repetitive string parsing
+build_executor_type() {
+	case "$BUILD_EXECUTOR" in
+	"ninja")
+		echo "$BUILD_EXECUTOR_TYPE_NINJA"
+		;;
+	"gmake")
+		echo "$BUILD_EXECUTOR_TYPE_GMAKE"
+		;;
+	*)
+		echo "$BUILD_EXECUTOR_TYPE_INVALID"
+		;;
+	esac
+}
 
 exec_arbitrary() {
 	[ "$EXEC_ARBITRARY" -ne 0 ]
@@ -60,7 +84,7 @@ output_path() {
 	local path
 	path=""
 	if [ -n "$OUTPUT_DIR" ]; then
-		path="${OUTPUT_DIR}/$1"
+		path="${OUTPUT_DIR}/${1}"
 	else
 		path="$(build_dir)/bin/x64/$(build_type_dir)/$1"
 	fi
@@ -76,48 +100,55 @@ should_clean() {
 	[ "$CLEAN" -ne 0 ]
 }
 
+BUILD_EXECUTOR_TYPE="$BUILD_EXECUTOR_TYPE_INVALID"
+
 build_type() {
 	if [ "$RELEASE" -eq 1 ]; then
-		echo "release_x64"
+		if [ "$BUILD_EXECUTOR_TYPE" -eq "$BUILD_EXECUTOR_TYPE_NINJA" ]; then
+			echo "Release_x64"
+		else
+			echo "release_x64"
+		fi
 	else
-		echo "debug_x64"
+		if [ "$BUILD_EXECUTOR_TYPE" -eq "$BUILD_EXECUTOR_TYPE_NINJA" ]; then
+			echo "Debug_x64"
+		else
+			echo "debug_x64"
+		fi
 	fi
+}
+
+cc_default_defines() {
+	local cc
+
+	if [ "$#" -gt 0 ]; then
+		cc="$1"
+	fi
+
+	if [ -z "$cc" ]; then
+		if [ -n "$CC" ]; then
+			cc="$(resolve_path "$CC")"
+		else
+			return 1
+		fi
+	fi
+
+	"$cc" -E -dM - </dev/null
+
 }
 
 cc_is_gcc() {
-	local cc
-	cc="$1"
-	if [ -z "$cc" ]; then
-		if [ -n "$CC" ]; then
-			cc="$(resolve_path "$CC")"
-		else
-			return 1
-		fi
-	fi
+	local defines
+	defines="$(cc_default_defines "$@")" || return 1
 
-	if [ -n "$cc" ] && [ -f "$cc" ]; then
-		grep -q '__GNUC__' <<<"$("$cc" -E -dM - </dev/null)"
-	else
-		return 1
-	fi
+	[[ "$defines" == *'__GNUC__'* ]]
 }
 
 cc_is_clang() {
-	local cc
-	cc="$1"
-	if [ -z "$cc" ]; then
-		if [ -n "$CC" ]; then
-			cc="$(resolve_path "$CC")"
-		else
-			return 1
-		fi
-	fi
+	local defines
+	defines="$(cc_default_defines "$@")" || return 1
 
-	if [ -n "$cc" ] && [ -f "$cc" ]; then
-		grep -q '__clang__' <<<"$("$cc" -E -dM - </dev/null)"
-	else
-		return 1
-	fi
+	[[ "$defines" == *'__clang__'* ]]
 }
 
 get_clang() {
@@ -274,19 +305,11 @@ get_llvm_libdir() {
 	realpath "$(get_llvm_sysroot)/lib"
 }
 
-windres_is_llvm() {
-	local windres_path
-	windres_path="$1"
-	if grep -q 'LLVM windres' <<<"$("${windres_path}" --version 2>&1)"; then
-		return 0
-	else
-		return 1
-	fi
-}
-
 cross_env() {
+	local temp_windres_link_dir
+	local temp_path
 
-	local args
+	local -a args
 	args=()
 	while [ "$#" -gt 0 ]; do
 		args+=("$1")
@@ -300,23 +323,25 @@ cross_env() {
 	# does not support COFF relocations, and thus fails to compile the resources with errors.
 	# By placing the LLVM bin directory path first, we ensure that premake5 finds the correct windres,
 	# and thus can compile the resources successfully.
-	TEMP_PATH="$(get_llvm_bin):${PATH}"
+	temp_path="$(get_llvm_bin):${PATH}"
 	# ensure LLVM windres with "windres" basename exists on path, somewhere.
 	temp_windres_link_dir="$(mktemp -d)"
-	resolved_windres="$(env PATH="$TEMP_PATH" which windres 2>/dev/null)"
-	if [ -n "$resolved_windres" ]; then
-		resolved_windres="$(normalize_path "$resolved_windres")"
-	fi
+	trap 'rm -rf "$temp_windres_link_dir" >/dev/null 2>&1' EXIT INT TERM HUP
 
-	if [ -z "$resolved_windres" ] || ! windres_is_llvm "$resolved_windres"; then
+	if is_llvm "$(env PATH="$temp_path" resolve_path "windres" 2>/dev/null || true)"; then
+		if [ -d "$temp_windres_link_dir" ]; then
+			rm -rf "$temp_windres_link_dir" >/dev/null 2>&1 || true
+			trap - EXIT INT TERM HUP
+		fi
+	else
 		ln -s "$(get_llvm_windres)" "${temp_windres_link_dir}/windres"
-		TEMP_PATH="${temp_windres_link_dir}:${TEMP_PATH}"
+		temp_path="${temp_windres_link_dir}:${temp_path}"
 	fi
 
 	exit_code=0
 	if ! chdir "${REPO_DIR}" \
 		env \
-		PATH="${TEMP_PATH}" \
+		PATH="${temp_path}" \
 		CC="$TEMP_CC" \
 		CXX="$TEMP_CXX" \
 		CPP="$TEMP_CPP" \
@@ -347,6 +372,7 @@ cross_env() {
 	if [ -d "$temp_windres_link_dir" ]; then
 		rm -rf "$temp_windres_link_dir" >/dev/null 2>&1 || true
 	fi
+	trap - EXIT INT TERM HUP
 
 	return "$exit_code"
 }
@@ -367,9 +393,10 @@ FLAG_INDENTATION="   "
 # shellcheck disable=SC2120
 clangd_flag_indent() {
 	local in
-	in="$1"
 
-	if [ -z "$in" ]; then
+	if [ "$#" -gt 0 ]; then
+		in="$1"
+	else
 		in="$(cat -)"
 	fi
 
@@ -425,6 +452,7 @@ DEP_INCLUDE_PATHS=(
 	"deps/sqlite"
 	"deps/sqlite_orm/include"
 	"deps/xz/src/common"
+	"deps/xz/src/liblzma/api"
 	"deps/xz/src/liblzma/common"
 	"deps/xz/src/liblzma/check"
 	"deps/xz/src/liblzma/lz"
@@ -477,7 +505,7 @@ EOL
 # shellcheck disable=SC2120
 premake() {
 
-	local args
+	local -a args
 	args=("--os=windows"
 		"--cc=clang"
 		"--shell=posix"
@@ -493,43 +521,39 @@ premake() {
 		shift
 	done
 
-	args+=("gmake")
+	args+=("$BUILD_EXECUTOR")
 	cross_env \
 		premake5 "${args[@]}"
 }
 
-link_capitalized_headers() {
+execute_build() {
 
-	declare -A needs_capitalized
-	needs_capitalized=()
+	local bash_path
+	local -a BUILD_EXECUTOR_CMD
 
-	# All others have been enforced to use lowercase search path in codebase, but imgui uses "Windows.h" explicitly.
-	# This is the only case-sensitive header lookup in our dependencies.
-	needs_capitalized["windows.h"]="Windows.h"
+	bash_path="$(resolve_path "bash")"
 
-	for header_lower in "${!needs_capitalized[@]}"; do
-		header="${needs_capitalized["$header_lower"]}"
-		if ! [ -e "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/${header}" ]; then
-			find_capitalized="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -name "${header}")"
-			if [ -z "$find_capitalized" ]; then
-				while IFS=$'\n' read -r match; do
-					if [ -n "$match" ]; then
-						find_dir="$(dirname "$match")"
-						link_out="${find_dir}/${header}"
-						if ! [ -e "$link_out" ]; then
-							echo "Linking ${match} -> ${link_out}"
-							if ! ln -sf "$match" "${link_out}"; then
-								echo "Error: Failed to link ${match} to ${link_out}" >&2
-								return 1
-							fi
-						fi
-					fi
-				done < <(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header_lower")
-			fi
-		fi
-	done
+	BUILD_EXECUTOR_CMD=("$BUILD_EXECUTOR")
 
-	return 0
+	if [ "$BUILD_EXECUTOR_TYPE" -eq "$BUILD_EXECUTOR_TYPE_GMAKE" ]; then
+		BUILD_EXECUTOR_CMD+=("SHELL=${bash_path}"
+			"config=$(build_type)")
+	elif [ "$BUILD_EXECUTOR_TYPE" -eq "$BUILD_EXECUTOR_TYPE_NINJA" ]; then
+		BUILD_EXECUTOR_CMD+=("$(build_type)")
+	fi
+
+	BUILD_EXECUTOR_CMD+=(
+		"-C${BUILD_DIR}"
+		"-j${NUM_THREADS}"
+		"-l${NUM_THREADS}")
+
+	if [ "$BUILD_EXECUTOR_TYPE" -eq "$BUILD_EXECUTOR_TYPE_GMAKE" ]; then
+		BUILD_EXECUTOR_CMD+=("--environment-overrides")
+	fi
+
+	cross_env \
+		env SHELL="${bash_path}" \
+		"${BUILD_EXECUTOR_CMD[@]}"
 }
 
 print_usage() {
@@ -537,6 +561,7 @@ print_usage() {
 	echo "Usage: $0 [OPTIONS]"
 	echo "Options:"
 	echo "  --exec, -e [command]       Execute an arbitrary command instead of building. Example: --exec echo 'Hello, world!'"
+	echo "  --builder, -b [ninja|gmake]    Use the specified builder to execute the build configuration generated by premake (default: ninja)."
 	echo "  --tidy, -t [tidy-args]     Run clang-tidy with all other arguments instead of building. Example: --tidy -checks='*' src/client/main.cpp"
 	echo "  --clean, -c                Clean the build directory before building."
 	echo "  --sysroot, -s              Specify the path to the MSVC toolchain sysroot."
@@ -612,6 +637,10 @@ while [ "$#" -gt 0 ]; do
 		EXEC_ARBITRARY=1
 		shift
 		;;
+	--builder | -b)
+		BUILD_EXECUTOR="$2"
+		shift 2
+		;;
 	--help | -help | -h | help)
 		print_usage
 		exit 0
@@ -621,6 +650,8 @@ while [ "$#" -gt 0 ]; do
 		;;
 	esac
 done
+
+BUILD_EXECUTOR_TYPE="$(build_executor_type)"
 
 if tidy || exec_arbitrary; then
 	# append the other arguments to EXEC_ARGS ; these were not meant for us.
@@ -662,10 +693,7 @@ if [ -z "$WINDOWS_MSVC_SYSROOT" ]; then
 	echo "Error: WINDOWS_MSVC_SYSROOT environment variable is not set." >&2
 	echo "This variable should point to the root of the MSVC toolchain sysroot, which contains the \
   'bin', 'lib', and 'include' directories for the MSVC toolchain." >&2
-	echo "You may create this yourself using MSSTL (C++ STL) and xwin (Windows CRT and SDK), or use a preconfigured sysroot with compatible structure, \
- such as that provided in the Github repository https://github.com/trcrsired/windows-msvc-sysroot.
-  Note that you will need to remove all SSE instrinsic headers (\`rm \${SYSROOT}/include/**/*intrin*\`) from the sysroot, if any, to ensure that they do not 
-  override the built-in clang intrinsic headers." >&2
+	echo "If you do not already have an ${TARGET_TRIPLE} sysroot, one can be generated using the script ${SCRIPT_DIR}/gen-sysroot.sh."
 	exit 1
 fi
 
@@ -678,7 +706,7 @@ fi
 WINDOWS_MSVC_TOOLCHAIN_BIN_PATH="${msvc_toolchain_sysroot}/bin"
 WINDOWS_MSVC_TOOLCHAIN_LIB_PATH="${msvc_toolchain_sysroot}/lib"
 # For structure used in https://github.com/trcrsired/windows-msvc-sysroot
-WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED="${msvc_toolchain_sysroot}/lib/x86_64-unknown-windows-msvc"
+WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED="${msvc_toolchain_sysroot}/lib/${TARGET_TRIPLE}"
 WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH="${msvc_toolchain_sysroot}/include"
 
 cflags=(
@@ -764,16 +792,7 @@ TEMP_STRIP="$(get_llvm_strip)"
 TEMP_LD="$(get_llvm_ld)"
 
 BUILD_DEPS=(
-	"$TEMP_CC"
-	"$TEMP_CXX"
-	"$TEMP_CPP"
-	"$TEMP_AS"
-	"$TEMP_AR"
-	"$TEMP_WINDRES"
-	"windres"
-	"$TEMP_STRIP"
-	"$TEMP_LD"
-	"gmake"
+	"$BUILD_EXECUTOR"
 	"premake5"
 	"env"
 	"grep"
@@ -807,21 +826,7 @@ else
 		exit 1
 	fi
 
-	if ! link_capitalized_headers; then
-		echo "Error: Failed to link capitalized headers." >&2
-		exit 1
-	fi
-
-	bash_path="$(resolve_path "bash")"
-	if cross_env \
-		env SHELL="${bash_path}" \
-		gmake SHELL="${bash_path}" \
-		config="$(build_type)" \
-		-Cbuild \
-		-j"$NUM_THREADS" \
-		-l"$NUM_THREADS" \
-		-e; then
-
+	if execute_build; then
 		echo "Build completed successfully."
 		echo "${BOIII_EXE} -> $(output_path "$BOIII_EXE")"
 		echo "${TLS_DLL} -> $(output_path "$TLS_DLL")"

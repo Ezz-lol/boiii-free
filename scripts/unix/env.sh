@@ -1,5 +1,189 @@
 #!/bin/bash
 
+fmt_version() {
+	local result
+	result=""
+
+	if [ "$#" -gt 0 ]; then
+		result="$1"
+		if [ "$#" -gt 1 ]; then
+			result="${result}.${2}"
+			if [ "$#" -gt 2 ]; then
+				result="${result}.${3}"
+			fi
+		fi
+	fi
+
+	echo "$result"
+
+}
+
+bash_version_major() {
+	echo "${BASH_VERSINFO[0]}"
+}
+
+bash_version_minor() {
+	echo "${BASH_VERSINFO[1]}"
+}
+
+ensure_minimum_bash_version() {
+	local major
+	local minor
+
+	major="$1"
+	minor="$2"
+
+	local curr_major
+	curr_major="$(bash_version_major)"
+	local curr_minor
+	curr_minor="$(bash_version_minor)"
+
+	local failed=0
+	if [ "$curr_major" -lt "$major" ]; then
+		failed=1
+	elif [ "$curr_major" -eq "$major" ] && [ "$curr_minor" -lt "$minor" ]; then
+		failed=1
+	fi
+
+	if [ "$failed" -eq 1 ]; then
+		echo "Error: This script requires Bash version $(fmt_version "$major" "$minor") or higher." >&2
+		echo "Your current version is: $(fmt_version "$curr_major" "$curr_minor")" >&2
+		exit 1
+	fi
+}
+
+# Portable replacement for `readlink -f`.
+#
+# Canonicalizes the given path by recursively following every symlink in
+# every component. Matches GNU `readlink -f` semantics:
+#
+#   * relative input is relative to the value of the $PWD environment variable
+#   * `.` and `..` are collapsed; `..` never escapes `/`
+#   * redundant and trailing slashes are removed
+#   * every component except the last must exist - the last may be missing
+#   * symlink loops are detected (limited to 40)
+#
+# Usage: readlink_recursive <path>
+# Prints the canonical absolute path on stdout; returns 1 on error.
+readlink_recursive() {
+	local path="${1:-}"
+	local max_symlinks=40
+	local symlink_count=0
+
+	if [ -z "$path" ]; then
+		echo "Error: No path provided to readlink_recursive." >&2
+		return 1
+	fi
+
+	# Anchor to an absolute path
+	if [[ "$path" != /* ]]; then
+		path="${PWD}/${path}"
+	fi
+
+	local -a stack=()
+	local remaining="$path"
+	local component
+	local cur_path
+	local link_target
+	local top
+	local seg
+
+	while [ -n "$remaining" ]; do
+		# Strip leading slashes (handles `//foo`, `///foo`, etc.).
+		# The nested expansion takes the longest prefix of non-slash
+		# characters (the first component) and strips everything before it.
+		remaining="${remaining#"${remaining%%[!/]*}"}"
+
+		if [ -z "$remaining" ]; then
+			break
+		fi
+
+		# Extract the first component
+		if [[ "$remaining" == */* ]]; then
+			component="${remaining%%/*}"
+			remaining="${remaining#*/}"
+		else
+			component="$remaining"
+			remaining=""
+		fi
+
+		case "$component" in
+		'' | .)
+			# Empty or current-dir component: skip
+			continue
+			;;
+		..)
+			# Parent-dir component: pop one resolved segment.
+			# Popping an empty stack stays at `/`.
+			if [ "${#stack[@]}" -gt 0 ]; then
+				top=$((${#stack[@]} - 1))
+				unset "stack[$top]"
+			fi
+			continue
+			;;
+		esac
+
+		# Build the current absolute path from the resolved stack plus
+		# the component under consideration.
+		cur_path=""
+		if [ "${#stack[@]}" -gt 0 ]; then
+			for seg in "${stack[@]}"; do
+				cur_path+="/$seg"
+			done
+		fi
+		cur_path+="/$component"
+
+		# Is it a symlink?
+		if [ -L "$cur_path" ]; then
+			symlink_count=$((symlink_count + 1))
+			if [ "$symlink_count" -gt "$max_symlinks" ]; then
+				echo "Error: Too many symlinks while resolving '$1'." >&2
+				return 1
+			fi
+
+			if ! link_target="$(readlink "$cur_path")"; then
+				echo "Error: Failed to read symlink '$cur_path'." >&2
+				return 1
+			fi
+
+			if [[ "$link_target" == /* ]]; then
+				# Absolute target: reset the resolved stack.
+				stack=()
+				if [ -n "$remaining" ]; then
+					remaining="${link_target}/${remaining}"
+				else
+					remaining="$link_target"
+				fi
+			else
+				# Relative target: keep the current parent (already on
+				# the stack) and prepend the relative target.
+				if [ -n "$remaining" ]; then
+					remaining="${link_target}/${remaining}"
+				else
+					remaining="$link_target"
+				fi
+			fi
+			continue
+		fi
+
+		# Non-symlink component. If there is more to process, this
+		# component is not the last, so it must exist.
+		if [ -n "$remaining" ] && ! [ -e "$cur_path" ]; then
+			echo "Error: Path component '$cur_path' does not exist." >&2
+			return 1
+		fi
+
+		stack+=("$component")
+	done
+
+	if [ "${#stack[@]}" -eq 0 ]; then
+		echo "/"
+	else
+		printf '/%s' "${stack[@]}"
+		printf '\n'
+	fi
+}
+
 first_in_dir() {
 	local search_dir
 	search_dir="$(normalize_path "$1")"
@@ -21,12 +205,48 @@ first_in_dir() {
 		return 1
 	fi
 
-	for file in "${search_files[@]}"; do
-		if [ -e "$search_dir/$file" ]; then
-			normalize_path "$search_dir/$file"
+	for search_filename in "${search_files[@]}"; do
+		search_dir_file="${search_dir}/${search_filename}"
+		if [ -e "$search_dir_file" ]; then
+			normalize_path "$search_dir_file"
 			return 0
 		fi
 	done
+
+	return 1
+}
+
+have_application() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+is_gnu() {
+	local application="$1"
+
+	if [ -n "$application" ] && have_application "$application"; then
+		local version_output
+		version_output="$("$application" --version 2>&1 || true)"
+		version_output="$(to_lowercase "$version_output")"
+		if [[ "$version_output" == *"gnu"* ]] || [[ "$version_output" == *"free software foundation"* ]]; then
+			return 0
+		fi
+	fi
+
+	return 1
+}
+
+is_llvm() {
+	local application="$1"
+
+	if [ -n "$application" ] && have_application "$application"; then
+		local version_output
+		version_output="$("$application" --version 2>&1 || true)"
+		if [ -n "$version_output" ]; then
+			if [[ "$version_output" == *"LLVM version"* ]] || [[ "$version_output" == *"clang version"* ]]; then
+				return 0
+			fi
+		fi
+	fi
 
 	return 1
 }
@@ -47,7 +267,7 @@ normalize_path() {
 	fi
 
 	if [ -L "$file_path" ]; then
-		file_path="$(readlink -f "$file_path")"
+		file_path="$(readlink_recursive "$file_path")"
 	fi
 
 	# Fix Git Bash path translation bug where C:/ gets converted to //c/
@@ -55,7 +275,14 @@ normalize_path() {
 		file_path="/${file_path:2}"
 	fi
 
-	realpath "$file_path"
+	# Select best available means of successful canonicalization of non-existent path
+	if (have_application "realpath" && is_gnu "realpath") || [[ "$(realpath --help 2>&1)" == *'canonicalize-missing'* ]]; then
+		realpath --canonicalize-missing "$file_path"
+	elif have_application "grealpath" && is_gnu "grealpath"; then
+		grealpath --canonicalize-missing "$file_path"
+	else
+		readlink_recursive "$file_path"
+	fi
 }
 
 resolve_path() {
@@ -73,7 +300,8 @@ resolve_path() {
 		return 1
 	fi
 
-	resolved="$(which "$path_to_resolve" 2>/dev/null || command -v "$path_to_resolve" 2>/dev/null)"
+	local resolved
+	resolved="$(command -v "$path_to_resolve" 2>/dev/null || true)"
 	if [ -z "$resolved" ]; then
 		echo "Error: Could not resolve path for '$path_to_resolve'." >&2
 		return 1
@@ -103,22 +331,27 @@ ext() {
 
 starts_with() {
 	local str
-	str=""
-
-	if [ "$#" -gt 0 ]; then
-		str="$1"
-	else
-		str="$(cat -)"
-	fi
-
 	local prefix
-	prefix="$2"
+
+	case "$#" in
+	2)
+		str="$1"
+		prefix="$2"
+		;;
+	1)
+		prefix="$1"
+		str="$(cat -)"
+		;;
+	*)
+		echo "Usage: starts_with <prefix>  (or: printf '%s' <str> | starts_with <prefix>)" >&2
+		return 1
+		;;
+	esac
 
 	if [ -z "$str" ]; then
 		echo "Error: No string provided to starts_with." >&2
 		return 1
 	fi
-
 	if [ -z "$prefix" ]; then
 		echo "Error: No prefix provided to starts_with." >&2
 		return 1
@@ -127,6 +360,7 @@ starts_with() {
 	[[ "$str" == "$prefix"* ]]
 }
 
+# shellcheck disable=SC2120
 to_lowercase() {
 	local input_str
 	input_str=""
@@ -220,20 +454,26 @@ path_remove_tree_by_name() {
 	IFS='/' read -ra PATH_PARTS <<<"$input_path"
 
 	local out_path
-	out_path=""
+	out_path="/"
 
 	for part in "${PATH_PARTS[@]}"; do
-		if [[ "$part" == "$dir_name" ]]; then
-			break
+		if [ -n "$part" ]; then
+			if [[ "$part" == "$dir_name" ]]; then
+				break
+			fi
+			out_path="${out_path%/}/${part}"
 		fi
-		out_path="${out_path}/${part}"
 	done
 	normalize_path "$out_path"
 }
 
 # Verifies required CLI tools are installed
+MIN_BASH_MAJOR_VERSION=4
+MIN_BASH_MINOR_VERSION=0
 check_dependencies() {
-	local deps=("git" "clang-format" "stylua")
+	# Bash 4.0 minimum, as we require declarative arrays and string case conversion expansions ("${s,,}" or "{s^^}")
+	ensure_minimum_bash_version "$MIN_BASH_MAJOR_VERSION" "$MIN_BASH_MINOR_VERSION"
+	local -a deps=("git")
 	while [ "$#" -gt 0 ]; do
 		deps+=("$1")
 		shift
@@ -259,6 +499,7 @@ chdir() {
 	local path="$1"
 	shift
 
+	local -a args
 	args=()
 	while [ "$#" -gt 0 ]; do
 		args+=("$1")
@@ -266,7 +507,7 @@ chdir() {
 	done
 
 	local init_pwd
-	init_pwd="$(pwd)"
+	init_pwd="$(pwd)" || return 1
 
 	if ! cd "$path"; then
 		return 1
@@ -274,11 +515,11 @@ chdir() {
 
 	local return_code=0
 
-	if ! "${args[@]}"; then
-		return_code=1
+	if [ "${#args[@]}" -gt 0 ]; then
+		"${args[@]}" || return_code=$?
 	fi
 
-	cd "$init_pwd" || true
+	cd "$init_pwd" >/dev/null 2>&1 || true
 
 	return "$return_code"
 }
@@ -371,25 +612,6 @@ lnrs() {
 		ln -s "$rel_path" "$link_name"
 }
 
-have_application() {
-	command -v "$1" >/dev/null 2>&1
-}
-
-is_gnu() {
-	local application="$1"
-
-	if [ -n "$application" ] && have_application "$application"; then
-		local version_output
-		version_output="$("$application" --version 2>&1 || true)"
-		version_output="$(to_lowercase "$version_output")"
-		if [[ "$version_output" == *"gnu"* ]] || [[ "$version_output" == *"free software foundation"* ]]; then
-			return 0
-		fi
-	fi
-
-	return 1
-}
-
 host_triple() {
 	if have_application "clang"; then
 		clang -dumpmachine
@@ -404,17 +626,19 @@ host_triple() {
 
 tree_depth() {
 	local target_dir
-	target_dir="$(normalize_path "${1:-.}")"
+	local depth
 
-	# Ensure the target is a valid directory
+	target_dir="$(normalize_path "${1:-.}")" || return 1
+
 	if [ ! -d "$target_dir" ]; then
 		echo "Error: Directory '$target_dir' not found." >&2
 		return 1
 	fi
 
-	# Calculate max depth
-	local max_depth
-	max_depth=$(chdir "$target_dir" find . -type d | awk -F"/" '{print NF-1}' | sort -nr | head -n 1)
+	depth="$(
+		chdir "$target_dir" find . -type d -print |
+			awk -F/ '{ d=NF-1; if (d>max) max=d } END { print max+0 }'
+	)" || return 1
 
-	echo "$((max_depth + 1))"
+	echo "$((depth + 1))"
 }

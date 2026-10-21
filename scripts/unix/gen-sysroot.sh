@@ -5,49 +5,86 @@ set -euo pipefail
 script_dir() {
 	local script_dirname
 	script_dirname="$(dirname "$0")"
-	if [ -L "$script_dirname" ]; then
-		script_dirname="$(readlink -f "$script_dirname")"
-	fi
 
-	realpath "$script_dirname"
+	if ! realpath "$script_dirname" 2>/dev/null; then
+		echo "$script_dirname"
+	fi
 }
 
 # Returns the root of the containing git repository
 repo_dir() {
 	local repo_dir
 	repo_dir="$(git -C "$(script_dir)" rev-parse --show-toplevel)"
-	if [ -L "$repo_dir" ]; then
-		repo_dir="$(readlink -f "$repo_dir")"
+	if ! realpath "$repo_dir" 2>/dev/null; then
+		echo "$repo_dir"
 	fi
-	realpath "$repo_dir"
+}
+
+sha256_file() {
+	if have_application sha256sum; then
+		sha256sum "$1" | awk '{print $1}'
+	elif have_application shasum; then
+		shasum -a 256 "$1" | awk '{print $1}'
+	elif have_application openssl; then
+		openssl dgst -sha256 "$1" | awk '{print $NF}'
+	else
+		with_temp_coreutils sha256sum "$1" | awk '{print $1}'
+	fi
 }
 
 TEMP_COREUTILS_PATH=""
 TEMP_COREUTILS_BIN=""
 
+RUST_COREUTILS_ORG="uutils"
+RUST_COREUTILS_REPO="coreutils"
+RUST_COREUTILS_API_URI="https://api.github.com/repos/${RUST_COREUTILS_ORG}/${RUST_COREUTILS_REPO}/releases"
+COREUTILS_DOWNLOAD_DEPS=("jq" "curl" "tar" "cut" "sed" "unzip" "find")
+
 download_temp_coreutils() {
+	local search_host_triple
+	local latest_assets
+	local asset_count
+	local platform_asset_name
+	local platform_asset_uri
+	local asset_idx
+	local asset_name
+	local asset_uri
+	local asset_triple
+	local temp_asset_out
+	local asset_ext
+
 	echo "GNU coreutils missing. Attempting to download a temporary GNU-compatible coreutils binary for your platform." 1>&2
 
-	DOWNLOAD_DEPS=("jq" "curl" "tar" "cut" "sed" "unzip" "find")
-	check_dependencies "${DOWNLOAD_DEPS[@]}"
+	check_dependencies "${COREUTILS_DOWNLOAD_DEPS[@]}"
 
-	RUST_COREUTILS_ORG="uutils"
-	RUST_COREUTILS_REPO="coreutils"
-	RUST_COREUTILS_API_URI="https://api.github.com/repos/${RUST_COREUTILS_ORG}/${RUST_COREUTILS_REPO}/releases"
-
-	SEARCH_HOST_TRIPLE="$(sed -e 's/-pc-/-unknown-/g' -e 's/-gnu$/-musl/' <<<"$HOST_TRIPLE")"
+	search_host_triple="$(
+		sed \
+			-e 's/^arm64-/aarch64-/' \
+			-e 's/-pc-/-unknown-/g' \
+			-e 's/-gnu$/-musl/' \
+			-e 's/-darwin[0-9][0-9.]*$/-darwin/' \
+			<<<"$HOST_TRIPLE"
+	)"
 
 	latest_assets="$(curl -sSL -H "Accept: application/vnd.github+json" "$RUST_COREUTILS_API_URI" | jq -r '.[0].assets')"
 	asset_count="$(jq -r 'length' <<<"$latest_assets")"
 
 	platform_asset_name=""
 	platform_asset_uri=""
-	for ((i = 0; i < asset_count; i++)); do
-		asset_name="$(jq -r ".[$i].name" <<<"$latest_assets")"
-		asset_uri="$(jq -r ".[$i].browser_download_url" <<<"$latest_assets")"
+	for ((asset_idx = 0; asset_idx < asset_count; asset_idx++)); do
+		asset_name="$(jq -r ".[$asset_idx].name" <<<"$latest_assets")"
+		asset_uri="$(jq -r ".[$asset_idx].browser_download_url" <<<"$latest_assets")"
 
-		asset_triple="$(cut -d '-' -f3- <<<"$asset_name" | cut -d '.' -f1 | sed -e 's/-pc-/-unknown-/' -e 's/-apple-/-unknown-apple-/')"
-		if [[ "$asset_triple" == "$SEARCH_HOST_TRIPLE" ]]; then
+		asset_triple="${asset_name#coreutils-}"
+		asset_triple="$(
+			sed \
+				-e 's/^[0-9][0-9.]*-//' \
+				-e 's/\.tar\.[^.]*$//' \
+				-e 's/\.zip$//' \
+				-e 's/^arm64-/aarch64-/' \
+				<<<"$asset_triple"
+		)"
+		if [[ "$asset_triple" == "$search_host_triple" ]]; then
 			platform_asset_name="$asset_name"
 			platform_asset_uri="$asset_uri"
 			break
@@ -55,10 +92,10 @@ download_temp_coreutils() {
 	done
 
 	if [ -n "$platform_asset_name" ] && [ -n "$platform_asset_uri" ]; then
-		TEMP_ASSET_OUT="/tmp/${platform_asset_name}"
-		if ! curl -sSL "$platform_asset_uri" -o "$TEMP_ASSET_OUT"; then
+		temp_asset_out="/tmp/${platform_asset_name}"
+		if ! curl -sSL "$platform_asset_uri" -o "$temp_asset_out"; then
 			echo "Error: GNU coreutils missing, and failed to download for your current platform. Install GNU coreutils, then try again." >&2
-			rm "$TEMP_ASSET_OUT" 2>/dev/null || true
+			rm "$temp_asset_out" 2>/dev/null || true
 			return 1
 		fi
 
@@ -66,21 +103,21 @@ download_temp_coreutils() {
 
 		asset_ext="$(ext "$platform_asset_name" | to_lowercase)"
 		if [[ "$asset_ext" == "zip" ]]; then
-			if ! unzip "$TEMP_ASSET_OUT" -d "$TEMP_COREUTILS_PATH"; then
+			if ! unzip "$temp_asset_out" -d "$TEMP_COREUTILS_PATH"; then
 				echo "Error: GNU coreutils missing, and failed to extract download for your current platform. Install GNU coreutils, then try again." >&2
-				rm "$TEMP_ASSET_OUT" 2>/dev/null || true
+				rm "$temp_asset_out" 2>/dev/null || true
 				return 1
 			fi
 		elif [[ "$platform_asset_name" == *".tar."* ]]; then
-			if ! tar -xv --overwrite -f "$TEMP_ASSET_OUT" -C "$TEMP_COREUTILS_PATH"; then
+			if ! tar -xv -f "$temp_asset_out" -C "$TEMP_COREUTILS_PATH"; then
 				echo "Error: GNU coreutils missing, and failed to extract download for your current platform. Install GNU coreutils, then try again." >&2
-				rm "$TEMP_ASSET_OUT" 2>/dev/null || true
+				rm "$temp_asset_out" 2>/dev/null || true
 				return 1
 			fi
 		fi
 
-		rm "$TEMP_ASSET_OUT" 2>/dev/null || true
-		TEMP_COREUTILS_BIN="$(find "$TEMP_COREUTILS_PATH" -type f -iname "coreutils" -o -iname "coreutils.exe" | head -n1)"
+		rm "$temp_asset_out" 2>/dev/null || true
+		TEMP_COREUTILS_BIN="$(find "$TEMP_COREUTILS_PATH" -type f \( -iname "coreutils" -o -iname "coreutils.exe" \) -print -quit)"
 		echo "Successfully downloaded and extracted temporary GNU-compatible coreutils binary for your platform." >&2
 
 	else
@@ -91,14 +128,14 @@ download_temp_coreutils() {
 
 with_temp_coreutils() {
 	if [ -z "$TEMP_COREUTILS_BIN" ] && [ -d "$TEMP_COREUTILS_PATH" ]; then
-		TEMP_COREUTILS_BIN="$(find "$TEMP_COREUTILS_PATH" -type f -iname "coreutils" -o -iname "coreutils.exe" -print -quit)"
+		TEMP_COREUTILS_BIN="$(find "$TEMP_COREUTILS_PATH" -type f \( -iname "coreutils" -o -iname "coreutils.exe" \) -print -quit)"
 	fi
 
 	if [ -z "$TEMP_COREUTILS_BIN" ] && ! download_temp_coreutils; then
 		return 1
 	fi
 
-	local args
+	local -a args
 	args=()
 
 	while [ "$#" -gt 0 ]; do
@@ -132,7 +169,7 @@ cleanup_exit() {
 # so we try to find and use `gsort` instead if possible, and otherwise fallback to
 # a temporary coreutils binary.
 gnu_sort() {
-	local args
+	local -a args
 	args=()
 
 	while [ "$#" -gt 0 ]; do
@@ -153,6 +190,9 @@ dedup_dir() {
 	local target_dir
 	target_dir="$1"
 
+	local hash
+	local original
+
 	if [ -n "$target_dir" ]; then
 		target_dir="$(normalize_path "$target_dir")"
 		if [ -d "$target_dir" ]; then
@@ -160,9 +200,9 @@ dedup_dir() {
 			declare -A file_hashes=()
 
 			# Find only regular files to prevent touching existing symlinks or directories
-			while IFS=$'\n' read -r cmp_file; do
+			while IFS='' read -r -d '' cmp_file; do
 				if [ -n "$cmp_file" ] && [ -f "$cmp_file" ]; then
-					hash="$(sha256sum "$cmp_file" | awk '{print $1}')"
+					hash="$(sha256_file "$cmp_file")"
 
 					if [ -n "${file_hashes[$hash]+set}" ]; then
 						original="${file_hashes[$hash]}"
@@ -175,26 +215,32 @@ dedup_dir() {
 						file_hashes[$hash]="$cmp_file"
 					fi
 				fi
-			done < <(find "$target_dir" -type f | gnu_sort -hbf)
+			done < <(find "$target_dir" -type f -print0 | gnu_sort -zhbf)
 		fi
 	fi
 }
 
 remove_intrinsic_headers() {
-	while IFS=$'\n' read -r intrin; do
-		if [ -n "$intrin" ]; then
-			if [ -f "$intrin" ] || [ -L "$intrin" ]; then
-				rm "$intrin"
+	if [ -d "$OUTPUT_SYSROOT_INCLUDE_PATH" ]; then
+		while IFS='' read -r -d '' intrin; do
+			if [ -n "$intrin" ]; then
+				if [ -f "$intrin" ] || [ -L "$intrin" ]; then
+					rm "$intrin"
+				fi
 			fi
-		fi
-	done < <(find "$OUTPUT_SYSROOT_INCLUDE_PATH" -iname "*intrin.h" -o -iname "intrin*.h")
+		done < <(find "$OUTPUT_SYSROOT_INCLUDE_PATH" \
+			\( -iname "*intrin.h" -o -iname "intrin*.h" \) \
+			-print0)
+	fi
 }
 
 link_lowercase() {
 	local root
+	local lower_tree_file
+
 	root="$1"
 
-	while IFS=$'\n' read -r tree_file; do
+	while IFS='' read -r -d '' tree_file; do
 		if [ -n "$tree_file" ]; then
 			lower_tree_file="$(dirname "$tree_file")/$(basename "$tree_file" | to_lowercase)"
 
@@ -205,7 +251,7 @@ link_lowercase() {
 				lnrs "$tree_file" "$lower_tree_file"
 			fi
 		fi
-	done < <(find "$root" -mindepth 1)
+	done < <(find "$root" -mindepth 1 -print0)
 
 }
 
@@ -216,17 +262,19 @@ link_case_sensitive() {
 	lower="$(normalize_path "$1")"
 	upper="$(normalize_path "$2")"
 
-	if [ -e "$lower" ] && ! [ -e "$upper" ]; then
+	if [ -e "$lower" ] && ! [ -e "$upper" ] && ! [ -L "$upper" ]; then
 		echo "Linking case sensitive: $lower -> $upper"
 		lnrs "$lower" "$upper"
-	elif ! [ -e "$lower" ] && [ -e "$upper" ]; then
+	elif [ -e "$upper" ] && ! [ -e "$lower" ] && ! [ -L "$lower" ]; then
 		echo "Linking case sensitive: $upper -> $lower"
 		lnrs "$upper" "$lower"
 	fi
 }
 
 link_special_case_sensitive() {
-	local args
+	local -a args
+	local lower
+
 	args=()
 	while [ "$#" -gt 0 ]; do
 		args+=("$1")
@@ -248,27 +296,46 @@ SYSROOT_DIRS=(
 )
 
 filter_sysroot_dirs() {
-	declare -A SYSROOT_DIR_PROGRESS=()
+	local dir
+	local dir_basename
+	local sysroot_dir
+	local depth
+	local slashes
+
+	declare -A wanted_names=()
+	declare -A best_depth=()
+	declare -A best_path=()
 
 	for sysroot_dir in "${SYSROOT_DIRS[@]}"; do
-		SYSROOT_DIR_PROGRESS[$sysroot_dir]=0
+		wanted_names[$sysroot_dir]=1
 	done
 
-	while IFS=$'\n' read -r dir; do
+	while IFS='' read -r -d '' dir; do
 		if [ -n "$dir" ]; then
 			dir_basename="$(basename "$dir")"
-			if [ -n "${SYSROOT_DIR_PROGRESS[$dir_basename]+set}" ] &&
-				[ "${SYSROOT_DIR_PROGRESS[$dir_basename]}" -eq 0 ]; then
-				SYSROOT_DIR_PROGRESS[$dir_basename]=1
-				echo "$dir"
+			if [ -n "${wanted_names[$dir_basename]+set}" ]; then
+				slashes="${dir//[!/]/}"
+				depth="${#slashes}"
+
+				if [ -z "${best_depth[$dir_basename]+set}" ] ||
+					[ "$depth" -lt "${best_depth[$dir_basename]}" ]; then
+					best_depth[$dir_basename]="$depth"
+					best_path[$dir_basename]="$dir"
+				fi
 			fi
+		fi
+	done
+
+	for sysroot_dir in "${SYSROOT_DIRS[@]}"; do
+		if [ -n "${best_path[$sysroot_dir]+set}" ]; then
+			printf '%s\0' "${best_path[$sysroot_dir]}"
 		fi
 	done
 }
 
-REPO_DIR="$(repo_dir)"
-. "${REPO_DIR}/scripts/unix/env.sh"
+. "$(repo_dir)/scripts/unix/env.sh"
 
+REPO_DIR="$(repo_dir)"
 BUILD_DEPS=("rsync" "xwin" "sort")
 check_dependencies "${BUILD_DEPS[@]}"
 
@@ -299,7 +366,6 @@ TEMP_COREUTILS_PATH="${REPO_DIR}/build/coreutils"
 mkdir -p "$OUTPUT_SYSROOT"
 
 XWIN_SPLAT_DIR="${XWIN_CACHE}/splat"
-XWIN_DL_DIR="${XWIN_CACHE}/dl"
 
 if ! xwin \
 	--cache-dir "$XWIN_CACHE" \
@@ -314,13 +380,13 @@ if ! xwin \
 	splat \
 	--include-debug-libs \
 	--include-debug-symbols || ! [ -d "$XWIN_SPLAT_DIR" ]; then
-	echo "Error: xwin downlod, unpack, or splat failed. Exiting." 1>&2
+	echo "Error: xwin download, unpack, or splat failed. Exiting." 1>&2
 	cleanup_exit 1
 fi
 
-while IFS=$'\n' read -r dist; do
+while IFS='' read -r -d '' dist; do
 	if [ -n "$dist" ] && [ -d "$dist" ]; then
-		while IFS=$'\n' read -r sysroot_dir; do
+		while IFS='' read -r -d '' sysroot_dir; do
 			if [ -n "$sysroot_dir" ]; then
 				sysroot_dirname="$(basename "$sysroot_dir")"
 				out_sysroot_dir="${OUTPUT_SYSROOT}/${sysroot_dirname}"
@@ -340,11 +406,11 @@ while IFS=$'\n' read -r dist; do
 				min_file_dir_depth=$((min_file_depth - 1))
 
 				if [ "$min_file_dir_depth" -lt "$sysroot_dir_depth" ]; then
-					while IFS=$'\n' read -r wrapped_sysroot_dir; do
+					while IFS='' read -r -d '' wrapped_sysroot_dir; do
 						if [ -n "$wrapped_sysroot_dir" ]; then
-							rsync -avc --info=progress2 "${wrapped_sysroot_dir}/" "${out_sysroot_dir}/"
+							rsync -avc --progress "${wrapped_sysroot_dir}/" "${out_sysroot_dir}/"
 						fi
-					done < <(find "$sysroot_dir" -mindepth "$min_file_dir_depth" -maxdepth "$min_file_dir_depth" -type d)
+					done < <(find "$sysroot_dir" -mindepth "$min_file_dir_depth" -maxdepth "$min_file_dir_depth" -type d -print0)
 				fi
 
 			fi
@@ -356,9 +422,9 @@ while IFS=$'\n' read -r dist; do
 			# We use `filter_sysroot_dirs` to filter tree directories to those matching
 			# standard root-level sysroot directory names, with at most one match per
 			# name, where the match with lowest depth is selected.
-		done < <(find "$dist" -mindepth 1 -type d | filter_sysroot_dirs)
+		done < <(find "$dist" -mindepth 1 -type d -print0 | filter_sysroot_dirs)
 	fi
-done < <(find "$XWIN_SPLAT_DIR" -mindepth 1 -maxdepth 1 -type d)
+done < <(find "$XWIN_SPLAT_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
 
 # These are provided by clang separately.
 # Keeping these causes the compiler to use those provided by MSVC by default.

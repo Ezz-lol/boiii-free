@@ -24,6 +24,7 @@ repo_dir() {
 
 REPO_ROOT="$(repo_dir)"
 # Ensure git and clang-format are present
+# shellcheck disable=SC2119
 check_dependencies
 
 # Ensure the hooks directory exists in .git
