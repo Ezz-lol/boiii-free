@@ -32,7 +32,6 @@ OUTPUT_DIR=""
 TIDY=0
 EXEC_ARBITRARY=0
 EXEC_ARGS=()
-MARCH="x86-64"
 NUM_THREADS="$(num_threads)"
 BOIII_EXE="boiii.exe"
 TLS_DLL="tlsdll.dll"
@@ -562,7 +561,6 @@ print_usage() {
 	echo "  --sysroot, -s              Specify the path to the MSVC toolchain sysroot."
 	echo "  --release, -r              Build in release mode (default debug mode)."
 	echo "  --output, -o               Specify the output directory for build files."
-	echo "  -march, -m                 Specify the target architecture (default: x86-64-v2)."
 	echo "  -j, --threads              Specify the number of threads to use for building (default: $(nproc))."
 	echo "  -v, --verbose              Enable verbose compilation logging."
 	echo "  --help, -h                 Show this help message and exit."
@@ -594,14 +592,6 @@ while [ "$#" -gt 0 ]; do
 			exit 1
 		fi
 		export OUTPUT_DIR="$2"
-		shift 2
-		;;
-	--march | -march | -m)
-		if [ -z "$2" ]; then
-			echo "Error: --arch requires an argument." >&2
-			exit 1
-		fi
-		MARCH="$2"
 		shift 2
 		;;
 	--verbose | -verbose | -v)
