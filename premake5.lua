@@ -460,7 +460,12 @@ local optimizationFlags = {
   -- Misc. optimization
   "-fomit-frame-pointer",
   "-fcf-protection=none",
+
+  -- Use LLD as linker
+  "-fuse-ld=lld",
 }
+
+local clangLinkerOptimizationFlags = map(linkerOptimizationFlags, clang_ld_flag)
 
 local clArchFlags = map(archFlags, clang_cl_flag)
 local clParserFlags = map(parserFlags, clang_cl_flag)
@@ -474,13 +479,13 @@ local warningFlags = {
   "-Wno-format",
   "-Wno-sign-compare",
 }
-local clOptimizationFlags = map(optimizationFlags, clang_cl_flag)
+local clOptimizationFlags = map(mergeTables(optimizationFlags, clangLinkerOptimizationFlags), clang_cl_flag)
 buildoptions(mergeTables(warningFlags, clArchFlags, clOptimizationFlags))
-linkoptions(mergeTables({ "/IGNORE:4702" }, linkerOptimizationFlags))
+linkoptions(mergeTables({ "/IGNORE:4702" }, clOptimizationFlags))
 filter({})
 filter({ "configurations:Release", "toolset:not msc*" })
 
-local clangOptimizationFlags = mergeTables(optimizationFlags, map(linkerOptimizationFlags, clang_ld_flag))
+local clangOptimizationFlags = mergeTables(optimizationFlags, clangLinkerOptimizationFlags)
 buildoptions(mergeTables(archFlags, clangOptimizationFlags))
 linkoptions(clangOptimizationFlags)
 filter({})
