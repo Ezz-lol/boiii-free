@@ -23,6 +23,7 @@
       "kind",
       "language",
       "libdirs",
+      "linker",
       "linkoptions",
       "links",
       "linktimeoptimization",
