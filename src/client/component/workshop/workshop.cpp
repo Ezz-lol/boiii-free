@@ -244,6 +244,170 @@ void CL_SetupForNewServerMap_stub(game::LocalClientNum_t localClientNum,
   CL_SetupForNewServerMap_hook.invoke(localClientNum, map, gametype);
 }
 
+// Steam descriptions are BBCode. Only known tags are touched, so text like
+// "[ZM]" survives
+std::string clean_description(const std::string_view &text) {
+  static const std::unordered_set<std::string_view> dropped_blocks = {
+      "img", "previewyoutube", "video", "previewimg"};
+  static const std::unordered_set<std::string_view> line_tags = {
+      "h1",    "h2",   "h3",    "hr", "list",    "olist",
+      "quote", "code", "table", "tr", "spoiler", "p"};
+  static const std::unordered_set<std::string_view> inline_tags = {
+      "b", "i",     "u",    "s",    "strike", "noparse", "url",
+      "*", "color", "size", "font", "center", "emoticon"};
+
+  const auto lower = [](std::string_view value) {
+    std::string out(value);
+    for (char &c : out)
+      c = static_cast<char>(std::tolower(static_cast<uint8_t>(c)));
+    return out;
+  };
+
+  const std::string lowered = lower(text);
+  std::string out;
+  out.reserve(text.size());
+  for (size_t i = 0; i < text.size();) {
+    const char c = text[i];
+    if (c == '\r') {
+      ++i;
+      continue;
+    }
+    if (c != '[') {
+      out.push_back(c);
+      ++i;
+      continue;
+    }
+
+    const size_t end = text.find(']', i);
+    if (end == std::string_view::npos) {
+      // A tag cut off at the end of the text
+      break;
+    }
+    std::string_view tag = text.substr(i + 1, end - i - 1);
+    const bool closing = tag.starts_with('/');
+    if (closing)
+      tag.remove_prefix(1);
+    const size_t param = tag.find_first_of("= ");
+    const std::string name = lower(tag.substr(0, param));
+
+    if (!closing && dropped_blocks.contains(name)) {
+      const size_t close = lowered.find("[/" + name + "]", end);
+      i = close == std::string::npos ? text.size() : close + name.size() + 3;
+      continue;
+    }
+    if (!closing && name == "url" && param == std::string_view::npos) {
+      // A bare link, the text is the URL itself
+      const size_t close = lowered.find("[/url]", end);
+      i = close == std::string::npos ? text.size() : close + 6;
+      continue;
+    }
+    if (line_tags.contains(name)) {
+      out.push_back('\n');
+    } else if (name == "*") {
+      out += "\n- ";
+    } else if (name == "td" || name == "th") {
+      out.push_back(' ');
+    } else if (!inline_tags.contains(name)) {
+      out.push_back('[');
+      ++i;
+      continue;
+    }
+    i = end + 1;
+  }
+
+  // Bare links and HTML entities
+  std::string result;
+  result.reserve(out.size());
+  for (size_t i = 0; i < out.size();) {
+    const std::string_view rest = std::string_view(out).substr(i);
+    if (rest.starts_with("http://") || rest.starts_with("https://") ||
+        rest.starts_with("www.")) {
+      while (i < out.size() && !std::isspace(static_cast<uint8_t>(out[i])))
+        ++i;
+      continue;
+    }
+    bool replaced = false;
+    for (const auto &[entity, value] :
+         {std::pair{"&amp;", "&"}, std::pair{"&quot;", "\""},
+          std::pair{"&#39;", "'"}, std::pair{"&apos;", "'"},
+          std::pair{"&lt;", "<"}, std::pair{"&gt;", ">"},
+          std::pair{"&nbsp;", " "}}) {
+      if (rest.starts_with(entity)) {
+        result += value;
+        i += std::string_view(entity).size();
+        replaced = true;
+        break;
+      }
+    }
+    if (!replaced)
+      result.push_back(out[i++]);
+  }
+
+  // The game font only has Latin-1, so map common symbols and drop the rest
+  // (emoji and such) instead of showing boxes
+  std::string glyphs;
+  glyphs.reserve(result.size());
+  for (size_t i = 0; i < result.size();) {
+    const uint8_t lead = static_cast<uint8_t>(result[i]);
+    const size_t length = lead < 0x80   ? 1
+                          : lead < 0xE0 ? 2
+                          : lead < 0xF0 ? 3
+                                        : 4;
+    if (length == 1 || i + length > result.size()) {
+      glyphs.push_back(result[i++]);
+      continue;
+    }
+    uint32_t code = lead & (0xFF >> (length + 1));
+    for (size_t k = 1; k < length; ++k)
+      code = (code << 6) | (static_cast<uint8_t>(result[i + k]) & 0x3F);
+
+    if (code < 0x100) {
+      glyphs.append(result, i, length);
+    } else if (code == 0x2018 || code == 0x2019) {
+      glyphs.push_back('\'');
+    } else if (code == 0x201C || code == 0x201D) {
+      glyphs.push_back('"');
+    } else if (code == 0x2013 || code == 0x2014 || code == 0x2022 ||
+               code == 0x2606) {
+      glyphs.push_back('-');
+    } else if (code == 0x2605) {
+      glyphs.push_back('*');
+    } else if (code == 0x2026) {
+      glyphs += "...";
+    }
+    i += length;
+  }
+  result = std::move(glyphs);
+
+  // Trim each line and drop empty ones
+  std::string cleaned;
+  cleaned.reserve(result.size());
+  size_t start = 0;
+  while (start <= result.size()) {
+    size_t stop = result.find('\n', start);
+    if (stop == std::string::npos)
+      stop = result.size();
+    std::string_view line =
+        std::string_view(result).substr(start, stop - start);
+    while (!line.empty() && std::isspace(static_cast<uint8_t>(line.front())))
+      line.remove_prefix(1);
+    while (!line.empty() && std::isspace(static_cast<uint8_t>(line.back())))
+      line.remove_suffix(1);
+    if (!line.empty() && line != "-") {
+      if (!cleaned.empty())
+        cleaned.push_back('\n');
+      // Removed links leave double spaces behind
+      for (const char c : line) {
+        const bool space = c == ' ' || c == '\t';
+        if (!space || cleaned.back() != ' ')
+          cleaned.push_back(space ? ' ' : c);
+      }
+    }
+    start = stop + 1;
+  }
+  return cleaned;
+}
+
 void load_workshop_data(game::ugc::UGCItem *item) {
   const char *base_path = item->absolutePathZoneFiles;
   const char *path = utils::string::va("%s/workshop.json", base_path);
@@ -271,7 +435,9 @@ void load_workshop_data(game::ugc::UGCItem *item) {
   }
 
   utils::string::copy(item->title, doc["Title"].GetString());
-  utils::string::copy(item->description, doc["Description"].GetString());
+  utils::string::copy(
+      item->description,
+      clean_description(doc["Description"].GetString()).c_str());
   utils::string::copy(item->internalName, doc["FolderName"].GetString());
   utils::string::copy(item->publisherId, doc["PublisherID"].GetString());
   item->publisherIdInteger = std::strtoull(item->publisherId, nullptr, 10);
@@ -455,8 +621,9 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
       utils::string::copy(ugc_data->title, doc["Title"].GetString());
     }
     if (doc.HasMember("Description") && doc["Description"].IsString()) {
-      utils::string::copy(ugc_data->description,
-                          doc["Description"].GetString());
+      utils::string::copy(
+          ugc_data->description,
+          clean_description(doc["Description"].GetString()).c_str());
     }
     if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
       utils::string::copy(ugc_data->internalName,
@@ -806,7 +973,7 @@ std::vector<item_details> get_details(const std::vector<std::string> &ids) {
           item.id = string_of("publishedfileid");
           if (!item.id.empty()) {
             item.title = string_of("title");
-            item.description = string_of("description");
+            item.description = clean_description(string_of("description"));
             item.preview_url = string_of("preview_url");
             item.file_size = number_of("file_size");
             item.time_updated = number_of("time_updated");

@@ -96,7 +96,7 @@ void scan_root(const std::string_view &kind,
     item.path = entry.path().generic_string();
     item.id = json_string(*doc, {"PublisherID", "PublishedFileId"});
     item.title = json_string(*doc, {"Title", "FolderName"});
-    item.description = json_string(*doc, {"Description"});
+    item.description = clean_description(json_string(*doc, {"Description"}));
     if (item.id.empty())
       item.id = item.folder;
     if (item.title.empty())

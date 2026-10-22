@@ -76,6 +76,42 @@ local function shortenText(text, maxLength)
   return result
 end
 
+-- Descriptions are cleaned when loaded; this only catches what slips
+-- through, and leaves text like "[ZM]" alone
+local BBCODE_TAGS = {
+  b = true,
+  i = true,
+  u = true,
+  s = true,
+  strike = true,
+  url = true,
+  h1 = true,
+  h2 = true,
+  h3 = true,
+  hr = true,
+  list = true,
+  olist = true,
+  ["*"] = true,
+  quote = true,
+  code = true,
+  spoiler = true,
+  noparse = true,
+  table = true,
+  tr = true,
+  th = true,
+  td = true,
+}
+
+local function stripBBCode(text)
+  return (
+    text:gsub("%[/?([%w%*]+)[^%]]*%]", function(name)
+      if BBCODE_TAGS[string.lower(name)] then
+        return ""
+      end
+    end)
+  )
+end
+
 local function cleanDescription(text)
   text = text or ""
   local truncated = #text >= DESCRIPTION_LIMIT
@@ -83,7 +119,8 @@ local function cleanDescription(text)
     :gsub("\r", "")
     :gsub("%[img%].-%[/img%]", "")
     :gsub("%[previewyoutube.-%[/previewyoutube%]", "")
-    :gsub("%[/?[%w%*]+[^%]]*%]", "")
+  text = stripBBCode(text)
+  text = text
     :gsub("%[[^%]]*$", "")
     :gsub("https?://%S+", "")
     :gsub("www%.%S+", "")

@@ -79,6 +79,7 @@ const char *va_user_content_path(const char *fmt, const char *root_dir,
                                  const char *user_content_dir);
 
 std::string normalize_kind(const std::string_view &kind);
+std::string clean_description(const std::string_view &text);
 
 struct installed_item {
   std::string id;
