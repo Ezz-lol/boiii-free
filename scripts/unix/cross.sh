@@ -305,40 +305,19 @@ get_llvm_libdir() {
 }
 
 cross_env() {
-	local temp_windres_link_dir
 	local temp_path
-
 	local -a args
+
 	args=()
 	while [ "$#" -gt 0 ]; do
 		args+=("$1")
 		shift
 	done
 
-	# Place LLVM bin path before all others.
-	# premake5 uses `windres` verbatim, with first resolved on path, to
-	# compile the resources.
-	# On most unix-like systems, this will not be LLVM windres, but GNU windres, which
-	# does not support COFF relocations, and thus fails to compile the resources with errors.
-	# By placing the LLVM bin directory path first, we ensure that premake5 finds the correct windres,
-	# and thus can compile the resources successfully.
+	# Place LLVM bin path before all others
 	temp_path="$(get_llvm_bin):${PATH}"
-	# ensure LLVM windres with "windres" basename exists on path, somewhere.
-	temp_windres_link_dir="$(mktemp -d)"
-	trap 'rm -rf "$temp_windres_link_dir" >/dev/null 2>&1' EXIT INT TERM HUP
 
-	if is_llvm "$(env PATH="$temp_path" resolve_path "windres" 2>/dev/null || true)"; then
-		if [ -d "$temp_windres_link_dir" ]; then
-			rm -rf "$temp_windres_link_dir" >/dev/null 2>&1 || true
-			trap - EXIT INT TERM HUP
-		fi
-	else
-		ln -s "$(get_llvm_windres)" "${temp_windres_link_dir}/windres"
-		temp_path="${temp_windres_link_dir}:${temp_path}"
-	fi
-
-	exit_code=0
-	if ! chdir "${REPO_DIR}" \
+	chdir "${REPO_DIR}" \
 		env \
 		PATH="${temp_path}" \
 		CC="$TEMP_CC" \
@@ -364,16 +343,8 @@ cross_env() {
 		RCFLAGS="$TEMP_RCFLAGS" \
 		CMAKE_BUILD_PARALLEL_LEVEL="$NUM_THREADS" \
 		MAKEOPTS="-j${NUM_THREADS}" \
-		"${args[@]}"; then
-		exit_code=1
-	fi
+		"${args[@]}"
 
-	if [ -d "$temp_windres_link_dir" ]; then
-		rm -rf "$temp_windres_link_dir" >/dev/null 2>&1 || true
-	fi
-	trap - EXIT INT TERM HUP
-
-	return "$exit_code"
 }
 
 flags_to_yaml_array_items() {
@@ -489,11 +460,13 @@ clangd_include_flags() {
 generate_clangd_config() {
 	local clangd_config_path
 	clangd_config_path="$(repo_dir)/.clangd"
+	local clangd_flags
+	clangd_flags="-std=c++20 ${TEMP_CXXFLAGS}"
 
 	cat >"$clangd_config_path" <<EOL
 CompileFlags:
   Add: [
-$(flags_to_yaml_array_items "$TEMP_CXXFLAGS" | clangd_flag_indent), 
+$(flags_to_yaml_array_items "$clangd_flags" | clangd_flag_indent), 
 $(clangd_include_flags)
   ]
 EOL

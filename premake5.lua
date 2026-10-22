@@ -1,3 +1,10 @@
+local modules = os.matchfiles("premake/**.lua")
+
+for _, module in pairs(modules) do
+  module = module:gsub(".lua", "")
+  include(module)
+end
+
 GIT_VERSIONING_COMMAND = "git describe --tags --always"
 GIT_CURRENT_BRANCH_COMMAND = "git symbolic-ref -q --short HEAD"
 
@@ -299,18 +306,6 @@ filter("action:not vs*")
 toolset("clang")
 filter({})
 
--- The ninja generator skips .rc files, so compile them with llvm-rc ourselves.
--- Premake only links object files, so convert the .res into a COFF object
-filter({ "action:not vs*", "files:**.rc" })
-buildmessage("Compiling resource %{file.relpath}")
-buildcommands({
-  'llvm-rc /nologo %{cfg.buildcfg == "Debug" and "/D _DEBUG" or ""} /I "%{prj.location}/src" /I "%{file.directory}" /fo "%{cfg.objdir}/%{file.basename}.res" "%{file.abspath}"',
-  'llvm-cvtres /nologo /machine:x64 /out:"%{cfg.objdir}/%{file.basename}_res.obj" "%{cfg.objdir}/%{file.basename}.res"',
-})
-buildoutputs({ "%{cfg.objdir}/%{file.basename}_res.obj" })
-linkbuildoutputs(true)
-filter({})
-
 linker("LLD")
 startproject("client")
 location("./build")
@@ -546,7 +541,7 @@ linkoptions(mergeArrays(archFlags, toolsetConfigurationFlags, {
 }))
 filter({})
 
-project("common")
+local common_proj = project("common")
 kind("StaticLib")
 language("C++")
 
@@ -562,12 +557,11 @@ includedirs({
   -- version.h and version.hpp headers
   "%{prj.location}/src",
 })
-
-resincludedirs({ "$(ProjectDir)src" })
+resincludedirs({ path.join(common_proj.location, "src") })
 
 dependencies.imports()
 
-project("client")
+local client_proj = project("client")
 kind("WindowedApp")
 language("C++")
 
@@ -594,8 +588,7 @@ includedirs({
   -- version.h and version.hpp headers
   "%{prj.location}/src",
 })
-
-resincludedirs({ "$(ProjectDir)src" })
+resincludedirs({ path.join(client_proj.location, "src") })
 
 dependson({ "tlsdll" })
 
@@ -609,7 +602,7 @@ filter("toolset:not msc*")
 linkoptions({ "-Wl,/base:0x170000000" })
 filter({})
 
-project("tlsdll")
+local tlsdll_proj = project("tlsdll")
 kind("SharedLib")
 language("C++")
 
@@ -660,8 +653,7 @@ files({ "./src/tlsdll/**.rc", "./src/tlsdll/**.hpp", "./src/tlsdll/**.cpp", "./s
 includedirs({ "%{prj.location}/src/tlsdll", "%{prj.location}/src" })
 
 links({ "common" })
-
-resincludedirs({ "$(ProjectDir)src" })
+resincludedirs({ path.join(tlsdll_proj.location, "src") })
 
 group("Dependencies")
 dependencies.projects()
