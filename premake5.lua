@@ -438,8 +438,10 @@ local optimizationFlags = {
   "-fmerge-all-constants",
   "-fvisibility=hidden",
 
-  -- No whole-program vtable flags: the game and Steam call virtuals on our
-  -- interface objects (e.g. SteamClient017), so LTO can't see every caller
+  -- Virtual function de-duplication
+  "-fwhole-program-vtables",
+  "-fvirtual-function-elimination",
+  "-fdevirtualize-speculatively",
 
   -- General function de-duplication
   "-ffunction-sections",
