@@ -282,14 +282,17 @@ void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
                      const std::string_view &gametype,
                      const std::string_view &usermap_id,
                      const std::string_view &mod_id,
-                     const std::string_view &lobby) {
+                     const std::string_view &lobby_view) {
+  // The lambdas below run later, so they need their own copies
+  const std::string map{mapname}, type{gametype}, usermap{usermap_id},
+      mod{mod_id}, lobby{lobby_view};
   const auto connect = [=] {
     game::com::Com_SessionMode_SetGameMode(
         game::eGameModes::MATCHMAKING_PLAYLIST);
     const auto connect_direct = [=] {
       connect_to_lobby(
           game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
-          addr, mapname, gametype, usermap_id, mod_id);
+          addr, map, type, usermap, mod);
     };
     if (lobby.empty()) {
       connect_direct();
@@ -441,34 +444,34 @@ void handle_connect_query_response(const bool success,
       static_cast<game::eModes>(std::atoi(playmode.data()));
   // const game::XUID xuid = strtoull(info.get("xuid").data(), nullptr, 16);
 
+  // Stock maps have no usermap entry, so the id stays empty
   const game::ugc::OptionalUGCItemRef usermap_item =
       game::ugc::UGC_GetUsermapByInternalName(mapname);
-  if (usermap_item.has_value()) {
-    const std::string_view &usermap_id = usermap_item->get().publisherId;
-    const std::string addr_str = target.toString();
-    scheduler::once(
-        [=] {
-          // Always save latest address for mod reconnect (mod unload/reload)
-          workshop::set_pending_mod_reconnect(addr_str);
+  const std::string usermap_id =
+      usermap_item.has_value() ? usermap_item->get().publisherId : "";
+  const std::string addr_str = target.toString();
+  scheduler::once(
+      [=] {
+        // Always save latest address for mod reconnect (mod unload/reload)
+        workshop::set_pending_mod_reconnect(addr_str);
 
-          if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
-                                               base_uri) &&
-              workshop::check_valid_mod_id(mod_id, workshop_id)) {
-            connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
-                            lobby);
-          } else {
-            const char *msg = utils::string::va(
-                "Missing or invalid workshop/map dependencies for server %s.",
-                addr_str.c_str());
-            printf("Connect failed: %s\n", msg);
-            toast::show("Connect failed", "Missing workshop/map dependencies",
-                        "t7_icon_connect_overlays");
-            // Save download reconnect
-            workshop::set_pending_download_reconnect(addr_str);
-          }
-        },
-        scheduler::main);
-  }
+        if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
+                                             base_uri) &&
+            workshop::check_valid_mod_id(mod_id, workshop_id)) {
+          connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
+                          lobby);
+        } else {
+          const char *msg = utils::string::va(
+              "Missing or invalid workshop/map dependencies for server %s.",
+              addr_str.c_str());
+          printf("Connect failed: %s\n", msg);
+          toast::show("Connect failed", "Missing workshop/map dependencies",
+                      "t7_icon_connect_overlays");
+          // Save download reconnect
+          workshop::set_pending_download_reconnect(addr_str);
+        }
+      },
+      scheduler::main);
 }
 
 void connect_finish(const game::net::netadr_t &target) {
