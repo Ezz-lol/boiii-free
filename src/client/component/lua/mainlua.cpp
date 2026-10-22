@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include <game/game.hpp>
+
 
 #include <component/auth.hpp>
 #include <component/lua/lua_state.hpp>

@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include <game/game.hpp>
+
 #include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 #include <utils/flags.hpp>

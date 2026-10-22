@@ -2,7 +2,7 @@
 
 #include "matchmaking_servers.hpp"
 
-#include <game/game.hpp>
+
 
 #include "component/friends.hpp"
 #include "component/nat.hpp"

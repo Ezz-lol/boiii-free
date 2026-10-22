@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include <game/game.hpp>
+
 #include <loader/component_loader.hpp>
 
 // In case of clangd compilation

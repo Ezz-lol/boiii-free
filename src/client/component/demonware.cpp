@@ -12,7 +12,7 @@
 #include <game/demonware/servers/lobby_server.hpp>
 #include <game/demonware/servers/stun_server.hpp>
 #include <game/demonware/servers/umbrella_server.hpp>
-#include <game/game.hpp>
+
 
 #include "localized_strings.hpp"
 

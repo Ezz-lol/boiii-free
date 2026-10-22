@@ -4,7 +4,7 @@
 
 #include <utils/nt.hpp>
 
-#include <game/game.hpp>
+
 
 namespace component_loader {
 namespace {

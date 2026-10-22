@@ -3,7 +3,7 @@
 #include "update_cancelled.hpp"
 #include "updater_ui.hpp"
 
-#include <game/game.hpp>
+
 #include <utils/flags.hpp>
 #include <utils/string.hpp>
 

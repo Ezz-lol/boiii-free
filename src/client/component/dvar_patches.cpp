@@ -3,7 +3,7 @@
 #include <loader/component_loader.hpp>
 
 #include "scheduler.hpp"
-#include <game/game.hpp>
+
 #include <game/utils.hpp>
 
 #include <utils/flags.hpp>

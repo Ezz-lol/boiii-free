@@ -13,7 +13,7 @@
 #include "launcher.hpp"
 #include "launcher_workshop.hpp"
 
-#include <game/game.hpp>
+
 
 // In case of clangd compilation
 #if __has_include(<version.h>)

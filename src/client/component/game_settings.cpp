@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include <game/game.hpp>
+
 #include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>

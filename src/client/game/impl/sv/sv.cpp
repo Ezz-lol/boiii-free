@@ -2,7 +2,7 @@
 
 #include "game/utils.hpp"
 #include "sv.hpp"
-#include <game/game.hpp>
+
 #include <game/impl/sl/sl.hpp>
 
 namespace game {

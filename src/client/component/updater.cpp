@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
 #include "updater.hpp"
-#include <game/game.hpp>
+
 #include <loader/component_loader.hpp>
 
 #include <updater/updater.hpp>

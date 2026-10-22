@@ -20,7 +20,7 @@
 #include "component/updater.hpp"
 #include "launcher/html/html_window.hpp"
 #include "launcher/launcher.hpp"
-#include <game/game.hpp>
+
 
 #include <shlobj.h>
 #include <tlhelp32.h>

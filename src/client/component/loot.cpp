@@ -9,7 +9,7 @@
 #include "loot.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"
-#include <game/game.hpp>
+
 #include <game/utils.hpp>
 
 namespace loot {

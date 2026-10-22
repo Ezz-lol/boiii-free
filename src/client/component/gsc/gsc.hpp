@@ -5,7 +5,6 @@
 #include <frozen/string.h>
 #include <frozen/unordered_set.h>
 
-#include <game/structs/scr/scr.hpp>
 #include <str.hpp>
 
 namespace gsc {

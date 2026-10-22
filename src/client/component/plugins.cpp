@@ -3,7 +3,7 @@
 #include <loader/component_loader.hpp>
 
 #include <filesystem>
-#include <game/game.hpp>
+
 #include <utils/flags.hpp>
 #include <utils/io.hpp>
 #include <utils/nt.hpp>

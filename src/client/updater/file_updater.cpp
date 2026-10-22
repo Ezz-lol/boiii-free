@@ -4,7 +4,7 @@
 #include "updater.hpp"
 #include "updater_ui.hpp"
 
-#include <game/game.hpp>
+
 #include <utils/compression.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/flags.hpp>

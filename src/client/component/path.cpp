@@ -2,7 +2,7 @@
 
 #include "path.hpp"
 
-#include <game/game.hpp>
+
 
 #ifndef NDEBUG
 #include <utils/string.hpp>

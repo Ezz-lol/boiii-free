@@ -113,6 +113,8 @@
 #include <macros/macros.hpp>   // IWYU pragma: export
 #include <structs/structs.hpp> // IWYU pragma: export
 
+#include "game/game.hpp" // IWYU pragma: export
+
 #define RAPIDJSON_NOEXCEPT
 #define RAPIDJSON_ASSERT(cond)                                                 \
   if (cond)                                                                    \

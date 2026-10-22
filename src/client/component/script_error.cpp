@@ -8,7 +8,7 @@
 
 #include <component/gsc/compiler/emitter.hpp>
 
-#include <game/game.hpp>
+
 #include <game/impl/scr/gdb.hpp>
 
 #include <utils/hook.hpp>

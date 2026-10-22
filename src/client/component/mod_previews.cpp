@@ -5,7 +5,7 @@
 #include "scheduler.hpp"
 
 #include <component/lua/lua_state.hpp>
-#include <game/game.hpp>
+
 #include <loader/component_loader.hpp>
 
 #include <utils/http.hpp>

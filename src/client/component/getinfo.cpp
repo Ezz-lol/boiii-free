@@ -2,7 +2,7 @@
 
 #include <loader/component_loader.hpp>
 
-#include <game/game.hpp>
+
 #include <steam/steam.hpp>
 
 #include "auth.hpp"

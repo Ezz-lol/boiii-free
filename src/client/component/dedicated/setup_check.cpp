@@ -4,7 +4,7 @@
 
 #include "../scheduler.hpp"
 #include "../workshop/workshop.hpp"
-#include <game/game.hpp>
+
 #include <game/utils.hpp>
 
 #include <utils/nt.hpp>

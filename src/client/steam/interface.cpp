@@ -23,11 +23,11 @@ void *interface::find_method(const std::string &name) {
 }
 
 void *interface::search_method(const std::string &name) {
-  if (!utils::memory::is_bad_read_ptr(this->interface_ptr_)) {
+  if (!::utils::memory::is_bad_read_ptr(this->interface_ptr_)) {
     void **vftbl = *this->interface_ptr_;
 
-    while (!utils::memory::is_bad_read_ptr(vftbl) &&
-           !utils::memory::is_bad_code_ptr(*vftbl)) {
+    while (!::utils::memory::is_bad_read_ptr(vftbl) &&
+           !::utils::memory::is_bad_code_ptr(*vftbl)) {
       void *const ptr = *vftbl;
       const std::string result = this->analyze_method(ptr);
       if (!result.empty()) {
@@ -46,7 +46,7 @@ void *interface::search_method(const std::string &name) {
 }
 
 std::string interface::analyze_method(const void *method_ptr) {
-  if (utils::memory::is_bad_code_ptr(method_ptr))
+  if (::utils::memory::is_bad_code_ptr(method_ptr))
     return {};
 
   ud_t ud;
@@ -67,8 +67,8 @@ std::string interface::analyze_method(const void *method_ptr) {
       if (operand && operand->type == UD_OP_MEM && operand->base == UD_R_RIP) {
         char *operand_ptr = reinterpret_cast<char *>(
             ud_insn_len(&ud) + ud_insn_off(&ud) + operand->lval.sdword);
-        if (!utils::memory::is_bad_read_ptr(operand_ptr) &&
-            utils::memory::is_rdata_ptr(operand_ptr)) {
+        if (!::utils::memory::is_bad_read_ptr(operand_ptr) &&
+            ::utils::memory::is_rdata_ptr(operand_ptr)) {
           return operand_ptr;
         }
       }

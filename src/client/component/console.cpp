@@ -4,7 +4,7 @@
 
 #include <resource.hpp>
 
-#include <game/game.hpp>
+
 #include <game/utils.hpp>
 
 #include <component/command.hpp>

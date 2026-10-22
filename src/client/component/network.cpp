@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
 #include <game/fragment_handler.hpp>
-#include <game/game.hpp>
+
 #include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 

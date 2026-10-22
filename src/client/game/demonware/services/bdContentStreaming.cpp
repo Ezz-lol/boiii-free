@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
 #include "bdContentStreaming.hpp"
-#include <game/game.hpp>
+
 
 namespace demonware {
 bdContentStreaming::bdContentStreaming() : service(50, "bdContentStreaming") {

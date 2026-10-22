@@ -3,7 +3,7 @@
 #include "game/impl/ugc/ugc.hpp"
 #include "loader/component_loader.hpp"
 
-#include "game/game.hpp"
+
 #include "game/utils.hpp"
 
 #include "auth.hpp"

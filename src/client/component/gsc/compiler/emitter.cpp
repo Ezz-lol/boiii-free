@@ -3,7 +3,7 @@
 #include "emitter.hpp"
 #include <algorithm>
 #include <cstring>
-#include <game/game.hpp>
+
 
 #include "component/gsc/func/func.hpp"
 

@@ -2,7 +2,7 @@
 
 #include <loader/component_loader.hpp>
 
-#include <game/game.hpp>
+
 #include <game/utils.hpp>
 
 #include <game/impl/com/com.hpp>

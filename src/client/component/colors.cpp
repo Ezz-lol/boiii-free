@@ -3,7 +3,7 @@
 #include <loader/component_loader.hpp>
 
 #include "name.hpp"
-#include <game/game.hpp>
+
 #include <game/utils.hpp>
 
 #include "auth.hpp"

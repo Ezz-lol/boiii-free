@@ -6,7 +6,7 @@
 #include "party.hpp"
 #include "scheduler.hpp"
 #include <component/lua/lua_state.hpp>
-#include <game/game.hpp>
+
 #include <game/utils.hpp>
 
 #include <discord_rpc.h>

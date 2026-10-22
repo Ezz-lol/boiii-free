@@ -2,7 +2,7 @@
 
 #include "vm.hpp"
 
-#include <game/game.hpp>
+
 
 #include <component/game_event.hpp>
 #include <component/script_error.hpp>
