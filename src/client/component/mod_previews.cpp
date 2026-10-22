@@ -48,13 +48,36 @@ std::filesystem::path cached_preview_path(const std::string &ugc_name) {
          (ugc_name + ".png");
 }
 
-std::optional<std::string> fetch_preview_data(const std::string &ugc_name) {
-  std::string data;
-  if (utils::io::read_file(
-          (game::get_game_path() / "mods" / ugc_name / "previewimage.png")
-              .string(),
-          &data)) {
-    return data;
+// Workshop items keep their preview next to the zone folder, under any of
+// these names
+std::optional<std::string>
+read_local_preview(const std::filesystem::path &folder) {
+  std::error_code ec;
+  for (const std::filesystem::path &dir : {folder, folder / "zone"}) {
+    for (const char *name :
+         {"previewimage.png", "previewimage.jpg", "previewimage.jpeg"}) {
+      std::string data;
+      if (std::filesystem::is_regular_file(dir / name, ec) &&
+          utils::io::read_file(dir / name, &data)) {
+        return data;
+      }
+    }
+  }
+  return std::nullopt;
+}
+
+std::optional<std::string>
+fetch_preview_data(const std::string &ugc_name,
+                   const std::filesystem::path &folder) {
+  for (const std::filesystem::path &dir :
+       {folder, game::get_game_path() / "mods" / ugc_name,
+        game::get_game_path() / "usermaps" / ugc_name}) {
+    if (dir.empty()) {
+      continue;
+    }
+    if (std::optional<std::string> data = read_local_preview(dir)) {
+      return data;
+    }
   }
   if (!ugc_name.empty() && std::ranges::all_of(ugc_name, ::isdigit)) {
     const std::string url = launcher::get_steam_workshop_preview_url(ugc_name);
@@ -66,8 +89,9 @@ std::optional<std::string> fetch_preview_data(const std::string &ugc_name) {
 }
 
 bool cache_preview(const std::string &ugc_name,
+                   const std::filesystem::path &folder,
                    const std::filesystem::path &path) {
-  const std::optional<std::string> data = fetch_preview_data(ugc_name);
+  const std::optional<std::string> data = fetch_preview_data(ugc_name, folder);
   if (data) {
     try {
       const utils::image::image decoded = utils::image::load_image(*data);
@@ -93,17 +117,18 @@ bool cache_preview(const std::string &ugc_name,
   return false;
 }
 
-void request_download(const std::string &ugc_name) {
+void request_download(const std::string &ugc_name,
+                      const std::filesystem::path &folder = {}) {
   std::unique_ptr<preview> &entry = previews[ugc_name];
   if (!entry) {
     entry = std::make_unique<preview>();
     entry->image_name = std::string(IMAGE_PREFIX) + ugc_name;
     scheduler::once(
-        [ugc_name] {
+        [ugc_name, folder] {
           const std::filesystem::path path = cached_preview_path(ugc_name);
           std::error_code error;
           const bool cached = std::filesystem::exists(path, error) ||
-                              cache_preview(ugc_name, path);
+                              cache_preview(ugc_name, folder, path);
           std::scoped_lock lock(previews_mutex);
           previews[ugc_name]->state =
               cached ? preview_state::downloaded : preview_state::missing;
@@ -135,10 +160,22 @@ void load_texture(const std::string &ugc_name, preview &entry) {
   }
 }
 
-void request_installed_mods() {
+std::filesystem::path item_folder(const game::ugc::UGCItem &item) {
+  std::filesystem::path folder = std::string_view(item.absolutePathZoneFiles);
+  if (folder.filename() == "zone") {
+    folder = folder.parent_path();
+  }
+  return folder;
+}
+
+// Maps too, so the workshop menu can show every installed item instantly
+void request_installed_items() {
   std::scoped_lock lock(previews_mutex);
   for (const game::ugc::UGCItem &item : game::ugc::modsPool.iter()) {
-    request_download(item.publisherId);
+    request_download(item.publisherId, item_folder(item));
+  }
+  for (const game::ugc::UGCItem &item : game::ugc::usermapsPool.iter()) {
+    request_download(item.publisherId, item_folder(item));
   }
 }
 
@@ -216,7 +253,7 @@ public:
         {nullptr, nullptr},
     };
     lua_state::register_library("ModsMenu", ModsMenuLibrary);
-    scheduler::loop(request_installed_mods, scheduler::pipeline::main, 1s);
+    scheduler::loop(request_installed_items, scheduler::pipeline::main, 1s);
   }
 };
 } // namespace mod_previews

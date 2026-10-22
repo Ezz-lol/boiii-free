@@ -5,14 +5,22 @@
 
 #include <component/scheduler.hpp>
 
+#include <utils/finally.hpp>
 #include <utils/http.hpp>
+#include <utils/image.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
+
+#include <semaphore>
+
+#include <stb_image_resize2.h>
+#include <stb_image_write.h>
 
 namespace workshop {
 namespace {
 constexpr int PAGE_SIZE = 30;
 constexpr int MAX_PREVIEW_DOWNLOADS = 4;
+constexpr int32_t PREVIEW_WIDTH = 512;
 constexpr const char *USER_AGENT =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
@@ -25,9 +33,11 @@ std::unordered_map<std::string, uint64_t> known_sizes;
 
 std::mutex preview_mutex;
 std::unordered_set<std::string> preview_busy;
+std::unordered_set<std::string> preview_failed;
 std::string cover_id;
-std::string applied_cover;
-std::atomic<int> preview_downloads{0};
+std::counting_semaphore<> preview_slots{MAX_PREVIEW_DOWNLOADS};
+// The selected item skips the page prefetch queue
+std::counting_semaphore<> cover_slots{2};
 
 std::string url_encode(const std::string_view &value) {
   std::string out;
@@ -194,7 +204,112 @@ std::string og_image(const std::string_view &html) {
   if (content == std::string::npos)
     return {};
   const size_t start = content + 9;
-  return std::string(html.substr(start, html.find('"', start) - start));
+  std::string url(html.substr(start, html.find('"', start) - start));
+  // The page HTML-escapes the URL's '&'
+  for (size_t pos = url.find("&amp;"); pos != std::string::npos;
+       pos = url.find("&amp;", pos + 1))
+    url.replace(pos, 5, "&");
+  return url;
+}
+
+// Gfx_LoadTextureFromPng only reads PNG, and Steam serves JPEGs, so decode
+// and re-encode. Written to a temp file first so the cover never loads half
+// of one
+bool save_preview(const std::string_view &id, const std::string &data) {
+  try {
+    const utils::image::image decoded = utils::image::load_image(data);
+    const int32_t width = static_cast<int32_t>(decoded.width);
+    const int32_t height = static_cast<int32_t>(decoded.height);
+    const int32_t scaled_width = std::min(width, PREVIEW_WIDTH);
+    const int32_t scaled_height = std::max(1, height * scaled_width / width);
+    std::string scaled(static_cast<size_t>(scaled_width) * scaled_height * 4,
+                       '\0');
+    if (!stbir_resize_uint8_srgb(
+            reinterpret_cast<const uint8_t *>(decoded.data.data()), width,
+            height, 0, reinterpret_cast<uint8_t *>(scaled.data()), scaled_width,
+            scaled_height, 0, STBIR_RGBA))
+      return false;
+
+    std::string png;
+    const auto append = [](void *context, void *bytes, int size) {
+      static_cast<std::string *>(context)->append(static_cast<char *>(bytes),
+                                                  size);
+    };
+    if (!stbi_write_png_to_func(append, &png, scaled_width, scaled_height, 4,
+                                scaled.data(), scaled_width * 4))
+      return false;
+
+    const std::filesystem::path path = preview_path(id);
+    std::filesystem::path temp = path;
+    temp += ".tmp";
+    if (!utils::io::write_file(temp, png))
+      return false;
+    std::error_code ec;
+    std::filesystem::rename(temp, path, ec);
+    return !ec;
+  } catch (const std::exception &) {
+    return false;
+  }
+}
+
+// Installed items ship their own preview, which is faster than Steam and
+// works offline
+std::optional<std::string> read_installed_preview(const std::string_view &id) {
+  const std::filesystem::path folder = find_installed(id);
+  if (folder.empty())
+    return std::nullopt;
+  std::error_code ec;
+  for (const std::filesystem::path &dir : {folder, folder / "zone"}) {
+    for (const std::filesystem::directory_entry &entry :
+         std::filesystem::directory_iterator(dir, ec)) {
+      const std::u8string stem8 = entry.path().stem().u8string();
+      const std::u8string ext8 = entry.path().extension().u8string();
+      const std::string stem =
+          utils::string::to_lower(std::string(stem8.begin(), stem8.end()));
+      const std::string ext =
+          utils::string::to_lower(std::string(ext8.begin(), ext8.end()));
+      if (stem.starts_with("previewimage") &&
+          (ext == ".png" || ext == ".jpg" || ext == ".jpeg")) {
+        std::string data;
+        if (utils::io::read_file(entry.path(), &data))
+          return data;
+      }
+    }
+  }
+  return std::nullopt;
+}
+
+bool download_preview(const std::string &id, const std::string &url) {
+  utils::http::headers headers;
+  headers["User-Agent"] = USER_AGENT;
+  headers["Accept"] = "image/jpeg,image/png,image/gif,image/*;q=0.8";
+
+  std::vector<std::string> urls;
+  if (!url.empty()) {
+    urls.push_back(std::format("{}{}imw=512&ima=fit&impolicy=Letterbox", url,
+                               url.find('?') == std::string::npos ? "?" : "&"));
+    urls.push_back(url);
+  }
+  urls.push_back(std::format(
+      "https://steamcommunity.com/sharedfiles/filedetails/?id={}", id));
+
+  for (size_t i = 0; i < urls.size(); ++i) {
+    const std::optional<std::string> body =
+        utils::http::get_data(urls[i], headers, {}, 10);
+    if (!body)
+      continue;
+    if (is_engine_image(*body)) {
+      if (save_preview(id, *body))
+        return true;
+      continue;
+    }
+    const std::string image = og_image(*body);
+    if (!image.empty() && i + 1 == urls.size()) {
+      urls.push_back(image + "?imw=512&ima=fit&impolicy=Letterbox");
+      urls.push_back(image);
+    }
+  }
+  return false;
 }
 
 void bind_cover(const game::gfx::GfxTexture &loaded) {
@@ -218,23 +333,38 @@ void bind_cover(const game::gfx::GfxTexture &loaded) {
 }
 
 void apply_cover() {
+  // Only touch the disk while waiting on a preview, not on every tick
+  static std::string applied_id;
+  static bool applied_final = true;
   std::string id;
+  bool failed;
   {
     std::lock_guard lock(preview_mutex);
     id = cover_id;
+    failed = preview_failed.contains(id);
   }
-  const std::filesystem::path loading =
-      game::get_appdata_path() /
-      "data/ui_scripts/workshop_menu/loadingworkshop.png";
-  const std::string wanted = id.empty()        ? std::string{}
-                             : has_preview(id) ? preview_path(id).string()
-                                               : loading.string();
-  if (wanted == applied_cover)
+  if (id == applied_id && applied_final)
     return;
-  applied_cover = wanted;
-  bind_cover(wanted.empty()
-                 ? game::gfx::GfxTexture{}
-                 : game::gfx::Gfx_LoadTextureFromPng(wanted.c_str()));
+
+  const bool ready = !id.empty() && has_preview(id);
+  const bool final = id.empty() || ready || failed;
+  if (id == applied_id && !final)
+    return;
+  applied_id = id;
+  applied_final = final;
+
+  // No preview at all falls back to the default image
+  if (ready) {
+    bind_cover(
+        game::gfx::Gfx_LoadTextureFromPng(preview_path(id).string().c_str()));
+  } else if (final) {
+    bind_cover({});
+  } else {
+    const std::filesystem::path loading =
+        game::get_appdata_path() /
+        "data/ui_scripts/workshop_menu/loadingworkshop.png";
+    bind_cover(game::gfx::Gfx_LoadTextureFromPng(loading.string().c_str()));
+  }
 }
 } // namespace
 
@@ -251,7 +381,7 @@ void request_catalog_page(const std::string_view &query, int page) {
   }
 
   const uint64_t request = ++catalog_request;
-  std::thread([query, page, request] {
+  std::thread([query = std::string(query), page, request] {
     std::vector<item_details> items = fetch_page(page, query);
     for (const item_details &item : items)
       request_preview(item.id, item.preview_url);
@@ -284,48 +414,32 @@ void request_preview(const std::string_view &id, const std::string_view &url) {
     return;
   {
     std::lock_guard lock(preview_mutex);
-    if (!preview_busy.insert(std::string(id)).second)
+    if (preview_failed.contains(std::string(id)) ||
+        !preview_busy.insert(std::string(id)).second)
       return;
   }
 
-  std::thread([id, url] {
-    while (preview_downloads >= MAX_PREVIEW_DOWNLOADS)
-      std::this_thread::sleep_for(80ms);
-    ++preview_downloads;
-
-    utils::http::headers headers;
-    headers["User-Agent"] = USER_AGENT;
-    headers["Accept"] = "image/jpeg,image/png,image/gif,image/*;q=0.8";
-
-    std::vector<std::string> urls;
-    if (!url.empty()) {
-      urls.push_back(std::string(url));
-      urls.push_back(
-          std::format("{}{}imw=512&ima=fit&impolicy=Letterbox", url,
-                      url.find('?') == std::string::npos ? "?" : "&"));
-    }
-    urls.push_back(std::format(
-        "https://steamcommunity.com/sharedfiles/filedetails/?id={}", id));
-
-    for (size_t i = 0; i < urls.size(); ++i) {
-      const std::optional<std::string> body =
-          utils::http::get_data(urls[i], headers, {}, 10);
-      if (!body)
-        continue;
-      if (is_engine_image(*body)) {
-        utils::io::write_file(preview_path(id).string(), *body);
-        break;
-      }
-      const std::string image = og_image(*body);
-      if (!image.empty() && i + 1 == urls.size()) {
-        urls.push_back(image);
-        urls.push_back(image + "?imw=512&ima=fit&impolicy=Letterbox");
-      }
-    }
-
-    --preview_downloads;
+  const bool selected = [&] {
     std::lock_guard lock(preview_mutex);
-    preview_busy.erase(std::string(id));
+    return cover_id == id;
+  }();
+
+  // Own copies: the caller's strings are gone once this returns
+  std::thread([id = std::string(id), url = std::string(url), selected] {
+    // Local files don't need a download slot
+    const std::optional<std::string> local = read_installed_preview(id);
+    bool saved = local && save_preview(id, *local);
+    if (!saved) {
+      std::counting_semaphore<> &slots = selected ? cover_slots : preview_slots;
+      slots.acquire();
+      const auto _ = utils::finally([&slots] { slots.release(); });
+      saved = download_preview(id, url);
+    }
+
+    std::lock_guard lock(preview_mutex);
+    preview_busy.erase(id);
+    if (!saved)
+      preview_failed.insert(id);
   }).detach();
 }
 
