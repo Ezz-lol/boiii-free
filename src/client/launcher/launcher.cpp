@@ -710,33 +710,35 @@ bool has_image_extension(const std::filesystem::path &p) {
   return false;
 }
 
-std::string find_mod_image_path(const std::filesystem::path &mod_root) {
+std::filesystem::path
+find_mod_image_path(const std::filesystem::path &mod_root) {
   std::filesystem::path zone_dir = mod_root / "zone";
   std::vector<std::filesystem::path> dirs_to_scan = {mod_root};
   if (std::filesystem::exists(zone_dir))
     dirs_to_scan.push_back(zone_dir);
 
-  std::string found_preview, found_loading, found_any;
+  std::filesystem::path found_preview, found_loading, found_any;
   for (const std::filesystem::path &dir : dirs_to_scan) {
     std::error_code ec;
     for (const std::filesystem::directory_entry &entry :
          std::filesystem::directory_iterator(dir, ec)) {
       if (!entry.is_regular_file(ec))
         continue;
-      std::string stem = entry.path().stem().string();
-      std::string stem_lower = utils::string::to_lower(stem);
+      const std::u8string stem = entry.path().stem().u8string();
+      const std::string stem_lower =
+          utils::string::to_lower(std::string(stem.begin(), stem.end()));
       if (!has_image_extension(entry.path()))
         continue;
-      std::string abs_path =
-          std::filesystem::absolute(entry.path(), ec).generic_string();
+      std::filesystem::path abs_path =
+          std::filesystem::absolute(entry.path(), ec);
       if (path_starts_with_ignore_case(stem_lower, "previewimage")) {
         if (found_preview.empty())
-          found_preview = abs_path;
+          found_preview = std::move(abs_path);
       } else if (path_starts_with_ignore_case(stem_lower, "loadingimage")) {
         if (found_loading.empty())
-          found_loading = abs_path;
+          found_loading = std::move(abs_path);
       } else if (found_any.empty())
-        found_any = abs_path;
+        found_any = std::move(abs_path);
     }
   }
   if (!found_preview.empty())
@@ -746,18 +748,21 @@ std::string find_mod_image_path(const std::filesystem::path &mod_root) {
   return found_any;
 }
 
-std::string path_to_file_url(const std::string &path) {
+// Encodes as UTF-8 and percent-escapes everything else, so user folders with
+// accents, other scripts, spaces or '#' still resolve
+std::string path_to_file_url(const std::filesystem::path &path) {
   if (path.empty())
     return {};
-  std::string s = path;
-  for (auto &c : s)
-    if (c == '\\')
-      c = '/';
-  if (s.size() >= 2 && s[1] == ':')
-    return "file:///" + s;
-  if (s[0] != '/')
-    return "file:///" + s;
-  return "file://" + s;
+  std::string url = "file:///";
+  for (const char8_t chr : path.generic_u8string()) {
+    const unsigned char byte = static_cast<unsigned char>(chr);
+    if ((byte < 0x80 && std::isalnum(byte)) || std::strchr("-._~/:", byte)) {
+      url.push_back(static_cast<char>(byte));
+    } else {
+      url += std::format("%{:02X}", byte);
+    }
+  }
+  return url;
 }
 
 struct mode_info {
@@ -1004,7 +1009,7 @@ std::string workshop_list_json() {
       }
     }
     item.local_size = ::workshop::compute_folder_size_bytes(dir);
-    const std::string image_path = find_mod_image_path(dir);
+    const std::filesystem::path image_path = find_mod_image_path(dir);
     if (!image_path.empty()) {
       item.image = path_to_file_url(image_path);
     }
@@ -3165,8 +3170,7 @@ bool run() {
         });
 
     // window.get_html_frame()->load_html(utils::nt::load_resource(MENU_MAIN));
-    window.get_html_frame()->load_url(utils::string::va(
-        "file:///%ls", get_launcher_ui_file().wstring().c_str()));
+    window.get_html_frame()->load_url(path_to_file_url(get_launcher_ui_file()));
 
     window::run();
   }
