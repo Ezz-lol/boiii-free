@@ -115,10 +115,7 @@ end
 local function cleanDescription(text)
   text = text or ""
   local truncated = #text >= DESCRIPTION_LIMIT
-  text = text
-    :gsub("\r", "")
-    :gsub("%[img%].-%[/img%]", "")
-    :gsub("%[previewyoutube.-%[/previewyoutube%]", "")
+  text = text:gsub("\r", ""):gsub("%[img%].-%[/img%]", ""):gsub("%[previewyoutube.-%[/previewyoutube%]", "")
   text = stripBBCode(text)
   text = text
     :gsub("%[[^%]]*$", "")
