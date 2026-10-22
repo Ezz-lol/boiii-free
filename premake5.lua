@@ -299,6 +299,18 @@ filter("action:not vs*")
 toolset("clang")
 filter({})
 
+-- The ninja generator skips .rc files, so compile them with llvm-rc ourselves.
+-- Premake only links object files, so convert the .res into a COFF object
+filter({ "action:not vs*", "files:**.rc" })
+buildmessage("Compiling resource %{file.relpath}")
+buildcommands({
+  'llvm-rc /nologo %{cfg.buildcfg == "Debug" and "/D _DEBUG" or ""} /I "%{prj.location}/src" /I "%{file.directory}" /fo "%{cfg.objdir}/%{file.basename}.res" "%{file.abspath}"',
+  'llvm-cvtres /nologo /machine:x64 /out:"%{cfg.objdir}/%{file.basename}_res.obj" "%{cfg.objdir}/%{file.basename}.res"',
+})
+buildoutputs({ "%{cfg.objdir}/%{file.basename}_res.obj" })
+linkbuildoutputs(true)
+filter({})
+
 linker("LLD")
 startproject("client")
 location("./build")
