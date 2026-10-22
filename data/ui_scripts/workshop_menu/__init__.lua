@@ -833,23 +833,12 @@ local function scrollDescription(menu, delta)
   refreshDescription(menu)
 end
 
--- Installed items use the previews the mods page preloads, so they show
--- instantly instead of going through the download path
-local function installedPreview(sel)
-  if not sel or not sel.installed or not ModsMenu or not ModsMenu.GetPreview then
-    return nil
-  end
-  local ok, image = pcall(ModsMenu.GetPreview, sel.id)
-  return ok and image or nil
-end
-
 local function bindWorkshopCover(menu)
   if not menu or not menu.CoverImage then
     return
   end
-  local image = installedPreview(menu.wsSel) or "img_t7_mod_preview"
   pcall(function()
-    menu.CoverImage:setImage(RegisterImage(image))
+    menu.CoverImage:setImage(RegisterImage("img_t7_mod_preview"))
   end)
 end
 
@@ -912,7 +901,7 @@ updateDetails = function(menu, element)
     if game.setworkshopcover then
       game.setworkshopcover(newId)
     end
-    if sel and game.requestworkshoppreview and not installedPreview(sel) then
+    if sel and game.requestworkshoppreview then
       game.requestworkshoppreview(sel.id, sel.preview)
     end
   end)
