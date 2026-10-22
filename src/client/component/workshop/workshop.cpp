@@ -1011,28 +1011,24 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
                             const std::string_view &usermap,
                             const std::string_view &mod, bool force_fs_reinit) {
   const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
-  if (loaded_mod != mod) {
-    if (!mod.empty()) {
-      if (!usermap.empty() || mod != "usermaps") {
-        bool fs_reinit_required =
-            force_fs_reinit ||
-            mod_switch_requires_fs_reinitialization(loaded_mod, mod);
-        game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, mod.data(),
-                                                 fs_reinit_required);
-        if (fs_reinit_required) {
-          wait_for_mod_load();
-        }
-      }
-    } else if (game::ugc::UGC_ActiveMod_Loaded()) {
-      bool fs_reinit_required =
-          force_fs_reinit ||
-          mod_switch_requires_fs_reinitialization(loaded_mod, "");
-      game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, "",
-                                               fs_reinit_required);
-      if (fs_reinit_required) {
-        wait_for_mod_load();
-      }
-    }
+  // Dedicated servers always report usermaps, even on stock maps. Stock maps
+  // don't need it, so keep whatever usermaps state we have instead of reloading
+  const std::string_view target =
+      mod == "usermaps" && usermap.empty() && loaded_mod != "usermaps"
+          ? std::string_view{}
+          : mod;
+  if (loaded_mod == target) {
+    return;
+  }
+
+  const bool fs_reinit_required =
+      force_fs_reinit ||
+      mod_switch_requires_fs_reinitialization(loaded_mod, target);
+  const std::string target_str{target};
+  game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, target_str.data(),
+                                           fs_reinit_required);
+  if (fs_reinit_required) {
+    wait_for_mod_load();
   }
 }
 
