@@ -4,7 +4,6 @@
 
 #include <component/scheduler.hpp>
 
-
 #include <game/impl/scr/place.hpp>
 
 #include <utils/hook.hpp>

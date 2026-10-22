@@ -21,7 +21,6 @@
 #include "launcher/html/html_window.hpp"
 #include "launcher/launcher.hpp"
 
-
 #include <shlobj.h>
 #include <tlhelp32.h>
 

@@ -1,6 +1,5 @@
 #include <std_include.hpp>
 
-
 #include <game/ui_scripting/execution.hpp>
 #include <game/utils.hpp>
 

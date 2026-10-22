@@ -2,7 +2,6 @@
 
 #include <loader/component_loader.hpp>
 
-
 #include <game/impl/snd/sd/sd.hpp>
 #include <game/impl/snd/snd.hpp>
 #include <game/utils.hpp>

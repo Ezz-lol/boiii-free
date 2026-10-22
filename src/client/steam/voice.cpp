@@ -2,7 +2,6 @@
 
 #include "voice.hpp"
 
-
 #include <game/utils.hpp>
 
 namespace steam {

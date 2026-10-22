@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cstring>
 
-
 #include "component/gsc/func/func.hpp"
 
 namespace gsc {

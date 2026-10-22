@@ -5,7 +5,6 @@
 #include "dvars.hpp"
 #include "scheduler.hpp"
 
-
 #include <atomic>
 #include <utils/hook.hpp>
 #include <utils/io.hpp>

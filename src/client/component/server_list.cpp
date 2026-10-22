@@ -3,8 +3,6 @@
 #include "server_list.hpp"
 #include <loader/component_loader.hpp>
 
-
-
 #include "command.hpp"
 
 #include <utils/concurrency.hpp>

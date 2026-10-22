@@ -2,8 +2,6 @@
 
 #include "steamcmd.hpp"
 
-
-
 #include <utils/compression.hpp>
 #include <utils/http.hpp>
 #include <utils/io.hpp>

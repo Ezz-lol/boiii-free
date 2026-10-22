@@ -2,8 +2,6 @@
 
 #include <loader/component_loader.hpp>
 
-
-
 #include <utils/hook.hpp>
 
 namespace fov {

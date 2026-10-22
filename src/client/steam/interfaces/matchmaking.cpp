@@ -5,7 +5,6 @@
 #include "component/network.hpp"
 #include "component/server_list.hpp"
 
-
 namespace steam {
 namespace {
 constexpr uint32_t k_unFavoriteFlag = 1u;

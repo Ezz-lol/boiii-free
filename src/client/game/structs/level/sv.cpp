@@ -1,7 +1,5 @@
 #include <std_include.hpp>
 
-
-
 namespace game {
 namespace level {
 std::string flame_timed_damage_t::serialize() const noexcept {

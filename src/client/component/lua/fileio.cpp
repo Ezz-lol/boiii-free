@@ -1,8 +1,6 @@
 #include <filesystem>
 #include <std_include.hpp>
 
-
-
 #include <loader/component_loader.hpp>
 
 #include <component/lua/lua_state.hpp>

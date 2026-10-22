@@ -1,7 +1,5 @@
 #include <std_include.hpp>
 
-
-
 #include <utils/HTTPRequest.hpp>
 
 #include <component/lua/lua_state.hpp>

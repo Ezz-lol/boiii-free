@@ -4,7 +4,6 @@
 
 #include <utils/hook.hpp>
 
-
 #include <game/utils.hpp>
 
 namespace live_presence_patch {

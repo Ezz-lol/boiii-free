@@ -7,8 +7,6 @@
 #include <utils/memory.hpp>
 #include <utils/string.hpp>
 
-
-
 #include <mutex>
 
 namespace command {

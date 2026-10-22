@@ -7,7 +7,6 @@
 #include "command.hpp"
 #include "scheduler.hpp"
 
-
 #include <game/impl/cg/cg.hpp>
 #include <game/impl/cl/cl.hpp>
 #include <game/impl/snd/sd/sd.hpp>

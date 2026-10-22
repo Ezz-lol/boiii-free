@@ -2,8 +2,6 @@
 
 #include <loader/component_loader.hpp>
 
-
-
 #include <utils/concurrency.hpp>
 #include <utils/finally.hpp>
 #include <utils/flags.hpp>

@@ -2,8 +2,6 @@
 
 #include "path.hpp"
 
-
-
 #ifndef NDEBUG
 #include <utils/string.hpp>
 #endif

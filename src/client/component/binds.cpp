@@ -1,7 +1,5 @@
 #include <std_include.hpp>
 
-
-
 #include <component/command.hpp>
 #include <component/scheduler.hpp>
 #include <component/toast.hpp>

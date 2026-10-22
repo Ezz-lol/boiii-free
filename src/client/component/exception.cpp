@@ -9,7 +9,6 @@
 #include "exception.hpp"
 #include "scheduler.hpp"
 
-
 #include <errhandlingapi.h>
 #include <utils/compression.hpp>
 #include <utils/hook.hpp>

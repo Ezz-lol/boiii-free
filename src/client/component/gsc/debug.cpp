@@ -2,8 +2,6 @@
 
 #include "vm.hpp"
 
-
-
 #include <component/game_event.hpp>
 #include <component/script_error.hpp>
 #include <loader/component_loader.hpp>

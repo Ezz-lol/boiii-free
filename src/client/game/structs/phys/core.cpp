@@ -1,7 +1,5 @@
 #include <std_include.hpp>
 
-
-
 namespace game {
 namespace phys {
 std::string pulse_sum_node::serialize() const noexcept {

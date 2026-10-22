@@ -2,8 +2,6 @@
 
 #include <loader/component_loader.hpp>
 
-
-
 #include "auth.hpp"
 #include <mmeapi.h>
 #include <str.hpp>

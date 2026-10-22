@@ -1,7 +1,5 @@
 #include <std_include.hpp>
 
-
-
 namespace game {
 namespace db {
 namespace xasset {

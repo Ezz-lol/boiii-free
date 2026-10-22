@@ -4,8 +4,6 @@
 
 #include <utils/nt.hpp>
 
-
-
 namespace component_loader {
 namespace {
 std::vector<std::unique_ptr<generic_component>> &get_components() {

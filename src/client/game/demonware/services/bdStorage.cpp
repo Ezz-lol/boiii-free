@@ -8,7 +8,6 @@
 #include <utils/nt.hpp>
 #include <utils/string.hpp>
 
-
 #include <resource.hpp>
 
 namespace demonware {

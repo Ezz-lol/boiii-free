@@ -5,7 +5,6 @@
 #include <component/game_event.hpp>
 #include <component/scheduler.hpp>
 
-
 #include <game/utils.hpp>
 
 #include "game/impl/phys/phys.hpp"

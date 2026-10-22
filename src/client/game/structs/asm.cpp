@@ -1,7 +1,5 @@
 #include <std_include.hpp>
 
-
-
 namespace game {
 namespace anim {
 inline std::string animScriptCommand_t::serialize() const noexcept {

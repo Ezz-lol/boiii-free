@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <loader/component_loader.hpp>
 
-
 #include <game/utils.hpp>
 
 #include <utils/hook.hpp>

@@ -3,7 +3,6 @@
 #include "../../ugc/ugc.hpp"
 #include "xzone.hpp"
 
-
 namespace game {
 namespace db {
 namespace xzone {

@@ -2,8 +2,6 @@
 
 #include <std_include.hpp>
 
-
-
 namespace gsc {
 namespace vm {
 using namespace game;

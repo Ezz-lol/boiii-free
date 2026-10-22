@@ -5,7 +5,6 @@
 #include "scheduler.hpp"
 #include "script.hpp"
 
-
 #include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>

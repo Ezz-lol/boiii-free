@@ -13,7 +13,6 @@
 #include <game/demonware/servers/stun_server.hpp>
 #include <game/demonware/servers/umbrella_server.hpp>
 
-
 #include "localized_strings.hpp"
 
 #define TCP_BLOCKING true

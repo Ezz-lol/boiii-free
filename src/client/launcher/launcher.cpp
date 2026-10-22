@@ -13,8 +13,6 @@
 #include "launcher.hpp"
 #include "launcher_workshop.hpp"
 
-
-
 // In case of clangd compilation
 #if __has_include(<version.h>)
 #include "version.h"

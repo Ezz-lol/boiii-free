@@ -2,8 +2,6 @@
 
 #include <std_include.hpp>
 
-
-
 namespace currency {
 std::optional<uint32_t> item_quantity(game::ControllerIndex_t controller,
                                       uint32_t inventory_id);

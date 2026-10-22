@@ -1,7 +1,5 @@
 #include <std_include.hpp>
 
-
-
 #include <component/workshop/workshop.hpp>
 
 #include <launcher/html/html_frame.hpp>

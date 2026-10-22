@@ -2,8 +2,6 @@
 
 #include "matchmaking_servers.hpp"
 
-
-
 #include "component/friends.hpp"
 #include "component/nat.hpp"
 #include "component/network.hpp"

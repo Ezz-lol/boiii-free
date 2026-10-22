@@ -2,7 +2,6 @@
 
 #include "scheduler.hpp"
 
-
 #include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 
