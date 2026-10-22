@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "screenshots.hpp"
 
 namespace steam {
 uint64_t screenshots::WriteScreenshot(void *pubRGB, uint32_t cubRGB, int nWidth,

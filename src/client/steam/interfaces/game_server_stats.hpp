@@ -1,7 +1,10 @@
 #pragma once
 
+#include "macros/macros.hpp"
+#include "steam/common.hpp"
+
 namespace steam {
-class game_server_stats {
+class __export game_server_stats {
 public:
   ~game_server_stats() = default;
 

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "steam/common.hpp"
+#include <macros/macros.hpp>
+
 #include <cstdint>
 namespace steam {
 using matchmaking_server_response = enum EMatchMakingServerResponse {
@@ -51,7 +54,7 @@ public:
                                matchmaking_server_response response) = 0;
 };
 
-class matchmaking_servers {
+class __export matchmaking_servers {
 public:
   ~matchmaking_servers() = default;
 

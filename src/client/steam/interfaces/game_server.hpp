@@ -1,7 +1,10 @@
 #pragma once
 
+#include "macros/macros.hpp"
+#include "steam/common.hpp"
+
 namespace steam {
-class game_server {
+class __export game_server {
 public:
   ~game_server() = default;
 

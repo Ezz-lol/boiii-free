@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "networking.hpp"
 
 namespace steam {
 bool networking::SendP2PPacket(steam_id steamIDRemote, const void *pubData,

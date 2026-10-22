@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "utils.hpp"
 
 namespace steam {
 unsigned int utils::GetSecondsSinceAppActive() { return 0; }

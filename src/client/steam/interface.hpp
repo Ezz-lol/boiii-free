@@ -11,7 +11,7 @@
 namespace steam {
 typedef std::unordered_map<std::string, void *> methodTable_t;
 
-class interface final {
+class __export interface final {
 public:
   interface();
   interface(void *interface_ptr);

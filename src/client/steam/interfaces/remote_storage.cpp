@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "remote_storage.hpp"
 
 namespace steam {
 bool remote_storage::FileWrite(const char *pchFile, const void *pvData,

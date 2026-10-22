@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "game_server.hpp"
+
+#include "steam/steam.hpp"
 #include <component/dedicated/command.hpp>
 
 namespace steam {

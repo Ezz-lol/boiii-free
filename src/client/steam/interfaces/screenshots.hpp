@@ -1,7 +1,10 @@
 #pragma once
 
+#include "macros/macros.hpp"
+#include "steam/common.hpp"
+
 namespace steam {
-class screenshots {
+class __export screenshots {
 public:
   ~screenshots() = default;
 

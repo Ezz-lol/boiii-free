@@ -2,7 +2,9 @@
 
 #include <utils/nt.hpp>
 
-#include "../steam.hpp"
+#include "apps.hpp"
+
+#include "steam/steam.hpp"
 
 namespace steam {
 bool apps::BIsSubscribed() { return true; }

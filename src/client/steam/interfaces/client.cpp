@@ -1,8 +1,9 @@
 #include <std_include.hpp>
 
-#include "../../component/steam_proxy.hpp"
-#include "../steam.hpp"
+#include "client.hpp"
 
+#include "component/steam_proxy.hpp"
+#include "steam/steam.hpp"
 namespace steam {
 namespace {
 void *get_dummy() {

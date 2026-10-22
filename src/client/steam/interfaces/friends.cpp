@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "friends.hpp"
 
 #include "component/chat.hpp"
 #include "component/name.hpp"

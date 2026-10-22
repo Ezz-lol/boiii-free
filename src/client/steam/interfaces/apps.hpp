@@ -1,7 +1,10 @@
 #pragma once
 
+#include "macros/macros.hpp"
+#include "steam/common.hpp"
+
 namespace steam {
-class apps {
+class __export apps {
 public:
   ~apps() = default;
 

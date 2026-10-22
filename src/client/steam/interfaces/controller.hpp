@@ -1,9 +1,11 @@
 #pragma once
 
+#include "macros/macros.hpp"
+
 namespace steam {
 using ControllerHandle_t = uint64_t;
 
-class controller {
+class __export controller {
 public:
   ~controller() = default;
 

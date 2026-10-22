@@ -1,7 +1,10 @@
 #pragma once
 
+#include "macros/macros.hpp"
+#include "steam/common.hpp"
+
 namespace steam {
-class remote_storage {
+class __export remote_storage {
 public:
   ~remote_storage() = default;
 

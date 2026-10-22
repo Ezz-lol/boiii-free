@@ -1,11 +1,13 @@
 #pragma once
+
+#include "macros/macros.hpp"
 #include <cstdint>
 
 namespace steam {
 using HSteamPipe = uint64_t;
 using HSteamUser = uint64_t;
 
-class client {
+class __export client {
 public:
   ~client() = default;
 

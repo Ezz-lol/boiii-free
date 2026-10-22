@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "controller.hpp"
 
 namespace steam {
 bool controller::Init() { return true; }

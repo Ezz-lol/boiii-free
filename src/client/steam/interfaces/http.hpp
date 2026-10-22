@@ -1,10 +1,12 @@
 #pragma once
 
+#include "macros/macros.hpp"
+
 namespace steam {
 using HTTPRequestHandle = uint64_t;
 using HTTPCookieContainerHandle = uint64_t;
 
-class http {
+class __export http {
 public:
   ~http() = default;
 

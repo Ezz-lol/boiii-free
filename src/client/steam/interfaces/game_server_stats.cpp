@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "game_server_stats.hpp"
 
 namespace steam {
 uint64_t game_server_stats::RequestUserStats(steam_id steamIDUser) { return 0; }

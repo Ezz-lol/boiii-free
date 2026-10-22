@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "http.hpp"
 
 namespace steam {
 HTTPRequestHandle http::CreateHTTPRequest(uint32_t eHTTPRequestMethod,

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "macros/macros.hpp"
+#include "steam/common.hpp"
+
 namespace steam {
 struct lobby_created final {
   enum { callback_id = 513 };
@@ -18,7 +21,7 @@ struct lobby_enter final {
   int m_e_chat_room_enter_response;
 };
 
-class matchmaking {
+class __export matchmaking {
 public:
   ~matchmaking() = default;
 

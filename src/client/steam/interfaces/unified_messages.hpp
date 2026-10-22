@@ -1,9 +1,11 @@
 #pragma once
 
+#include "macros/macros.hpp"
+
 namespace steam {
 using ClientUnifiedMessageHandle = uint64_t;
 
-class unified_messages {
+class __export unified_messages {
 public:
   ~unified_messages() = default;
 

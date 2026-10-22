@@ -47,3 +47,22 @@
 #define __trival_abi
 #endif
 #endif
+
+#ifndef __export
+#if defined(_WIN32) || defined(_WIN64)
+#if defined(__clang__) && __has_cpp_attribute(clang::lto_visibility_public)
+#define __export                                                               \
+  [[clang::lto_visibility_public]] __attribute__((visibility("default")))      \
+  __declspec(dllexport)
+#else
+#define __export __attribute__((visibility("default"))) __declspec(dllexport)
+#endif
+#else
+#if defined(__clang__) && __has_cpp_attribute(clang::lto_visibility_public)
+#define __export                                                               \
+  [[clang::lto_visibility_public]] __attribute__((visibility("default")))
+#else
+#define __export __attribute__((visibility("default")))
+#endif
+#endif
+#endif

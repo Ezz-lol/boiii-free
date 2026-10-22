@@ -1,10 +1,12 @@
 #pragma once
 
-#include <cstdint>
+#include "macros/macros.hpp"
 
 #include <steam/common.hpp>
 
 #include <steam/voice.hpp>
+
+#include <cstdint>
 
 namespace steam {
 
@@ -21,7 +23,7 @@ struct get_auth_session_ticket_response {
   int32_t m_e_result;
 };
 
-class user {
+class __export user {
 public:
   voice::Voice *voice{};
 

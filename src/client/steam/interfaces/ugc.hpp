@@ -1,7 +1,9 @@
 #pragma once
 
+#include "macros/macros.hpp"
+
 namespace steam {
-class ugc {
+class __export ugc {
 public:
   ~ugc() = default;
 

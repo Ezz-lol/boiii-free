@@ -5,7 +5,8 @@
 namespace steam {
 #ifndef STEAM_EXPORT
 #ifdef _WIN32
-#define STEAM_EXPORT extern "C" __declspec(dllexport)
+#define STEAM_EXPORT                                                           \
+  extern "C" __attribute__((visibility("default"))) __declspec(dllexport)
 #else
 #define STEAM_EXPORT extern "C" __attribute__((visibility("default")))
 #endif

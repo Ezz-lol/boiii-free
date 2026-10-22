@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "user_stats.hpp"
+
+#include "steam/steam.hpp"
 
 namespace steam {
 namespace {

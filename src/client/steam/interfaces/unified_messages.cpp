@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
+#include "unified_messages.hpp"
 
 namespace steam {
 ClientUnifiedMessageHandle

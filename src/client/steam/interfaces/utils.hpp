@@ -1,7 +1,9 @@
 #pragma once
 
+#include "macros/macros.hpp"
+
 namespace steam {
-class utils {
+class __export utils {
 public:
   ~utils() = default;
 
