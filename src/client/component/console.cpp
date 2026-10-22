@@ -977,8 +977,6 @@ void print_message(const char *message) {
 constexpr std::string_view DEVELOPER_ONLY_MESSAGES[] = {
     "failed to find path to goal", " unknown weapon '"};
 
-constexpr std::string_view SUPPRESSED_MESSAGES[] = {"Invalid line in playlist"};
-
 bool is_hidden_developer_message(const std::string_view message) {
   return std::ranges::any_of(DEVELOPER_ONLY_MESSAGES,
                              [&](const std::string_view text) {
@@ -988,16 +986,8 @@ bool is_hidden_developer_message(const std::string_view message) {
          game::get_dvar_int("developer").value_or(0) < 1;
 }
 
-bool is_suppressed_message(const std::string_view message) {
-  return std::ranges::any_of(
-      SUPPRESSED_MESSAGES, [&](const std::string_view text) {
-        return message.find(text) != std::string_view::npos;
-      });
-}
-
 void queue_message(const char *message) {
-  if (!message || !message[0] || is_hidden_developer_message(message) ||
-      is_suppressed_message(message)) {
+  if (!message || !message[0] || is_hidden_developer_message(message)) {
     return;
   }
 
@@ -1648,6 +1638,17 @@ struct component final : generic_component {
 
   void post_unpack() override {
     lua::register_lua_libs();
+
+    // Playlist parsing prints "Invalid line in playlist" on channel 8, which
+    // skips our print hook. The lines are needed, so only drop the prints
+    using game::playlist::Playlist_ParsePlaylists;
+    if (game::is_server()) {
+      utils::hook::nop(Playlist_ParsePlaylists.offset(0x23D4), 5);
+    } else if (!game::is_legacy_client()) {
+      utils::hook::nop(Playlist_ParsePlaylists.offset(0x1D59), 5);
+      utils::hook::nop(Playlist_ParsePlaylists.offset(0x2209), 5);
+    }
+
     if (utils::flags::has_flag("nologs")) {
       return;
     }

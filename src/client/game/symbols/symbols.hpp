@@ -37,6 +37,7 @@
 #include "pcache.hpp"      // IWYU pragma: export
 #include "phys.hpp"        // IWYU pragma: export
 #include "pix.hpp"         // IWYU pragma: export
+#include "playlist.hpp"    // IWYU pragma: export
 #include "pmem.hpp"        // IWYU pragma: export
 #include "quake.hpp"       // IWYU pragma: export
 #include "r.hpp"           // IWYU pragma: export
