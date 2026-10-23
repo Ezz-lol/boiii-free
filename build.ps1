@@ -1,2 +1,2 @@
-premake5.exe ninja 
+premake5.exe ninja
 ninja Release_x64 -Cbuild

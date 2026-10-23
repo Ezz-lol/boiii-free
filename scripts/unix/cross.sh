@@ -645,7 +645,11 @@ fi
 
 TARGET_TRIPLE="x86_64-unknown-windows-msvc"
 DEFAULT_TOOLCHAIN_PATH="/opt/${TARGET_TRIPLE}"
-[ -z "$WINDOWS_MSVC_SYSROOT" ] && [ -d "DEFAULT_TOOLCHAIN_PATH" ] && WINDOWS_MSVC_SYSROOT="${DEFAULT_TOOLCHAIN_PATH}"
+if [ -d "$DEFAULT_TOOLCHAIN_PATH" ]; then
+	if ! [ -v WINDOWS_MSVC_SYSROOT ] || [ -z "$WINDOWS_MSVC_SYSROOT" ]; then
+		WINDOWS_MSVC_SYSROOT="${DEFAULT_TOOLCHAIN_PATH}"
+	fi
+fi
 
 if [ -z "$WINDOWS_MSVC_SYSROOT" ]; then
 	echo "Error: WINDOWS_MSVC_SYSROOT environment variable is not set." >&2

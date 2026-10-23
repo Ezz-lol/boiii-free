@@ -1,0 +1,143 @@
+# syntax=docker/dockerfile:1
+
+FROM alpine:edge AS base
+
+# 1. Install bash first in its own isolated layer to guarantee availability
+RUN apk add --no-cache bash
+
+# 2. Now safe to switch to bash with strict error-handling flags
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
+ARG LLVM_VERSION=23
+ARG PREMAKE_VERSION=5.0.0
+ARG XWIN_VERSION=0.10.0
+ARG STYLUA_VERSION=2.6.0
+ARG WINDOWS_MSVC_SYSROOT="/opt/x86_64-unknown-windows-msvc"
+
+RUN apk add --no-cache \
+        coreutils \
+        findutils \
+        jq \
+        tar \
+        sed \
+        unzip \
+        git \
+        rsync \
+        ninja-build \
+        yarn \
+        curl \
+        make \
+        dos2unix \
+        shfmt \
+        llvm${LLVM_VERSION}-dev \
+        clang${LLVM_VERSION}-dev \
+        lld${LLVM_VERSION}-dev \
+        clang${LLVM_VERSION}-extra-tools \
+        clang${LLVM_VERSION}-rtlib \
+        llvm-libunwind-static && \
+        rm -rf /usr/share/man /usr/share/doc
+
+# Add ninja build executor to PATH without installing samurai (default alias for `ninja` package), 
+# which breaks when passed any `-C` or `-f` path that is not in the PWD.
+# Not in PATH by default because alpine linux seems to expect that samurai will/should be instead.
+ENV PATH="/usr/lib/ninja-build/bin/:${PATH}"
+RUN ln -sf /usr/lib/ninja-build/bin/ninja /usr/bin/ninja 
+
+# Ensure Clang does not depend on GCC installation
+RUN mkdir -p "/etc/clang${LLVM_VERSION}" /etc/clang "/usr/lib/llvm${LLVM_VERSION}/etc/" "/root/.config"
+COPY <<EOF /etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg
+-static
+-rtlib=compiler-rt
+--unwindlib=libunwind
+-fuse-ld=lld
+-stdlib=libc++
+EOF
+
+RUN ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl-clang.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl-clang++.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-pc-linux-musl.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-pc-linux-musl-clang.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-pc-linux-musl-clang++.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-unknown-linux-musl.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-unknown-linux-musl-clang.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-unknown-linux-musl-clang++.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-unknown-linux-gnu.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-unknown-linux-gnu-clang.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang${LLVM_VERSION}/x86_64-unknown-linux-gnu-clang++.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang/clang.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}/x86_64-alpine-linux-musl.cfg" "/etc/clang/clang++.cfg" && \
+        ln -sf "/etc/clang${LLVM_VERSION}" "/etc/clang/${LLVM_VERSION}" && \
+        ln -sf "/etc/clang"  "/usr/lib/llvm${LLVM_VERSION}/etc/clang" && \
+        ln -sf "/etc/clang" "/root/.config/clang"
+
+# Add LLVM toolchain binaries to PATH
+ENV PATH="/usr/lib/llvm-${LLVM_VERSION}/bin:${PATH}"
+RUN cp "/usr/bin/lld" "/usr/lib/llvm${LLVM_VERSION}/bin/lld" && \
+        cp "/usr/bin/ld.lld" "/usr/lib/llvm${LLVM_VERSION}/bin/ld.lld" && \
+        cp "/usr/bin/ld64.lld" "/usr/lib/llvm${LLVM_VERSION}/bin/ld64.lld" && \
+        cp "/usr/bin/lld-link" "/usr/lib/llvm${LLVM_VERSION}/bin/lld-link" && \
+        ln -sf "/usr/lib/llvm${LLVM_VERSION}/bin/llvm-ar" "/usr/bin/llvm-ar" && \
+        ln -sf "/usr/lib/llvm${LLVM_VERSION}/bin/llvm-ar" "/usr/bin/ar" && \
+        ln -sf "/usr/lib/llvm${LLVM_VERSION}/bin/llvm-windres" "/usr/bin/llvm-windres" && \
+        ln -sf "/usr/lib/llvm${LLVM_VERSION}/bin/llvm-windres" "/usr/bin/windres" && \
+        ln -sf "/usr/lib/llvm${LLVM_VERSION}/bin/llvm-rc" "/usr/bin/llvm-rc" && \
+        ln -sf "/usr/lib/llvm${LLVM_VERSION}/bin/llvm-rc" "/usr/bin/rc"
+
+ARG STYLUA_ZIP="stylua-linux-x86_64-musl.zip"
+ARG STYLUA_TMP_ZIP="/tmp/${STYLUA_ZIP}"
+RUN curl --fail -sSL \
+        "https://github.com/JohnnyMorganz/StyLua/releases/download/v${STYLUA_VERSION}/${STYLUA_ZIP}" \
+        -o "${STYLUA_TMP_ZIP}" && \
+        unzip -p "${STYLUA_TMP_ZIP}" "stylua" > /usr/bin/stylua && \
+        rm "${STYLUA_TMP_ZIP}" && \
+        chmod +x /usr/bin/stylua
+
+# Download and install xwin
+RUN curl --fail -sSL \
+        "https://github.com/Jake-Shadle/xwin/releases/download/${XWIN_VERSION}/xwin-${XWIN_VERSION}-x86_64-unknown-linux-musl.tar.gz" | \
+        tar -xzC /usr/bin \
+        --strip-components=1 \
+        "xwin-${XWIN_VERSION}-x86_64-unknown-linux-musl/xwin" 
+
+
+# Build premake5 - its releases do not include a Linux MUSL libc distribution, 
+# and we do not install glibc in the docker image (nor will we purely for premake5's sake), 
+# so we compile it ourselves.
+ARG PREMAKE_SRC="/tmp/premake"
+RUN apk add util-linux-static && \ 
+        mkdir "$PREMAKE_SRC" && \
+        curl --fail -sSL "https://github.com/premake/premake-core/archive/v${PREMAKE_VERSION}.tar.gz" | \
+        tar -zxC "${PREMAKE_SRC}" --strip-components=1 && \
+        env \
+        CC="/usr/lib/llvm${LLVM_VERSION}/bin/clang" \
+        CXX="/usr/lib/llvm${LLVM_VERSION}/bin/clang++" \
+        CPP="/usr/lib/llvm${LLVM_VERSION}/bin/clang++" \
+        LD="/usr/lib/llvm${LLVM_VERSION}/bin/ld.lld" \
+        AR="/usr/lib/llvm${LLVM_VERSION}/bin/llvm-ar" \
+        make -C "${PREMAKE_SRC}" -f Bootstrap.mak \
+        linux && \
+        cp "${PREMAKE_SRC}/bin/release/premake5" "/usr/bin/premake5" && \
+        chmod +x "/usr/bin/premake5" && \
+        rm -rf "${PREMAKE_SRC}" && \
+        apk del util-linux-static
+
+
+# We're all done compiling dependencies, so we can delete Linux static libraries - 
+# the only ones we'll use in this container are those for x86_64-unknown-windows-msvc 
+# cross-compilation
+RUN find /usr/lib* \
+        \( -name "*.a" \
+        -not -iname "*unwind*" \
+        -not -iname "*clang_rt.builtins*" \
+        -not -iname "*c++*" \
+        -not -iname "libc*" \
+        \) -delete 2>/dev/null
+
+ARG BOIII_FREE_SCRIPTS="/opt/boiii-free-scripts"
+# Copy scripts, generate the x86_64-unknown-windows-msvc target triple sysroot, then remove scripts
+COPY "./scripts/unix" "${BOIII_FREE_SCRIPTS}" 
+RUN "${BOIII_FREE_SCRIPTS}/gen-sysroot.sh" \
+        --prune \
+        --output "${WINDOWS_MSVC_SYSROOT}" && \
+        rm -rf "${BOIII_FREE_SCRIPTS}" 
+ENV WINDOWS_MSVC_SYSROOT="${WINDOWS_MSVC_SYSROOT}"

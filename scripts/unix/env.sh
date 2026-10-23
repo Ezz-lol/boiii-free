@@ -326,7 +326,27 @@ ext() {
 		return 1
 	fi
 
-	echo "${file_path##*.}"
+	local result
+	result="${file_path##*.}"
+
+	if [[ "$result" != "$file_path" ]]; then
+		echo "$result"
+	fi
+}
+
+stem() {
+	local file_path
+
+	if [ "$#" -gt 0 ]; then
+		file_path="$1"
+	else
+		file_path="$(cat -)"
+	fi
+
+	local filename
+	filename="${file_path##*/}"
+
+	echo "${filename%%.*}"
 }
 
 starts_with() {
@@ -371,11 +391,6 @@ to_lowercase() {
 		input_str="$(cat -)"
 	fi
 
-	if [ -z "$input_str" ]; then
-		echo "Error: No input string provided to to_lowercase." >&2
-		return 1
-	fi
-
 	echo "${input_str,,}"
 }
 
@@ -387,11 +402,6 @@ to_uppercase() {
 		input_str="$1"
 	else
 		input_str="$(cat -)"
-	fi
-
-	if [ -z "$input_str" ]; then
-		echo "Error: No input string provided to to_uppercase." >&2
-		return 1
 	fi
 
 	echo "${input_str^^}"

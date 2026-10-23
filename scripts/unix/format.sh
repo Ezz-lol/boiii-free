@@ -20,21 +20,6 @@ repo_dir() {
 	realpath "$repo_dir"
 }
 
-check_dependencies() {
-	local deps=("git" "clang-format" "stylua" "shfmt" "yarn" "dos2unix" "kill")
-	while [ "$#" -gt 0 ]; do
-		deps+=("$1")
-		shift
-	done
-
-	for tool in "${deps[@]}"; do
-		if ! command -v "$tool" &>/dev/null; then
-			echo "Error: Required dependency '$tool' is not installed or not in PATH." >&2
-			exit 1
-		fi
-	done
-}
-
 REPO_DIR="$(repo_dir)"
 . "${REPO_DIR}/scripts/unix/env.sh"
 
@@ -51,7 +36,7 @@ queue_job() {
 
 	job_loaded=0
 	while [ $job_loaded -eq 0 ]; do
-		if [ ${#JOBS[@]} -ge $MAX_PARALLEL_JOBS ]; then
+		if [ ${#JOBS[@]} -ge "$MAX_PARALLEL_JOBS" ]; then
 			wait -n
 			for i in "${!JOBS[@]}"; do
 				if ! kill -0 "${JOBS[i]}" 2>/dev/null; then
@@ -100,7 +85,8 @@ kill_all_jobs() {
 
 trap 'kill_all_jobs' EXIT SIGINT SIGTERM SIGQUIT SIGTSTP
 
-check_dependencies
+# shellcheck disable=SC2119
+check_dependencies "git" "clang-format" "stylua" "shfmt" "yarn" "dos2unix" "kill"
 
 if ! chdir "${REPO_DIR}" yarn install; then
 	echo "Error: Failed to install \`yarn\` dependencies. Exiting." >&2
@@ -133,16 +119,14 @@ format_file() {
 		"c" | "cc" | \
 			"cpp" | "cxx" | \
 			"hpp" | "h" | \
-			"hxx" | "js" | \
-			"json" | "proto" | \
+			"hxx" | "proto" | \
 			"java" | "cs" | \
 			"objc" | "sv" | \
 			"svh" | "v" | \
 			"svp" | "svl" | \
 			"vlg" | "vt" | \
-			"vh" | "sv" | \
-			"verilog" | "vo" | \
-			"vqm" | "vcd")
+			"vh" | "verilog" | \
+			"vo" | "vqm" | "vcd")
 			if ! chdir "${REPO_DIR}" clang-format -i --style=file "$path" || ! chdir "$REPO_DIR" dos2unix --quiet "$path"; then
 				return 1
 			fi
@@ -155,16 +139,9 @@ should_format() {
 	local path
 	path="$1"
 
-	if [ -n "$path" ]; then
-		if ! [[ "$rel_src_file" =~ ^"deps/" ]] || [[ "$rel_src_file" =~ ^"deps/premake/" ]]; then
-			return 0
-		fi
-	fi
-
-	return 1
+	! [[ "$path" =~ ^"deps/" ]] || [[ "$path" =~ ^"deps/premake/" ]]
 }
 
-exit_code=0
 while IFS=$'\n' read -r rel_src_file; do
 	if should_format "$rel_src_file"; then
 		src_file="$(normalize_path "${REPO_DIR}/${rel_src_file}")"

@@ -445,14 +445,17 @@ manifest("Off")
 
 if _OPTIONS["dev-build"] then
   defines({ "DEV_BUILD" })
+  resdefines({ "DEV_BUILD" })
 end
 
 if _OPTIONS["no-check"] then
   defines({ "NO_CHECK" })
+  resdefines({ "NO_CHECK" })
 end
 
 if os.getenv("CI") then
   defines({ "CI" })
+  resdefines({ "CI" })
 end
 
 incrementallink("Off")
@@ -462,11 +465,13 @@ enable64bitchecks("Off")
 
 filter("platforms:x64")
 defines({ "_WINDOWS", "WIN32" })
+resdefines({ "_WINDOWS", "WIN32" })
 filter({})
 
 filter("configurations:Release")
 intrinsics("On")
 defines({ "NDEBUG" })
+resdefines({ "NDEBUG" })
 -- flags({ "FatalCompileWarnings" })
 filter({})
 
@@ -651,6 +656,7 @@ filter({})
 filter("configurations:Debug")
 optimize("Debug")
 defines({ "DEBUG", "_DEBUG", "_CRT_DEBUG" })
+resdefines({ "DEBUG", "_DEBUG", "_CRT_DEBUG" })
 filter({})
 filter({ "configurations:Debug", "toolset:msc*" })
 buildoptions(mergeArrays({

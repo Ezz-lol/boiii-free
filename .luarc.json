@@ -51,6 +51,7 @@
       "removefiles",
       "removelinkoptions",
       "require",
+      "resdefines",
       "resoptions",
       "resincludedirs",
       "runtimechecks",

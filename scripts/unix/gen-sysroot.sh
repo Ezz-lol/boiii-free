@@ -14,8 +14,8 @@ script_dir() {
 # Returns the root of the containing git repository
 repo_dir() {
 	local repo_dir
-	repo_dir="$(git -C "$(script_dir)" rev-parse --show-toplevel)"
-	if ! realpath "$repo_dir" 2>/dev/null; then
+	repo_dir="$(git -C "$(script_dir)" rev-parse --show-toplevel 2>/dev/null)"
+	if [ -z "$repo_dir" ] || ! realpath "$repo_dir" 2>/dev/null; then
 		echo "$repo_dir"
 	fi
 }
@@ -32,8 +32,23 @@ sha256_file() {
 	fi
 }
 
+PRUNE=0
+prune() {
+	[ "$PRUNE" -eq 1 ]
+}
+
+print_usage() {
+	echo "x86_64-unknown-windows-msvc toolchain system root generator."
+	echo "Usage: $0 [OPTIONS]"
+	echo "Options:"
+	echo "  --output,-output,-o        Specify output sysroot path."
+	echo "  --prune,-prune,-p          Prune output libraries, restricting to only those actively in use by boiii."
+	echo "  --help, -h                 Show this help message and exit."
+}
+
 TEMP_COREUTILS_PATH=""
 TEMP_COREUTILS_BIN=""
+XWIN_CACHE=""
 
 RUST_COREUTILS_ORG="uutils"
 RUST_COREUTILS_REPO="coreutils"
@@ -146,12 +161,6 @@ with_temp_coreutils() {
 	"${TEMP_COREUTILS_BIN}" "${args[@]}"
 }
 
-cleanup_temp_coreutils() {
-	if [ -d "$TEMP_COREUTILS_PATH" ]; then
-		rm -rf "$TEMP_COREUTILS_PATH"
-	fi
-}
-
 cleanup_exit() {
 	local exit_code
 	exit_code=0
@@ -160,7 +169,14 @@ cleanup_exit() {
 		exit_code="$1"
 	fi
 
-	cleanup_temp_coreutils 2>/dev/null || true
+	local -a cleanup_dirs
+	cleanup_dirs=("$XWIN_CACHE" "$TEMP_COREUTILS_PATH")
+
+	for cleanup_dir in "${cleanup_dirs[@]}"; do
+		if [ -n "$cleanup_dir" ] && [ -d "$cleanup_dir" ]; then
+			rm -rf "$cleanup_dir" >/dev/null 2>&1 || true
+		fi
+	done
 
 	exit "$exit_code"
 }
@@ -218,6 +234,180 @@ dedup_dir() {
 			done < <(find "$target_dir" -type f -print0 | gnu_sort -zhbf)
 		fi
 	fi
+}
+
+declare -A LIBRARIES_IN_USE=(["advapi32"]=1
+	["asmjit"]=1
+	["atls"]=1
+	["bcrypt"]=1
+	["comctl32"]=1
+	["common"]=1
+	["crypt32"]=1
+	["d3d11"]=1
+	["d3dcompiler"]=1
+	["dxgi"]=1
+	["dbghelp"]=1
+	["dwmapi"]=1
+	["gdi32"]=1
+	["imm32"]=1
+	["iphlpapi"]=1
+	["kernel32"]=1
+	["libcmt"]=1
+	["libcmtd"]=1
+	["libcpmt"]=1
+	["libcpmtd"]=1
+	["libucrt"]=1
+	["libucrtd"]=1
+	["libvcruntime"]=1
+	["libvcruntimed"]=1
+	["ntdll"]=1
+	["oldnames"]=1
+	["ole32"]=1
+	["oleaut32"]=1
+	["psapi"]=1
+	["shell32"]=1
+	["shlwapi"]=1
+	["urlmon"]=1
+	["user32"]=1
+	["uuid"]=1
+	["version"]=1
+	["winhttp"]=1
+	["winmm"]=1
+	["ws2_32"]=1)
+
+declare -A NECESSARY_SYSROOT_FILE_EXTENSIONS=(
+	["h"]=1
+	["rh"]=1
+	["hpp"]=1
+	["lib"]=1
+	["pdb"]=1
+)
+
+UNNECESSARY_HEADERS=(
+	"winrt"
+	"CodeAnalysis"
+	"experimental"
+	"msclr"
+	"gl"
+	"winsqlite"
+	"netcx"
+)
+
+UNNECESSARY_LIBRARIES=(
+	"LIBCMT.lib"
+	"LIBCMTD.lib"
+	"UUID.lib"
+	"enclave"
+)
+
+necessary_sysroot_file() {
+	local file_name
+	local file_ext
+	local file_stem
+	file_name="$1"
+
+	file_ext="$(basename "$file_name" | ext | to_lowercase)"
+
+	if [ -n "$file_ext" ]; then
+		if [ -n "${NECESSARY_SYSROOT_FILE_EXTENSIONS["$file_ext"]+set}" ] && [ "${NECESSARY_SYSROOT_FILE_EXTENSIONS["$file_ext"]}" -eq 1 ]; then
+			case "$file_ext" in
+			lib | pdb)
+				file_stem="$(stem "$file_name" | to_lowercase)"
+				if [ -n "${LIBRARIES_IN_USE["$file_stem"]+set}" ] && [ "${LIBRARIES_IN_USE["$file_stem"]}" -eq 1 ]; then
+					return 0
+				fi
+				;;
+			*)
+				return 0
+				;;
+			esac
+		fi
+		return 1
+	fi
+	return 0
+}
+
+remove_broken_symlinks() {
+	local root
+	root="$1"
+
+	while IFS='' read -r -d '' entry; do
+		echo "Pruning broken symlink: $entry"
+		rm "$entry" >/dev/null 2>&1 || true
+	done < <(find "$root" -type l ! -exec test -e {} \; -print)
+}
+
+remove_empty_directories() {
+	local root
+	root="$1"
+
+	while IFS='' read -r -d '' entry; do
+		echo "Pruning empty directory: $entry"
+		rm -rf "$entry" >/dev/null 2>&1 || true
+	done < <(find "$root" -type d -empty -print0)
+}
+
+remove_unnecessary_headers() {
+	local sysroot
+	sysroot="$1"
+
+	local unnecessary_header_abs=""
+	for unnecessary_header in "${UNNECESSARY_HEADERS[@]}"; do
+		if [ -n "$unnecessary_header" ]; then
+			unnecessary_header_abs="${sysroot}/include/${unnecessary_header}"
+			if [ -e "$unnecessary_header_abs" ]; then
+				echo "Pruning unnecessary header: ${unnecessary_header_abs}"
+				rm -rf "$unnecessary_header_abs" >/dev/null 2>&1 || true
+			fi
+		fi
+	done
+
+	while IFS='' read -r -d '' entry; do
+		echo "Pruning unnecessary header: $entry"
+		rm "$entry" >/dev/null 2>&1 || true
+	done < <(find "${sysroot}/include" \
+		-type f \
+		\( \
+		-iname "Windows.UI.*" \
+		-o -iname "*.xaml*." \
+		\) \
+		-print0)
+}
+
+remove_unnecessary_libraries() {
+	local sysroot
+	sysroot="$1"
+
+	local unnecessary_library_abs=""
+	for unnecessary_library in "${UNNECESSARY_LIBRARIES[@]}"; do
+		if [ -n "$unnecessary_library" ]; then
+			unnecessary_library_abs="${sysroot}/lib/${unnecessary_library}"
+			if [ -e "$unnecessary_library_abs" ]; then
+				echo "Pruning unnecessary library: ${unnecessary_library_abs}"
+				rm -rf "$unnecessary_library_abs" >/dev/null 2>&1 || true
+			fi
+		fi
+	done
+
+}
+
+prune_sysroot() {
+	local sysroot
+	sysroot="$1"
+
+	remove_unnecessary_headers "$sysroot"
+	remove_unnecessary_libraries "$sysroot"
+
+	# Remove files which are not necessary libraries or headers
+	while IFS='' read -r -d '' entry; do
+		if [ -n "$entry" ] && [ -f "$entry" ] && ! necessary_sysroot_file "$entry"; then
+			echo "Pruning unnecessary file: $entry"
+			rm -rf "$entry" >/dev/null 2>&1 || true
+		fi
+	done < <(find "$sysroot" -type f -print0)
+
+	remove_broken_symlinks "$sysroot"
+	remove_empty_directories "$sysroot"
 }
 
 remove_intrinsic_headers() {
@@ -333,21 +523,61 @@ filter_sysroot_dirs() {
 	done
 }
 
-. "$(repo_dir)/scripts/unix/env.sh"
-
+SCRIPT_DIR="$(script_dir)"
 REPO_DIR="$(repo_dir)"
+if [ -n "$REPO_DIR" ]; then
+	. "${REPO_DIR}/scripts/unix/env.sh"
+else
+	. "${SCRIPT_DIR}/env.sh"
+fi
+
 BUILD_DEPS=("rsync" "xwin" "sort")
 check_dependencies "${BUILD_DEPS[@]}"
 
 HOST_TRIPLE="$(host_triple)"
 
-XWIN_CACHE="${REPO_DIR}/build/xwin-cache"
+if [ -n "$REPO_DIR" ]; then
+	XWIN_CACHE="${REPO_DIR}/build/xwin-cache"
+else
+	XWIN_CACHE="$(mktemp -d)"
+fi
+
+trap 'cleanup_exit 1' INT TERM HUP QUIT
+
 mkdir -p "${XWIN_CACHE}"
 
-OUTPUT_SYSROOT="/opt/x86_64-unknown-windows-msvc"
-if [ "$#" -gt 0 ] && [ -n "$1" ]; then
-	OUTPUT_SYSROOT="$1"
+OUTPUT_SYSROOT=""
+
+while [ "$#" -gt 0 ]; do
+
+	case "$1" in
+	--output | -output | -o)
+		if [ "$#" -gt 1 ]; then
+			OUTPUT_SYSROOT="$2"
+			shift 2
+		else
+			shift
+		fi
+		;;
+	--prune | -prune | -p)
+		PRUNE=1
+		shift
+		;;
+	--help | -help | -h)
+		print_usage
+		cleanup_exit 0
+		;;
+	*)
+		print_usage >&2
+		cleanup_exit 1
+		;;
+	esac
+done
+
+if [ -z "$OUTPUT_SYSROOT" ]; then
+	OUTPUT_SYSROOT="/opt/x86_64-unknown-windows-msvc"
 fi
+
 OUTPUT_SYSROOT="$(normalize_path "$OUTPUT_SYSROOT")"
 
 OUTPUT_SYSROOT_INCLUDE_PATH="${OUTPUT_SYSROOT}/include"
@@ -361,25 +591,34 @@ SPECIAL_CASE_SENSITIVE_FILES=(
 	"${OUTPUT_SYSROOT_LIB_PATH}/Crypt32.Lib"
 )
 
-TEMP_COREUTILS_PATH="${REPO_DIR}/build/coreutils"
+if [ -n "$REPO_DIR" ]; then
+	TEMP_COREUTILS_PATH="${REPO_DIR}/build/coreutils"
+else
+	TEMP_COREUTILS_PATH="$(mktemp -d)"
+fi
 
 mkdir -p "$OUTPUT_SYSROOT"
 
 XWIN_SPLAT_DIR="${XWIN_CACHE}/splat"
 
-if ! xwin \
-	--cache-dir "$XWIN_CACHE" \
-	--accept-license \
-	--channel=release \
-	--arch=x86_64 \
-	--include-atl \
-	--variant desktop \
-	--include-debug-runtime \
-	--http-retry 10 \
-	--timeout 1h \
-	splat \
-	--include-debug-libs \
-	--include-debug-symbols || ! [ -d "$XWIN_SPLAT_DIR" ]; then
+XWIN_CMD=("xwin"
+	"--cache-dir" "$XWIN_CACHE"
+	"--accept-license"
+	"--channel=release"
+	"--arch=x86_64"
+	"--include-atl"
+	"--variant" "desktop"
+	"--http-retry" "10"
+	"--timeout" "1h")
+
+if ! prune; then
+	XWIN_CMD+=("--include-debug-runtime")
+fi
+
+XWIN_CMD+=("splat"
+	"--include-debug-libs"
+	"--include-debug-symbols")
+if ! "${XWIN_CMD[@]}" || ! [ -d "$XWIN_SPLAT_DIR" ]; then
 	echo "Error: xwin download, unpack, or splat failed. Exiting." 1>&2
 	cleanup_exit 1
 fi
@@ -431,6 +670,11 @@ done < <(find "$XWIN_SPLAT_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
 # This leads to definition conflicts, and thus compilation errors.
 if ! remove_intrinsic_headers; then
 	echo "Error: failed to remove intrinsic headers. Exiting." >&2
+	cleanup_exit 1
+fi
+
+if prune && ! prune_sysroot "$OUTPUT_SYSROOT"; then
+	echo "Error: failed to prune sysroot. Exiting." >&2
 	cleanup_exit 1
 fi
 

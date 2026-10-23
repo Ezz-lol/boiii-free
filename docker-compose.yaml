@@ -1,0 +1,37 @@
+services:
+  base:
+    image: boiii-free-dev:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+
+  format:
+    extends: base
+    command: ["./scripts/unix/format.sh"]
+
+  debug:
+    extends: base
+    command: ["./scripts/unix/cross.sh", "--builder", "ninja"]
+  clean-debug:
+    extends: base
+    command: ["./scripts/unix/cross.sh", "--builder", "ninja", --clean]
+
+  release:
+    extends: base
+    command:
+      ["./scripts/unix/cross.sh", "--builder", "ninja", "--release", "--clean"]
+
+  debug-gmake:
+    extends: base
+    command: ["./scripts/unix/cross.sh", "--builder", "gmake"]
+  clean-debug-gmake:
+    extends: base
+    command: ["./scripts/unix/cross.sh", "--builder", "gmake", "--clean"]
+
+  release-gmake:
+    extends: base
+    command:
+      ["./scripts/unix/cross.sh", "--builder", "gmake", "--release", "--clean"]
