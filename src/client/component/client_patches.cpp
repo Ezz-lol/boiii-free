@@ -432,6 +432,22 @@ template <const auto Val> decltype(Val) return_const() { return Val; }
 
 utils::hook::detour Com_FPSLimit_hook;
 
+// The FPS limiter waits with Sleep(1), which can take up to 15 ms unless the
+// window gets a raised timer resolution, so borderless and windowed lose FPS
+void WINAPI frame_limiter_sleep(const DWORD milliseconds) {
+  static const HANDLE timer = CreateWaitableTimerExW(
+      nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
+      TIMER_ALL_ACCESS);
+  if (!timer) {
+    Sleep(milliseconds);
+    return;
+  }
+  LARGE_INTEGER due{};
+  due.QuadPart = -static_cast<LONGLONG>(milliseconds) * 10'000;
+  SetWaitableTimer(timer, &due, 0, nullptr, nullptr, FALSE);
+  WaitForSingleObject(timer, INFINITE);
+}
+
 game::EngineDependentDvarMut cl_log_config_strings;
 void register_config_string_print_stub(const game::consoleChannel_e channel,
                                        const game::consoleLabel_e label,
@@ -575,6 +591,10 @@ public:
     Com_FPSLimit_hook.create(
         game::com::Com_FPSLimit.get(),
         return_const<std::numeric_limits<uint32_t>::max()>);
+    if (!game::is_legacy_client()) {
+      utils::hook::call(game::com::Com_Frame_Try_Block_Function.offset(0x113),
+                        frame_limiter_sleep);
+    }
 
     command::add("unmuteall", game::lobby::voice::UnMuteAllClients);
     command::add("muteall", game::lobby::voice::MuteAllClients);
