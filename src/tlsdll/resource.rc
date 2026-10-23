@@ -1,6 +1,6 @@
 #pragma code_page(65001)
 
-#include "windows.h"
+#include "winres.h"
 
 // English (United States) resources
 
@@ -9,7 +9,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 1 TEXTINCLUDE 
 BEGIN
-    "#include ""windows.h""\r\n"
+    "#include ""winres.h""\r\n"
     "\0"
 END
 
