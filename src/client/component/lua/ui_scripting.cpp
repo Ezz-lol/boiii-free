@@ -1857,6 +1857,23 @@ DWORD WINAPI mod_get_module_file_name_a(HMODULE module, LPSTR buffer,
   return length;
 }
 
+std::string owning_mod(const std::filesystem::path &path) {
+  const std::string file = utils::string::to_lower(
+      std::filesystem::absolute(path).lexically_normal().generic_string());
+  for (const game::ugc::UGCItem &item : game::ugc::modsPool.iter()) {
+    std::filesystem::path folder = std::string_view(item.absolutePathZoneFiles);
+    if (folder.filename() == "zone") {
+      folder = folder.parent_path();
+    }
+    const std::string root =
+        utils::string::to_lower(folder.lexically_normal().generic_string());
+    if (!root.empty() && file.starts_with(root + "/")) {
+      return item.publisherId;
+    }
+  }
+  return game::ugc::UGC_ActiveMod_PublisherId();
+}
+
 void patch_mod_module(const std::filesystem::path &path) {
   const HMODULE image =
       LoadLibraryExW(path.wstring().c_str(), nullptr,
@@ -1875,8 +1892,7 @@ void patch_mod_module(const std::filesystem::path &path) {
   if (std::ranges::none_of(native_mods, [&](const native_mod &native) {
         return native.module == mod.get_handle();
       })) {
-    native_mods.push_back(
-        {mod.get_handle(), game::ugc::UGC_ActiveMod_PublisherId()});
+    native_mods.push_back({mod.get_handle(), owning_mod(path)});
   }
   if (void **entry = mod.get_iat_entry("kernel32.dll", "GetModuleFileNameW")) {
     utils::hook::set(entry, mod_get_module_file_name_w);
@@ -1974,12 +1990,11 @@ inline void lui_reload() {
 
 } // namespace
 
-void unload_native_mods(const char *next_mod, const void *caller) {
+void unload_native_mods_of(const std::string_view &mod, const void *caller) {
   const utils::nt::library from = utils::nt::library::get_by_address(caller);
   const size_t count = native_mods.size();
   std::erase_if(native_mods, [&](const native_mod &native) {
-    if (from.get_handle() == native.module ||
-        native.owner == (next_mod ? next_mod : "")) {
+    if (native.owner != mod || from.get_handle() == native.module) {
       return false;
     }
     unload_native_mod(native);

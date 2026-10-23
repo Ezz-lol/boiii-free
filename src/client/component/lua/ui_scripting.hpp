@@ -18,7 +18,7 @@ extern std::atomic<bool> unsafe_lua_approved_for_session;
 bool show_unsafe_lua_dialog();
 
 void start_hot_reload(const std::string &path);
-void unload_native_mods(const char *next_mod, const void *caller);
+void unload_native_mods_of(const std::string_view &mod, const void *caller);
 void check_hot_reload();
 
 template <class... Args, std::size_t... I>

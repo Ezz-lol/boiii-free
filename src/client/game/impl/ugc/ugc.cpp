@@ -290,7 +290,10 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
       game::derelocate(callerAddr), serialize(localClientNum),
       publisherId ? publisherId : "NULL", reloadFS ? "true" : "false");
 #endif
-  ui_scripting::unload_native_mods(publisherId, _ReturnAddress());
+  const std::string unloaded_mod = UGC_ActiveMod_PublisherId();
+  if (unloaded_mod != (publisherId ? publisherId : "")) {
+    ui_scripting::unload_native_mods_of(unloaded_mod, _ReturnAddress());
+  }
   UGC_LoadPools_Impl();
   UGCItem genMod{};
   UGCItem *mod =
