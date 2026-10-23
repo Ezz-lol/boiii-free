@@ -1,4 +1,7 @@
-local modules = os.matchfiles("premake/**.lua")
+local env_setup = require("setup_env")
+env_setup.init()
+
+local modules = os.matchfiles("premake/module/**.lua")
 
 for _, module in pairs(modules) do
   module = module:gsub(".lua", "")
@@ -463,7 +466,7 @@ local optimizationFlags = {
   -- likely preferable.
   "-finline-hint-functions",
 
-  -- Compile time optimization
+  -- Compilation time optimization
   "-pipe",
 
   -- Misc. optimization
