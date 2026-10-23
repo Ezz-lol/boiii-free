@@ -6,6 +6,8 @@
 #pragma warning(disable : 4244)
 #define STBI_ONLY_JPEG
 #define STBI_ONLY_PNG
+// Some workshop previews are GIFs
+#define STBI_ONLY_GIF
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #pragma warning(pop)

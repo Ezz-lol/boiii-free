@@ -161,12 +161,27 @@ std::filesystem::path find_installed(const std::string_view &id) {
       return item.path;
   }
 
-  std::error_code ec;
+  // Called for every catalog row, so stop at the first KB instead of sizing
+  // the whole folder
+  const auto has_content = [](const std::filesystem::path &folder) {
+    std::error_code ec;
+    std::uintmax_t total = 0;
+    for (std::filesystem::recursive_directory_iterator it(folder, ec), end;
+         !ec && it != end; it.increment(ec)) {
+      std::error_code file_ec;
+      if (!it->is_regular_file(file_ec))
+        continue;
+      const std::uintmax_t size = it->file_size(file_ec);
+      if (!file_ec && (total += size) > 1024)
+        return true;
+    }
+    return false;
+  };
   for (const std::filesystem::path &root :
        {root_for("Map"), root_for("Mod"),
         game::get_game_path().parent_path().parent_path() / "workshop" /
             "content" / game::APP_ID_STR}) {
-    if (compute_folder_size_bytes(root / id) > 1024)
+    if (has_content(root / id))
       return root / id;
   }
   return {};
