@@ -3,7 +3,7 @@
 local M = {}
 
 function M.init()
-  if os.is("windows") then
+  if os.ishost("windows") then
     print("[Env][Setup] Checking and configuring Windows build environment...")
 
     -- 1. Configure MSVC and Windows SDK environment if not already present
