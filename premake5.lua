@@ -12,6 +12,22 @@ if os.host() == "windows" then
   ENV_PATH_SEP = ";"
 end
 
+local function get_clang_resource_include()
+  local output = os.outputof("clang --print-resource-dir")
+
+  if output then
+    output = output:gsub("^%s+", ""):gsub("%s+$", "")
+
+    if output ~= "" then
+      local normalized_path = path.normalize(output)
+
+      return path.join(normalized_path, "include")
+    end
+  end
+
+  return nil
+end
+
 -- Quote the given string input as a C string
 local function cstrquote(value)
   if value == nil then
@@ -54,26 +70,104 @@ local function clang_ld_flag(ld_flag)
   return "-Wl," .. ld_flag
 end
 
-local function split(input, sep)
-  if input ~= nil then
-    if sep == nil then
-      sep = "%s"
-    end
-    local t = {}
-    for str in string.gmatch(input, "([^" .. sep .. "]+)") do
-      table.insert(t, str)
-    end
-    return t
+local function shell_split(input, sep)
+  if input == nil or input == "" then
+    return {}
   end
 
-  return {}
+  sep = sep or "%s"
+  local is_ws = (sep == "%s")
+
+  local t = {}
+  local current = {}
+  local in_quote = nil -- tracks active quote character ('"' or "'")
+  local escaped = false -- tracks backslash escape state
+
+  local i = 1
+  local n = #input
+
+  while i <= n do
+    local c = input:sub(i, i)
+
+    if escaped then
+      table.insert(current, c)
+      escaped = false
+    elseif c == "\\" then
+      escaped = true
+    elseif in_quote then
+      if c == in_quote then
+        in_quote = nil -- closing quote
+      else
+        table.insert(current, c)
+      end
+    elseif c == '"' or c == "'" then
+      in_quote = c -- opening quote
+    elseif is_ws and c:match("%s") then
+      if #current > 0 then
+        table.insert(t, table.concat(current))
+        current = {}
+      end
+      -- Skip consecutive whitespace
+      while i < n and input:sub(i + 1, i + 1):match("%s") do
+        i = i + 1
+      end
+    elseif not is_ws and c == sep then
+      table.insert(t, table.concat(current))
+      current = {}
+    else
+      table.insert(current, c)
+    end
+
+    i = i + 1
+  end
+
+  if #current > 0 or (#t == 0 and input ~= "") then
+    table.insert(t, table.concat(current))
+  end
+
+  return t
 end
+
 local function split_env_flags(env_var_name, sep)
-  return split(os.getenv(env_var_name), sep)
+  return shell_split(os.getenv(env_var_name), sep)
 end
 
 local function split_env_paths(env_var_name)
-  return split(os.getenv(env_var_name), ENV_PATH_SEP)
+  local input = os.getenv(env_var_name)
+  if input == nil or input == "" then
+    return {}
+  end
+
+  local t = {}
+  local current = {}
+  local i = 1
+  local n = #input
+
+  while i <= n do
+    local c = input:sub(i, i)
+
+    -- Look ahead to see if a backslash is escaping the path separator
+    if c == "\\" and i < n then
+      local next_c = input:sub(i + 1, i + 1)
+      if next_c == ENV_PATH_SEP then
+        table.insert(current, next_c)
+        i = i + 2 -- Consume both the backslash and the escaped separator
+      else
+        table.insert(current, c)
+        i = i + 1 -- Keep backslash intact (safe for Windows paths like C:\foo)
+      end
+    elseif c == ENV_PATH_SEP then
+      table.insert(t, table.concat(current))
+      current = {}
+      i = i + 1
+    else
+      table.insert(current, c)
+      i = i + 1
+    end
+  end
+
+  table.insert(t, table.concat(current))
+  return t
 end
 
 -- Converts tags in "vX.X.X" format and given revision number Y to an array of numbers {X,X,X,Y}.
@@ -189,7 +283,7 @@ local function generate_buildinfo(wks)
     print("Detected branch: " .. branchName)
 
     -- get revision number via git
-    local proc = assert(io.popen("git rev-list --count HEAD", "r"))
+    proc = assert(io.popen("git rev-list --count HEAD", "r"))
     local revNumber = assert(proc:read("*a")):gsub("%s+", "")
 
     print("Update " .. oldVersion .. " -> " .. gitDescribeOutputQuoted)
@@ -374,6 +468,14 @@ filter("configurations:Release")
 intrinsics("On")
 defines({ "NDEBUG" })
 -- flags({ "FatalCompileWarnings" })
+filter({})
+
+filter({ "toolset:not msc*" })
+local clang_include_dir = get_clang_resource_include()
+if clang_include_dir then
+  externalincludedirs({ clang_include_dir })
+  resincludedirs({ clang_include_dir })
+end
 filter({})
 
 -- Read flags from the environment
