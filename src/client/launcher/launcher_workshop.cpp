@@ -483,6 +483,7 @@ struct workshop_scrape_result {
   bool success = false;
   std::vector<std::string> ids{};
   std::map<std::string, int> ratings{};
+  std::unordered_map<std::string, uint64_t> sizes{};
   std::string error{};
 };
 
@@ -552,6 +553,7 @@ scrape_workshop_listing_pages(const std::function<std::string(int)> &build_url,
       saw_response = true;
 
       const auto page_results = scrape_ids_and_ratings(*resp);
+      result.sizes.merge(::workshop::parse_page_sizes(*resp));
       if (page_results.empty()) {
         break;
       }
@@ -585,11 +587,11 @@ scrape_workshop_listing_pages(const std::function<std::string(int)> &build_url,
   return result;
 }
 
-workshop_fetch_result
-build_workshop_items_json(const std::vector<std::string> &ids,
-                          const std::map<std::string, int> &item_ratings,
-                          const uint64_t request_token,
-                          const int batch_delay_ms) {
+workshop_fetch_result build_workshop_items_json(
+    const std::vector<std::string> &ids,
+    const std::map<std::string, int> &item_ratings,
+    const std::unordered_map<std::string, uint64_t> &sizes,
+    const uint64_t request_token, const int batch_delay_ms) {
   workshop_fetch_result result{};
   std::vector<std::string> item_objects{};
   constexpr size_t batch_size = 20;
@@ -626,8 +628,10 @@ build_workshop_items_json(const std::vector<std::string> &ids,
       w.Int64(item.subs);
       w.Key("favorites");
       w.Int64(item.favorites);
+      const auto page_size = sizes.find(item.id);
       w.Key("file_size");
-      w.Uint64(item.file_size);
+      w.Uint64(item.file_size || page_size == sizes.end() ? item.file_size
+                                                          : page_size->second);
       w.Key("tags");
       w.StartArray();
       for (const auto &tag : item.tags)
@@ -676,7 +680,7 @@ workshop_fetch_result search_workshop_by_name(const std::string &search_text,
     }
 
     return build_workshop_items_json(listing.ids, listing.ratings,
-                                     request_token,
+                                     listing.sizes, request_token,
                                      workshop_search_item_batch_delay_ms);
   } catch (...) {
     return {false, "[]", "Unexpected workshop search error."};
@@ -721,7 +725,7 @@ workshop_fetch_result fetch_all_workshop_items(const uint64_t request_token) {
     }
 
     return build_workshop_items_json(listing.ids, listing.ratings,
-                                     request_token,
+                                     listing.sizes, request_token,
                                      workshop_browse_item_batch_delay_ms);
   } catch (...) {
     return {false, "[]", "Unexpected workshop browse error."};

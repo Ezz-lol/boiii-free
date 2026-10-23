@@ -175,7 +175,10 @@ struct catalog_status {
   std::uint64_t generation{};
   std::string error;
 };
-void request_catalog_page(const std::string_view &query, int page);
+std::unordered_map<std::string, uint64_t>
+parse_page_sizes(const std::string_view &html);
+void request_catalog_page(const std::string_view &query, int page,
+                          const std::string_view &kind = {});
 std::vector<item_details> get_catalog_page();
 catalog_status get_catalog_status();
 void request_preview(const std::string_view &id, const std::string_view &url);

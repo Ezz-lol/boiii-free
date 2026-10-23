@@ -17,6 +17,27 @@
 #include <stb_image_write.h>
 
 namespace workshop {
+// The Steam API reports 0 for most items, but browse pages embed the size
+std::unordered_map<std::string, uint64_t>
+parse_page_sizes(const std::string_view &html) {
+  std::unordered_map<std::string, uint64_t> sizes;
+  const std::string key = "file_size";
+  for (size_t pos = html.find(key); pos != std::string::npos;
+       pos = html.find(key, pos + key.size())) {
+    const size_t digits = html.find_first_of("0123456789", pos + key.size());
+    const size_t id_at = html.rfind("publishedfileid", pos);
+    if (digits == std::string::npos || digits > pos + 40 ||
+        id_at == std::string::npos || pos - id_at > 4000)
+      continue;
+    const size_t id_digits = html.find_first_of("0123456789", id_at + 16);
+    const size_t id_end = html.find_first_not_of("0123456789", id_digits);
+    const uint64_t bytes = std::strtoull(html.data() + digits, nullptr, 10);
+    if (bytes && id_digits < id_at + 64 && id_end - id_digits >= 6)
+      sizes[std::string(html.substr(id_digits, id_end - id_digits))] = bytes;
+  }
+  return sizes;
+}
+
 namespace {
 constexpr int PAGE_SIZE = 30;
 constexpr int MAX_PREVIEW_DOWNLOADS = 4;
@@ -28,6 +49,7 @@ std::mutex catalog_mutex;
 std::vector<item_details> catalog_items;
 catalog_status status{};
 std::string catalog_query;
+std::string catalog_kind;
 std::atomic<uint64_t> catalog_request{0};
 std::unordered_map<std::string, uint64_t> known_sizes;
 
@@ -67,21 +89,8 @@ void collect_ids(const std::string_view &html, const std::string_view &prefix,
 }
 
 void remember_page_sizes(const std::string_view &html) {
-  const std::string key = "file_size";
-  for (size_t pos = html.find(key); pos != std::string::npos;
-       pos = html.find(key, pos + key.size())) {
-    const size_t digits = html.find_first_of("0123456789", pos + key.size());
-    const size_t id_at = html.rfind("publishedfileid", pos);
-    if (digits == std::string::npos || digits > pos + 40 ||
-        id_at == std::string::npos || pos - id_at > 4000)
-      continue;
-    const size_t id_digits = html.find_first_of("0123456789", id_at + 16);
-    const size_t id_end = html.find_first_not_of("0123456789", id_digits);
-    const size_t bytes = std::strtoull(html.data() + digits, nullptr, 10);
-    if (bytes && id_digits < id_at + 64 && id_end - id_digits >= 6)
-      known_sizes[std::string(html.substr(id_digits, id_end - id_digits))] =
-          bytes;
-  }
+  for (const auto &[id, bytes] : parse_page_sizes(html))
+    known_sizes[id] = bytes;
 }
 
 bool matches_query(const item_details &item, const std::string_view &query) {
@@ -120,15 +129,18 @@ std::string strip_tags(const std::string_view &text) {
   return plain;
 }
 
-std::vector<item_details> fetch_page(int page, const std::string_view &query) {
+std::vector<item_details> fetch_page(int page, const std::string_view &query,
+                                     const std::string_view &kind) {
   utils::http::headers headers;
   headers["User-Agent"] = USER_AGENT;
   headers["Accept-Language"] = "en-US,en;q=0.9";
 
   const std::string base =
       std::format("https://steamcommunity.com/workshop/browse/"
-                  "?appid={}&childpublishedfileid=0&numperpage=30&p={}",
-                  game::APP_ID_STR, page);
+                  "?appid={}&childpublishedfileid=0&numperpage=30&p={}{}",
+                  game::APP_ID_STR, page,
+                  kind.empty() ? std::string{}
+                               : std::format("&requiredtags%5B%5D={}", kind));
   std::vector<std::string> urls;
   if (query.empty()) {
     urls.push_back(std::format(
@@ -368,21 +380,28 @@ void apply_cover() {
 }
 } // namespace
 
-void request_catalog_page(const std::string_view &query, int page) {
+void request_catalog_page(const std::string_view &query, int page,
+                          const std::string_view &kind) {
   page = std::max(page, 1);
   {
     std::lock_guard lock(catalog_mutex);
-    if (catalog_query == query && status.page == page &&
+    if (catalog_query == query && catalog_kind == kind && status.page == page &&
         (status.loading || !catalog_items.empty() || !status.error.empty()))
       return;
     catalog_query = query;
+    catalog_kind = kind;
     catalog_items.clear();
     status = {true, false, page, status.generation + 1, {}};
   }
 
   const uint64_t request = ++catalog_request;
-  std::thread([query = std::string(query), page, request] {
-    std::vector<item_details> items = fetch_page(page, query);
+  std::thread([query = std::string(query), kind = std::string(kind), page,
+               request] {
+    std::vector<item_details> items = fetch_page(page, query, kind);
+    // Items tagged both Map and Mod would otherwise be hidden on one tab
+    if (!kind.empty())
+      for (item_details &item : items)
+        item.kind = kind;
     for (const item_details &item : items)
       request_preview(item.id, item.preview_url);
 

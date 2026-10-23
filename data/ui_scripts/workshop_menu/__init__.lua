@@ -200,6 +200,16 @@ local function kindMatchesFilter(kind)
   return true
 end
 
+-- Steam workshop tag for the active tab, so MAPS and MODS get full pages
+local function catalogKind()
+  if currentFilter == "map" then
+    return "Map"
+  elseif currentFilter == "mod" then
+    return "Mod"
+  end
+  return ""
+end
+
 local function catalogStatus()
   local st = {}
   pcall(function()
@@ -219,14 +229,14 @@ local function requestCatalog(page)
   end
   pcall(function()
     if game.requestworkshopcatalog then
-      game.requestworkshopcatalog(getSearchQuery(), currentPage)
+      game.requestworkshopcatalog(getSearchQuery(), currentPage, catalogKind())
     end
   end)
 end
 
 local function fetchCatalogItems()
   local ok, items = pcall(function()
-    return game.getworkshopcatalog(getSearchQuery(), currentPage)
+    return game.getworkshopcatalog(getSearchQuery(), currentPage, catalogKind())
   end)
   if not ok or type(items) ~= "table" then
     return {}
@@ -1043,7 +1053,6 @@ local function makeActionButton(menu, controller, left, right, top, bottom, labe
   local btn = LUI.UIElement.new()
   btn:setLeftRight(true, false, left, right)
   btn:setTopBottom(true, false, top, bottom)
-  btn:makeFocusable()
   enableMouse(btn)
 
   local idle = LUI.UIImage.new()
@@ -1114,18 +1123,7 @@ local function makeActionButton(menu, controller, left, right, top, bottom, labe
   end
   paint(false)
   btn.PaintHover = paint
-
-  btn.currentState = "DefaultState"
-  btn.clipsPerState = {
-    DefaultState = {
-      DefaultClip = function()
-        paint(false)
-      end,
-      Focus = function()
-        paint(true)
-      end,
-    },
-  }
+  makeHoverable(btn, paint)
 
   if onClick then
     btn:registerEventHandler("leftmouseup", function()
@@ -1557,6 +1555,7 @@ LUI.createMenu.BoiiiWorkshopMenu = function(controller)
     local function selectTab()
       if currentFilter ~= def.filter then
         currentFilter = def.filter
+        currentPage = 1
         updateDetails(self, nil)
       end
       refreshTabs()

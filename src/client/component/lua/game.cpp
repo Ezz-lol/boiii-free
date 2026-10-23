@@ -353,27 +353,30 @@ luaReturnCount_e httppost(lua_State *luaVM) {
 }
 
 luaReturnCount_e getworkshopcatalog(lua_State *luaVM) {
-  return call(luaVM, [](const std::string &query, const int page) -> table {
-    workshop::request_catalog_page(query, page);
-    table result{};
-    int index = 1;
-    for (const auto &item : workshop::get_catalog_page()) {
-      table row{};
-      row.set("id", item.id);
-      row.set("title", item.title);
-      row.set("description", item.description);
-      row.set("kind", item.kind);
-      row.set("file_size", static_cast<double>(item.file_size));
-      row.set("preview", item.preview_url);
-      result.set(index++, row);
-    }
-    return result;
-  });
+  return call(luaVM,
+              [](const std::string &query, const int page,
+                 const std::string &kind) -> table {
+                workshop::request_catalog_page(query, page, kind);
+                table result{};
+                int index = 1;
+                for (const auto &item : workshop::get_catalog_page()) {
+                  table row{};
+                  row.set("id", item.id);
+                  row.set("title", item.title);
+                  row.set("description", item.description);
+                  row.set("kind", item.kind);
+                  row.set("file_size", static_cast<double>(item.file_size));
+                  row.set("preview", item.preview_url);
+                  result.set(index++, row);
+                }
+                return result;
+              });
 }
 
 luaReturnCount_e requestworkshopcatalog(lua_State *luaVM) {
-  return call(luaVM, [](const std::string &query, const int page) {
-    workshop::request_catalog_page(query, page);
+  return call(luaVM, [](const std::string &query, const int page,
+                        const std::string &kind) {
+    workshop::request_catalog_page(query, page, kind);
   });
 }
 
