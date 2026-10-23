@@ -1,6 +1,3 @@
-local env_setup = require("premake/env")
-env_setup.init()
-
 local modules = os.matchfiles("premake/module/**.lua")
 
 for _, module in pairs(modules) do
@@ -10,6 +7,10 @@ end
 
 GIT_VERSIONING_COMMAND = "git describe --tags --always"
 GIT_CURRENT_BRANCH_COMMAND = "git symbolic-ref -q --short HEAD"
+ENV_PATH_SEP = ":"
+if os.host() == "windows" then
+  ENV_PATH_SEP = ";"
+end
 
 -- Quote the given string input as a C string
 local function cstrquote(value)
@@ -53,15 +54,26 @@ local function clang_ld_flag(ld_flag)
   return "-Wl," .. ld_flag
 end
 
-local function split_env_flags(env_var_name)
-  local value = os.getenv(env_var_name)
-  local flags = {}
-  if value then
-    for flag in string.gmatch(value, "[^%s]+") do
-      table.insert(flags, flag)
+local function split(input, sep)
+  if input ~= nil then
+    if sep == nil then
+      sep = "%s"
     end
+    local t = {}
+    for str in string.gmatch(input, "([^" .. sep .. "]+)") do
+      table.insert(t, str)
+    end
+    return t
   end
-  return flags
+
+  return {}
+end
+local function split_env_flags(env_var_name, sep)
+  return split(os.getenv(env_var_name), sep)
+end
+
+local function split_env_paths(env_var_name)
+  return split(os.getenv(env_var_name), ENV_PATH_SEP)
 end
 
 -- Converts tags in "vX.X.X" format and given revision number Y to an array of numbers {X,X,X,Y}.
@@ -369,6 +381,8 @@ local env_cflags = split_env_flags("CFLAGS")
 local env_cxxflags = split_env_flags("CXXFLAGS")
 local env_ldflags = split_env_flags("LDFLAGS")
 local env_resflags = split_env_flags("RESFLAGS")
+local env_include = split_env_paths("INCLUDE")
+local env_lib = split_env_paths("LIB")
 
 -- Append CFLAGS to all C/C++ source compilation args
 if #env_cflags > 0 then
@@ -390,6 +404,24 @@ end
 -- Append RESFLAGS to resource compiler args
 if #env_resflags > 0 then
   resoptions({ env_resflags })
+end
+
+if #env_include > 0 then
+  resincludedirs(env_include)
+  externalincludedirs(env_include)
+end
+
+if os.host() == "windows" then
+  local env_path = split_env_paths("PATH")
+  if #env_path > 0 then
+    resincludedirs(env_path)
+    externalincludedirs(env_path)
+    syslibdirs(env_path)
+  end
+end
+
+if #env_lib > 0 then
+  syslibdirs(env_lib)
 end
 
 generate_buildinfo(workspace())
