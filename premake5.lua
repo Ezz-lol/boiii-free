@@ -1,4 +1,4 @@
-local env_setup = require("setup_env")
+local env_setup = require("premake/env")
 env_setup.init()
 
 local modules = os.matchfiles("premake/module/**.lua")
