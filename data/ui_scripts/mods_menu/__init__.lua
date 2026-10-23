@@ -2,6 +2,14 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
+local existingSource = LUI.createMenu.MenuModsLoad
+  and debug
+  and debug.getinfo
+  and debug.getinfo(LUI.createMenu.MenuModsLoad, "S").source
+if existingSource and existingSource:sub(1, 1) == "@" and not existingSource:find("mods_menu", 1, true) then
+  return
+end
+
 require("ui.uieditor.widgets.Scrollbars.verticalScrollbar")
 
 CoD.OverlayUtility.AddSystemOverlay("DeleteModConfirmation", {

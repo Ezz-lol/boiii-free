@@ -15,6 +15,7 @@
 #include <steam/steam.hpp>
 
 #include <component/asset_limits.hpp>
+#include <component/lua/ui_scripting.hpp>
 #include <component/workshop/workshop.hpp>
 
 #include <str.hpp>
@@ -165,6 +166,12 @@ void UGC_LoadPool_Impl(ExtendedUGCPool *pool, ZoneType zoneType) {
   }
 
   UGC_LoadPool_Patches(pool, zoneType);
+
+  BuiltinUGCPool *builtin = zoneType == ZoneType::MOD
+                                ? builtinModsPool.get()
+                                : builtinUsermapsPool.get();
+  builtin->count = std::min(pool->count, BUILTIN_WORKSHOP_DATA_POOL_SIZE);
+  std::copy_n(pool->data, builtin->count, builtin->data);
 }
 
 void UGC_LoadModsPool_Impl() {
@@ -283,6 +290,7 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
       game::derelocate(callerAddr), serialize(localClientNum),
       publisherId ? publisherId : "NULL", reloadFS ? "true" : "false");
 #endif
+  ui_scripting::unload_native_mods(publisherId, _ReturnAddress());
   UGC_LoadPools_Impl();
   UGCItem genMod{};
   UGCItem *mod =
