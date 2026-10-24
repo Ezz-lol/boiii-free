@@ -387,6 +387,12 @@ struct component final : generic_component {
 #endif
     // Clientfield Mismatch -> recoverable ERR_DROP
     com_error_hook.create(game::com::Com_Error_, com_error_stub);
+    if (!game::is_legacy_client()) {
+      utils::hook::nop(game::com::Com_Error_PrintErrorCall.get(), 5);
+      utils::hook::nop(game::com::Com_ErrorCleanup_PrintErrorCall.get(), 5);
+      utils::hook::nop(game::com::Com_ErrorCleanup_PrintDisconnectCall.get(),
+                       5);
+    }
     if (game::is_client()) {
       network::on("serverError",
                   [](const game::net::netadr_t &from,
