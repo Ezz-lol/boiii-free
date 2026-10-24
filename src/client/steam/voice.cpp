@@ -4,11 +4,49 @@
 
 #include <game/utils.hpp>
 
+#include <utils/io.hpp>
+
+#include <audiopolicy.h>
+#include <mmdeviceapi.h>
+
 namespace steam {
 namespace voice {
 namespace {
 std::string selected_input_device() {
   return std::string(game::get_dvar_string("voice_input_device").value_or(""));
+}
+
+std::filesystem::path mixer_volume_file() {
+  return game::get_appdata_path() / "user" / "mixer_volume.txt";
+}
+
+template <typename Callback> void with_mixer_volume(Callback &&callback) {
+  const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+  IMMDeviceEnumerator *enumerator = nullptr;
+  IMMDevice *device = nullptr;
+  IAudioSessionManager *manager = nullptr;
+  ISimpleAudioVolume *volume = nullptr;
+  if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr,
+                                 CLSCTX_ALL, IID_PPV_ARGS(&enumerator))) &&
+      SUCCEEDED(
+          enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &device)) &&
+      SUCCEEDED(device->Activate(__uuidof(IAudioSessionManager), CLSCTX_ALL,
+                                 nullptr,
+                                 reinterpret_cast<void **>(&manager))) &&
+      SUCCEEDED(manager->GetSimpleAudioVolume(nullptr, FALSE, &volume))) {
+    callback(volume);
+  }
+
+  for (IUnknown *object :
+       std::initializer_list<IUnknown *>{volume, manager, device, enumerator}) {
+    if (object) {
+      object->Release();
+    }
+  }
+  if (SUCCEEDED(com)) {
+    CoUninitialize();
+  }
 }
 
 std::vector<PaDeviceIndex> input_device_indices() {
@@ -37,6 +75,28 @@ PaDeviceIndex find_input_device(const std::string &name) {
   return Pa_GetDefaultInputDevice();
 }
 } // namespace
+
+void RestoreMixerVolume() {
+  std::string saved;
+  if (!::utils::io::read_file(mixer_volume_file().string(), &saved)) {
+    return;
+  }
+  const float level =
+      std::clamp(std::strtof(saved.c_str(), nullptr), 0.0f, 1.0f);
+  with_mixer_volume([level](ISimpleAudioVolume *volume) {
+    volume->SetMasterVolume(level, nullptr);
+  });
+}
+
+void SaveMixerVolume() {
+  with_mixer_volume([](ISimpleAudioVolume *volume) {
+    float level = 1.0f;
+    if (SUCCEEDED(volume->GetMasterVolume(&level))) {
+      ::utils::io::write_file(mixer_volume_file().string(),
+                              std::format("{:.2f}", level));
+    }
+  });
+}
 
 std::vector<std::string> InputDevices() {
   std::vector<std::string> devices;
