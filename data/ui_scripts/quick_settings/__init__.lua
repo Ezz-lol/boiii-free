@@ -2,20 +2,21 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
+require("ui.uieditor.widgets.Lobby.Common.FE_TabBar")
 require("ui.uieditor.widgets.Scrollbars.verticalScrollbar")
+
+local function updateDvar(controller, optionModel, optionsList, dvarName, extraParam)
+  local oldValue = Engine.DvarInt(nil, dvarName)
+  local newValue = optionModel.value
+  UpdateInfoModels(optionModel)
+  if oldValue == newValue then
+    return
+  end
+  Engine.SetDvar(dvarName, optionModel.value)
+end
 
 DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings", function(controller)
   local optionsTable = {}
-
-  local updateDvar = function(controller, optionModel, optionsList, dvarName, extraParam)
-    local oldValue = Engine.DvarInt(nil, dvarName)
-    local newValue = optionModel.value
-    UpdateInfoModels(optionModel)
-    if oldValue == newValue then
-      return
-    end
-    Engine.SetDvar(dvarName, optionModel.value)
-  end
 
   local toggleSettings = {
     { "boiii_skipIntro", "Skip Intro", "Skip the intro video on startup." },
@@ -315,6 +316,62 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
   return optionsTable
 end)
 
+DataSources.BoiiiQuickSettingsXpBar = DataSourceHelpers.ListSetup("BoiiiQuickSettingsXpBar", function(controller)
+  local function setting(name, description, dvar, options)
+    return CoD.OptionsUtility.CreateDvarSettings(
+      controller,
+      name,
+      description,
+      "QuickSettings_" .. dvar,
+      dvar,
+      options,
+      nil,
+      updateDvar
+    )
+  end
+
+  return {
+    setting("XP Bar", "Show an XP progress bar in Multiplayer and Zombies.", "boiii_xpBar", {
+      { option = "MENU_DISABLED", value = 0, default = true },
+      { option = "MENU_ENABLED", value = 1 },
+    }),
+    setting("Position", "Show the XP bar at the bottom or the top of the screen.", "boiii_xpBarPosition", {
+      { option = "Bottom", value = 0, default = true },
+      { option = "Top", value = 1 },
+    }),
+    setting("XP Popups", "Show the XP you earn next to the XP bar.", "boiii_xpBarPopups", {
+      { option = "MENU_DISABLED", value = 0 },
+      { option = "MENU_ENABLED", value = 1, default = true },
+    }),
+    -- Same order as COLORS in the xp_bar script
+    setting("Color", "Color of the XP bar and its popups.", "boiii_xpBarColor", {
+      { option = "Orange", value = 0, default = true },
+      { option = "Gold", value = 1 },
+      { option = "Blue", value = 2 },
+      { option = "Green", value = 3 },
+      { option = "Red", value = 4 },
+      { option = "Purple", value = 5 },
+      { option = "White", value = 6 },
+    }),
+  }
+end)
+
+DataSources.BoiiiQuickSettingsTabs = DataSourceHelpers.ListSetup("BoiiiQuickSettingsTabs", function(controller)
+  local function tab(name, dataSourceName, title)
+    return {
+      models = { tabName = name, tabIcon = "" },
+      properties = { tabId = dataSourceName, dataSourceName = dataSourceName, title = title },
+    }
+  end
+
+  return {
+    { models = { tabIcon = CoD.buttonStrings.shoulderl }, properties = { m_mouseDisabled = true } },
+    tab("GENERAL", "BoiiiQuickSettings", "Frequently Used Settings"),
+    tab("XP BAR", "BoiiiQuickSettingsXpBar", "XP Bar"),
+    { models = { tabIcon = CoD.buttonStrings.shoulderr }, properties = { m_mouseDisabled = true } },
+  }
+end, true)
+
 -- ── Quick Settings Menu ─────────────────────────────────────────────────────
 
 LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
@@ -357,6 +414,21 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   self:addElement(Options)
   self.Options = Options
 
+  local TabList = CoD.FE_TabBar.new(self, controller)
+  TabList:setLeftRight(true, false, 0, 2496)
+  TabList:setTopBottom(true, false, 84, 123)
+  TabList.Tabs.grid:setHorizontalCount(4)
+  TabList.Tabs.grid:setDataSource("BoiiiQuickSettingsTabs")
+  self:addElement(TabList)
+  self.TabList = TabList
+
+  self:registerEventHandler("list_active_changed", function(element, event)
+    if element.dataSourceName and element.title then
+      Options.Title.DescTitle:setText(Engine.Localize(element.title))
+      Options.ButtonList:setDataSource(element.dataSourceName)
+    end
+  end)
+
   self:AddButtonCallbackFunction(
     self,
     controller,
@@ -386,6 +458,7 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   LUI.OverrideFunction_CallOriginalSecond(self, "close", function(element)
     element.GameSettingsBackground:close()
     element.Options:close()
+    element.TabList:close()
     Engine.UnsubscribeAndFreeModel(
       Engine.GetModel(Engine.GetModelForController(controller), "BoiiiQuickSettingsMenu.buttonPrompts")
     )
