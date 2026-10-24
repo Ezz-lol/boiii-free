@@ -133,6 +133,12 @@ bool is_inside_folder(const std::filesystem::path &file,
   return start != relative.end() && start->string() != "..";
 }
 
+bool is_user_script(const std::filesystem::path &file,
+                    const std::filesystem::path &base) {
+  return is_inside_folder(file, base / "data" / "scripts") ||
+         is_inside_folder(file, base / "data" / "custom_scripts");
+}
+
 bool is_dedicated_server() {
   return utils::flags::has_flag("dedicated") ||
          (!utils::io::file_exists("BlackOps3.exe") &&
@@ -677,9 +683,21 @@ void file_updater::cleanup_data_directory(
     return;
   }
 
+  const std::filesystem::path installed_list =
+      base / "user" / "updater_files.txt";
+  std::string installed_data;
+  const bool has_installed_list =
+      utils::io::read_file(installed_list, &installed_data);
+  std::unordered_set<std::string> installed_files;
+  for (const std::string &name : utils::string::split(installed_data, '\n')) {
+    installed_files.insert(name);
+  }
+
   std::vector<std::filesystem::path> legal_files{};
   legal_files.reserve(files.size());
+  std::string current_list;
   for (const auto &file : files) {
+    current_list += file.name + "\n";
     if (file.name.starts_with("data")) {
       legal_files.emplace_back(std::filesystem::absolute(base / file.name));
     }
@@ -704,10 +722,19 @@ void file_updater::cleanup_data_directory(
       if (is_legal) {
         continue;
       }
+
+      if (has_installed_list && is_user_script(file, base) &&
+          (is_folder ||
+           !installed_files.contains(
+               std::filesystem::relative(file, base).generic_string()))) {
+        continue;
+      }
     }
 
     std::error_code code{};
     std::filesystem::remove_all(file, code);
   }
+
+  utils::io::write_file(installed_list, current_list);
 }
 } // namespace updater
