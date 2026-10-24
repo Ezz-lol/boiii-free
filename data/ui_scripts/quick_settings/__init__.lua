@@ -350,9 +350,10 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   Options:setTopBottom(true, false, 135, 720)
   Options.Title.DescTitle:setText(Engine.Localize("Frequently Used Settings"))
   Options.Title.DescTitle:setRGB(1, 0.55, 0.1)
-  Options.ButtonList:setVerticalCount(14)
-  Options.ButtonList:setVerticalScrollbar(CoD.verticalScrollbar)
+  Options.ButtonList:setVerticalCount(11)
   Options.ButtonList:setDataSource("BoiiiQuickSettings")
+  Options.ButtonList:setVerticalScrollbar(CoD.verticalScrollbar)
+  Options.ButtonList.verticalScrollbar:setLeftRight(true, false, 549, 559)
   self:addElement(Options)
   self.Options = Options
 
