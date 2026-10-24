@@ -355,7 +355,7 @@ public:
 
     scheduler::schedule(
         []() {
-          if (*sv_cheats && !*dvar_cheats) {
+          if (*sv_cheats && *dvar_cheats) {
             apply_cheats_setting({});
             Dvar_SetModifiedCallback(Dvar_FindVar("boiii_allowCheats"),
                                      apply_cheats_setting);
