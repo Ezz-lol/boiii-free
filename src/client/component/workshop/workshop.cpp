@@ -747,19 +747,7 @@ int get_workshop_retry_attempts() {
 }
 
 std::string get_mod_publisher_id() {
-  const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
-
-  if (loaded_mod_id == "usermaps" || loaded_mod_id.empty()) {
-    return loaded_mod_id;
-  }
-
-  if (!utils::string::is_numeric(loaded_mod_id)) {
-    printf("[ Workshop ] WARNING: The publisherId: %s, is not numerical you "
-           "might have set your mod folder incorrectly!\n",
-           loaded_mod_id.data());
-  }
-
-  return loaded_mod_id;
+  return game::ugc::UGC_ActiveMod_PublisherId();
 }
 inline constexpr frozen::string ZM_DLC_MAP_ARRAY[] = {
     "zm_asylum", "zm_castle",  "zm_cosmodrome", "zm_factory",    "zm_genesis",
