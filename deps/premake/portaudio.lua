@@ -46,6 +46,7 @@ function portaudio.project()
   project("portaudio")
   language("C")
 
+  portaudio.defines()
   portaudio.includes()
 
   files({
