@@ -189,6 +189,27 @@ local function vertonumarr(value, vernumber, partscount)
   return vernum
 end
 
+local function system_include(dir)
+  return "-isystem=" .. dir
+end
+
+local function addexternalincludedirs(dirs)
+  filter({ "action:gmake*", "toolset:clang" })
+  buildoptions(map(dirs, system_include))
+  filter({})
+  filter({ "action:gmake*", "toolset:gcc" })
+  buildoptions(map(dirs, system_include))
+  filter({})
+
+  filter({ "action:not gmake" })
+  externalincludedirs(dirs)
+  filter({})
+
+  filter({ "toolset:not clang" })
+  externalincludedirs(dirs)
+  filter({})
+end
+
 dependencies = {
   basePath = "./deps",
 }
@@ -478,7 +499,7 @@ filter({})
 filter({ "toolset:not msc*" })
 local clang_include_dir = get_clang_resource_include()
 if clang_include_dir then
-  externalincludedirs({ clang_include_dir })
+  addexternalincludedirs({ clang_include_dir })
   resincludedirs({ clang_include_dir })
 end
 filter({})
@@ -515,14 +536,14 @@ end
 
 if #env_include > 0 then
   resincludedirs(env_include)
-  externalincludedirs(env_include)
+  addexternalincludedirs(env_include)
 end
 
 if os.host() == "windows" then
   local env_path = split_env_paths("PATH")
   if #env_path > 0 then
     resincludedirs(env_path)
-    externalincludedirs(env_path)
+    addexternalincludedirs(env_path)
     syslibdirs(env_path)
   end
 end

@@ -15,23 +15,60 @@ services:
   debug:
     extends: base
     command: ["./scripts/unix/cross.sh", "--builder", "ninja"]
-  clean-debug:
+  debug-verbose:
     extends: base
-    command: ["./scripts/unix/cross.sh", "--builder", "ninja", --clean]
+    command: ["./scripts/unix/cross.sh", "--builder", "ninja", "--verbose"]
+  debug-clean:
+    extends: base
+    command: ["./scripts/unix/cross.sh", "--builder", "ninja", "--clean"]
+  debug-clean-verbose:
+    extends: base
+    command:
+      ["./scripts/unix/cross.sh", "--builder", "ninja", "--clean", "--verbose"]
 
   release:
     extends: base
     command:
       ["./scripts/unix/cross.sh", "--builder", "ninja", "--release", "--clean"]
+  release-verbose:
+    extends: base
+    command:
+      [
+        "./scripts/unix/cross.sh",
+        "--builder",
+        "ninja",
+        "--release",
+        "--clean",
+        "--verbose",
+      ]
 
-  debug-gmake:
+  gmake-debug:
     extends: base
     command: ["./scripts/unix/cross.sh", "--builder", "gmake"]
-  clean-debug-gmake:
+  gmake-debug-verbose:
+    extends: base
+    command: ["./scripts/unix/cross.sh", "--builder", "gmake", "--verbose"]
+  gmake-debug-clean:
     extends: base
     command: ["./scripts/unix/cross.sh", "--builder", "gmake", "--clean"]
 
-  release-gmake:
+  gmake-debug-clean-verbose:
+    extends: base
+    command:
+      ["./scripts/unix/cross.sh", "--builder", "gmake", "--clean", "--verbose"]
+
+  gmake-release:
     extends: base
     command:
       ["./scripts/unix/cross.sh", "--builder", "gmake", "--release", "--clean"]
+  gmake-release-verbose:
+    extends: base
+    command:
+      [
+        "./scripts/unix/cross.sh",
+        "--builder",
+        "gmake",
+        "--release",
+        "--clean",
+        "--verbose",
+      ]

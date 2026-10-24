@@ -3,6 +3,7 @@
 
 local p = premake
 local clang = p.tools.clang
+
 if clang ~= nil then
   if clang.tools ~= nil then
     clang.tools["rc"] = "llvm-windres"
