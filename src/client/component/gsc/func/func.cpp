@@ -9,15 +9,10 @@
 #include <game/impl/sv/sv.hpp>
 #include <game/utils.hpp>
 
-#include <component/command.hpp>
 #include <component/name.hpp>
-#include <component/toast.hpp>
 #include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
-#include <utils/io.hpp>
-
-#include <rapidjson/writer.h>
 
 using namespace game;
 using namespace game::scr;
@@ -36,67 +31,6 @@ namespace {
 // =====================================================
 // Core builtins
 // =====================================================
-
-void gscr_prepareweaponkitassets(scriptInstance_t inst) {
-  const char *base_name = Scr_GetString(inst, 0);
-  const char *upgrade_name = Scr_GetString(inst, 1);
-  if (!base_name || !upgrade_name) {
-    push(inst, false);
-    return;
-  }
-
-  struct context {
-    const char *base_name;
-    const char *upgrade_name;
-    game::weapon::WeaponVariantDef *base{};
-    game::weapon::WeaponVariantDef *upgrade{};
-  } ctx{base_name, upgrade_name};
-
-  game::db::xasset::DB_EnumXAssets(
-      game::db::xasset::XAssetType::WEAPON,
-      [](game::db::xasset::XAssetHeader header, void *data) {
-        context *ctx = static_cast<context *>(data);
-        game::weapon::WeaponVariantDef *variant = header.weapon;
-        if (!variant || !variant->szModeIndependentName)
-          return;
-
-        if (!strcmp(variant->szModeIndependentName, ctx->base_name))
-          ctx->base = variant;
-        else if (!strcmp(variant->szModeIndependentName, ctx->upgrade_name))
-          ctx->upgrade = variant;
-      },
-      &ctx, false);
-
-  if (!ctx.base || !ctx.upgrade) {
-    push(inst, false);
-    return;
-  }
-
-  const auto find_camo = [](const std::string &name) {
-    const game::db::xasset::XAssetHeader header =
-        game::db::xasset::DB_FindXAssetHeader(
-            game::db::xasset::XAssetType::WEAPON_CAMO, name.c_str(), false, -1);
-    return const_cast<game::weapon::WeaponCamo *>(
-        reinterpret_cast<const game::weapon::WeaponCamo *>(header.named));
-  };
-
-  game::weapon::WeaponCamo *weapon_camo =
-      find_camo("camo_t7_" + std::string(base_name));
-
-  if (weapon_camo && weapon_camo->numCamoMaterials && ctx.base->weapDef &&
-      ctx.upgrade->weapDef) {
-    ctx.base->weapDef->weaponCamo = weapon_camo;
-    ctx.upgrade->weapDef->weaponCamo = weapon_camo;
-  }
-
-  ctx.upgrade->szAttachmentUnique = ctx.base->szAttachmentUnique;
-  ctx.upgrade->attachments = ctx.base->attachments;
-  ctx.upgrade->attachmentUniques = ctx.base->attachmentUniques;
-  ctx.upgrade->iAttachments = ctx.base->iAttachments;
-  ctx.upgrade->bIgnoreAttachments = ctx.base->bIgnoreAttachments;
-
-  push(inst, true);
-}
 
 utils::hook::detour Scr_GetFunction_hook;
 BuiltinFunction Scr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
@@ -286,80 +220,6 @@ struct component final : generic_component {
         CScr_GetFunction_SearchCustom);
     CScr_GetMethod_hook.create(game::scr::builtin::cscr::CScr_GetMethod.get(),
                                CScr_GetMethod_SearchCustom);
-
-    register_builtin(SCRIPTINSTANCE_SERVER, "prepareweaponkitassets",
-                     gscr_prepareweaponkitassets, 2);
-
-    command::add("weaponkitdump", [](const command::params &) {
-      rapidjson::Document doc;
-      doc.SetArray();
-      auto &alloc = doc.GetAllocator();
-
-      struct enum_ctx {
-        rapidjson::Document *doc;
-        rapidjson::Document::AllocatorType *alloc;
-      } ctx{&doc, &alloc};
-
-      db::xasset::DB_EnumXAssets(
-          db::xasset::XAssetType::WEAPON,
-          [](db::xasset::XAssetHeader header, void *data) {
-            enum_ctx *ctx = static_cast<enum_ctx *>(data);
-            game::weapon::WeaponVariantDef *variant = header.weapon;
-            if (variant && variant->szModeIndependentName) {
-              rapidjson::Document::AllocatorType &alloc = *ctx->alloc;
-              const game::weapon::WeaponCamo *camo =
-                  variant->weapDef ? variant->weapDef->weaponCamo : nullptr;
-
-              rapidjson::Value entry(rapidjson::kObjectType);
-              entry.AddMember(
-                  "name",
-                  rapidjson::Value(variant->szModeIndependentName, alloc),
-                  alloc);
-              entry.AddMember("internalName",
-                              rapidjson::Value(variant->szInternalName
-                                                   ? variant->szInternalName
-                                                   : "",
-                                               alloc),
-                              alloc);
-              entry.AddMember("sessionMode",
-                              static_cast<int>(variant->sessionMode), alloc);
-              entry.AddMember("variantCount",
-                              static_cast<int>(variant->iVariantCount), alloc);
-              entry.AddMember("attachmentMask",
-                              static_cast<uint64_t>(variant->iAttachments),
-                              alloc);
-              entry.AddMember(
-                  "camoName",
-                  rapidjson::Value(camo && camo->name ? camo->name : "", alloc),
-                  alloc);
-              entry.AddMember(
-                  "camoMaterials",
-                  camo ? static_cast<uint32_t>(camo->numCamoMaterials) : 0u,
-                  alloc);
-              entry.AddMember("hasRealCamo",
-                              camo != nullptr && camo->numCamoMaterials > 0,
-                              alloc);
-
-              ctx->doc->PushBack(entry, alloc);
-            }
-          },
-          &ctx, false);
-
-      rapidjson::StringBuffer buf;
-      rapidjson::Writer<rapidjson::StringBuffer> writer(buf);
-      doc.Accept(writer);
-
-      const std::filesystem::path out_path =
-          get_appdata_path() / "weapon_dump.json";
-      utils::io::write_file(out_path, std::string(buf.GetString()));
-
-      const std::string msg = "Dumped " + std::to_string(doc.Size()) +
-                              " weapon(s) to " + out_path.string();
-      com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
-                      consoleLabel_e::DEFAULT, "[weaponkitdump] %s\n",
-                      msg.c_str());
-      toast::info("Weapon Kit Dump", msg);
-    });
 
     apply_bgb_hooks();
     apply_set_dvar_hook();
