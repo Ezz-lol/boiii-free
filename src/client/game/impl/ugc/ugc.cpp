@@ -15,7 +15,6 @@
 #include <steam/steam.hpp>
 
 #include <component/asset_limits.hpp>
-#include <component/lua/ui_scripting.hpp>
 #include <component/workshop/workshop.hpp>
 
 #include <str.hpp>
@@ -290,10 +289,6 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
       game::derelocate(callerAddr), serialize(localClientNum),
       publisherId ? publisherId : "NULL", reloadFS ? "true" : "false");
 #endif
-  const std::string unloaded_mod = UGC_ActiveMod_PublisherId();
-  if (unloaded_mod != (publisherId ? publisherId : "")) {
-    ui_scripting::unload_native_mods_of(unloaded_mod, _ReturnAddress());
-  }
   UGC_LoadPools_Impl();
   UGCItem genMod{};
   UGCItem *mod =

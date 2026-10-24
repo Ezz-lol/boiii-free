@@ -25,9 +25,6 @@
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 
-#include <MinHook.h>
-#include <tlhelp32.h>
-
 #include <frozen/string.h>
 #include <frozen/unordered_set.h>
 
@@ -820,251 +817,11 @@ void ui_shutdown_stub() {
   ui_initialized.store(false, std::memory_order_release);
 }
 
-struct shared_hook {
-  uint8_t *place;
-  void *boiii_detour;
-  uint8_t original[8];
-};
-std::vector<shared_hook> pending_shared_hooks;
-std::vector<shared_hook> chained_shared_hooks;
-int require_depth = 0;
-int shared_hooks_depth = 0;
-
-void chain_shared_hooks();
-
-bool is_executable(const void *address, size_t length) {
-  MEMORY_BASIC_INFORMATION info{};
-  if (!VirtualQuery(address, &info, sizeof(info)) || info.State != MEM_COMMIT ||
-      !(info.Protect & (PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) ||
-      (info.Protect & PAGE_GUARD)) {
-    return false;
-  }
-  return static_cast<const uint8_t *>(address) + length <=
-         static_cast<const uint8_t *>(info.BaseAddress) + info.RegionSize;
-}
-
-uint8_t *minhook_relay(uint8_t *place) {
-  if (!is_executable(place, 5) || place[0] != 0xE9) {
-    return nullptr;
-  }
-  uint8_t *relay = place + 5 + *reinterpret_cast<int32_t *>(place + 1);
-  if (!is_executable(relay, 14) || relay[0] != 0xFF || relay[1] != 0x25 ||
-      *reinterpret_cast<int32_t *>(relay + 2) != 0) {
-    return nullptr;
-  }
-  return relay;
-}
-
-void lift_shared_hooks(const utils::nt::library &mod) {
-  const utils::nt::library game{};
-  const utils::nt::library self = utils::nt::library::get_by_address(
-      reinterpret_cast<void *>(&lift_shared_hooks));
-  const uintptr_t base = reinterpret_cast<uintptr_t>(game.get_ptr());
-  const uintptr_t size = game.get_optional_header()->SizeOfImage;
-
-  for (const PIMAGE_SECTION_HEADER section : mod.get_section_headers()) {
-    if (section->Characteristics & IMAGE_SCN_MEM_EXECUTE) {
-      continue;
-    }
-    const uint8_t *data = mod.get_ptr() + section->VirtualAddress;
-    for (size_t offset = 0; offset + 8 <= section->Misc.VirtualSize;
-         offset += 8) {
-      uint64_t value = *reinterpret_cast<const uint64_t *>(data + offset);
-      if (value >= game::ENGINE_MODULE_BASE &&
-          value < game::ENGINE_MODULE_BASE + size) {
-        value -= game::ENGINE_MODULE_BASE;
-      } else if (value >= base && value < base + size) {
-        value -= base;
-      }
-      if (!value || value >= size) {
-        continue;
-      }
-
-      uint8_t *place = reinterpret_cast<uint8_t *>(base + value);
-      const uint8_t *relay = minhook_relay(place);
-      if (!relay) {
-        continue;
-      }
-      void *detour = *reinterpret_cast<void *const *>(relay + 6);
-      if (utils::nt::library::get_by_address(detour) != self ||
-          MH_DisableHook(place) != MH_OK) {
-        continue;
-      }
-      shared_hook hook{place, detour, {}};
-      std::memcpy(hook.original, place, sizeof(hook.original));
-      pending_shared_hooks.push_back(hook);
-    }
-  }
-  shared_hooks_depth = require_depth;
-  if (!require_depth && !pending_shared_hooks.empty()) {
-    scheduler::once(chain_shared_hooks, scheduler::pipeline::main);
-  }
-}
-
-void chain_shared_hooks() {
-  for (const shared_hook &hook : pending_shared_hooks) {
-    const uint8_t *relay = std::memcmp(hook.place, hook.original, 5)
-                               ? minhook_relay(hook.place)
-                               : nullptr;
-    uint8_t *trampoline = reinterpret_cast<uint8_t *>(
-        reinterpret_cast<uintptr_t>(relay) & ~uintptr_t(63));
-    if (!relay || std::memcmp(trampoline, hook.original, 5)) {
-      MH_EnableHook(hook.place);
-      continue;
-    }
-    uint8_t jump[14] = {0xFF, 0x25};
-    std::memcpy(jump + 6, &hook.boiii_detour, sizeof(hook.boiii_detour));
-    utils::hook::copy(trampoline, jump, sizeof(jump));
-    chained_shared_hooks.push_back(hook);
-  }
-  pending_shared_hooks.clear();
-}
-
-void restore_unhooked_shared_hooks() {
-  std::erase_if(chained_shared_hooks, [](const shared_hook &hook) {
-    if (std::memcmp(hook.place, hook.original, 5)) {
-      return false;
-    }
-    MH_EnableHook(hook.place);
-    return true;
-  });
-}
-
-struct native_mod {
-  HMODULE module;
-  std::string owner;
-};
-std::vector<native_mod> native_mods;
-std::vector<std::pair<uint8_t *, std::vector<uint8_t>>> code_snapshot;
-std::unordered_map<HMODULE, std::vector<void *>> mod_notifications;
-
-LONG NTAPI mod_register_dll_notification(ULONG flags, void *callback,
-                                         void *context, void **cookie) {
-  static const auto register_notification =
-      utils::nt::library("ntdll.dll")
-          .get_proc<LONG(NTAPI *)(ULONG, void *, void *, void **)>(
-              "LdrRegisterDllNotification");
-  const LONG status = register_notification(flags, callback, context, cookie);
-  if (status >= 0 && cookie) {
-    mod_notifications[utils::nt::library::get_by_address(_ReturnAddress())
-                          .get_handle()]
-        .push_back(*cookie);
-  }
-  return status;
-}
-
-FARPROC WINAPI mod_get_proc_address(HMODULE module, LPCSTR name) {
-  if (reinterpret_cast<uintptr_t>(name) > 0xFFFF &&
-      std::string_view(name) == "LdrRegisterDllNotification") {
-    return reinterpret_cast<FARPROC>(mod_register_dll_notification);
-  }
-  return GetProcAddress(module, name);
-}
-
-void snapshot_game_code() {
-  if (!code_snapshot.empty()) {
-    return;
-  }
-  const utils::nt::library game{};
-  uint8_t *base = game.get_ptr();
-  const size_t size = game.get_optional_header()->SizeOfImage;
-  MEMORY_BASIC_INFORMATION info{};
-  for (uint8_t *at = base;
-       at < base + size && VirtualQuery(at, &info, sizeof(info));
-       at = static_cast<uint8_t *>(info.BaseAddress) + info.RegionSize) {
-    if (info.State == MEM_COMMIT &&
-        (info.Protect & (PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE))) {
-      uint8_t *start = static_cast<uint8_t *>(info.BaseAddress);
-      code_snapshot.emplace_back(
-          start, std::vector<uint8_t>(start, start + info.RegionSize));
-    }
-  }
-}
-
-bool jumps_into(const uint8_t *jump, const utils::nt::library &mod) {
-  if (jump[0] != 0xE9 && jump[0] != 0xE8) {
-    return false;
-  }
-  const uint8_t *target =
-      jump + 5 + *reinterpret_cast<const int32_t *>(jump + 1);
-  if (utils::nt::library::get_by_address(target) == mod) {
-    return true;
-  }
-  return is_executable(target, 14) && target[0] == 0xFF && target[1] == 0x25 &&
-         *reinterpret_cast<const int32_t *>(target + 2) == 0 &&
-         utils::nt::library::get_by_address(
-             *reinterpret_cast<void *const *>(target + 6)) == mod;
-}
-
-void suspend_other_threads(const bool suspend) {
-  const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-  THREADENTRY32 entry{sizeof(entry)};
-  for (BOOL ok = Thread32First(snapshot, &entry); ok;
-       ok = Thread32Next(snapshot, &entry)) {
-    if (entry.th32OwnerProcessID != GetCurrentProcessId() ||
-        entry.th32ThreadID == GetCurrentThreadId()) {
-      continue;
-    }
-    if (const HANDLE thread =
-            OpenThread(THREAD_SUSPEND_RESUME, FALSE, entry.th32ThreadID)) {
-      suspend ? SuspendThread(thread) : ResumeThread(thread);
-      CloseHandle(thread);
-    }
-  }
-  CloseHandle(snapshot);
-}
-
-void rearm_shared_hooks() {
-  for (const shared_hook &hook : chained_shared_hooks) {
-    MH_DisableHook(hook.place);
-    MH_EnableHook(hook.place);
-  }
-}
-
-void unload_native_mod(const native_mod &native) {
-  const utils::nt::library mod(native.module);
-  std::vector<std::pair<uint8_t *, const uint8_t *>> spots;
-  for (const auto &[start, saved] : code_snapshot) {
-    for (size_t i = 0; i + 5 <= saved.size(); ++i) {
-      if (start[i] != saved[i] && jumps_into(start + i, mod)) {
-        spots.emplace_back(start + i, &saved[i]);
-        i += 4;
-      }
-    }
-  }
-
-  suspend_other_threads(true);
-  for (const auto &[place, original] : spots) {
-    utils::hook::copy(place, original, 5);
-  }
-  suspend_other_threads(false);
-  rearm_shared_hooks();
-
-  static const auto unregister_notification =
-      utils::nt::library("ntdll.dll")
-          .get_proc<LONG(NTAPI *)(void *)>("LdrUnregisterDllNotification");
-  for (void *cookie : mod_notifications[native.module]) {
-    unregister_notification(cookie);
-  }
-  mod_notifications.erase(native.module);
-
-  while (FreeLibrary(native.module)) {
-  }
-  rearm_shared_hooks();
-  chained_shared_hooks.clear();
-}
-
 void *hks_package_require_stub(lua_State *state) {
   const std::string script = get_current_script(state);
   const std::string root = get_root_script(script);
   globals.in_require_script = root;
-  ++require_depth;
-  void *result = hks_package_require_hook.invoke<void *>(state);
-  --require_depth;
-  if (!pending_shared_hooks.empty() && require_depth < shared_hooks_depth) {
-    chain_shared_hooks();
-  }
-  return result;
+  return hks_package_require_hook.invoke<void *>(state);
 }
 
 hksInt32 hks_load_stub(lua_State *state, HksCompilerSettings *compiler_options,
@@ -1809,10 +1566,29 @@ find_installed_workshop_file(const std::filesystem::path &path) {
   }
   return std::nullopt;
 }
+
 std::filesystem::path game_executable() {
   return game::get_game_path() / (game::is_server()
                                       ? "BlackOps3_UnrankedDedicatedServer.exe"
                                       : "BlackOps3.exe");
+}
+
+template <typename Char>
+DWORD copy_game_executable(const std::basic_string<Char> &path, Char *buffer,
+                           const DWORD size) {
+  if (!size) {
+    SetLastError(ERROR_INSUFFICIENT_BUFFER);
+    return 0;
+  }
+  const DWORD length =
+      static_cast<DWORD>(std::min<size_t>(path.size(), size - 1));
+  std::copy_n(path.c_str(), length, buffer);
+  buffer[length] = 0;
+  if (length < path.size()) {
+    SetLastError(ERROR_INSUFFICIENT_BUFFER);
+    return size;
+  }
+  return length;
 }
 
 DWORD WINAPI mod_get_module_file_name_w(HMODULE module, LPWSTR buffer,
@@ -1820,20 +1596,7 @@ DWORD WINAPI mod_get_module_file_name_w(HMODULE module, LPWSTR buffer,
   if (module && module != GetModuleHandleW(nullptr)) {
     return GetModuleFileNameW(module, buffer, size);
   }
-  const std::wstring path = game_executable().wstring();
-  if (!size) {
-    SetLastError(ERROR_INSUFFICIENT_BUFFER);
-    return 0;
-  }
-  const DWORD length =
-      static_cast<DWORD>(std::min<size_t>(path.size(), size - 1));
-  std::wmemcpy(buffer, path.c_str(), length);
-  buffer[length] = L'\0';
-  if (length < path.size()) {
-    SetLastError(ERROR_INSUFFICIENT_BUFFER);
-    return size;
-  }
-  return length;
+  return copy_game_executable(game_executable().wstring(), buffer, size);
 }
 
 DWORD WINAPI mod_get_module_file_name_a(HMODULE module, LPSTR buffer,
@@ -1841,67 +1604,19 @@ DWORD WINAPI mod_get_module_file_name_a(HMODULE module, LPSTR buffer,
   if (module && module != GetModuleHandleW(nullptr)) {
     return GetModuleFileNameA(module, buffer, size);
   }
-  const std::string path = game_executable().string();
-  if (!size) {
-    SetLastError(ERROR_INSUFFICIENT_BUFFER);
-    return 0;
-  }
-  const DWORD length =
-      static_cast<DWORD>(std::min<size_t>(path.size(), size - 1));
-  std::memcpy(buffer, path.c_str(), length);
-  buffer[length] = '\0';
-  if (length < path.size()) {
-    SetLastError(ERROR_INSUFFICIENT_BUFFER);
-    return size;
-  }
-  return length;
-}
-
-std::string owning_mod(const std::filesystem::path &path) {
-  const std::string file = utils::string::to_lower(
-      std::filesystem::absolute(path).lexically_normal().generic_string());
-  for (const game::ugc::UGCItem &item : game::ugc::modsPool.iter()) {
-    std::filesystem::path folder = std::string_view(item.absolutePathZoneFiles);
-    if (folder.filename() == "zone") {
-      folder = folder.parent_path();
-    }
-    const std::string root =
-        utils::string::to_lower(folder.lexically_normal().generic_string());
-    if (!root.empty() && file.starts_with(root + "/")) {
-      return item.publisherId;
-    }
-  }
-  return game::ugc::UGC_ActiveMod_PublisherId();
+  return copy_game_executable(game_executable().string(), buffer, size);
 }
 
 void patch_mod_module(const std::filesystem::path &path) {
-  const HMODULE image =
-      LoadLibraryExW(path.wstring().c_str(), nullptr,
-                     LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE);
-  if (image) {
-    lift_shared_hooks(utils::nt::library(reinterpret_cast<HMODULE>(
-        reinterpret_cast<uintptr_t>(image) & ~uintptr_t(3))));
-    FreeLibrary(image);
-  }
-
-  snapshot_game_code();
   const utils::nt::library mod(LoadLibraryW(path.wstring().c_str()));
   if (!mod) {
     return;
-  }
-  if (std::ranges::none_of(native_mods, [&](const native_mod &native) {
-        return native.module == mod.get_handle();
-      })) {
-    native_mods.push_back({mod.get_handle(), owning_mod(path)});
   }
   if (void **entry = mod.get_iat_entry("kernel32.dll", "GetModuleFileNameW")) {
     utils::hook::set(entry, mod_get_module_file_name_w);
   }
   if (void **entry = mod.get_iat_entry("kernel32.dll", "GetModuleFileNameA")) {
     utils::hook::set(entry, mod_get_module_file_name_a);
-  }
-  if (void **entry = mod.get_iat_entry("kernel32.dll", "GetProcAddress")) {
-    utils::hook::set(entry, mod_get_proc_address);
   }
 }
 
@@ -1988,39 +1703,6 @@ inline void lui_reload() {
   UI_CoD_LobbyUI_Init();
 }
 
-} // namespace
-
-void unload_native_mods_of(const std::string_view &mod, const void *caller) {
-  const utils::nt::library from = utils::nt::library::get_by_address(caller);
-  const size_t count = native_mods.size();
-  std::erase_if(native_mods, [&](const native_mod &native) {
-    if (native.owner != mod || from.get_handle() == native.module) {
-      return false;
-    }
-    unload_native_mod(native);
-    return true;
-  });
-  if (native_mods.size() == count) {
-    return;
-  }
-  if (native_mods.empty()) {
-    code_snapshot.clear();
-  }
-  scheduler::schedule(
-      [] {
-        if (game::ugc::active_mod->loadState ==
-            game::ugc::ModLoadState::LOADING) {
-          return scheduler::cond_continue;
-        }
-        if (game::com::Com_IsRunningUILevel()) {
-          lui_reload();
-        }
-        return scheduler::cond_end;
-      },
-      scheduler::pipeline::main, 100ms);
-}
-
-namespace {
 std::filesystem::path sanitize_rawfile_path(const std::string &name) {
   std::filesystem::path result;
   for (const auto &part : std::filesystem::path(name)) {
@@ -2837,8 +2519,6 @@ public:
     utils::hook::call(game::select(0x141D3CD0A, 0x141D4979A, 0x1403F233A),
                       hks_load_stub);
     load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
-    scheduler::loop(restore_unhooked_shared_hooks, scheduler::pipeline::main,
-                    1s);
 
     hks_package_require_hook.create(package_require.get(),
                                     hks_package_require_stub);
