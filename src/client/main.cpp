@@ -31,9 +31,6 @@ std::pair<void **, void *> g_original_import{};
 
 DECLSPEC_NORETURN void WINAPI exit_hook(const uint32_t code) {
   component_loader::pre_destroy();
-  if (game::is_client()) {
-    steam::voice::SaveMixerVolume();
-  }
   ExitProcess(code);
 }
 
@@ -1062,7 +1059,7 @@ int main(int argc, char *argv[]) {
 
       if (!is_server) {
         trigger_high_performance_gpu_switch();
-        steam::voice::RestoreMixerVolume();
+        steam::voice::KeepMixerVolume();
 
         const bool launch = utils::flags::has_flag("launch");
         if (!launch && !launcher::run()) {

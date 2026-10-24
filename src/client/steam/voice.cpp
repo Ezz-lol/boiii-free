@@ -20,34 +20,46 @@ std::filesystem::path mixer_volume_file() {
   return game::get_appdata_path() / "user" / "mixer_volume.txt";
 }
 
-template <typename Callback> void with_mixer_volume(Callback &&callback) {
-  const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-
-  IMMDeviceEnumerator *enumerator = nullptr;
-  IMMDevice *device = nullptr;
-  IAudioSessionManager *manager = nullptr;
-  ISimpleAudioVolume *volume = nullptr;
-  if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr,
-                                 CLSCTX_ALL, IID_PPV_ARGS(&enumerator))) &&
-      SUCCEEDED(
-          enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &device)) &&
-      SUCCEEDED(device->Activate(__uuidof(IAudioSessionManager), CLSCTX_ALL,
-                                 nullptr,
-                                 reinterpret_cast<void **>(&manager))) &&
-      SUCCEEDED(manager->GetSimpleAudioVolume(nullptr, FALSE, &volume))) {
-    callback(volume);
-  }
-
-  for (IUnknown *object :
-       std::initializer_list<IUnknown *>{volume, manager, device, enumerator}) {
-    if (object) {
-      object->Release();
+class mixer_volume_events final : public IAudioSessionEvents {
+public:
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **object) override {
+    if (iid == __uuidof(IUnknown) || iid == __uuidof(IAudioSessionEvents)) {
+      *object = this;
+      return S_OK;
     }
+    *object = nullptr;
+    return E_NOINTERFACE;
   }
-  if (SUCCEEDED(com)) {
-    CoUninitialize();
+  ULONG STDMETHODCALLTYPE AddRef() override { return 1; }
+  ULONG STDMETHODCALLTYPE Release() override { return 1; }
+
+  HRESULT STDMETHODCALLTYPE OnSimpleVolumeChanged(float level, BOOL,
+                                                  LPCGUID) override {
+    ::utils::io::write_file(mixer_volume_file().string(),
+                            std::format("{:.2f}", level));
+    return S_OK;
   }
-}
+  HRESULT STDMETHODCALLTYPE OnDisplayNameChanged(LPCWSTR, LPCGUID) override {
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE OnIconPathChanged(LPCWSTR, LPCGUID) override {
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE OnChannelVolumeChanged(DWORD, float *, DWORD,
+                                                   LPCGUID) override {
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE OnGroupingParamChanged(LPCGUID, LPCGUID) override {
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE OnStateChanged(AudioSessionState) override {
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE
+  OnSessionDisconnected(AudioSessionDisconnectReason) override {
+    return S_OK;
+  }
+};
 
 std::vector<PaDeviceIndex> input_device_indices() {
   PaHostApiIndex host_api = Pa_HostApiTypeIdToHostApiIndex(paDirectSound);
@@ -76,26 +88,32 @@ PaDeviceIndex find_input_device(const std::string &name) {
 }
 } // namespace
 
-void RestoreMixerVolume() {
-  std::string saved;
-  if (!::utils::io::read_file(mixer_volume_file().string(), &saved)) {
+void KeepMixerVolume() {
+  CO_MTA_USAGE_COOKIE cookie{};
+  IMMDeviceEnumerator *enumerator = nullptr;
+  IMMDevice *device = nullptr;
+  IAudioSessionManager *manager = nullptr;
+  ISimpleAudioVolume *volume = nullptr;
+  IAudioSessionControl *control = nullptr;
+  if (FAILED(CoIncrementMTAUsage(&cookie)) ||
+      FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+                              IID_PPV_ARGS(&enumerator))) ||
+      FAILED(enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &device)) ||
+      FAILED(device->Activate(__uuidof(IAudioSessionManager), CLSCTX_ALL,
+                              nullptr, reinterpret_cast<void **>(&manager))) ||
+      FAILED(manager->GetSimpleAudioVolume(nullptr, FALSE, &volume)) ||
+      FAILED(manager->GetAudioSessionControl(nullptr, FALSE, &control))) {
     return;
   }
-  const float level =
-      std::clamp(std::strtof(saved.c_str(), nullptr), 0.0f, 1.0f);
-  with_mixer_volume([level](ISimpleAudioVolume *volume) {
-    volume->SetMasterVolume(level, nullptr);
-  });
-}
 
-void SaveMixerVolume() {
-  with_mixer_volume([](ISimpleAudioVolume *volume) {
-    float level = 1.0f;
-    if (SUCCEEDED(volume->GetMasterVolume(&level))) {
-      ::utils::io::write_file(mixer_volume_file().string(),
-                              std::format("{:.2f}", level));
-    }
-  });
+  std::string saved;
+  if (::utils::io::read_file(mixer_volume_file().string(), &saved)) {
+    volume->SetMasterVolume(
+        std::clamp(std::strtof(saved.c_str(), nullptr), 0.0f, 1.0f), nullptr);
+  }
+
+  static mixer_volume_events events;
+  control->RegisterAudioSessionNotification(&events);
 }
 
 std::vector<std::string> InputDevices() {

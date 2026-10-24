@@ -31,8 +31,7 @@ inline constexpr auto MAX_DECODED_PLAYBACK_SIZE =
     (MAX_FRAME_SIZE * PLAYBACK_CHANNEL_COUNT);
 
 std::vector<std::string> InputDevices();
-void RestoreMixerVolume();
-void SaveMixerVolume();
+void KeepMixerVolume();
 
 struct VoicePacket {
   uint64_t userId{0};
