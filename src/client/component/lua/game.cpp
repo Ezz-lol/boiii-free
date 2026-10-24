@@ -7,6 +7,7 @@
 #include <component/discord.hpp>
 #include <component/download_overlay.hpp>
 #include <component/friends.hpp>
+#include <component/gpu.hpp>
 #include <component/getinfo.hpp>
 #include <component/lua/lua_state.hpp>
 #include <component/name.hpp>
@@ -91,6 +92,16 @@ luaReturnCount_e getvoiceinputdevices(lua_State *luaVM) {
       devices.set(index++, name);
     }
     return devices;
+  });
+}
+
+luaReturnCount_e getgpupreference(lua_State *luaVM) {
+  return call(luaVM, []() -> int32_t { return gpu::get_preference(); });
+}
+
+luaReturnCount_e setgpupreference(lua_State *luaVM) {
+  return call(luaVM, [](const int preference) {
+    gpu::set_preference(preference);
   });
 }
 
@@ -726,6 +737,10 @@ public:
                                   getrawserverinfo>(),
         lua_state::luaL_LoggedReg<"game", "getvoiceinputdevices",
                                   getvoiceinputdevices>(),
+        lua_state::luaL_LoggedReg<"game", "getgpupreference",
+                                  getgpupreference>(),
+        lua_state::luaL_LoggedReg<"game", "setgpupreference",
+                                  setgpupreference>(),
         {nullptr, nullptr},
     };
     lua_state::register_library("game", GameLibrary);

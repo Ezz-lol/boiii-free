@@ -4,6 +4,7 @@
 #include <loader/component_loader.hpp>
 
 #include "download_overlay.hpp"
+#include "gpu.hpp"
 #include "workshop/workshop.hpp"
 
 #include <utils/concurrency.hpp>
@@ -355,6 +356,7 @@ HRESULT __stdcall present_stub(IDXGISwapChain *swap_chain, UINT sync_interval,
     if (SUCCEEDED(swap_chain->GetDevice(IID_PPV_ARGS(&device)))) {
       ID3D11DeviceContext *context = nullptr;
       device->GetImmediateContext(&context);
+      gpu::check_device(device);
 
       DXGI_SWAP_CHAIN_DESC desc{};
       swap_chain->GetDesc(&desc);

@@ -2,7 +2,33 @@ if Engine.IsUsingMods() and Engine.UsingModsUgcName() ~= "" and Engine.UsingMods
   return
 end
 
-DataSources.OptionGraphicsVideo = DataSourceHelpers.ListSetup("PC.OptionGraphicsVideo", function(controller)
+DataSources.OptionPCGraphicsCard = DataSourceHelpers.ListSetup("PC.OptionPCGraphicsCard", function()
+  return {
+    { models = { value = 0, valueDisplay = "Windows Default" } },
+    { models = { value = 1, valueDisplay = "Power Saving" } },
+    { models = { value = 2, valueDisplay = "High Performance" } },
+  }
+end, true)
+
+local pendingGpuPreference = nil
+
+local applyGraphicsOptions = ApplyPCGraphicsOptions
+ApplyPCGraphicsOptions = function(...)
+  applyGraphicsOptions(...)
+  if pendingGpuPreference ~= nil then
+    local preference = pendingGpuPreference
+    pendingGpuPreference = nil
+    game.setgpupreference(preference)
+  end
+end
+
+local revertGraphicsOptions = CoD.PCUtil.RevertUnsavedGraphicsOptions
+CoD.PCUtil.RevertUnsavedGraphicsOptions = function(...)
+  pendingGpuPreference = nil
+  return revertGraphicsOptions(...)
+end
+
+DataSources.OptionGraphicsVideo =DataSourceHelpers.ListSetup("PC.OptionGraphicsVideo", function(controller)
   local videoSettings = {}
   table.insert(videoSettings, {
     models = {
@@ -26,6 +52,23 @@ DataSources.OptionGraphicsVideo = DataSourceHelpers.ListSetup("PC.OptionGraphics
       end,
     },
     properties = CoD.PCUtil.DependantDropdownProperties,
+  })
+  table.insert(videoSettings, {
+    models = {
+      label = "Graphics Card",
+      description = "Which graphics card runs the game. Pick High Performance if the game lags on a laptop. Needs a game restart to apply.",
+      profileVarName = "gpu_preference",
+      profileType = "function",
+      getFunction = function()
+        return pendingGpuPreference or game.getgpupreference()
+      end,
+      setFunction = function(_, value)
+        pendingGpuPreference = value
+      end,
+      datasource = "OptionPCGraphicsCard",
+      widgetType = "dropdown",
+    },
+    properties = CoD.PCUtil.OptionsGenericDropdownProperties,
   })
   table.insert(videoSettings, {
     models = {

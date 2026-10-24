@@ -381,19 +381,6 @@ std::string crash_reason() {
   return error_help::strip_colors(reason);
 }
 
-[[noreturn]] void restart_game() {
-  STARTUPINFOW startup_info{};
-  startup_info.cb = sizeof(startup_info);
-  PROCESS_INFORMATION process_info{};
-  if (CreateProcessW(nullptr, GetCommandLineW(), nullptr, nullptr, FALSE, 0,
-                     nullptr, nullptr, &startup_info, &process_info)) {
-    CloseHandle(process_info.hThread);
-    CloseHandle(process_info.hProcess);
-  }
-  TerminateProcess(GetCurrentProcess(), exception_data.code);
-  __assume(false);
-}
-
 bool ask_restart(const std::string &text,
                  const wchar_t *headline = L"The game crashed.") {
   constexpr int32_t RESTART_BUTTON = 100;
@@ -854,10 +841,11 @@ long WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
       default: {
         break;
       }
-      continue_execution: {
-        result = EXCEPTION_CONTINUE_EXECUTION;
-        break;
-      }
+      continue_execution:
+        {
+          result = EXCEPTION_CONTINUE_EXECUTION;
+          break;
+        }
       }
     }
 
@@ -1071,6 +1059,19 @@ void WINAPI set_unhandled_exception_filter_stub(LPTOP_LEVEL_EXCEPTION_FILTER) {
   // Don't register anything here...
 }
 } // namespace
+
+[[noreturn]] void restart_game() {
+  STARTUPINFOW startup_info{};
+  startup_info.cb = sizeof(startup_info);
+  PROCESS_INFORMATION process_info{};
+  if (CreateProcessW(nullptr, GetCommandLineW(), nullptr, nullptr, FALSE, 0,
+                     nullptr, nullptr, &startup_info, &process_info)) {
+    CloseHandle(process_info.hThread);
+    CloseHandle(process_info.hProcess);
+  }
+  TerminateProcess(GetCurrentProcess(), exception_data.code);
+  __assume(false);
+}
 
 void show_fatal_error(const std::string &message) {
   if (!game::quiet_crash() && !game::is_headless()) {
