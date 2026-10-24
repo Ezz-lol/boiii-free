@@ -33,11 +33,19 @@ inline constinit flag_setting ultrawide_flag{
 inline constinit flag_setting allow_cheats_flag{
     "boiii_allowCheats", "cheats",
     "Allow cheat commands like noclip and god mode"};
+inline constinit flag_setting xp_bar_flag{
+    "boiii_xpBar", "xpbar",
+    "Show an XP progress bar in Multiplayer and Zombies"};
 
 inline constexpr flag_setting *all_settings[] = {
-    &skip_intro_flag,   &skip_cinematics_flag,   &skip_forest_cinematic_flag,
-    &full_logs_flag,    &log_script_errors_flag, &ultrawide_flag,
+    &skip_intro_flag,
+    &skip_cinematics_flag,
+    &skip_forest_cinematic_flag,
+    &full_logs_flag,
+    &log_script_errors_flag,
+    &ultrawide_flag,
     &allow_cheats_flag,
+    &xp_bar_flag,
 };
 
 inline bool skip_intro() { return skip_intro_flag.enabled(); }

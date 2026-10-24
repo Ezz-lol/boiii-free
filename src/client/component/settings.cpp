@@ -31,6 +31,16 @@ public:
           setting->dvar_name, false, game::DVAR_ARCHIVE, setting->description);
     }
 
+    game::register_dvar_int("boiii_xpBarPosition", 0, 0, 1, game::DVAR_ARCHIVE,
+                            "Where the XP bar sits: 0 = bottom, 1 = top");
+    game::register_dvar_bool(
+        "boiii_xpBarPopups", true, game::DVAR_ARCHIVE,
+        "Show a popup with the XP earned next to the XP bar");
+    game::register_dvar_int(
+        "boiii_xpBarColor", 0, 0, 6, game::DVAR_ARCHIVE,
+        "XP bar color: 0 = orange, 1 = gold, 2 = blue, 3 = green, 4 = red, "
+        "5 = purple, 6 = white");
+
     apply_flags();
     scheduler::once(apply_flags, scheduler::pipeline::dvars_loaded);
   }
