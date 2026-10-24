@@ -24,6 +24,7 @@
 #include <utils/string.hpp>
 
 #include <game/impl/cl/cl.hpp>
+#include <game/ui_scripting/execution.hpp>
 
 #include <frozen/string.h>
 #include <frozen/unordered_map.h>
@@ -148,12 +149,14 @@ static constexpr GameModeConfiguration
 
 static constexpr frozen::unordered_map<frozen::string, GameModeConfiguration,
                                        +game::eModes::COUNT>
-    DEFAULT_GAMEMODE_CONFIGURATIONS = frozen::make_unordered_map(
-        map_array(DEFAULT_GAMEMODE_CONFIGURATION_ARRAY,
-                  [](const GameModeConfiguration &config) constexpr {
-                    return std::pair<frozen::string, GameModeConfiguration>(
-                        config.name, config);
-                  }));
+    DEFAULT_GAMEMODE_CONFIGURATIONS = frozen::make_unordered_map(map_array(
+        DEFAULT_GAMEMODE_CONFIGURATION_ARRAY,
+        [](const GameModeConfiguration &config) constexpr {
+          return std::pair<frozen::string, GameModeConfiguration>(
+              frozen::string(config.name,
+                             std::char_traits<char>::length(config.name)),
+              config);
+        }));
 
 inline constexpr std::optional<GameModeConfiguration>
 get_default_gamemode_config_for_map(const std::string_view &map) {
@@ -178,81 +181,118 @@ bool is_mode_ready(const GameModeConfiguration &mode) {
          workshop::is_xzone_loaded(utils::string::va("%s_common", mode.name));
 }
 
-void leave_frontend_gametype(const GameModeConfiguration &mode) {
-  for (const game::symbol<game::EngineDependentDvarMut> *dvar :
-       {&game::g_gametype, &game::sv_gametype}) {
-    const game::symbol<game::EngineDependentDvarMut> &ref = *dvar;
-    if (ref->nonnull() && ref->map_string([](const std::string_view &gametype) {
-                               return gametype == "frontend";
-                             })
-                              .value_or(false)) {
-      ref->set(mode.gametype);
-    }
+const char *lobby_main_mode(const game::eModes mode) {
+  switch (mode) {
+  case game::eModes::ZOMBIES:
+    return "LOBBY_MAINMODE_ZM";
+  case game::eModes::MULTIPLAYER:
+    return "LOBBY_MAINMODE_MP";
+  default:
+    return "LOBBY_MAINMODE_CP";
   }
+}
+
+ui_scripting::table lua_globals() {
+  return ui_scripting::table{(*game::lua::hks::primary_luaVM)->globals.v.table};
+}
+
+void launch_from_frontend(const GameModeConfiguration mode,
+                          const std::string mapname) {
+  enum class stage { mod, lobby, launch };
+  stage current = stage::mod;
+  int32_t ready_ticks = 0;
+
+  scheduler::schedule(
+      [=]() mutable {
+        if (!is_frontend_ready()) {
+          return scheduler::cond_continue;
+        }
+
+        try {
+          const ui_scripting::table globals = lua_globals();
+          const ui_scripting::table engine = globals["Engine"];
+          const int32_t game_lobby =
+              globals["Enum"]["LobbyType"]["LOBBY_TYPE_GAME"].as<int32_t>();
+
+          if (current == stage::mod) {
+            if (globals["CoD"]["mapsTable"][mapname]
+                    .is<ui_scripting::table>() ||
+                globals["LuaUtils"]["Mods_IsUsingMods"]()[0].as<bool>()) {
+              current = stage::lobby;
+            } else {
+              globals["LuaUtils"]["Mods_LoadMod"]("usermaps");
+              current = stage::lobby;
+              return scheduler::cond_continue;
+            }
+          }
+
+          if (current == stage::lobby) {
+            const std::string_view gametype =
+                game::com::Com_SessionMode_IsMode(mode.mode)
+                    ? game::get_dvar_string("ui_gametype").value_or("")
+                    : "";
+            game::Dvar_SetFromStringByName("ui_mapname", mapname.c_str(), true);
+            if (gametype.empty() || gametype == "frontend") {
+              game::Dvar_SetFromStringByName("ui_gametype", mode.gametype,
+                                             true);
+            }
+
+            ui_scripting::table params{};
+            params.set("controller", 0);
+            params.set(
+                "mainMode",
+                globals["Enum"]["LobbyMainMode"][lobby_main_mode(mode.mode)]
+                    .as<int32_t>());
+            engine["LobbyVM_CallFunc"]("Devmap", params);
+            current = stage::launch;
+            return scheduler::cond_continue;
+          }
+
+          if (!is_mode_ready(mode) ||
+              !engine["IsLobbyActive"](game_lobby)[0].as<bool>() ||
+              !engine["IsLobbyHost"](game_lobby)[0].as<bool>()) {
+            ready_ticks = 0;
+            return scheduler::cond_continue;
+          }
+          if (++ready_ticks < 2) {
+            return scheduler::cond_continue;
+          }
+
+          game::cbuf::Cbuf_AddText(
+              game::LOCAL_CLIENT_0,
+              utils::string::va(
+                  "lobbyLaunchGame %d %s %s\n", game_lobby, mapname.c_str(),
+                  std::string(game::get_dvar_string("ui_gametype").value_or(""))
+                      .c_str()));
+        } catch (const std::exception &e) {
+          printf("[Map] Could not start %s: %s\n", mapname.c_str(), e.what());
+        }
+        return scheduler::cond_end;
+      },
+      scheduler::main, 250ms);
 }
 
 utils::hook::detour sv_map_hook;
 utils::hook::detour sv_devmap_hook;
 
-std::atomic_bool map_launching;
-
-void run_when(const std::function<bool()> &ready, const std::string &text) {
-  scheduler::schedule(
-      [=] {
-        if (!ready()) {
-          return scheduler::cond_continue;
-        }
-        scheduler::once(
-            [=] {
-              game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, text.c_str());
-            },
-            scheduler::main, 4s);
-        return scheduler::cond_end;
-      },
-      scheduler::main, 1s);
-}
-
 template <utils::hook::detour *Hook> void sv_map_in_mode_stub() {
   std::optional<GameModeConfiguration> mode;
   std::string mapname;
-  std::string text;
   {
     const command::params_sv params{};
     if (params.size() > 1 && game::is_new_client() &&
         !game::com::Com_IsInGame()) {
       mode = get_default_gamemode_config_for_map(params[1]);
       mapname = params[1];
-      text = params.join(0) + "\n";
     }
   }
 
-  if (map_launching.exchange(false) || !mode) {
+  if (!mode) {
     Hook->invoke<void>();
     return;
   }
 
-  if (!is_frontend_ready()) {
-    run_when(is_frontend_ready, text);
-    return;
-  }
-
-  if (!is_mode_ready(*mode)) {
-    launch_mode(mode->mode);
-    run_when([=] { return is_frontend_ready() && is_mode_ready(*mode); }, text);
-    return;
-  }
-
-  scheduler::once(
-      [=] {
-        game::com::Com_ShutdownUILevel();
-        if (!*game::cl::clientConnections) {
-          game::cl::CL_AllocatePerLocalClientMemory(mapname.c_str(), {});
-        }
-        leave_frontend_gametype(*mode);
-        map_launching = true;
-        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, text.c_str());
-      },
-      scheduler::main);
+  launch_from_frontend(*mode, mapname);
 }
 
 bool ensure_networkmode_online() {
