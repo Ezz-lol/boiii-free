@@ -11,6 +11,7 @@ DataSources.OptionPCGraphicsCard = DataSourceHelpers.ListSetup("PC.OptionPCGraph
 end, true)
 
 local pendingGpuPreference = nil
+local pendingLod = {}
 
 local applyGraphicsOptions = ApplyPCGraphicsOptions
 ApplyPCGraphicsOptions = function(...)
@@ -20,11 +21,16 @@ ApplyPCGraphicsOptions = function(...)
     pendingGpuPreference = nil
     game.setgpupreference(preference)
   end
+  for dvar, value in pairs(pendingLod) do
+    Engine.SetDvar(dvar, value)
+  end
+  pendingLod = {}
 end
 
 local revertGraphicsOptions = CoD.PCUtil.RevertUnsavedGraphicsOptions
 CoD.PCUtil.RevertUnsavedGraphicsOptions = function(...)
   pendingGpuPreference = nil
+  pendingLod = {}
   return revertGraphicsOptions(...)
 end
 
@@ -193,3 +199,60 @@ DataSources.OptionGraphicsVideo.getWidgetTypeForItem = function(list, dataItemMo
   end
   return nil
 end
+
+require("ui.uieditor.widgets.PC.StartMenu.GraphicsOptions.StartMenu_Options_PC_Graphics_Video")
+
+DataSources.OptionGraphicsDetail = DataSourceHelpers.ListSetup("PC.OptionGraphicsDetail", function()
+  local items = {}
+  for _, setting in ipairs(BoiiiLodSettings) do
+    local datasource = "BoiiiLod_" .. setting.dvar
+    DataSources[datasource] = DataSourceHelpers.ListSetup("PC." .. datasource, function()
+      local values = {}
+      for _, option in ipairs(setting.options) do
+        table.insert(values, { models = { value = option.value, valueDisplay = option.option } })
+      end
+      return values
+    end, true)
+    table.insert(items, {
+      models = {
+        label = setting.name,
+        description = setting.description,
+        profileVarName = setting.dvar,
+        profileType = "function",
+        getFunction = function()
+          return pendingLod[setting.dvar] or Engine.DvarInt(nil, setting.dvar)
+        end,
+        setFunction = function(_, value)
+          pendingLod[setting.dvar] = value
+        end,
+        datasource = datasource,
+        widgetType = "dropdown",
+      },
+      properties = CoD.PCUtil.OptionsGenericDropdownProperties,
+    })
+  end
+  return items
+end, true)
+DataSources.OptionGraphicsDetail.getWidgetTypeForItem = DataSources.OptionGraphicsVideo.getWidgetTypeForItem
+
+CoD.StartMenu_Options_PC_Graphics_Detail = InheritFrom(LUI.UIElement)
+CoD.StartMenu_Options_PC_Graphics_Detail.new = function(menu, controller)
+  local self = CoD.StartMenu_Options_PC_Graphics_Video.new(menu, controller)
+  self.id = "StartMenu_Options_PC_Graphics_Detail"
+  self.graphicsList:setDataSource("OptionGraphicsDetail")
+  return self
+end
+
+DataSources.OptionGraphicsCategories = DataSourceHelpers.ListSetup("PC.OptionGraphicsCategories", function()
+  local function tab(name, widget)
+    return { models = { tabName = name, tabWidget = widget } }
+  end
+  return {
+    { models = { tabIcon = CoD.buttonStrings.shoulderl }, properties = { m_mouseDisabled = true } },
+    tab("PLATFORM_VIDEO_CAPS", "CoD.StartMenu_Options_PC_Graphics_Video"),
+    tab("PLATFORM_ADVANCED_CAPS", "CoD.StartMenu_Options_PC_Graphics_Advanced"),
+    tab("DETAIL", "CoD.StartMenu_Options_PC_Graphics_Detail"),
+    tab("MENU_GAME_CAPS", "CoD.StartMenu_Options_PC_Graphics_Game"),
+    { models = { tabIcon = CoD.buttonStrings.shoulderr }, properties = { m_mouseDisabled = true } },
+  }
+end, true)

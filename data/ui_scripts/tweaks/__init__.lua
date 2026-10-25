@@ -326,6 +326,9 @@ if isPrivateGame then
       )
     )
 
+    for _, item in ipairs(BoiiiLodSettings.CreateDvarSettings(controller, "GameTweaks_")) do
+      table.insert(t, item)
+    end
 
     return t
   end)

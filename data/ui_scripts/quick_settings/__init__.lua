@@ -180,6 +180,9 @@ DataSources.BoiiiQuickSettingsVideo = DataSourceHelpers.ListSetup("BoiiiQuickSet
     toggle(controller, "com_drawFPS_PC", "Show FPS Counter", "Display frames per second on screen.")
   )
 
+  for _, item in ipairs(BoiiiLodSettings.CreateDvarSettings(controller, "QuickSettings_")) do
+    table.insert(optionsTable, item)
+  end
 
   return optionsTable
 end)

@@ -135,6 +135,7 @@ void patch_flags() {
   if (is_client()) {
     dvar_set_flags("r_dof_enable", DVAR_ARCHIVE);
     dvar_set_flags("r_lodbiasrigid", DVAR_ARCHIVE);
+    dvar_set_flags("r_modellodbias", DVAR_ARCHIVE);
     dvar_set_flags("gpad_stick_deadzone_max", DVAR_ARCHIVE);
     dvar_set_flags("gpad_stick_deadzone_min", DVAR_ARCHIVE);
     dvar_set_flags("cg_drawLagometer", DVAR_ARCHIVE);
@@ -151,6 +152,8 @@ void strip_cheat_flags() {
     dvar_remove_flags("player_sustainAmmo", DVAR_CHEAT);
     dvar_remove_flags("r_fog", DVAR_CHEAT);
     dvar_remove_flags("timescale", DVAR_CHEAT);
+    dvar_remove_flags("r_lodbiasrigid", DVAR_CHEAT);
+    dvar_remove_flags("r_modellodbias", DVAR_CHEAT);
   }
 }
 
