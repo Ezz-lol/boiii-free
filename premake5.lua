@@ -585,8 +585,8 @@ local linkerOptimizationFlags = {
   "-opt:icf=safe",
   "-opt:lldtailmerge",
 
-  -- Symbol table and debug data removal
-  "-debug:none",
+  -- Generate PDB from codeview data
+  "-debug:full",
 }
 
 local optimizationFlags = {
@@ -616,8 +616,9 @@ local optimizationFlags = {
 
   -- General IR optimization
   "-flifetime-dse",
-  "-fstrict-aliasing",
   "-fclangir",
+  "-fstrict-aliasing",
+  "-fpointer-tbaa",
 
   -- Function inlining optimization
   "-finline-functions",
@@ -645,6 +646,10 @@ local toolsetConfigurationFlags = {
   "-Wl,/subsystem:windows",
 
   "-static",
+
+  -- Generate codeview debug information
+  "-g",
+  "-gcodeview",
 }
 
 local clangLinkerOptimizationFlags = map(linkerOptimizationFlags, clang_ld_flag)
