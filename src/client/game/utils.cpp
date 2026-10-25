@@ -117,7 +117,7 @@ static void first_client(
     const std::function<bool(sv::client_s &cl, ClientNum_t index)> &callback) {
   if (client_states && callback) {
     for (ClientNum_t i = CLIENT_INDEX_FIRST;
-         i < get_max_client_count() && callback(client_states[i], i); ++i) {
+         i < get_max_client_count() && !callback(client_states[i], i); ++i) {
     }
   }
 }
@@ -128,7 +128,7 @@ access_client(T *client_states, const ClientNum_t index,
               const std::function<void(sv::client_s &cl)> &callback) {
   if (client_states && callback && index < get_max_client_count()) {
     T &client = client_states[index];
-    if (client.state == net::clientState_t::FREE) {
+    if (client.state != net::clientState_t::FREE) {
       callback(client);
       return true;
     }
