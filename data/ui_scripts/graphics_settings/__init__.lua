@@ -28,7 +28,7 @@ CoD.PCUtil.RevertUnsavedGraphicsOptions = function(...)
   return revertGraphicsOptions(...)
 end
 
-DataSources.OptionGraphicsVideo =DataSourceHelpers.ListSetup("PC.OptionGraphicsVideo", function(controller)
+DataSources.OptionGraphicsVideo = DataSourceHelpers.ListSetup("PC.OptionGraphicsVideo", function(controller)
   local videoSettings = {}
   table.insert(videoSettings, {
     models = {
