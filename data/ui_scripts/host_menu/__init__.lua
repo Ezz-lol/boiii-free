@@ -1,4 +1,4 @@
-if not Engine.IsInGame() then
+if Engine.GetCurrentMap() == "core_frontend" then
   return
 end
 

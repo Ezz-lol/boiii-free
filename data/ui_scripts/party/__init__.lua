@@ -11,7 +11,7 @@ if maxClients >= 1 then
   Engine.SetDvar("party_maxplayers", maxClients)
 end
 
-if not Engine.IsInGame() then
+if Engine.GetCurrentMap() == "core_frontend" then
   return
 end
 
