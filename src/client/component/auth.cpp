@@ -211,7 +211,7 @@ utils::cryptography::ecc::key get_key(game::ControllerIndex_t controllerIndex) {
   return get_key_internal(controllerIndex);
 }
 
-static const size_t CHALLENGE_LENGTH = 32;
+inline constexpr size_t CHALLENGE_LENGTH = 32;
 static std::mutex latest_challenge_mutex;
 typedef array<uint8_t, CHALLENGE_LENGTH> challenge_t;
 static challenge_t latest_challenge = {0};
@@ -548,27 +548,30 @@ void direct_connect_bots_stub(const game::net::netadr_t address) {
   handle_new_player(address);
 }
 
-game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
+alwaysinline const game::LocalClientPool<game::XUID> &client_guids() {
   static const game::LocalClientPool<game::XUID> guids = {
       get_key(game::CONTROLLER_INDEX_0).get_hash(),
       get_key(game::CONTROLLER_INDEX_1).get_hash()};
-  return guids[game::valid_controller_index(controllerIndex)
-                   ? controllerIndex
-                   : game::CONTROLLER_INDEX_0];
+
+  return guids;
+}
+
+alwaysinline const game::LocalClientPool<game::XUID> &server_guids() {
+  static const game::XUID id =
+      0x110000100000000 |
+      (::utils::cryptography::random::get_integer() & ~0x80000000);
+  static const game::LocalClientPool<game::XUID> guids = {id, id};
+
+  return guids;
 }
 
 game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
-  static const game::XUID guid = [controllerIndex]() -> game::XUID {
-    if (game::is_client()) {
-      return get_client_guid(controllerIndex);
-    }
+  static const game::LocalClientPool<game::XUID> &guids =
+      game::is_client() ? client_guids() : server_guids();
 
-    static const game::XUID server_guid = static_cast<game::XUID>(
-        0x110000100000000 |
-        (::utils::cryptography::random::get_integer() & ~0x80000000));
-    return server_guid;
-  }();
-  return guid;
+  return guids[game::valid_controller_index(controllerIndex)
+                   ? controllerIndex
+                   : game::CONTROLLER_INDEX_0];
 }
 
 game::XUID get_guid(const game::ClientNum_t clientNum) {
