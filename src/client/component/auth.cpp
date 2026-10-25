@@ -558,17 +558,14 @@ game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
 }
 
 game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
-  static const game::XUID guid = [controllerIndex]() -> game::XUID {
-    if (game::is_client()) {
-      return get_client_guid(controllerIndex);
-    }
+  if (game::is_client()) {
+    return get_client_guid(controllerIndex);
+  }
 
-    static const game::XUID server_guid = static_cast<game::XUID>(
-        0x110000100000000 |
-        (::utils::cryptography::random::get_integer() & ~0x80000000));
-    return server_guid;
-  }();
-  return guid;
+  static const game::XUID server_guid = static_cast<game::XUID>(
+      0x110000100000000 |
+      (::utils::cryptography::random::get_integer() & ~0x80000000));
+  return server_guid;
 }
 
 game::XUID get_guid(const game::ClientNum_t clientNum) {
