@@ -450,8 +450,8 @@ inline constexpr bool valid_xassettype(Value val_arg) {
 /*
   All XAssets union members have first field `const char * name;`
   The engine uses this shared field to use shared utility functions to access
-  name of the asset. Prior to REing and verifying all XAsset union member
-  structures, we can start with using the known-shared field only - name.
+  name of the asset. Prior to REing and verifying all XAsset union
+  member structures, we can start with using the known-shared field only - name.
   Later we can define each of the XAsset structs with `: NamedXAsset` and
   declare the shared util function symbols using type signature `NamedXAsset *`
   to more succintly type what is being passed to the function.

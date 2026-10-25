@@ -7,8 +7,8 @@
 #include <component/discord.hpp>
 #include <component/download_overlay.hpp>
 #include <component/friends.hpp>
-#include <component/gpu.hpp>
 #include <component/getinfo.hpp>
+#include <component/gpu.hpp>
 #include <component/lua/lua_state.hpp>
 #include <component/name.hpp>
 #include <component/scheduler.hpp>
@@ -96,17 +96,20 @@ luaReturnCount_e getvoiceinputdevices(lua_State *luaVM) {
 }
 
 luaReturnCount_e getgpupreference(lua_State *luaVM) {
-  return call(luaVM, []() -> int32_t { return gpu::get_preference(); });
+  lua_pushinteger(luaVM, gpu::get_preference());
+  return luaReturnCount_e::ONE;
 }
 
 luaReturnCount_e setgpupreference(lua_State *luaVM) {
-  return call(luaVM, [](const int preference) {
-    gpu::set_preference(preference);
-  });
+  if (lua_gettop(luaVM) > 0 && lua_isnumber(luaVM, 1)) {
+    gpu::set_preference(lua_tonumber(luaVM, 1));
+  }
+  return luaReturnCount_e::NONE;
 }
 
 luaReturnCount_e getfriendcount(lua_State *luaVM) {
-  return call(luaVM, []() -> int32_t { return friends::get_friend_count(); });
+  lua_pushinteger(luaVM, friends::get_friend_count());
+  return luaReturnCount_e::ONE;
 }
 
 luaReturnCount_e getfriend(lua_State *luaVM) {

@@ -17,10 +17,10 @@ using namespace game;
 using namespace game::scr;
 using namespace game::scr::var;
 
-inline void flush_stack(scriptInstance_t inst,
-                        volatile vm::function_stack_t *fs,
-                        volatile vm::ScrVmContext_t *vmc,
-                        volatile bool *terminate) {
+alwaysinline void flush_stack(scriptInstance_t inst,
+                              volatile vm::function_stack_t *fs,
+                              volatile vm::ScrVmContext_t *vmc,
+                              volatile bool *terminate) {
   /*
     Checking if any of the pointers we flush here is a non-null value
     prior to a flush results in the value being cached following the function
@@ -63,14 +63,14 @@ game::scr::vm::op::VM_OP_FUNC_PTR
     HOOKED_OPCODE_ERR_HANDLERS[+vm::op::Opcode::Count] = {nullptr};
 
 template <const vm::op::Opcode Op>
-inline void __attribute__((optnone))
+alwaysinline void
 invoke_opcode(scriptInstance_t inst, volatile vm::function_stack_t *fs,
               volatile vm::ScrVmContext_t *vmc, volatile bool *terminate) {
   HOOKED_OPCODE_HANDLERS[+Op](inst, fs, vmc, terminate);
 }
 
 template <const vm::op::Opcode Op>
-inline void __attribute__((optnone))
+alwaysinline void
 invoke_opcode_err(scriptInstance_t inst, volatile vm::function_stack_t *fs,
                   volatile vm::ScrVmContext_t *vmc, volatile bool *terminate) {
 #ifndef NDEBUG
@@ -80,7 +80,7 @@ invoke_opcode_err(scriptInstance_t inst, volatile vm::function_stack_t *fs,
 }
 
 template <const game::scr::vm::op::Opcode Op>
-__attribute__((optnone)) void
+__no_optimize void
 flush_exec(scriptInstance_t inst, volatile vm::function_stack_t *fs,
            volatile vm::ScrVmContext_t *vmc, volatile bool *terminate) {
 #ifndef NDEBUG
@@ -100,7 +100,7 @@ flush_exec(scriptInstance_t inst, volatile vm::function_stack_t *fs,
 }
 
 template <const game::scr::vm::op::Opcode Op>
-__attribute__((optnone)) void
+__no_optimize void
 flush_exec_err(scriptInstance_t inst, volatile vm::function_stack_t *fs,
                volatile vm::ScrVmContext_t *vmc, volatile bool *terminate) {
 
@@ -127,10 +127,10 @@ inline bool try_redirect(scriptInstance_t inst,
 }
 
 template <const vm::op::Opcode Op>
-__attribute__((optnone)) void
-redirect_or_default(scriptInstance_t inst, volatile vm::function_stack_t *fs,
-                    volatile vm::ScrVmContext_t *vmc,
-                    volatile bool *terminate) {
+__no_optimize void redirect_or_default(scriptInstance_t inst,
+                                       volatile vm::function_stack_t *fs,
+                                       volatile vm::ScrVmContext_t *vmc,
+                                       volatile bool *terminate) {
   if (!try_redirect(inst, fs)) {
     invoke_opcode<Op>(inst, fs, vmc, terminate);
   }

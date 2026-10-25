@@ -25,6 +25,18 @@ struct alignas(128) DB_LOAD_STREAM {
   int32_t decompressedDataAvail;
   int32_t decompressedDataOffset;
   bool busy;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"checksum\": {}, \"compressedData\": {:p}, "
+        "\"expectedDataAvail\": {}, "
+        "\"compressedDataAvail\": {}, \"alignedDataAvail\": {}, "
+        "\"decompressedDataAvail\": {}, "
+        "\"decompressedDataOffset\": {}, \"busy\": {} }}",
+        ::serialize(checksum), reinterpret_cast<const void *>(compressedData),
+        expectedDataAvail, compressedDataAvail, alignedDataAvail,
+        decompressedDataAvail, decompressedDataOffset, ::serialize(busy));
+  }
 };
 
 PACKED(struct DBDecompressCmd_t {
@@ -35,6 +47,15 @@ PACKED(struct DBDecompressCmd_t {
   DB_LOAD_STREAM *stream;
   uint8_t *ioBuffer;
   int64_t numBytesDecrypted;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"which\": {}, \"isEncrypted\": {}, \"compression\": {}, "
+        "\"stream\": {}, \"ioBuffer\": {:p}, \"numBytesDecrypted\": {} }}",
+        which, isEncrypted.serialize(), game::db::xfile::serialize(compression),
+        ::serialize(stream), reinterpret_cast<const void *>(ioBuffer),
+        numBytesDecrypted);
+  }
 });
 ASSERT_SIZE(DBDecompressCmd_t, 0x28);
 
@@ -43,6 +64,13 @@ struct BDiffState {
   bool error;
   bool eof;
   uint32_t features;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"headerRead\": {}, \"error\": {}, \"eof\": {}, "
+                       "\"features\": {:08X} }}",
+                       ::serialize(headerRead), ::serialize(error),
+                       ::serialize(eof), features);
+  }
 };
 
 struct BDiffHeader {
@@ -54,6 +82,15 @@ struct BDiffHeader {
   size_t maxDestWindowSize;
   size_t maxSourceWindowSize;
   size_t maxDiffWindowSize;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"newXFileHeader\": {}, \"baseXFileHdr\": {}, \"size\": {}, "
+        "\"version\": {}, \"flags\": {:08X}, \"maxDestWindowSize\": {}, "
+        "\"maxSourceWindowSize\": {}, \"maxDiffWindowSize\": {} }}",
+        newXFileHeader.serialize(), baseXFileHdr.serialize(), size, version,
+        flags, maxDestWindowSize, maxSourceWindowSize, maxDiffWindowSize);
+  }
 };
 
 enum class DB_PATCH_STREAM_STATUS : uint32_t {
@@ -62,6 +99,21 @@ enum class DB_PATCH_STREAM_STATUS : uint32_t {
   LoadDone = 0x2,
   EndOfFile = 0x3,
 };
+
+inline constexpr const char *serialize(const DB_PATCH_STREAM_STATUS status) {
+  switch (status) {
+  case DB_PATCH_STREAM_STATUS::Idle:
+    return "PATCH_STATUS_IDLE";
+  case DB_PATCH_STREAM_STATUS::Loading:
+    return "PATCH_STATUS_LOADING";
+  case DB_PATCH_STREAM_STATUS::LoadDone:
+    return "PATCH_STATUS_LOAD_DONE";
+  case DB_PATCH_STREAM_STATUS::EndOfFile:
+    return "PATCH_STATUS_EOF";
+  default:
+    return "PATCH_STATUS_INVALID";
+  }
+}
 
 typedef uint8_t Byte;
 typedef Byte Bytef;
@@ -77,6 +129,10 @@ typedef fastcallPtr_t<voidpf(voidpf, uInt, uInt)> alloc_func;
 
 struct internal_state {
   int32_t dummy;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"dummy\": {} }}", dummy);
+  }
 };
 
 struct z_stream_s {
@@ -94,6 +150,21 @@ struct z_stream_s {
   int32_t data_type;
   uLong adler;
   uLong reserved;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"next_in\": {:p}, \"avail_in\": {}, \"total_in\": {}, "
+        "\"next_out\": {:p}, \"avail_out\": {}, \"total_out\": {}, "
+        "\"msg\": {}, \"state\": {}, \"zalloc\": {:p}, \"zfree\": {:p}, "
+        "\"opaque\": {:p}, \"data_type\": {}, \"adler\": {}, \"reserved\": {} "
+        "}}",
+        reinterpret_cast<const void *>(next_in), avail_in, total_in,
+        reinterpret_cast<const void *>(next_out), avail_out, total_out,
+        ::serialize(msg), ::serialize(state),
+        reinterpret_cast<const void *>(zalloc),
+        reinterpret_cast<const void *>(zfree), opaque, data_type, adler,
+        reserved);
+  }
 };
 
 typedef z_stream_s z_stream;
@@ -103,6 +174,12 @@ struct _CLzmaProps {
   uint32_t lp;
   uint32_t pb;
   UInt32 dicSize;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"lc\": {}, \"lp\": {}, \"pb\": {}, \"dicSize\": {} }}", lc, lp, pb,
+        dicSize);
+  }
 };
 
 typedef _CLzmaProps CLzmaProps;
@@ -126,17 +203,46 @@ struct __declspec(align(8)) CLzmaDec {
   UInt32 numProbs;
   uint32_t tempBufSize;
   Byte tempBuf[20];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"prop\": {}, \"probs\": {:p}, \"dic\": {:p}, \"buf\": {:p}, "
+        "\"range\": {:08X}, \"code\": {:08X}, \"dicPos\": {}, \"dicBufSize\": "
+        "{}, "
+        "\"processedPos\": {}, \"checkDicSize\": {}, \"state\": {:08X}, "
+        "\"reps\": {}, "
+        "\"remainLen\": {}, \"needFlush\": {}, \"needInitState\": {}, "
+        "\"numProbs\": {}, "
+        "\"tempBufSize\": {}, \"tempBuf\": {} }}",
+        prop.serialize(), reinterpret_cast<const void *>(probs),
+        reinterpret_cast<const void *>(dic),
+        reinterpret_cast<const void *>(buf), range, code, dicPos, dicBufSize,
+        processedPos, checkDicSize, state, ::serialize(reps), remainLen,
+        needFlush, needInitState, numProbs, tempBufSize, ::serialize(tempBuf));
+  }
 };
 
 struct ISzAlloc {
   fastcallPtr_t<void(void *, size_t)> Alloc;
   fastcallPtr_t<void(void *, void *)> Free;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"Alloc\": {:p}, \"Free\": {:p} }}",
+                       reinterpret_cast<const void *>(Alloc),
+                       reinterpret_cast<const void *>(Free));
+  }
 };
 
 struct SHA1_CTX {
   uint32_t state[5];
   uint32_t count[2];
   uint8_t buffer[64];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"state\": {}, \"count\": {}, \"buffer\": {} }}",
+                       ::serialize(state), ::serialize(count),
+                       ::serialize(buffer));
+  }
 };
 
 struct __declspec(align(8)) DB_PATCH_STREAM {
@@ -173,6 +279,42 @@ struct __declspec(align(8)) DB_PATCH_STREAM {
   size_t lzmaMemUsed;
   size_t lzmaDataInBuffer;
   SHA1_CTX shaCtx;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"active\": {}, \"diffState\": {}, \"archiveChecksum\": {}, "
+        "\"header\": {}, "
+        "\"sourceWindow\": {:p}, \"sourceWindowOffset\": {}, "
+        "\"sourceWindowSize\": {}, \"sourceWindowAllocated\": {}, "
+        "\"destWindow\": {:p}, \"destWindowOffset\": {}, \"destWindowSize\": "
+        "{}, \"destWindowAllocated\": {}, "
+        "\"destWindowReadOffset\": {}, \"patchWindow\": {:p}, "
+        "\"patchWindowOffset\": {}, \"patchWindowSize\": {}, "
+        "\"patchWindowAllocated\": {}, \"patchWindowOffsetLast\": {}, "
+        "\"file\": {:08X}, \"decompressBuffer\": {:p}, "
+        "\"decompressBufferLoad\": {:p}, \"decompressBufferSize\": {}, "
+        "\"decompressBufferAllocated\": {}, \"decompressBufferLoadOffset\": "
+        "{}, "
+        "\"decompressBufferLoadSize\": {}, \"decompressBufferLoadStatus\": {}, "
+        "\"zStream\": {}, \"endOfStream\": {}, "
+        "\"lzmaStream\": {}, \"lzmaAlloc\": {}, \"lzmaMemUsed\": {}, "
+        "\"lzmaDataInBuffer\": {}, \"shaCtx\": {} }}",
+        ::serialize(active), diffState.serialize(),
+        ::serialize(archiveChecksum), header.serialize(),
+        reinterpret_cast<const void *>(sourceWindow), sourceWindowOffset,
+        sourceWindowSize, sourceWindowAllocated,
+        reinterpret_cast<const void *>(destWindow), destWindowOffset,
+        destWindowSize, destWindowAllocated, destWindowReadOffset,
+        reinterpret_cast<const void *>(patchWindow), patchWindowOffset,
+        patchWindowSize, patchWindowAllocated, patchWindowOffsetLast, file,
+        reinterpret_cast<const void *>(decompressBuffer),
+        reinterpret_cast<const void *>(decompressBufferLoad),
+        decompressBufferSize, decompressBufferAllocated,
+        decompressBufferLoadOffset, decompressBufferLoadSize,
+        ::game::db::serialize(decompressBufferLoadStatus), zStream.serialize(),
+        ::serialize(endOfStream), lzmaStream.serialize(), lzmaAlloc.serialize(),
+        lzmaMemUsed, lzmaDataInBuffer, shaCtx.serialize());
+  }
 };
 
 // Verified
@@ -203,6 +345,31 @@ struct DB_LoadData {
   int32_t numBlocksDecrypted;
   int32_t startTime;
   DB_PATCH_STREAM patchStream;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"f\": {}, \"fileBuffer\": {:p}, \"fileBufferSize\": {}, "
+        "\"filename\": {}, "
+        "\"blocks\": {:p}, \"flags\": {:08X}, \"interrupt\": {:p}, \"side\": "
+        "{}, "
+        "\"readOffset\": {}, \"endOffset\": {}, \"ioBuffer\": {:p}, "
+        "\"compressData\": {:p}, "
+        "\"tail\": {}, \"head\": {}, \"cmd\": {}, \"stream\": {}, "
+        "\"next_buffer\": {}, \"locks\": {}, \"loadPending\": {}, \"abort\": "
+        "{}, "
+        "\"suspend\": {}, \"lastError\": {}, \"header\": {}, "
+        "\"numBlocksDecrypted\": {}, "
+        "\"startTime\": {}, \"patchStream\": {} }}",
+        f, reinterpret_cast<const void *>(fileBuffer), fileBufferSize,
+        ::serialize(filename), reinterpret_cast<const void *>(blocks), flags,
+        reinterpret_cast<const void *>(interrupt), game::serialize(side),
+        readOffset, endOffset, reinterpret_cast<const void *>(ioBuffer),
+        reinterpret_cast<const void *>(compressData), tail, head,
+        ::serialize(cmd), ::serialize(stream), next_buffer, ::serialize(locks),
+        ::serialize(loadPending), ::serialize(abort), ::serialize(suspend),
+        lastError, header.serialize(), numBlocksDecrypted, startTime,
+        patchStream.serialize());
+  }
 };
 ASSERT_SIZE(DB_LoadData, 0xA88);
 ASSERT_OFFSET(DB_LoadData, flags, 0x28);

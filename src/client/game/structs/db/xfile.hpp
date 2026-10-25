@@ -21,6 +21,29 @@ enum class XFileBlock : int32_t {
   MEMMAPPED = 0x7,
   COUNT = 0x8,
 };
+inline constexpr const char *serialize(const XFileBlock block) {
+  switch (block) {
+  case XFileBlock::TEMP:
+    return "BLOCK_TEMP";
+  case XFileBlock::RUNTIME_VIRTUAL:
+    return "BLOCK_RUNTIME_VIRTUAL";
+  case XFileBlock::RUNTIME_PHYSICAL:
+    return "BLOCK_RUNTIME_PHYSICAL";
+  case XFileBlock::UNKNOWN_PREVIOUSLY_VIRTUAL:
+    return "BLOCK_UNKNOWN_PREVIOUSLY_VIRTUAL";
+  case XFileBlock::VIRTUAL:
+    return "BLOCK_VIRTUAL";
+  case XFileBlock::PHYSICAL:
+    return "BLOCK_PHYSICAL";
+  case XFileBlock::STREAMER:
+    return "BLOCK_STREAMER";
+  case XFileBlock::MEMMAPPED:
+    return "BLOCK_MEMMAPPED";
+  default:
+    return "BLOCK_INVALID";
+  }
+}
+
 enum class XFileCompression : uint32_t {
   UNCOMPRESSED = 0x0,
   ZLIB = 0x1,
@@ -29,6 +52,22 @@ enum class XFileCompression : uint32_t {
   LZ4_HC = 0x4,
   COUNT = 0x5,
 };
+inline constexpr const char *serialize(const XFileCompression comp) {
+  switch (comp) {
+  case XFileCompression::UNCOMPRESSED:
+    return "COMP_UNCOMPRESSED";
+  case XFileCompression::ZLIB:
+    return "COMP_ZLIB";
+  case XFileCompression::ZLIB_HC:
+    return "COMP_ZLIB_HC";
+  case XFileCompression::LZ4:
+    return "COMP_LZ4";
+  case XFileCompression::LZ4_HC:
+    return "COMP_LZ4_HC";
+  default:
+    return "COMP_INVALID";
+  }
+}
 IMPL_ENUM_OPERATORS(XFileCompression);
 
 enum class XFileCompression8 : uint8_t {
@@ -43,6 +82,22 @@ enum class XFileCompression8 : uint8_t {
   LZ4_HC = 0x4,
   COUNT = 0x5,
 };
+inline constexpr const char *serialize(const XFileCompression8 comp) {
+  switch (comp) {
+  case XFileCompression8::UNCOMPRESSED:
+    return "COMP8_UNCOMPRESSED";
+  case XFileCompression8::ZLIB:
+    return "COMP8_ZLIB";
+  case XFileCompression8::ZLIB_HC:
+    return "COMP8_ZLIB_HC";
+  case XFileCompression8::LZ4:
+    return "COMP8_LZ4";
+  case XFileCompression8::LZ4_HC:
+    return "COMP8_LZ4_HC";
+  default:
+    return "COMP8_INVALID";
+  }
+}
 IMPL_ENUM_OPERATORS(XFileCompression8);
 
 enum class XFilePlatform : uint32_t {
@@ -50,6 +105,18 @@ enum class XFilePlatform : uint32_t {
   DURANGO = 0x1,
   ORBIS = 0x2,
 };
+inline constexpr const char *serialize(const XFilePlatform plat) {
+  switch (plat) {
+  case XFilePlatform::PC:
+    return "PLAT_PC";
+  case XFilePlatform::DURANGO:
+    return "PLAT_DURANGO";
+  case XFilePlatform::ORBIS:
+    return "PLAT_ORBIS";
+  default:
+    return "PLAT_INVALID";
+  }
+}
 IMPL_ENUM_OPERATORS(XFilePlatform);
 
 enum class XFilePlatform8 : uint8_t {
@@ -57,7 +124,18 @@ enum class XFilePlatform8 : uint8_t {
   DURANGO = 0x1,
   ORBIS = 0x2,
 };
-
+inline constexpr const char *serialize(const XFilePlatform8 plat) {
+  switch (plat) {
+  case XFilePlatform8::PC:
+    return "PLAT8_PC";
+  case XFilePlatform8::DURANGO:
+    return "PLAT8_DURANGO";
+  case XFilePlatform8::ORBIS:
+    return "PLAT8_ORBIS";
+  default:
+    return "PLAT8_INVALID";
+  }
+}
 IMPL_ENUM_OPERATORS(XFilePlatform8);
 
 struct XFile {
@@ -80,6 +158,26 @@ struct XFile {
   zoneName_t fastfileName;
   uint8_t signature[256];
   uint8_t aesIV[16];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"magic\": {}, \"version\": {:08X}, \"server\": {}, "
+        "\"compression\": {}, "
+        "\"platform\": {}, \"encrypted\": {}, \"timestamp\": {}, "
+        "\"changelist\": {:08X}, "
+        "\"archiveChecksum\": {}, \"builder\": {}, \"metaVersion\": "
+        "{:08X}, \"mergeFastfile\": {}, "
+        "\"size\": {}, \"externalSize\": {}, \"memMappedOffset\": {}, "
+        "\"blockSize\": {}, "
+        "\"fastfileName\": {}, \"signature\": {}, \"aesIV\": {} }}",
+        ::serialize(magic), version, ::serialize(server),
+        game::db::xfile::serialize(compression),
+        game::db::xfile::serialize(platform), ::serialize(encrypted), timestamp,
+        changelist, ::serialize(archiveChecksum), ::serialize(builder),
+        metaVersion, ::serialize(mergeFastfile), size, externalSize,
+        memMappedOffset, ::serialize(blockSize), ::serialize(fastfileName),
+        ::serialize(signature), ::serialize(aesIV));
+  }
 };
 } // namespace xfile
 } // namespace db

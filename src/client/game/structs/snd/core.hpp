@@ -381,11 +381,11 @@ PACKED(struct SndAssetBankHeader {
   int64_t checksumOffset;
   uint8_t checksumChecksum[16];
   /*
-    This may be a struct in its own right, but the type is unknown and
-    unlabelled in engine, only stored as a 512-byte buffer. It does not seem
+    This may be a struct in its own right, but the type is unknown
+    and unlabelled in engine, only stored as a 512-byte buffer. It does not seem
     to be used in BO3 alpha, at least directly with automatically decompiled
-    struct field indexing, so it may simply just be a field leftover from
-    earlier implementations of the engine's sound architecture.
+    struct field indexing, so it may simply just be a field leftover
+    from earlier implementations of the engine's sound architecture.
   */
   uint8_t dependencies[512];
   int64_t SourceChecksumOffset;
@@ -778,19 +778,20 @@ PACKED(struct SndQueue {
 ASSERT_SIZE(SndQueue, 0x38);
 
 /*
-  The SndLocal struct used in the latest BO3 client and dedicated server engines
-  deviates significantly from the BO2 dedicated server, BO3 client, and BO4
-  client alphas - in field ordering and count, total size, and that of quite a
-  few of its fields which represent non-primitive data structures.
+  The SndLocal struct used in the latest BO3 client and dedicated
+  server engines deviates significantly from the BO2 dedicated server, BO3
+  client, and BO4 client alphas - in field ordering and count, total size, and
+  that of quite a few of its fields which represent non-primitive data
+  structures.
 
   We have not yet required a full reverse engineering of the struct, so it is
   left incomplete here, for now.
 
-  Note that this is the only struct encountered in the BO3 client and dedicated
-  server engines, thus far, that does not at least nearly match that used in
-  either the BO4 alpha or BO3 alpha. All other data structures foundational to
-  the engine's sound functionality closely match either the BO3 alpha or BO4
-  alpha (most often the latter). For example:
+  Note that this is the only struct encountered in the BO3 client and
+  dedicated server engines, thus far, that does not at least nearly match that
+  used in either the BO4 alpha or BO3 alpha. All other data structures
+  foundational to the engine's sound functionality closely match either the BO3
+  alpha or BO4 alpha (most often the latter). For example:
    - `SndBankGlobals` - stored under g_sb, in engine - closely matches that used
   in BO4 alpha
    - `SndBankLoad` exactly matches that used in the BO4 alpha, with only one

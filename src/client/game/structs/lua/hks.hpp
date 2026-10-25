@@ -1203,8 +1203,8 @@ PACKED(struct HksGlobal {
   **0x2DC0**. As such, it is likely that there are fields missing in the above
   struct which are present only in client build.
 
-  Define and use a `struct ClientHksGlobal: HksGlobal` when more information is
-  available.
+  Define and use a `struct ClientHksGlobal: HksGlobal` when more
+  information is available.
 */
 ASSERT_SIZE(HksGlobal, 0x5B8);
 

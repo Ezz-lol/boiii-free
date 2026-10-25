@@ -280,12 +280,6 @@ void detour::clear() {
   this->moved_data_ = {};
 }
 
-void detour::move() { this->moved_data_ = move_hook(this->place_); }
-
-void *detour::get_place() const { return this->place_; }
-
-void *detour::get_original() const { return this->original_; }
-
 void detour::un_move() {
   if (!this->moved_data_.empty()) {
     copy(this->place_, this->moved_data_.data(), this->moved_data_.size());
@@ -765,10 +759,6 @@ std::vector<uint8_t> move_hook(void *pointer) {
   }
 
   return original_data;
-}
-
-std::vector<uint8_t> move_hook(const size_t pointer) {
-  return move_hook(reinterpret_cast<void *>(pointer));
 }
 
 void *follow_branch(void *address) {

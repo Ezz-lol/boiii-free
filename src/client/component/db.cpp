@@ -124,8 +124,9 @@ void preload_mode_files() {
       R"(([a-z]{2}_)?(zm|mp|cp)_(patch|common)(_d)?\.(ff|xpak))");
   std::vector<char> buffer(1 << 20);
   std::error_code ec;
-  for (const auto &entry : std::filesystem::directory_iterator(
-           game::get_game_path() / "zone", ec)) {
+  for (const std::filesystem::directory_entry &entry :
+       std::filesystem::directory_iterator(game::get_game_path() / "zone",
+                                           ec)) {
     if (!std::regex_match(entry.path().filename().string(), mode_file)) {
       continue;
     }

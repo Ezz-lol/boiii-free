@@ -1,6 +1,6 @@
-#ifndef FUNC_HPP
-#define FUNC_HPP
+#pragma once
 
+#include <tuple>
 #include <type_traits>
 
 #ifdef __clang__
@@ -316,4 +316,17 @@ using merge_params_t = typename merge_params<FuncType, AppendedParams...>::type;
 #pragma clang diagnostic pop
 #endif
 
-#endif
+template <typename T> struct function_traits;
+
+template <typename Ret, typename... Args> struct function_traits<Ret(Args...)> {
+  using argument_list = std::tuple<Args...>;
+
+  static constexpr std::size_t arity = sizeof...(Args);
+
+  template <std::size_t N> using arg = std::tuple_element_t<N, argument_list>;
+
+  using return_type = Ret;
+};
+
+template <typename Ret, typename... Args>
+struct function_traits<Ret (*)(Args...)> : function_traits<Ret(Args...)> {};

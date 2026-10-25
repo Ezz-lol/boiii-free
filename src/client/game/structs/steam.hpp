@@ -126,9 +126,9 @@ struct SteamInterfaces
   static inline constexpr SteamInterfaces
   from(sv::SteamInterfaces *s) noexcept {
     /*
-      Cannot access anonymous union members in inherited struct when used in
-      inline `{.anonMember}` syntax, so we have to declare and define the struct
-      separately.
+      Cannot access anonymous union members in inherited struct
+       when used in inline `{.anonMember}` syntax, so we have to
+      declare and define the struct separately.
     */
     SteamInterfaces result{};
     result.sv = s;

@@ -149,9 +149,9 @@ void load_texture(const std::string &ugc_name, preview &entry) {
   if (base) {
     const game::gfx::GfxTexture texture = game::gfx::Gfx_LoadTextureFromPng(
         cached_preview_path(ugc_name).string().c_str());
-    if (texture.basemap && game::nonnull(game::db::xasset::pool::s_assetPools
-                                             ->pools[+XAssetType::IMAGE]
-                                             .freeHead)) {
+    if (texture.basemap &&
+        nonnull(game::db::xasset::pool::s_assetPools->pools[+XAssetType::IMAGE]
+                    .freeHead)) {
       entry.image = static_cast<game::gfx::GfxImage *>(
           game::db::xasset::pool::DB_AssetPoolAlloc(XAssetType::IMAGE));
       *entry.image = *base;

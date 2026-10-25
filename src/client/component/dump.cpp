@@ -34,8 +34,9 @@ AssetBytes asset_bytes(const XAssetType type, const char *name,
   AssetBytes result = {.buffers = {}, .name = name, .size = 0};
   switch (type) {
   case XAssetType::RAWFILE: {
-    if (readable_ptr(header.rawfile) && readable_ptr(header.rawfile->name) &&
-        header.rawfile->name[0] && readable_ptr(header.rawfile->buffer)) {
+    if (game::readable_ptr(header.rawfile) &&
+        game::readable_ptr(header.rawfile->name) && header.rawfile->name[0] &&
+        game::readable_ptr(header.rawfile->buffer)) {
       result.name = header.rawfile->name;
       result.size = header.rawfile->len;
       result.buffers.push_back(
@@ -44,10 +45,10 @@ AssetBytes asset_bytes(const XAssetType type, const char *name,
     break;
   }
   case XAssetType::SCRIPTPARSETREE:
-    if (readable_ptr(header.scriptParseTree) &&
-        readable_ptr(header.scriptParseTree->name) &&
+    if (game::readable_ptr(header.scriptParseTree) &&
+        game::readable_ptr(header.scriptParseTree->name) &&
         header.scriptParseTree->name[0] &&
-        readable_ptr(header.scriptParseTree->buffer)) {
+        game::readable_ptr(header.scriptParseTree->buffer)) {
       result.name = header.scriptParseTree->name;
       result.size = header.scriptParseTree->len;
       result.buffers.push_back(
@@ -56,8 +57,9 @@ AssetBytes asset_bytes(const XAssetType type, const char *name,
     }
     break;
   case XAssetType::LOCALIZE_ENTRY:
-    if (readable_ptr(header.localize) && readable_ptr(header.localize->name) &&
-        readable_ptr(header.localize->value)) {
+    if (game::readable_ptr(header.localize) &&
+        game::readable_ptr(header.localize->name) &&
+        game::readable_ptr(header.localize->value)) {
       result.name = std::string("localization/") + header.localize->name;
       size_t size = std::strlen(header.localize->value);
       result.buffers.push_back(
@@ -77,9 +79,10 @@ std::recursive_mutex dump_lock;
 void dump_requested_assets(const XAssetType type, const char *name,
                            XAssetHeader header) {
 
-  if (extract_assets() && readable_ptr(name) && name[0] &&
-      readable_ptr(header.named) && readable_ptr(header.named->name) &&
-      header.named->name[0] && std::regex_match(name, extract_pattern())) {
+  if (extract_assets() && game::readable_ptr(name) && name[0] &&
+      game::readable_ptr(header.named) &&
+      game::readable_ptr(header.named->name) && header.named->name[0] &&
+      std::regex_match(name, extract_pattern())) {
     std::scoped_lock<std::recursive_mutex> lock(dump_lock);
     const DumpEntry map_entry = {type, std::string(name)};
     if (dumped.contains(map_entry)) {

@@ -132,7 +132,7 @@ template <const auto COUNT> union DebugHistoryPool {
   }
 
   inline bool contains(const DebugHistory *item) const noexcept {
-    return game::contains(history, sizeof(history), item);
+    return ::contains(history, sizeof(history), item);
   }
 };
 

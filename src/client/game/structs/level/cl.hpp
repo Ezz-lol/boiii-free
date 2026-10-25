@@ -1968,9 +1968,9 @@ struct __attribute__((aligned(8))) cgs_t {
   float compassHeight;
   float compassY;
   game::sv::clientInfo_t corpseinfo[6];
-  // Commented out to quickly fix struct size overflow. TODO: fix this struct.
-  // user::actorInfo_t actorCorpseInfo[32];
-  // bool entUpdateToggleContextKey;
+  // Commented out to quickly fix struct size overflow. TODO: fix
+  // this struct. user::actorInfo_t actorCorpseInfo[32]; bool
+  // entUpdateToggleContextKey;
 
   uint8_t _unknown[0x162a0];
 };

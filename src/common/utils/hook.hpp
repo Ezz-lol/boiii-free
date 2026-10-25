@@ -1,5 +1,6 @@
 #pragma once
 
+#include "macros/builtin.hpp"
 #include <asmjit/core/jit_runtime.h>
 #include <asmjit/x86/x86_assembler.h>
 
@@ -85,6 +86,12 @@ public:
   inline constexpr const Assembler &get() const noexcept { return wrapped; }
 };
 
+std::vector<uint8_t> move_hook(void *pointer);
+
+alwaysinline std::vector<uint8_t> move_hook(const uintptr_t pointer) {
+  return move_hook(reinterpret_cast<void *>(pointer));
+}
+
 class detour {
 public:
   detour();
@@ -134,20 +141,44 @@ public:
   }
 
   void clear();
+  alwaysinline void move() { moved_data_ = move_hook(place_); }
 
-  void move();
+  alwaysinline void *get_place() const { return place_; }
 
-  void *get_place() const;
+  [[nodiscard]] alwaysinline void *get_original() const { return original_; }
 
-  template <typename T> T *get() const {
-    return static_cast<T *>(this->get_original());
+  template <typename T> alwaysinline T *get() const {
+    return reinterpret_cast<T *>(get_original());
   }
 
-  template <typename T = void, typename... Args> T invoke(Args... args) {
-    return static_cast<T (*)(Args...)>(this->get_original())(args...);
+  /*
+    Note: this _needs_ to either be `alwaysinline`d, or have `__no_optimize`
+    attribute. Otherwise, arguments can be casted to different types than those
+    passed (where implicitly possible) to de-duplicate the function if argument
+    type list is not provided explicitly, leading to undefined behaviour.
+    Enforcing inlining ensures this does not occur, as does disabling
+    optimization.
+
+    This is a simple load -> cast -> call that is more optimal to
+    inline than to access as a runtime call - usage without inlining requires
+    all arguments to be assigned to their registers (and the stack if needed)
+    twice. Thus, we prefer to always inline - it should always be optimal to
+    inline this function.
+  */
+
+  template <typename T, typename... Args>
+    requires(!std::is_same_v<void, T>)
+  alwaysinline T invoke(Args... args) {
+    return (get<T(Args...)>())(args...);
   }
 
-  [[nodiscard]] void *get_original() const;
+  // Seen note above prior overload
+  template <typename T = void, typename... Args>
+  alwaysinline void invoke(Args... args)
+    requires(std::is_same_v<void, T>)
+  {
+    (get<void(Args...)>())(args...);
+  }
 
 private:
   std::vector<uint8_t> moved_data_{};
@@ -225,9 +256,6 @@ void *assemble(const std::function<void(assembler &)> &asm_function);
 void inject(void *pointer, const void *data);
 void inject(size_t pointer, const void *data);
 void inject(size_t pointer, size_t data);
-
-std::vector<uint8_t> move_hook(void *pointer);
-std::vector<uint8_t> move_hook(size_t pointer);
 
 template <typename T> T extract(void *address) {
   uint8_t *const data = static_cast<uint8_t *>(address);

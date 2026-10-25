@@ -1,7 +1,19 @@
 #pragma once
 
+#ifndef GNUC_OR_CLANG
+#if defined(__GNUC__) || defined(__clang__)
+#define GNUC_OR_CLANG 1
+#else
+#define GNUC_OR_CLANG 0
+#endif
+#endif
+
+#if !GNUC_OR_CLANG
+#include <atomic>
+#endif
+
 #ifndef __inline_def
-#if defined(__clang__) || defined(__GNUC__)
+#if GNUC_OR_CLANG
 #define __inline_def __attribute__((always_inline))
 #elif defined(_MSC_VER)
 #define __inline_def __forceinline
@@ -12,7 +24,7 @@
 #endif
 
 #ifndef __optimize
-#if defined(__clang__) || defined(__GNUC__)
+#if GNUC_OR_CLANG
 #define __optimize __attribute__((hot))
 #elif defined(_MSC_VER)
 // No equivalent that I can find. Add if found or known otherwise.
@@ -22,9 +34,17 @@
 #endif
 #endif
 
+#ifndef __no_inline
+#define __no_inline __attribute__((noinline))
+#endif
+
+#ifndef __no_optimize
+#define __no_optimize __attribute__((optnone))
+#endif
+
 #ifndef unreachable
 #ifdef NDEBUG
-#if defined(__GNUC__) || defined(__clang__)
+#if GNUC_OR_CLANG
 #define unreachable() __builtin_unreachable()
 #elif defined(_MSC_VER)
 #define unreachable() __assume(false)
@@ -66,3 +86,68 @@
 #endif
 #endif
 #endif
+
+#ifndef __external
+#if GNUC_OR_CLANG
+#define __external                                                             \
+  __attribute__((visibility("default"))) __attribute__((__may_alias__))
+#else
+// MSVC does not use strict aliasing
+#define __external
+#endif
+#endif
+
+#ifndef __always_inline
+#if defined(_MSC_VER)
+#define __always_inline __forceinline
+#elif GNUC_OR_CLANG
+#define __always_inline __attribute__((always_inline))
+#else
+#define __always_inline
+#endif
+#endif
+
+#ifndef alwaysinline
+#define alwaysinline inline __always_inline
+#endif
+
+alwaysinline void ir_memory_barrier() {
+  // Ideal implementation: signal to LLVM pipeline that _any_ memory could be
+  // read or written here, so it cannot make any caching assumptions.
+#if GNUC_OR_CLANG
+  __asm__ __volatile__("" ::: "memory");
+/*
+   Concerning, incomplete implementation: only disallows caching values in
+   registers across this particular fence, or optimizing away or reordering
+   loads or stores across the fence, on this thread.
+*/
+#else
+  std::atomic_signal_fence(std::memory_order_seq_cst);
+#endif
+}
+
+#ifndef PUSH_DISABLE_OPTIMIZATION
+#if defined(__clang__)
+#define PUSH_DISABLE_OPTIMIZATION() _Pragma("clang optimize off")
+#elif defined(__GNUC__)
+#define PUSH_DISABLE_OPTIMIZATION()                                            \
+  _Pragma("GCC push_options") _Pragma("GCC optimize(\"O0\")")
+#elif defined(_MSC_VER)
+#define PUSH_DISABLE_OPTIMIZATION() _Pragma("optimize(\"\", off)")
+#endif
+#endif
+
+#ifndef POP_DISABLE_OPTIMIZATION
+#if defined(__clang__)
+#define POP_DISABLE_OPTIMIZATION() _Pragma("clang optimize on")
+#elif defined(__GNUC__)
+#define POP_DISABLE_OPTIMIZATION() _Pragma("GCC pop_options")
+#elif defined(_MSC_VER)
+#define POP_DISABLE_OPTIMIZATION() _Pragma("optimize(\"\", on)")
+#endif
+#endif
+
+#define UNOPTIMIZED(...)                                                       \
+  PUSH_DISABLE_OPTIMIZATION()                                                  \
+  __VA_ARGS__                                                                  \
+  POP_DISABLE_OPTIMIZATION()

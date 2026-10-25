@@ -2466,7 +2466,7 @@ luaReturnCount_e Lua_CoD_LuaCall_GetHeroName_Safe(lua_State *luaVM) {
   default: {
     const game::db::xasset::CharacterBodyType *bodyType =
         game::bg::BG_GetCharacterBodyType(mode, playerRoleTemplateIndex);
-    if (!game::nonnull(bodyType) || !game::nonnull(bodyType->displayName)) {
+    if (!nonnull(bodyType) || !nonnull(bodyType->displayName)) {
       GETHERONAME_RETURN_EMPTY_STRING();
     }
     break;

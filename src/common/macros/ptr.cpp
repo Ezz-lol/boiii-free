@@ -1,8 +1,7 @@
-#include <std_include.hpp>
+#include "ptr.hpp"
 
-#include "ptr.hpp" // IWYU pragma: keep
-
-namespace game {
+#include <vector>
+#include <windows.h>
 
 bool valid_heap_ptr(uintptr_t ptr) {
   if (!ptr) {
@@ -65,10 +64,6 @@ bool valid_heap_ptr(uintptr_t ptr) {
 bool readable_ptr(uintptr_t ptr) {
   if (ptr) {
 
-    if (valid_engine_ptr(ptr)) {
-      return true;
-    }
-
     MEMORY_BASIC_INFORMATION mbi;
     if (VirtualQuery(reinterpret_cast<LPCVOID>(ptr), &mbi, sizeof(mbi))) {
       // Check if the memory page is committed (actually exists in physical
@@ -93,4 +88,3 @@ bool readable_ptr(uintptr_t ptr) {
 
   return false;
 }
-} // namespace game

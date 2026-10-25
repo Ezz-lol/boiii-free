@@ -19,8 +19,8 @@ constexpr float DEFAULT_UI_VIEW_ASPECT_RATIO =
 /*
    Known to be very incorrect/out of date as of initial definition here.
    Definition is left here both to use its type in a function signature, and
-   to help give ideas for what is stored in this struct for future reverse
-   engineering.
+   to help give ideas for what is stored in this struct for future
+   reverse engineering.
 */
 struct GfxWindowParms {
   bool isWideScreen;

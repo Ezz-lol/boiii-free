@@ -157,8 +157,7 @@ template <typename T> union ScrVarTypePool {
 
 // Note: unverified as of initial addition
 // Verify before use.
-#pragma pack(push, 1)
-struct ScrVarStackBuffer_t {
+PACKED(struct ScrVarStackBuffer_t {
   uint8_t *pos;
   uint8_t *creationPos;
   int32_t waitTime;
@@ -167,9 +166,8 @@ struct ScrVarStackBuffer_t {
   ScrVarIndex_t localId;
   uint8_t buf[1];
   uint8_t _padding[3];
-};
+});
 ASSERT_SIZE(ScrVarStackBuffer_t, 0x20);
-#pragma pack(pop)
 
 // Note: unverified as of initial addition
 // Verify before use.
@@ -203,8 +201,7 @@ ASSERT_SIZE(ScrVarValueUnion_t, 0x8);
 
 struct ScrVar_t;
 
-#pragma pack(push, 1)
-struct ScrVarValue_t {
+PACKED(struct ScrVarValue_t {
   ScrVarValueUnion_t u;
   ScrVarType_t type;
   uint8_t _padding[4];
@@ -230,7 +227,7 @@ struct ScrVarValue_t {
   std::optional<qboolean> cast_bool() volatile noexcept;
 
   inline bool valid_index(scriptInstance_t inst,
-                          volatile ScrVarValue_t *index) volatile noexcept {
+                          volatile ScrVarValue_t * index) volatile noexcept {
     switch (type) {
     case ScrVarType::POINTER: {
       volatile ScrVarValue_t *resolved = deref(inst);
@@ -251,18 +248,16 @@ struct ScrVarValue_t {
   }
 
   bool valid_index(scriptInstance_t inst,
-                   volatile ScrVar_t *index) volatile noexcept;
-};
+                   volatile ScrVar_t * index) volatile noexcept;
+});
 ASSERT_SIZE(ScrVarValue_t, 0x10);
-#pragma pack(pop)
 
 struct ScrVarEntityInfo_t {
   uint16_t classnum;
   ClientNum16_t clientNum;
 };
 
-#pragma pack(push, 1)
-struct ScrVar_t {
+PACKED(struct ScrVar_t {
   ScrVarValue_t value;
   struct {
     int32_t nameType : 3;
@@ -330,17 +325,16 @@ struct ScrVar_t {
   }
 
   inline bool valid_index(scriptInstance_t inst,
-                          volatile ScrVar_t *index) volatile noexcept {
+                          volatile ScrVar_t * index) volatile noexcept {
     return value.valid_index(inst, index);
   }
 
   inline bool valid_index(scriptInstance_t inst,
-                          volatile ScrVarValue_t *index) volatile noexcept {
+                          volatile ScrVarValue_t * index) volatile noexcept {
     return value.valid_index(inst, index);
   }
-};
+});
 ASSERT_SIZE(ScrVar_t, 0x40);
-#pragma pack(pop)
 
 inline const ScrVar_t *ScrVarValue_t::var() const noexcept {
   return reinterpret_cast<const ScrVar_t *>(reinterpret_cast<uintptr_t>(this) -

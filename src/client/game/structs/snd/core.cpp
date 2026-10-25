@@ -11,9 +11,9 @@ namespace snd {
   serialization - `::serialize(alias, aliasCount)` - where `Serializable` is not
   satisfied because `serialize` does not exist on an incomplete `SndAliasList`
   type definition. `SndAliasList` is defined in the same header, before SndBank
-  is defined, so this must be caused by a `struct SndAliasList;` declaration in
-  a dependency included by either this object's header or one of the headers it
-  includes.
+  is defined, so this must be caused by a `struct SndAliasList;`
+  declaration in a dependency included by either this object's header or one of
+  the headers it includes.
 
   Regardless, this issue is resolved by defining `SndBank`s serialize method in
   an object instead of in a header.
