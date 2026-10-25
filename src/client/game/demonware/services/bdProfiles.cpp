@@ -19,14 +19,19 @@ bdProfiles::bdProfiles() : service(8, "bdProfiles") {
 void bdProfiles::getPublicInfos(service_server *server,
                                 byte_buffer *buffer) const {
   std::vector<std::pair<uint64_t, profile_infos::profile_info>> profile_infos{};
+  std::vector<game::XUID> missing{};
 
   uint64_t entity_id;
   while (buffer->read_uint64(&entity_id)) {
     auto profile = profile_infos::get_profile_info(entity_id);
     if (profile) {
       profile_infos.emplace_back(entity_id, std::move(*profile));
+    } else {
+      missing.push_back(entity_id);
     }
   }
+
+  profile_infos::request_profile_infos(std::move(missing));
 
   auto reply = server->create_reply(
       this->task_id(), profile_infos.empty()

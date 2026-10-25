@@ -99,6 +99,39 @@ void clean_cached_profile_infos() {
     }
   });
 }
+
+// The game asks for a player's profile once and keeps a miss until it's 15
+// minutes old, showing their emblem as loading all match. Like the game does
+// when a lobby member's profile changes, have it fetched again now.
+void refresh_cached_profile(const game::XUID xuid) {
+  scheduler::once(
+      [xuid] {
+        using namespace game::live::pcache;
+
+        const game::sys::ScopedCriticalSection lock(
+            game::sys::CriticalSection::PCACHE,
+            game::sys::ScopedCriticalSection::ScopedCriticalSectionType::
+                NORMAL);
+
+        PCacheComponent *profile = game::pcache::PCache_GetComponent(
+            game::CONTROLLER_INDEX_FIRST, xuid,
+            PCACHE_COMPONENT_PUBLIC_PROFILE);
+        if (profile) {
+          profile->state |= PCACHE_STATE_STALE;
+        }
+        game::pcache::PCache_InvalidatePlayerEmblem(
+            game::CONTROLLER_INDEX_FIRST, xuid);
+      },
+      scheduler::main);
+}
+
+bool is_connected_client(const game::net::netadr_t &address) {
+  bool connected = false;
+  game::foreach_connected_client([&](const game::sv::client_s &client) {
+    connected |= client.address == address;
+  });
+  return connected;
+}
 } // namespace
 
 profile_info::profile_info(utils::byte_buffer &buffer) {
@@ -121,6 +154,33 @@ void add_profile_info(const game::XUID xuid, const profile_info &info) {
 #endif
 
   profile_mapping.access([&](profile_map &profiles) { profiles[xuid] = info; });
+
+  if (game::is_client()) {
+    refresh_cached_profile(xuid);
+  }
+}
+
+void request_profile_infos(std::vector<game::XUID> xuids) {
+  const game::XUID own_xuid = steam::SteamUser()->GetSteamID().bits;
+  std::erase(xuids, own_xuid);
+  if (xuids.empty() || !game::is_client()) {
+    return;
+  }
+
+  // Each profile is sent once when its player joins, so one lost on the way
+  // never arrives. Ask the server again for the ones the game is missing.
+  scheduler::once(
+      [xuids = std::move(xuids)] {
+        const game::net::netadr_t server = party::get_connected_server();
+        if (game::server_running() || !network::is_ip_address(server)) {
+          return;
+        }
+
+        utils::byte_buffer buffer{};
+        buffer.write_vector(xuids);
+        network::send(server, "profileInfoRequest", buffer.get_buffer());
+      },
+      scheduler::main);
 }
 
 void distribute_profile_info_to_user(const game::net::netadr_t &addr,
@@ -213,6 +273,27 @@ struct component final : generic_component {
 
   void post_unpack() override {
     scheduler::loop(clean_cached_profile_infos, scheduler::main, 5s);
+
+    network::on("profileInfoRequest", [](const game::net::netadr_t &address,
+                                         const network::data_view &data,
+                                         game::LocalClientNum_t) {
+      if (!game::server_running() || !is_connected_client(address)) {
+        return;
+      }
+
+      utils::byte_buffer buffer(data);
+      const std::vector<game::XUID> xuids = buffer.read_vector<game::XUID>();
+      if (xuids.size() > static_cast<size_t>(game::get_max_client_count())) {
+        return;
+      }
+
+      for (const game::XUID xuid : xuids) {
+        const std::optional<profile_info> info = get_profile_info(xuid);
+        if (info) {
+          distribute_profile_info_to_user(address, xuid, *info);
+        }
+      }
+    });
 
     if (game::is_client()) {
       network::on("profileInfo", [](const game::net::netadr_t &server,

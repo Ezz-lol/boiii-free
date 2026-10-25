@@ -14,6 +14,7 @@ struct profile_info {
 };
 
 void add_profile_info(game::XUID xuid, const profile_info &info);
+void request_profile_infos(std::vector<game::XUID> xuids);
 void add_and_distribute_profile_info(const game::net::netadr_t &addr,
                                      game::XUID xuid, const profile_info &info);
 void clear_profile_infos();
