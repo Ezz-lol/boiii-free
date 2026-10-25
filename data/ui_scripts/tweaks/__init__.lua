@@ -136,6 +136,29 @@ if isPrivateGame then
       )
     end
 
+    table.insert(
+      t,
+      CoD.OptionsUtility.CreateDvarSettings(
+        controller,
+        "Infinite Ammo",
+        "Never run out of ammo.",
+        "GameTweaks_infiniteammo",
+        "player_sustainAmmo",
+        {
+          { option = "MENU_DISABLED", value = 0, default = true },
+          { option = "MENU_ENABLED", value = 1 },
+        },
+        nil,
+        updateDvar
+      )
+    )
+
+    return t
+  end)
+
+  DataSources.BoiiiGameTweaksMovement = DataSourceHelpers.ListSetup("BoiiiGameTweaksMovement", function(controller)
+    local t = {}
+
     local speedOptions = {}
     local currentSpeed = 190
     pcall(function()
@@ -192,23 +215,6 @@ if isPrivateGame then
       t,
       CoD.OptionsUtility.CreateDvarSettings(
         controller,
-        "Infinite Ammo",
-        "Never run out of ammo.",
-        "GameTweaks_infiniteammo",
-        "player_sustainAmmo",
-        {
-          { option = "MENU_DISABLED", value = 0, default = true },
-          { option = "MENU_ENABLED", value = 1 },
-        },
-        nil,
-        updateDvar
-      )
-    )
-
-    table.insert(
-      t,
-      CoD.OptionsUtility.CreateDvarSettings(
-        controller,
         "Game Speed",
         "Speed up or slow down the game.",
         "GameTweaks_timescale",
@@ -225,6 +231,12 @@ if isPrivateGame then
         updateDvar
       )
     )
+
+    return t
+  end)
+
+  DataSources.BoiiiGameTweaksVisuals = DataSourceHelpers.ListSetup("BoiiiGameTweaksVisuals", function(controller)
+    local t = {}
 
     table.insert(
       t,
@@ -314,12 +326,30 @@ if isPrivateGame then
       )
     )
 
+
     return t
   end)
+
+  DataSources.BoiiiGameTweaksTabs = DataSourceHelpers.ListSetup("BoiiiGameTweaksTabs", function()
+    local function tab(name, dataSourceName)
+      return {
+        models = { tabName = name, tabIcon = "" },
+        properties = { tabId = dataSourceName, dataSourceName = dataSourceName },
+      }
+    end
+    return {
+      { models = { tabIcon = CoD.buttonStrings.shoulderl }, properties = { m_mouseDisabled = true } },
+      tab("CHEATS", "BoiiiGameTweaks"),
+      tab("MOVEMENT", "BoiiiGameTweaksMovement"),
+      tab("VISUALS", "BoiiiGameTweaksVisuals"),
+      { models = { tabIcon = CoD.buttonStrings.shoulderr }, properties = { m_mouseDisabled = true } },
+    }
+  end, true)
 
   require("ui.uieditor.widgets.Scrollbars.verticalScrollbar")
   require("ui.uieditor.widgets.StartMenu.StartMenu_Options_Slider")
   require("ui.uieditor.widgets.BackgroundFrames.GenericMenuFrame")
+  require("ui.uieditor.widgets.Lobby.Common.FE_TabBar")
 
   LUI.createMenu.BoiiiGameTweaksMenu = function(controller)
     local self = CoD.Menu.NewForUIEditor("BoiiiGameTweaksMenu")
@@ -365,7 +395,7 @@ if isPrivateGame then
     self:addElement(panel)
 
     local sectionTitle = text(64, 560, 132, 158, orange)
-    sectionTitle:setText(Engine.Localize("Private Match Tweaks"))
+    sectionTitle:setText(Engine.Localize("Cheats"))
     local highlight = text(616, 1094, 178, 204, orange)
     local desc = text(616, 1094, 212, 232)
 
@@ -391,6 +421,26 @@ if isPrivateGame then
     frame.cac3dTitleIntermediary0.FE3dTitleContainer0.MenuTitle.TextBox1.Label0:setRGB(1, 0.55, 0.1)
     self:addElement(frame)
     self.MenuFrame = frame
+
+    local tabList = CoD.FE_TabBar.new(self, controller)
+    tabList:setLeftRight(true, false, 0, 2496)
+    tabList:setTopBottom(true, false, 84, 123)
+    tabList.Tabs.grid:setHorizontalCount(5)
+    tabList.Tabs.grid:setDataSource("BoiiiGameTweaksTabs")
+    self:addElement(tabList)
+    self.TabList = tabList
+
+    local tabTitles = {
+      BoiiiGameTweaks = "Cheats",
+      BoiiiGameTweaksMovement = "Movement",
+      BoiiiGameTweaksVisuals = "Visuals",
+    }
+    self:registerEventHandler("list_active_changed", function(element)
+      if element.dataSourceName then
+        sectionTitle:setText(Engine.Localize(tabTitles[element.dataSourceName] or ""))
+        list:setDataSource(element.dataSourceName)
+      end
+    end)
 
     desc:linkToElementModel(list, "desc", true, function(model)
       local value = Engine.GetModelValue(model)
@@ -435,6 +485,7 @@ if isPrivateGame then
       tweaksMenu = nil
       element.MenuFrame:close()
       element.Options:close()
+      element.TabList:close()
       Engine.UnsubscribeAndFreeModel(
         Engine.GetModel(Engine.GetModelForController(controller), "BoiiiGameTweaksMenu.buttonPrompts")
       )
