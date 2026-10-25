@@ -2484,8 +2484,6 @@ public:
 #ifndef NDEBUG
     Lua_CoD_LuaCall_PrintInfo_hook.create(api::Lua_CoD_LuaCall_PrintInfo,
                                           Lua_CoD_LuaCall_PrintInfo_AllOutputs);
-    Lua_CoD_LuaCall_GetHeroName_hook.create(api::Lua_CoD_LuaCall_GetHeroName,
-                                            Lua_CoD_LuaCall_GetHeroName_Safe);
     if (game::is_client()) {
       Lua_CoD_LuaCall_PrintError_hook.create(
           api::Lua_CoD_LuaCall_PrintError,
@@ -2495,6 +2493,8 @@ public:
           Lua_CoD_LuaCall_PrintWarning_AllOutputs);
     }
 #endif
+    Lua_CoD_LuaCall_GetHeroName_hook.create(api::Lua_CoD_LuaCall_GetHeroName,
+                                            Lua_CoD_LuaCall_GetHeroName_Safe);
 
     /*
        Spoof client build info returned to lua scripts to
