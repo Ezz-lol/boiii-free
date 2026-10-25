@@ -661,6 +661,10 @@ UGC_LoadUsermapByPublisherId_HandleInternalName(const char *maybePublisherId) {
     if (item.has_value()) {
       publisherId = item->get().publisherId;
     } else {
+      // Not a usermap, e.g. a stock map after a custom one. Clear the active
+      // usermap as the load does when it finds none, so the previous custom
+      // map doesn't stay active
+      game::ugc::UGC_SetActiveUsermap(nullptr);
       return nullptr;
     }
   }
