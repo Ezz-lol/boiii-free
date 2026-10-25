@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <frozen/unordered_map.h>
 
 #include "db.hpp"
 
@@ -273,58 +274,115 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   }
 }
 
+inline constexpr frozen::unordered_map<XAssetType, uint32_t, +XAssetType::COUNT>
+    DEFAULT_POOL_SIZES = frozen::make_unordered_map<XAssetType, uint32_t>({
+        {XAssetType::PHYSPRESET, 0x113},
+        {XAssetType::PHYSCONSTRAINTS, 0x80},
+        {XAssetType::DESTRUCTIBLEDEF, 0x80},
+        {XAssetType::XANIMPARTS, 0x6270},
+        {XAssetType::XMODEL, 0x2C00},
+        {XAssetType::XMODELMESH, 0x8C00},
+        {XAssetType::MATERIAL, 0x5800},
+        {XAssetType::COMPUTE_SHADER_SET, 0x100},
+        {XAssetType::TECHNIQUE_SET, 0x400},
+        {XAssetType::IMAGE, 0xC000},
+        {XAssetType::SOUND, 0x20},
+        {XAssetType::SOUND_PATCH, 0x10},
+        {XAssetType::CLIPMAP, 0x2},
+        {XAssetType::COMWORLD, 0x2},
+        {XAssetType::GAMEWORLD, 0x2},
+        {XAssetType::MAP_ENTS, 0x2},
+        {XAssetType::GFXWORLD, 0x2},
+        {XAssetType::LIGHT_DEF, 0x20},
+        {XAssetType::LENSFLARE_DEF, 0x46},
+        {XAssetType::UI_MAP, 0x00},
+        {XAssetType::FONT, 0x10},
+        {XAssetType::FONTICON, 0x10},
+        {XAssetType::LOCALIZE_ENTRY, 0x6400},
+        {XAssetType::WEAPON, 0x600},
+        {XAssetType::WEAPONDEF, 0x00},
+        {XAssetType::WEAPON_VARIANT, 0x00},
+        {XAssetType::WEAPON_FULL, 0x00},
+        {XAssetType::CGMEDIA, 0x5},
+        {XAssetType::PLAYERSOUNDS, 0x10},
+        {XAssetType::PLAYERFX, 0x10},
+        {XAssetType::SHAREDWEAPONSOUNDS, 0x40},
+        {XAssetType::ATTACHMENT, 0x80},
+        {XAssetType::ATTACHMENT_UNIQUE, 0x864},
+        {XAssetType::WEAPON_CAMO, 0x200},
+        {XAssetType::CUSTOMIZATION_TABLE, 0x8},
+        {XAssetType::CUSTOMIZATION_TABLE_FE_IMAGES, 0x8},
+        {XAssetType::CUSTOMIZATION_TABLE_COLOR, 0x400},
+        {XAssetType::SNDDRIVER_GLOBALS, 0x1},
+        {XAssetType::FX, 0x7D0},
+        {XAssetType::TAGFX, 0x40},
+        {XAssetType::NEW_LENSFLARE_DEF, 0x46},
+        {XAssetType::IMPACT_FX, 0x100},
+        {XAssetType::IMPACT_SOUND, 0x40},
+        {XAssetType::PLAYER_CHARACTER, 0x8},
+        {XAssetType::AITYPE, 0x60},
+        {XAssetType::CHARACTER, 0x96},
+        {XAssetType::XMODELALIAS, 0x30},
+        {XAssetType::RAWFILE, 0x1388},
+        {XAssetType::STRINGTABLE, 0xDC},
+        {XAssetType::STRUCTURED_TABLE, 0x69},
+        {XAssetType::LEADERBOARD, 0x100},
+        {XAssetType::DDL, 0x40},
+        {XAssetType::GLASSES, 0x2},
+        {XAssetType::TEXTURELIST, 0x8},
+        {XAssetType::SCRIPTPARSETREE, 0x47E},
+        {XAssetType::KEYVALUEPAIRS, 0x40},
+        {XAssetType::VEHICLEDEF, 0x40},
+        {XAssetType::ADDON_MAP_ENTS, 0x1},
+        {XAssetType::TRACER, 0x64},
+        {XAssetType::SLUG, 0x5},
+        {XAssetType::SURFACEFX_TABLE, 0x40},
+        {XAssetType::SURFACESOUNDDEF, 0x100},
+        {XAssetType::FOOTSTEP_TABLE, 0x20},
+        {XAssetType::ENTITYFXIMPACTS, 0x100},
+        {XAssetType::ENTITYSOUNDIMPACTS, 0x100},
+        {XAssetType::ZBARRIER, 0x10},
+        {XAssetType::VEHICLEFXDEF, 0x20},
+        {XAssetType::VEHICLESOUNDDEF, 0x20},
+        {XAssetType::TYPEINFO, 0x00},
+        {XAssetType::SCRIPTBUNDLE, 0x400},
+        {XAssetType::SCRIPTBUNDLELIST, 0x40},
+        {XAssetType::RUMBLE, 0x118},
+        {XAssetType::BULLETPENETRATION, 0x1},
+        {XAssetType::LOCDMGTABLE, 0x1},
+        {XAssetType::AIMTABLE, 0xC},
+        {XAssetType::ANIMSELECTORTABLESET, 0x40},
+        {XAssetType::ANIMMAPPINGTABLE, 0x40},
+        {XAssetType::ANIMSTATEMACHINE, 0x40},
+        {XAssetType::BEHAVIORTREE, 0x40},
+        {XAssetType::BEHAVIORSTATEMACHINE, 0x80},
+        {XAssetType::TTF, 0x30},
+        {XAssetType::SANIM, 0x400},
+        {XAssetType::LIGHT_DESCRIPTION, 0x226},
+        {XAssetType::SHELLSHOCK, 0x40},
+        {XAssetType::XCAM, 0x214},
+        {XAssetType::BG_CACHE, 0x20},
+        {XAssetType::TEXTURE_COMBO, 0x10},
+        {XAssetType::FLAMETABLE, 0x10},
+        {XAssetType::BITFIELD, 0x34},
+        {XAssetType::ATTACHMENT_COSMETIC_VARIANT, 0x280},
+        {XAssetType::MAPTABLE, 0x19},
+        {XAssetType::MAPTABLE_LOADING_IMAGES, 0x19},
+        {XAssetType::MEDAL, 0x300},
+        {XAssetType::MEDALTABLE, 0x20},
+        {XAssetType::OBJECTIVE, 0x100},
+        {XAssetType::OBJECTIVE_LIST, 0x40},
+        {XAssetType::UMBRA_TOME, 0x00},
+        {XAssetType::NAVMESH, 0x2},
+        {XAssetType::NAVVOLUME, 0x2},
+        {XAssetType::BINARYHTML, 0x800},
+        {XAssetType::LASER, 0x32},
+        {XAssetType::BEAM, 0x32},
+        {XAssetType::STREAMER_HINT, 0x32},
+    });
+
 namespace pool {
 static std::mutex reallocation_mutex;
-
-struct retired_block {
-  char *begin;
-  char *end;
-  int32_t live;
-};
-static std::array<void *, +XAssetType::COUNT> owned_blocks{};
-static std::array<std::vector<retired_block>, +XAssetType::COUNT>
-    retired_blocks{};
-
-void retire_block(const XAssetType type, const XAssetPool &pool,
-                  const int32_t entry_size) {
-  if (!pool.pool || owned_blocks[+type] != pool.pool) {
-    return;
-  }
-
-  int32_t live = pool.itemAllocCount;
-  for (const retired_block &block : retired_blocks[+type]) {
-    live -= block.live;
-  }
-  if (live <= 0) {
-    free(pool.pool);
-    return;
-  }
-
-  char *begin = static_cast<char *>(pool.pool);
-  retired_blocks[+type].push_back(
-      {begin, begin + static_cast<size_t>(entry_size) * pool.itemCount, live});
-}
-
-void skip_retired_slots(const XAssetType type, XAssetPool *pool) {
-  std::vector<retired_block> &blocks = retired_blocks[+type];
-  while (!blocks.empty() && nonnull(pool->freeHead)) {
-    char *slot = reinterpret_cast<char *>(pool->freeHead);
-    const auto block =
-        std::ranges::find_if(blocks, [slot](const retired_block &candidate) {
-          return slot >= candidate.begin && slot < candidate.end;
-        });
-    if (block == blocks.end()) {
-      return;
-    }
-
-    pool->freeHead = pool->freeHead->next;
-    if (--block->live == 0) {
-      free(block->begin);
-      blocks.erase(block);
-    }
-  }
-}
-
 void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
   const int32_t entry_size = DB_GetXAssetTypeSize_Impl(type);
   if (entry_size <= 0) {
@@ -379,9 +437,18 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
               +type, pool->itemCount, new_size);
       fflush(stdout);
 
-      retire_block(type, *pool, entry_size);
-      owned_blocks[+type] = new_pool;
-      pool->pool = new_pool;
+      // Free previously extended allocation
+      if (nonnull(pool->pool) && !valid_module_ptr(pool->pool) &&
+          !valid_stack_ptr(pool->pool) && pool->itemCount != 0 &&
+          DEFAULT_POOL_SIZES.contains(type) &&
+          static_cast<int32_t>(DEFAULT_POOL_SIZES.at(type)) !=
+              pool->itemCount) {
+        void *prev = pool->pool;
+        pool->pool = new_pool;
+        free(prev);
+      } else {
+        pool->pool = new_pool;
+      }
 
       pool->itemSize = entry_size;
       pool->itemCount = new_size;
@@ -429,8 +496,6 @@ void *DB_AssetPoolAlloc_Impl(XAssetType type) {
   if (pool->isSingleton) {
     return pool->pool;
   }
-
-  skip_retired_slots(type, pool);
 
   // PATCH: expand asset pool if we have reached capacity
   if (!nonnull(pool->freeHead)) {
