@@ -15,39 +15,45 @@ local function updateDvar(controller, optionModel, optionsList, dvarName, extraP
   Engine.SetDvar(dvarName, optionModel.value)
 end
 
-DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings", function(controller)
-  local optionsTable = {}
+local function toggle(controller, dvar, name, description)
+  return CoD.OptionsUtility.CreateDvarSettings(controller, name, description, "QuickSettings_" .. dvar, dvar, {
+    { option = "MENU_DISABLED", value = 0, default = true },
+    { option = "MENU_ENABLED", value = 1 },
+  }, nil, updateDvar)
+end
 
-  local toggleSettings = {
-    { "boiii_skipIntro", "Skip Intro", "Skip the intro video on startup." },
-    {
+DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings", function(controller)
+  return {
+    toggle(controller, "boiii_skipIntro", "Skip Intro", "Skip the intro video on startup."),
+    toggle(
+      controller,
       "boiii_skipForestCinematic",
       "Skip Forest Video",
-      "Skip only the forest video before joining a Zombies game. Map videos still play.",
-    },
-    { "boiii_skipCinematics", "Skip All Cinematics", "Skip every cinematic and video, including map videos." },
-    { "boiii_fullLogs", "Full Console Logs", "Show every log message in the console." },
-    { "boiii_logScriptErrors", "Log Script Errors", "Log every script error, including non-fatal ones." },
-    { "boiii_ultrawide", "Ultrawide Support", "Use the full width of ultrawide screens. Requires a restart." },
-    {
+      "Skip only the forest video before joining a Zombies game. Map videos still play."
+    ),
+    toggle(
+      controller,
+      "boiii_skipCinematics",
+      "Skip All Cinematics",
+      "Skip every cinematic and video, including map videos."
+    ),
+    toggle(
+      controller,
+      "boiii_ultrawide",
+      "Ultrawide Support",
+      "Use the full width of ultrawide screens. Requires a restart."
+    ),
+    toggle(
+      controller,
       "boiii_allowCheats",
       "Allow Cheats",
-      "Allow cheat commands like noclip and god mode. Only this setting can turn cheats on, maps and scripts can't.",
-    },
+      "Allow cheat commands like noclip and god mode. Only this setting can turn cheats on, maps and scripts can't."
+    ),
   }
-  local function addToggle(dvar, name, description)
-    table.insert(
-      optionsTable,
-      CoD.OptionsUtility.CreateDvarSettings(controller, name, description, "QuickSettings_" .. dvar, dvar, {
-        { option = "MENU_DISABLED", value = 0, default = true },
-        { option = "MENU_ENABLED", value = 1 },
-      }, nil, updateDvar)
-    )
-  end
+end)
 
-  for _, setting in ipairs(toggleSettings) do
-    addToggle(setting[1], setting[2], setting[3])
-  end
+DataSources.BoiiiQuickSettingsVideo = DataSourceHelpers.ListSetup("BoiiiQuickSettingsVideo", function(controller)
+  local optionsTable = {}
 
   -- A value set outside this menu isn't one of the fixed steps. List it too,
   -- or the menu falls back to the first option and overwrites the dvar.
@@ -168,10 +174,18 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
     )
   )
 
-  addToggle("r_vsync", "VSync", "Sync framerate to monitor refresh rate.")
-  addToggle("com_drawFPS_PC", "Show FPS Counter", "Display frames per second on screen.")
+  table.insert(optionsTable, toggle(controller, "r_vsync", "VSync", "Sync framerate to monitor refresh rate."))
+  table.insert(
+    optionsTable,
+    toggle(controller, "com_drawFPS_PC", "Show FPS Counter", "Display frames per second on screen.")
+  )
 
-  -- ── Game Settings ──
+
+  return optionsTable
+end)
+
+DataSources.BoiiiQuickSettingsGame = DataSourceHelpers.ListSetup("BoiiiQuickSettingsGame", function(controller)
+  local optionsTable = {}
 
   -- Bot difficulty
   table.insert(
@@ -316,6 +330,18 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
   return optionsTable
 end)
 
+DataSources.BoiiiQuickSettingsConsole = DataSourceHelpers.ListSetup("BoiiiQuickSettingsConsole", function(controller)
+  return {
+    toggle(controller, "boiii_fullLogs", "Full Console Logs", "Show every log message in the console."),
+    toggle(
+      controller,
+      "boiii_logScriptErrors",
+      "Log Script Errors",
+      "Log every script error, including non-fatal ones."
+    ),
+  }
+end)
+
 DataSources.BoiiiQuickSettingsXpBar = DataSourceHelpers.ListSetup("BoiiiQuickSettingsXpBar", function(controller)
   local function setting(name, description, dvar, options)
     return CoD.OptionsUtility.CreateDvarSettings(
@@ -366,8 +392,11 @@ DataSources.BoiiiQuickSettingsTabs = DataSourceHelpers.ListSetup("BoiiiQuickSett
 
   return {
     { models = { tabIcon = CoD.buttonStrings.shoulderl }, properties = { m_mouseDisabled = true } },
-    tab("GENERAL", "BoiiiQuickSettings", "Frequently Used Settings"),
+    tab("GENERAL", "BoiiiQuickSettings", "General"),
+    tab("VIDEO", "BoiiiQuickSettingsVideo", "Video"),
+    tab("GAME", "BoiiiQuickSettingsGame", "Game"),
     tab("XP BAR", "BoiiiQuickSettingsXpBar", "XP Bar"),
+    tab("CONSOLE", "BoiiiQuickSettingsConsole", "Console"),
     { models = { tabIcon = CoD.buttonStrings.shoulderr }, properties = { m_mouseDisabled = true } },
   }
 end, true)
@@ -405,7 +434,7 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   local Options = CoD.Competitive_SettingsList.new(self, controller)
   Options:setLeftRight(true, false, 26, 741)
   Options:setTopBottom(true, false, 135, 720)
-  Options.Title.DescTitle:setText(Engine.Localize("Frequently Used Settings"))
+  Options.Title.DescTitle:setText(Engine.Localize("General"))
   Options.Title.DescTitle:setRGB(1, 0.55, 0.1)
   Options.ButtonList:setVerticalCount(11)
   Options.ButtonList:setDataSource("BoiiiQuickSettings")
@@ -417,7 +446,7 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   local TabList = CoD.FE_TabBar.new(self, controller)
   TabList:setLeftRight(true, false, 0, 2496)
   TabList:setTopBottom(true, false, 84, 123)
-  TabList.Tabs.grid:setHorizontalCount(4)
+  TabList.Tabs.grid:setHorizontalCount(7)
   TabList.Tabs.grid:setDataSource("BoiiiQuickSettingsTabs")
   self:addElement(TabList)
   self.TabList = TabList
