@@ -2476,6 +2476,15 @@ luaReturnCount_e Lua_CoD_LuaCall_GetHeroName_Safe(lua_State *luaVM) {
   return Lua_CoD_LuaCall_GetHeroName_hook.invoke<luaReturnCount_e>(luaVM);
 }
 
+utils::hook::detour Lua_CoD_LuaCall_IsDedicatedServer_hook;
+luaReturnCount_e Lua_CoD_LuaCall_IsDedicatedServer_Connected(lua_State *luaVM) {
+  if (game::get_dvar_bool("cl_connected_to_dedi").value_or(false)) {
+    lua_pushboolean(luaVM, true);
+    return luaReturnCount_e::ONE;
+  }
+  return Lua_CoD_LuaCall_IsDedicatedServer_hook.invoke<luaReturnCount_e>(luaVM);
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lua/ui_scripting");
 
@@ -2495,6 +2504,11 @@ public:
 #endif
     Lua_CoD_LuaCall_GetHeroName_hook.create(api::Lua_CoD_LuaCall_GetHeroName,
                                             Lua_CoD_LuaCall_GetHeroName_Safe);
+    if (game::is_client()) {
+      Lua_CoD_LuaCall_IsDedicatedServer_hook.create(
+          api::Lua_CoD_LuaCall_IsDedicatedServer,
+          Lua_CoD_LuaCall_IsDedicatedServer_Connected);
+    }
 
     /*
        Spoof client build info returned to lua scripts to
