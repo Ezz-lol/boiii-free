@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <frozen/unordered_map.h>
 
 #include "db.hpp"
 
@@ -274,118 +273,24 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   }
 }
 
-inline constexpr frozen::unordered_map<XAssetType, uint32_t, +XAssetType::COUNT>
-    DEFAULT_POOL_SIZES = frozen::make_unordered_map<XAssetType, uint32_t>({
-        {XAssetType::PHYSPRESET, 0x113},
-        {XAssetType::PHYSCONSTRAINTS, 0x80},
-        {XAssetType::DESTRUCTIBLEDEF, 0x80},
-        {XAssetType::XANIMPARTS, 0x6270},
-        {XAssetType::XMODEL, 0x2C00},
-        {XAssetType::XMODELMESH, 0x8C00},
-        {XAssetType::MATERIAL, 0x5800},
-        {XAssetType::COMPUTE_SHADER_SET, 0x100},
-        {XAssetType::TECHNIQUE_SET, 0x400},
-        {XAssetType::IMAGE, 0xC000},
-        {XAssetType::SOUND, 0x20},
-        {XAssetType::SOUND_PATCH, 0x10},
-        {XAssetType::CLIPMAP, 0x2},
-        {XAssetType::COMWORLD, 0x2},
-        {XAssetType::GAMEWORLD, 0x2},
-        {XAssetType::MAP_ENTS, 0x2},
-        {XAssetType::GFXWORLD, 0x2},
-        {XAssetType::LIGHT_DEF, 0x20},
-        {XAssetType::LENSFLARE_DEF, 0x46},
-        {XAssetType::UI_MAP, 0x00},
-        {XAssetType::FONT, 0x10},
-        {XAssetType::FONTICON, 0x10},
-        {XAssetType::LOCALIZE_ENTRY, 0x6400},
-        {XAssetType::WEAPON, 0x600},
-        {XAssetType::WEAPONDEF, 0x00},
-        {XAssetType::WEAPON_VARIANT, 0x00},
-        {XAssetType::WEAPON_FULL, 0x00},
-        {XAssetType::CGMEDIA, 0x5},
-        {XAssetType::PLAYERSOUNDS, 0x10},
-        {XAssetType::PLAYERFX, 0x10},
-        {XAssetType::SHAREDWEAPONSOUNDS, 0x40},
-        {XAssetType::ATTACHMENT, 0x80},
-        {XAssetType::ATTACHMENT_UNIQUE, 0x864},
-        {XAssetType::WEAPON_CAMO, 0x200},
-        {XAssetType::CUSTOMIZATION_TABLE, 0x8},
-        {XAssetType::CUSTOMIZATION_TABLE_FE_IMAGES, 0x8},
-        {XAssetType::CUSTOMIZATION_TABLE_COLOR, 0x400},
-        {XAssetType::SNDDRIVER_GLOBALS, 0x1},
-        {XAssetType::FX, 0x7D0},
-        {XAssetType::TAGFX, 0x40},
-        {XAssetType::NEW_LENSFLARE_DEF, 0x46},
-        {XAssetType::IMPACT_FX, 0x100},
-        {XAssetType::IMPACT_SOUND, 0x40},
-        {XAssetType::PLAYER_CHARACTER, 0x8},
-        {XAssetType::AITYPE, 0x60},
-        {XAssetType::CHARACTER, 0x96},
-        {XAssetType::XMODELALIAS, 0x30},
-        {XAssetType::RAWFILE, 0x1388},
-        {XAssetType::STRINGTABLE, 0xDC},
-        {XAssetType::STRUCTURED_TABLE, 0x69},
-        {XAssetType::LEADERBOARD, 0x100},
-        {XAssetType::DDL, 0x40},
-        {XAssetType::GLASSES, 0x2},
-        {XAssetType::TEXTURELIST, 0x8},
-        {XAssetType::SCRIPTPARSETREE, 0x47E},
-        {XAssetType::KEYVALUEPAIRS, 0x40},
-        {XAssetType::VEHICLEDEF, 0x40},
-        {XAssetType::ADDON_MAP_ENTS, 0x1},
-        {XAssetType::TRACER, 0x64},
-        {XAssetType::SLUG, 0x5},
-        {XAssetType::SURFACEFX_TABLE, 0x40},
-        {XAssetType::SURFACESOUNDDEF, 0x100},
-        {XAssetType::FOOTSTEP_TABLE, 0x20},
-        {XAssetType::ENTITYFXIMPACTS, 0x100},
-        {XAssetType::ENTITYSOUNDIMPACTS, 0x100},
-        {XAssetType::ZBARRIER, 0x10},
-        {XAssetType::VEHICLEFXDEF, 0x20},
-        {XAssetType::VEHICLESOUNDDEF, 0x20},
-        {XAssetType::TYPEINFO, 0x00},
-        {XAssetType::SCRIPTBUNDLE, 0x400},
-        {XAssetType::SCRIPTBUNDLELIST, 0x40},
-        {XAssetType::RUMBLE, 0x118},
-        {XAssetType::BULLETPENETRATION, 0x1},
-        {XAssetType::LOCDMGTABLE, 0x1},
-        {XAssetType::AIMTABLE, 0xC},
-        {XAssetType::ANIMSELECTORTABLESET, 0x40},
-        {XAssetType::ANIMMAPPINGTABLE, 0x40},
-        {XAssetType::ANIMSTATEMACHINE, 0x40},
-        {XAssetType::BEHAVIORTREE, 0x40},
-        {XAssetType::BEHAVIORSTATEMACHINE, 0x80},
-        {XAssetType::TTF, 0x30},
-        {XAssetType::SANIM, 0x400},
-        {XAssetType::LIGHT_DESCRIPTION, 0x226},
-        {XAssetType::SHELLSHOCK, 0x40},
-        {XAssetType::XCAM, 0x214},
-        {XAssetType::BG_CACHE, 0x20},
-        {XAssetType::TEXTURE_COMBO, 0x10},
-        {XAssetType::FLAMETABLE, 0x10},
-        {XAssetType::BITFIELD, 0x34},
-        {XAssetType::ATTACHMENT_COSMETIC_VARIANT, 0x280},
-        {XAssetType::MAPTABLE, 0x19},
-        {XAssetType::MAPTABLE_LOADING_IMAGES, 0x19},
-        {XAssetType::MEDAL, 0x300},
-        {XAssetType::MEDALTABLE, 0x20},
-        {XAssetType::OBJECTIVE, 0x100},
-        {XAssetType::OBJECTIVE_LIST, 0x40},
-        {XAssetType::UMBRA_TOME, 0x00},
-        {XAssetType::NAVMESH, 0x2},
-        {XAssetType::NAVVOLUME, 0x2},
-        {XAssetType::BINARYHTML, 0x800},
-        {XAssetType::LASER, 0x32},
-        {XAssetType::BEAM, 0x32},
-        {XAssetType::STREAMER_HINT, 0x32},
-    });
-
 namespace pool {
 static std::mutex reallocation_mutex;
+constexpr bool is_fixed_pool(const XAssetType type) {
+  switch (type) {
+  case XAssetType::IMAGE:
+  case XAssetType::XMODELMESH:
+  case XAssetType::GFXWORLD:
+  case XAssetType::COMWORLD:
+  case XAssetType::GAMEWORLD:
+    return true;
+  default:
+    return false;
+  }
+}
+
 void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
   const int32_t entry_size = DB_GetXAssetTypeSize_Impl(type);
-  if (entry_size <= 0) {
+  if (entry_size <= 0 || is_fixed_pool(type)) {
     return;
   }
   pool::XAssetPool *pool = &pool::s_assetPools->pools[+type];
@@ -399,8 +304,11 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
       fprintf(stdout, "Reallocating asset pool type %d: %d -> %u entries\n",
               +type, pool->itemCount, new_size);
       fflush(stdout);
-      void *new_pool = calloc(new_size, entry_size);
-      if (new_pool == nullptr) {
+      const bool empty = pool->itemAllocCount == 0;
+      const uint32_t count =
+          empty ? new_size : new_size - static_cast<uint32_t>(pool->itemCount);
+      char *block = static_cast<char *>(calloc(count, entry_size));
+      if (block == nullptr) {
         fprintf(stderr,
                 "Failed to allocate asset pool for type %d (size: %u)\n",
                 static_cast<int32_t>(type), new_size);
@@ -408,47 +316,23 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
         return;
       }
 
-      if (pool->pool != nullptr && pool->itemAllocCount > 0) {
-        // Copy existing entries
-        memcpy(new_pool, pool->pool, pool->itemAllocCount * entry_size);
+      for (uint32_t i = 0; i + 1 < count; ++i) {
+        reinterpret_cast<AssetLink *>(block +
+                                      static_cast<size_t>(entry_size) * i)
+            ->next = reinterpret_cast<AssetLink *>(
+            block + static_cast<size_t>(entry_size) * (i + 1));
       }
-
-      // Rebuild free list for new entries
-      pool->freeHead = reinterpret_cast<AssetLink *>(
-          reinterpret_cast<char *>(new_pool) +
-          static_cast<size_t>(entry_size) * pool->itemAllocCount);
-
-      for (int32_t i = pool->itemAllocCount;
-           i < static_cast<int32_t>(new_size) - 1; i++) {
-        AssetLink *current =
-            reinterpret_cast<AssetLink *>(reinterpret_cast<char *>(new_pool) +
-                                          static_cast<size_t>(entry_size) * i);
-        current->next = reinterpret_cast<AssetLink *>(
-            reinterpret_cast<char *>(new_pool) +
-            static_cast<size_t>(entry_size) * (i + 1));
+      reinterpret_cast<AssetLink *>(block + static_cast<size_t>(entry_size) *
+                                                (count - 1))
+          ->next = empty ? nullptr : pool->freeHead;
+      pool->freeHead = reinterpret_cast<AssetLink *>(block);
+      if (empty || pool->pool == nullptr) {
+        pool->pool = block;
       }
-
-      // Last entry points to null
-      AssetLink *last = reinterpret_cast<AssetLink *>(
-          reinterpret_cast<char *>(new_pool) + entry_size * (new_size - 1));
-      last->next = nullptr;
 
       fprintf(stdout, "Reallocated asset pool type %d: %d -> %u entries\n",
               +type, pool->itemCount, new_size);
       fflush(stdout);
-
-      // Free previously extended allocation
-      if (nonnull(pool->pool) && !valid_module_ptr(pool->pool) &&
-          !valid_stack_ptr(pool->pool) && pool->itemCount != 0 &&
-          DEFAULT_POOL_SIZES.contains(type) &&
-          static_cast<int32_t>(DEFAULT_POOL_SIZES.at(type)) !=
-              pool->itemCount) {
-        void *prev = pool->pool;
-        pool->pool = new_pool;
-        free(prev);
-      } else {
-        pool->pool = new_pool;
-      }
 
       pool->itemSize = entry_size;
       pool->itemCount = new_size;
