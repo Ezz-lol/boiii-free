@@ -275,15 +275,23 @@ void launch_from_frontend(const GameModeConfiguration mode,
 utils::hook::detour sv_map_hook;
 utils::hook::detour sv_devmap_hook;
 
+bool needs_usermaps_mod(const std::string_view &mapname) {
+  return std::string_view(game::ugc::UGC_ActiveMod_PublisherId()).empty() &&
+         game::ugc::UGC_GetUsermapByInternalName(mapname).has_value();
+}
+
 template <utils::hook::detour *Hook> void sv_map_in_mode_stub() {
   std::optional<GameModeConfiguration> mode;
   std::string mapname;
+  bool leave_match = false;
   {
     const command::params_sv params{};
-    if (params.size() > 1 && game::is_new_client() &&
-        !game::com::Com_IsInGame()) {
-      mode = get_default_gamemode_config_for_map(params[1]);
-      mapname = params[1];
+    if (params.size() > 1 && game::is_new_client()) {
+      leave_match = game::com::Com_IsInGame() && needs_usermaps_mod(params[1]);
+      if (!game::com::Com_IsInGame() || leave_match) {
+        mode = get_default_gamemode_config_for_map(params[1]);
+        mapname = params[1];
+      }
     }
   }
 
@@ -292,6 +300,9 @@ template <utils::hook::detour *Hook> void sv_map_in_mode_stub() {
     return;
   }
 
+  if (leave_match) {
+    game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
+  }
   launch_from_frontend(*mode, mapname);
 }
 
