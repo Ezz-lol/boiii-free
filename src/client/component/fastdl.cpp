@@ -15,6 +15,7 @@
 
 #include <curl/curl.h>
 #include <fstream>
+#include <future>
 
 namespace fastdl {
 namespace {
@@ -398,15 +399,17 @@ void perform_download(const download_context &context) {
     const double size_gb =
         static_cast<double>(total_download_size) / (1024.0 * 1024.0 * 1024.0);
 
-    const auto result = MessageBoxA(
-        nullptr,
+    const auto answer = std::make_shared<std::promise<bool>>();
+    std::future<bool> accepted = answer->get_future();
+    download_overlay::show_confirmation(
+        "FastDL - Map Download",
         utils::string::va("You don't have this map. Would you like to download "
                           "it?\nMap: %s\nDownload size: %.2f GB",
                           context.mapname.data(), size_gb),
-        "FastDL - Map Download",
-        MB_YESNO | MB_ICONQUESTION | MB_TOPMOST | MB_SETFOREGROUND);
+        [answer] { answer->set_value(true); },
+        [answer] { answer->set_value(false); });
 
-    if (result != IDYES) {
+    if (!accepted.get()) {
       throw download_is_cancelled();
     }
 

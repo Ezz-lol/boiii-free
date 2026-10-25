@@ -466,13 +466,22 @@ void clear() {
 download_state get_state() { return state_.copy(); }
 
 void show_confirmation(const std::string &title, const std::string &message,
-                       std::function<void()> on_yes) {
+                       std::function<void()> on_yes,
+                       std::function<void()> on_no) {
+  std::function<void()> replaced{};
   confirm_.access([&](confirm_state &cstate) {
+    if (cstate.active) {
+      replaced = std::move(cstate.on_no);
+    }
     cstate.active = true;
     cstate.title = title;
     cstate.message = message;
     cstate.on_yes = std::move(on_yes);
+    cstate.on_no = std::move(on_no);
   });
+  if (replaced) {
+    replaced();
+  }
 }
 
 struct component final : client_component {
