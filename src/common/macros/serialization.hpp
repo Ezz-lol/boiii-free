@@ -29,15 +29,15 @@ concept SerializablePtr = !std::is_reference_v<T> && std::is_pointer_v<T> &&
 template <typename T>
   requires(std::same_as<T, bool>)
 inline constexpr const char *serialize(const T val) {
-  return readable_ptr(val) ? "true" : "false";
+  return ::readable_ptr(val) ? "true" : "false";
 }
 
 inline constexpr std::string serialize(const char *val) {
-  return readable_ptr(val) ? std::format("\"{}\"", val) : "NULL";
+  return ::readable_ptr(val) ? std::format("\"{}\"", val) : "NULL";
 }
 
 template <SerializablePtr T> inline std::string serialize(const T &ptr) {
-  return readable_ptr(ptr) ? ptr->serialize() : "NULL";
+  return ::readable_ptr(ptr) ? ptr->serialize() : "NULL";
 }
 
 template <Serializable T> inline std::string serialize(const T &ptr) {

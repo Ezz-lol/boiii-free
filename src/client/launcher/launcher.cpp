@@ -2026,7 +2026,8 @@ bool run() {
 
     window.get_html_frame()->register_callback(
         "getSelectedVersion",
-        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+        []([[maybe_unused]] const std::vector<html_argument> &params)
+            -> CComVariant {
           const std::optional<std::string> stored =
               utils::properties::load("selectedVersion");
           return CComVariant(stored ? stored->c_str() : "latest");
@@ -2034,7 +2035,8 @@ bool run() {
 
     window.get_html_frame()->register_callback(
         "readPlayerName",
-        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+        []([[maybe_unused]] const std::vector<html_argument> &params)
+            -> CComVariant {
           const std::optional<std::string> stored_name =
               utils::properties::load("playerName");
           std::string name;
@@ -2068,7 +2070,7 @@ bool run() {
     window.get_html_frame()->register_callback(
         "readFriendIdentity",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-          const game::XUID friend_code = auth::get_client_guid();
+          const game::XUID friend_code = auth::get_guid();
           if (friend_code == 0)
             return CComVariant("{}");
 
@@ -2091,7 +2093,8 @@ bool run() {
     window.get_html_frame()->register_callback(
         "readFriends",
         [friends_file](
-            const std::vector<html_argument> & /*params*/) -> CComVariant {
+            [[maybe_unused]] const std::vector<html_argument> &params)
+            -> CComVariant {
           std::string data;
           if (!utils::io::read_file(friends_file.string(), &data) ||
               data.empty())
