@@ -126,7 +126,7 @@ WEAK symbol<void(level::gentity_t *ent)> G_RunClient{0x1416682D0, 0x0,
 WEAK symbol<void(level::gentity_t *ent)> G_UpdatePlayerNodes{0x0, 0x0,
                                                              0x1402784C0};
 WEAK symbol<int64_t(ClientNum_t clientNum)> G_ClientSessionInfoChanged{
-    0x14167A5C0, 0x0, 0x140279960};
+    0x14167A5C0, 0x14167A5A0, 0x140279960};
 WEAK symbol<void(level::gentity_t *ent, const char *chatText)> G_Chat{
     0x141972CB0, 0x141972C90, 0x140298E70};
 WEAK symbol<void(level::gentity_t *ent, level::gentity_t *other, int32_t mode,

@@ -330,15 +330,24 @@ void handle_new_player(const game::net::netadr_t &target) {
 
   if (params.size() > 1) {
     const utils::info_string info_string(params[1]);
-    const game::XUID xuid =
-        strtoull(info_string.get("xuid").data(), nullptr, 16);
+    game::XUID xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
 
     game::ClientNum_t player_index = game::CLIENT_INDEX_COUNT;
     game::first_connected_client(
-        [&player_index, &target, xuid](game::sv::client_s &client,
-                                       const game::ClientNum_t index) {
+        [&player_index, &target, &xuid](game::sv::client_s &client,
+                                        const game::ClientNum_t index) {
           if (client.address == target && client.get_xuid() == 0) {
+            // Every bot connects with the same XUID. Clients read its low byte
+            // as the bot's slot to pick its default emblem and calling card,
+            // which the engine only adds in its session info
+            if (client.address.type == game::net::NA_BOT) {
+              xuid |= static_cast<game::XUID>(index);
+            }
             client.set_xuid(xuid);
+            // SV_DirectConnect copied the XUID into the session info while it
+            // was still 0. Update it, as the engine does when a lobby client's
+            // XUID changes.
+            game::G_ClientSessionInfoChanged(index);
             player_index = index;
             return true;
           }
