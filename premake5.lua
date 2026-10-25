@@ -630,7 +630,7 @@ local optimizationFlags = {
   -- Compilation time optimization
   "-pipe",
 
-  -- Misc. optimization
+  -- Runtime metadata optimization
   "-fomit-frame-pointer",
   "-fcf-protection=none",
 }
@@ -648,7 +648,8 @@ local toolsetConfigurationFlags = {
   "-static",
 
   -- Generate codeview debug information
-  "-g",
+  "-fstandalone-debug",
+  "-g3",
   "-gcodeview",
 }
 
@@ -698,14 +699,12 @@ linkoptions({
 filter({})
 filter({ "configurations:Debug", "toolset:not msc*" })
 buildoptions(mergeArrays(archFlags, toolsetConfigurationFlags, {
-  "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
   "-Wl,/NODEFAULTLIB:libucrt.lib",
   "-l libcmtd.lib",
 }))
 linkoptions(mergeArrays(archFlags, toolsetConfigurationFlags, {
   "-fms-runtime-lib=static_dbg",
-  "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
   "-Wl,/NODEFAULTLIB:libucrt.lib",
   "-l libcmtd.lib",
