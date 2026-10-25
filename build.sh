@@ -11,7 +11,7 @@ elif have_application "docker"; then
 	DOCKER_CMD+=("docker")
 else
 	echo "No viable Docker container engine found. Install either docker or nerdctl and containerd, then try again." >&2
-	exdit 1
+	exit 1
 fi
 
 DOCKER_CMD+=("compose"
