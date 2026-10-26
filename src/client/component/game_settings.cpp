@@ -110,7 +110,7 @@ void search_gamesettings_files_on_disk() {
   const utils::nt::library host{};
 
   search_game_settings_folder(
-      (game::get_appdata_path() / "data/gamesettings").string());
+      (game::get_data_path() / "gamesettings").string());
   search_game_settings_folder(
       (host.get_folder() / "boiii/gamesettings").string());
 }

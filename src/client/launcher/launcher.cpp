@@ -272,7 +272,7 @@ void verify_game_thread(const std::string &modes_csv) {
     std::filesystem::path base(cwd);
 
     const std::filesystem::path manifest_path =
-        game::get_appdata_path() / "data" / "launcher" / "verification.json";
+        game::get_data_path() / "launcher" / "verification.json";
     if (!std::filesystem::exists(manifest_path)) {
       set_verify_status(
           "verification.json not found in " + manifest_path.string(), 0.0, "");
@@ -2785,7 +2785,7 @@ bool run() {
                              : "BlackOps3.exe was not found");
 
           const std::filesystem::path ui_file =
-              appdata_path / "data" / "launcher" / "main.html";
+              game::get_data_path() / "launcher" / "main.html";
           filesystem_error.clear();
           const bool has_ui =
               std::filesystem::is_regular_file(ui_file, filesystem_error);
@@ -3190,7 +3190,7 @@ bool run() {
 
 const std::filesystem::path &get_launcher_ui_file() {
   static const std::filesystem::path result =
-      game::get_appdata_path() / "data/launcher/main.html";
+      game::get_data_path() / "launcher/main.html";
   return result;
 }
 } // namespace launcher

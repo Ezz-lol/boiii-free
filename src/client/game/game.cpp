@@ -5,6 +5,8 @@
 
 #include <utils/finally.hpp>
 #include <utils/flags.hpp>
+#include <utils/io.hpp>
+#include <utils/properties.hpp>
 
 #include <combaseapi.h>
 
@@ -43,6 +45,28 @@ const std::filesystem::path &get_appdata_path() {
   }();
 
   return appdata_path;
+}
+
+bool is_beta() {
+  static const bool beta = [] {
+    const bool dedicated =
+        utils::flags::has_flag("dedicated") ||
+        (!utils::io::file_exists("BlackOps3.exe") &&
+         utils::io::file_exists("BlackOps3_UnrankedDedicatedServer.exe"));
+    if (utils::flags::has_flag("beta") && dedicated) {
+      return true;
+    }
+    const std::optional<std::string> selected =
+        utils::properties::load("selectedVersion");
+    return selected && *selected == "beta";
+  }();
+  return beta;
+}
+
+const std::filesystem::path &get_data_path() {
+  static const std::filesystem::path data_path =
+      get_appdata_path() / (is_beta() ? "beta_data" : "data");
+  return data_path;
 }
 
 const std::filesystem::path &get_game_path() {

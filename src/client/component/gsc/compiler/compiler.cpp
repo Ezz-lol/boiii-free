@@ -54,8 +54,7 @@ resolve_insert_file(const std::string &insert_path,
 
   try {
     // 2) AppData: %localappdata%/boiii/data/ and data/scripts/
-    const std::filesystem::path appdata_data =
-        game::get_appdata_path() / "data";
+    const std::filesystem::path appdata_data = game::get_data_path();
     candidate = appdata_data / norm_path;
     result = try_read_file(candidate);
     if (!result.empty())
@@ -324,7 +323,7 @@ std::string preprocess_impl(const std::string &source,
             std::replace(normalized_path.begin(), normalized_path.end(), '\\',
                          '/');
             const std::filesystem::path manual_path =
-                game::get_appdata_path() / "data" / normalized_path;
+                game::get_data_path() / normalized_path;
             fprintf(stderr,
                     "^3[GSC] Missing #insert file '%s'. Download or create the "
                     ".gsh file and place it manually at:\n^3  %s\n",

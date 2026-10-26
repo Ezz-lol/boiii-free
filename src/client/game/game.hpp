@@ -24,6 +24,8 @@ constexpr std::string_view APP_ID_STR = "311210";
 void show_error(const std::string &text, const std::string &title = "Error");
 
 const std::filesystem::path &get_appdata_path();
+bool is_beta();
+const std::filesystem::path &get_data_path();
 const std::filesystem::path &get_game_path();
 const std::vector<std::string> &get_registered_dvar_names();
 size_t get_registered_dvar_name_count();

@@ -52,6 +52,10 @@ std::string get_update_file() {
   return UPDATE_FILE_MAIN;
 }
 
+const char *get_data_folder() {
+  return get_selected_version() == "beta" ? "beta_data" : "data";
+}
+
 std::string get_update_folder() {
   if (get_selected_version() == "beta") {
     return UPDATE_FOLDER_BETA;
@@ -135,8 +139,8 @@ bool is_inside_folder(const std::filesystem::path &file,
 
 bool is_user_script(const std::filesystem::path &file,
                     const std::filesystem::path &base) {
-  return is_inside_folder(file, base / "data" / "scripts") ||
-         is_inside_folder(file, base / "data" / "custom_scripts");
+  return is_inside_folder(file, base / get_data_folder() / "scripts") ||
+         is_inside_folder(file, base / get_data_folder() / "custom_scripts");
 }
 
 bool is_dedicated_server() {
@@ -544,6 +548,10 @@ file_updater::get_drive_filename(const file_info &file) const {
     return this->process_file_;
   }
 
+  if (file.name.starts_with("data/")) {
+    return this->base_ / get_data_folder() / file.name.substr(5);
+  }
+
   return this->base_ / file.name;
 }
 
@@ -656,7 +664,8 @@ void file_updater::cleanup_root_directory(
   for (const auto &file : existing_files) {
     const std::filesystem::path entry =
         std::filesystem::relative(file, this->base_);
-    if ((entry.string() == "user" || entry.string() == "data") &&
+    if ((entry.string() == "user" || entry.string() == "data" ||
+         entry.string() == "beta_data") &&
         utils::io::directory_exists(file)) {
       continue;
     }
@@ -684,7 +693,9 @@ void file_updater::cleanup_data_directory(
   }
 
   const std::filesystem::path installed_list =
-      base / "user" / "updater_files.txt";
+      base / "user" /
+      (get_selected_version() == "beta" ? "updater_files_beta.txt"
+                                        : "updater_files.txt");
   std::string installed_data;
   const bool has_installed_list =
       utils::io::read_file(installed_list, &installed_data);
@@ -697,13 +708,18 @@ void file_updater::cleanup_data_directory(
   legal_files.reserve(files.size());
   std::string current_list;
   for (const auto &file : files) {
-    current_list += file.name + "\n";
-    if (file.name.starts_with("data")) {
-      legal_files.emplace_back(std::filesystem::absolute(base / file.name));
+    if (!file.name.starts_with("data")) {
+      current_list += file.name + "\n";
+      continue;
     }
+    const std::filesystem::path drive_name = this->get_drive_filename(file);
+    current_list +=
+        std::filesystem::relative(drive_name, base).generic_string() + "\n";
+    legal_files.emplace_back(std::filesystem::absolute(drive_name));
   }
 
-  const auto existing_files = utils::io::list_files(base / "data", true);
+  const auto existing_files =
+      utils::io::list_files(base / get_data_folder(), true);
   for (auto &file : existing_files) {
     const auto is_file = std::filesystem::is_regular_file(file);
     const auto is_folder = std::filesystem::is_directory(file);

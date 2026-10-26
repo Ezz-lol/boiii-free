@@ -602,7 +602,7 @@ void load_dvar_list() {
     std::string data;
 
     const std::filesystem::path path =
-        game::get_appdata_path() / "data/lookup_tables/dvar_list.txt";
+        game::get_data_path() / "lookup_tables/dvar_list.txt";
     if (utils::io::read_file(path.string(), &data)) {
       std::istringstream iss(data);
       std::string line;

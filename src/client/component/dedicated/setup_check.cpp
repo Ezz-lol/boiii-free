@@ -75,7 +75,7 @@ std::filesystem::path find_usermap(const std::string &map) {
 
 void check_data_files() {
   const utils::nt::library host{};
-  const std::filesystem::path data = game::get_appdata_path() / "data";
+  const std::filesystem::path data = game::get_data_path();
   const std::filesystem::path script = std::filesystem::path("lobby_scripts") /
                                        "server_lobby_selector" / "__init__.lua";
   if (!path_exists(data / script) &&

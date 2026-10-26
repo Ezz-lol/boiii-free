@@ -657,7 +657,7 @@ void start() {
 
   const utils::nt::library host{};
   const char *folder = game::is_server() ? "lobby_scripts/" : "ui_scripts/";
-  load_scripts((game::get_appdata_path() / "data" / folder).string());
+  load_scripts((game::get_data_path() / folder).string());
   load_scripts((host.get_folder() / "boiii" / folder).string());
 }
 
@@ -672,7 +672,7 @@ void try_start() {
 void reload_private_game_menu_scripts() {
   const utils::nt::library host{};
   const std::filesystem::path roots[] = {
-      game::get_appdata_path() / "data/ui_scripts",
+      game::get_data_path() / "ui_scripts",
       host.get_folder() / "boiii/ui_scripts",
   };
   const char *files[] = {
@@ -711,8 +711,7 @@ void ui_cod_init_stub(const bool frontend) {
     const utils::nt::library host{};
     doneFirstSnapshot.store(false, std::memory_order_release);
 
-    load_local_script_files(
-        (game::get_appdata_path() / "data/ui_scripts/").string());
+    load_local_script_files((game::get_data_path() / "ui_scripts/").string());
     load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
     return;
   }
@@ -1843,7 +1842,7 @@ inline void register_lui_commands() {
     if (params.size() >= 2) {
       dir = params.get(1);
     } else {
-      dir = (game::get_appdata_path() / "data" / "ui_scripts").string();
+      dir = (game::get_data_path() / "ui_scripts").string();
     }
 
     scheduler::once(
@@ -1870,7 +1869,7 @@ inline void register_lui_commands() {
     if (params.size() >= 2) {
       dir = params.get(1);
     } else {
-      dir = (game::get_appdata_path() / "data" / "ui_scripts").string();
+      dir = (game::get_data_path() / "ui_scripts").string();
     }
 
     scheduler::once(

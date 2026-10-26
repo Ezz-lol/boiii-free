@@ -749,8 +749,7 @@ void load_scripts_directory(
       }
 
       std::string name = script.generic_string();
-      const std::string appdata_path =
-          (get_appdata_path() / "data/").generic_string();
+      const std::string appdata_path = (get_data_path() / "").generic_string();
       const std::string host_path =
           (utils::nt::library{}.get_folder() / "boiii/").generic_string();
 
@@ -886,7 +885,7 @@ shared_tree_directories(const std::filesystem::path (&roots)[N],
 void load_tree(std::filesystem::path tree, bool queue_execution = false) {
   const utils::nt::library host{};
 
-  const std::filesystem::path data_directory = get_appdata_path() / "data";
+  const std::filesystem::path data_directory = get_data_path();
   const std::filesystem::path boiii_directory = host.get_folder() / "boiii";
   std::unordered_set<std::string> compiled_scripts;
   std::unordered_set<std::string> executed_scripts;
@@ -1103,7 +1102,7 @@ void load_rawfiles_directory(
 
             std::string name = script.generic_string();
             const std::string appdata_path =
-                (get_appdata_path() / "data/").generic_string();
+                (get_data_path() / "").generic_string();
             const std::string host_path =
                 (utils::nt::library{}.get_folder() / "boiii/").generic_string();
 
@@ -1140,7 +1139,7 @@ void load_rawfiles() {
 
   const utils::nt::library host{};
 
-  const std::filesystem::path data_directory = get_appdata_path() / "data";
+  const std::filesystem::path data_directory = get_data_path();
   const std::filesystem::path boiii_directory = host.get_folder() / "boiii";
 
   const auto load =
@@ -1328,7 +1327,7 @@ void load_global_hash_table() {
 
     // Try appdata path first, then exe-relative path
     const std::filesystem::path appdata =
-        get_appdata_path() / "data" / "lookup_tables" / "hash_names.txt";
+        get_data_path() / "lookup_tables" / "hash_names.txt";
     if (!try_load(appdata)) {
       const std::filesystem::path host = utils::nt::library{}.get_folder() /
                                          "boiii" / "data" / "lookup_tables" /
