@@ -28,7 +28,10 @@ local customActiveFilters = {}
 local customActiveAttributes = {}
 
 local function isCustomTab()
-  return currentCustomMode == "all" or currentCustomMode == "cp" or currentCustomMode == "zm"
+  return currentCustomMode == "all"
+    or currentCustomMode == "cp"
+    or currentCustomMode == "zm"
+    or currentCustomMode == "mp"
 end
 
 local function isValidServer(info)
@@ -78,7 +81,12 @@ local function sortFilteredIndices(sortType)
   local keys = {}
   for _, idx in ipairs(filteredServerIndices) do
     local info = game.getrawserverinfo(idx)
-    keys[idx] = info and sortKey(info[spec.field])
+    local value = info and info[spec.field]
+    if info and spec.field == "playerCount" then
+      -- Rows show humans only, so sort on that rather than the total including bots
+      value = (info.playerCount or 0) - (info.botCount or 0)
+    end
+    keys[idx] = info and sortKey(value)
   end
 
   table.sort(filteredServerIndices, function(a, b)
@@ -190,6 +198,8 @@ local function rebuildFilteredIndices()
       local modeOk = false
       if currentCustomMode == "all" then
         modeOk = true
+      elseif currentCustomMode == "mp" then
+        modeOk = (info.zombies ~= true) and not (info.campaign and info.campaign == 1)
       elseif currentCustomMode == "zm" then
         modeOk = (info.zombies == true)
       elseif currentCustomMode == "cp" then
@@ -235,6 +245,8 @@ if SB.RequestServers then
     currentRequestedServerType = serverType
 
     local customModes = { [CUSTOM_TYPE_ALL] = "all", [CUSTOM_TYPE_CAMPAIGN] = "cp", [CUSTOM_TYPE_ZOMBIES] = "zm" }
+    -- The stock Multiplayer tab is sorted in Lua too, as the engine's sort ranks by total players including bots
+    customModes[Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET] = "mp"
     currentCustomMode = customModes[serverType]
     pcall(
       SB.RequestServers,
