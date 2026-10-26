@@ -225,19 +225,6 @@ void forget_hudelem_cfgstr_pool() {
   }
 }
 
-utils::hook::detour Scr_FreeHudElem_hook;
-
-void Scr_FreeHudElem_ReleaseCfgStrEntry(volatile game_hudelem_t *hud) {
-  const uint16_t hudElemIdx =
-      static_cast<uint16_t>(hud - &ui::he::g_hudelems->get(0));
-  if (sv::sv->running()) {
-    unregister_clear_hudelem_cfgstr(hudElemIdx);
-  } else {
-    hudelem_cfgstr_pool[hudElemIdx].clear();
-  }
-  Scr_FreeHudElem_hook.invoke(hud);
-}
-
 utils::hook::detour HudElem_DestroyAll_hook;
 
 void HudElem_DestroyAll_ClearCfgStrEntry_Invoke() {
@@ -267,13 +254,9 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
              .localizedStrings[index -
                                s_bgCacheTypeInfo->locstring.configStringStart];
 
-    if (::readable_ptr(name) && name[0]) {
-      data->setName(name);
-      if (!data->refCount) {
-        data->add_ref();
-      }
-    } else {
-      data->reset();
+    data->setName(name);
+    if (!data->refCount) {
+      data->add_ref();
     }
     s_bgCache->client.checksum.isDirty = true;
   } else {
@@ -321,10 +304,6 @@ inline void apply_hudelem_hooks() {
 
   HudElem_DestroyAll_hook.create(game::ui::he::HudElem_DestroyAll,
                                  HudElem_DestroyAll_ClearCfgStrEntry_Invoke);
-  if (!game::is_legacy_client()) {
-    Scr_FreeHudElem_hook.create(game::ui::he::Scr_FreeHudElem,
-                                Scr_FreeHudElem_ReleaseCfgStrEntry);
-  }
 
   // Client-side: don't unnecessarily re-register an entry on value change if
   // the given index was previously registered
