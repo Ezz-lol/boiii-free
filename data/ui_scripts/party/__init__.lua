@@ -56,7 +56,9 @@ local function restoreGameOptions(widgetName, top)
 
   local originalNew = widget.new
   local restoredNew = function(menu, controller)
-    if BoiiiStartMenuGameOptions then
+    if BoiiiAppendHostOptions then
+      BoiiiAppendHostOptions(DataSources.StartMenuGameOptions)
+    elseif BoiiiStartMenuGameOptions then
       DataSources.StartMenuGameOptions = BoiiiStartMenuGameOptions
     end
     local instance = originalNew(menu, controller)

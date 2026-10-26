@@ -152,8 +152,60 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
   return options
 end, true)
 
+-- With a mod loaded, keep the mod's pause menu and only add our host options
+-- after its own, skipping any it already has
+local function appendHostOptions(dataSource)
+  if not dataSource or dataSource.boiiiHostOptions then
+    return
+  end
+  local prepare = dataSource.prepare
+  dataSource.prepare = function(controller, list, filter)
+    prepare(controller, list, filter)
+    local items = list.customDataSourceHelper and list[list.customDataSourceHelper]
+    if not items then
+      return
+    end
+    if isLocalGameHost() then
+      local existing = {}
+      for _, item in ipairs(items) do
+        local displayText = Engine.GetModel(item.model, "displayText")
+        if displayText then
+          existing[Engine.GetModelValue(displayText)] = true
+        end
+      end
+      if existing["MENU_RESTART_LEVEL_CAPS"] or existing["MENU_RESTART_MISSION_CAPS"] then
+        existing["^3RESTART"] = true
+      end
+      local hostOptions = {}
+      addHostOptions(hostOptions)
+      local root = Engine.CreateModel(Engine.GetModelForController(controller), list.customDataSourceHelper)
+      for _, option in ipairs(hostOptions) do
+        if not existing[option.models.displayText] then
+          local index = #items + 1
+          local model = Engine.GetModel(root, index)
+          if model then
+            Engine.UnsubscribeAndFreeModel(model)
+          end
+          model = Engine.CreateModel(root, index)
+          for key, value in pairs(option.models) do
+            Engine.SetModelValue(Engine.CreateModel(model, key), value)
+          end
+          table.insert(items, { model = model, properties = option.properties })
+        end
+      end
+    end
+    BoiiiStartMenuOptionCount = #items
+  end
+  dataSource.boiiiHostOptions = true
+end
+
 -- Keep a stable reference for the pause-menu constructor. BO3 may replace the
 -- table entry while transitioning maps, so the constructor restores it at the
 -- exact point where the menu is created.
-BoiiiStartMenuGameOptions = customStartMenuGameOptions
-DataSources.StartMenuGameOptions = BoiiiStartMenuGameOptions
+if Engine.IsUsingMods() and Engine.UsingModsUgcName() ~= "" and Engine.UsingModsUgcName() ~= "usermaps" then
+  BoiiiAppendHostOptions = appendHostOptions
+  appendHostOptions(DataSources.StartMenuGameOptions)
+else
+  BoiiiStartMenuGameOptions = customStartMenuGameOptions
+  DataSources.StartMenuGameOptions = BoiiiStartMenuGameOptions
+end

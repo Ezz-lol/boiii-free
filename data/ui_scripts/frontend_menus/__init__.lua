@@ -24,6 +24,102 @@ local function addWorkshopButton(controller, menuId, buttonTable)
   utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.WORKSHOP, modsIndex and modsIndex + 1)
 end
 
+local statsButton = {
+  stringRef = "STATS",
+  action = function(self, element, controller, param, menu)
+    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
+    OpenPopup(menu, "BoiiiStatsMenu", controller)
+  end,
+  customId = "btnMPStats",
+}
+
+local quickSettingsButton = {
+  stringRef = "^8" .. Engine.Localize("BOIII SETTINGS"),
+  action = function(self, element, controller, param, menu)
+    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
+    OpenPopup(menu, "BoiiiQuickSettingsMenu", controller)
+  end,
+  customId = "btnQuickSettings",
+}
+
+local function friendsPartyLabel()
+  if Engine.DvarBool(nil, "friends_open") then
+    return "^2PARTY IS OPEN"
+  end
+  return "^1PARTY IS CLOSED"
+end
+
+local friendsPartyButton = {
+  stringRef = friendsPartyLabel(),
+  action = function(self, element, controller, param, menu)
+    Engine.ExecNow(controller, "friends_open")
+    Engine.SetModelValue(Engine.GetModel(element:getModel(), "displayText"), friendsPartyLabel())
+  end,
+  customId = "btnFriendsParty",
+}
+
+local function isLobbyLeader(controller)
+  local model = nil
+  if Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) then
+    model = Engine.GetModel(DataSources.LobbyRoot.getModel(controller), "gameClient.isHost")
+  else
+    model = Engine.GetModel(DataSources.LobbyRoot.getModel(controller), "privateClient.isHost")
+  end
+  if model == nil then
+    return 1
+  end
+  return Engine.GetModelValue(model)
+end
+
+local function isMainLobby(menuId)
+  local targets = LobbyData.UITargets
+  return menuId == targets.UI_MPLOBBYMAIN.id
+    or menuId == targets.UI_MPLOBBYONLINE.id
+    or menuId == targets.UI_ZMLOBBYONLINE.id
+    or menuId == targets.UI_ZMLOBBYLANGAME.id
+    or (targets.UI_CPLOBBYONLINE and menuId == targets.UI_CPLOBBYONLINE.id)
+    or (targets.UI_CPLOBBYLANGAME and menuId == targets.UI_CPLOBBYLANGAME.id)
+end
+
+local function hasButton(buttonTable, button)
+  for _, item in ipairs(buttonTable) do
+    if item.customId == button.customId or item.optionDisplay == button.stringRef then
+      return true
+    end
+  end
+  return false
+end
+
+local function appendButton(controller, buttonTable, button)
+  if not hasButton(buttonTable, button) then
+    utils.AddSmallButton(controller, buttonTable, button)
+  end
+end
+
+local function addModButtons(controller, menuId, buttonTable)
+  if isMainLobby(menuId) then
+    appendButton(controller, buttonTable, quickSettingsButton)
+  end
+
+  local isLeader = isLobbyLeader(controller)
+  if
+    (isLeader == 1 or isLeader == true)
+    and Engine.GetLobbyNetworkMode() ~= Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LAN
+  then
+    for _, anchor in ipairs({
+      CoD.LobbyButtons.ZM_CHANGE_MAP,
+      CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME,
+      CoD.LobbyButtons.CP_SELECT_MISSION,
+    }) do
+      if utils.GetButtonIndex(buttonTable, anchor) then
+        friendsPartyButton.stringRef = friendsPartyLabel()
+        appendButton(controller, buttonTable, friendsPartyButton)
+        break
+      end
+    end
+  end
+end
+
 if
   type(Engine.IsUsingMods) == "function"
   and Engine.IsUsingMods()
@@ -32,7 +128,10 @@ then
   local oldAddButtonsForTarget = CoD.LobbyMenus.AddButtonsForTarget
   CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
     local result = oldAddButtonsForTarget(controller, id)
-    addWorkshopButton(controller, id, result)
+    if result then
+      addWorkshopButton(controller, id, result)
+      addModButtons(controller, id, result)
+    end
     return result
   end
   return
@@ -43,6 +142,10 @@ local enableLargeServerBrowserButton = true -- toggle large server browser butto
 
 require("datasources_start_menu_tabs")
 require("datasources_change_map_categories")
+
+CoD.LobbyButtons.STATS = statsButton
+CoD.LobbyButtons.QUICK_SETTINGS = quickSettingsButton
+CoD.LobbyButtons.FRIENDS_PARTY = friendsPartyButton
 require("datasources_gamesettingsflyout_buttons")
 
 CoD.LobbyButtons.PLAY_LOCAL.stringRef = "^1" .. Engine.Localize("MENU_PLAY_LOCAL_CAPS")
@@ -59,40 +162,6 @@ CoD.LobbyButtons.MP_FIND_MATCH = {
   stringRef = "MPUI_BASICTRAINING_CAPS",
   action = OpenFindMatch,
   customId = "btnFindMatch",
-}
-
-CoD.LobbyButtons.STATS = {
-  stringRef = "STATS",
-  action = function(self, element, controller, param, menu)
-    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
-    OpenPopup(menu, "BoiiiStatsMenu", controller)
-  end,
-  customId = "btnMPStats",
-}
-
-CoD.LobbyButtons.QUICK_SETTINGS = {
-  stringRef = "^8" .. Engine.Localize("BOIII SETTINGS"),
-  action = function(self, element, controller, param, menu)
-    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
-    OpenPopup(menu, "BoiiiQuickSettingsMenu", controller)
-  end,
-  customId = "btnQuickSettings",
-}
-
-local function friendsPartyLabel()
-  if Engine.DvarBool(nil, "friends_open") then
-    return "^2PARTY IS OPEN"
-  end
-  return "^1PARTY IS CLOSED"
-end
-
-CoD.LobbyButtons.FRIENDS_PARTY = {
-  stringRef = friendsPartyLabel(),
-  action = function(self, element, controller, param, menu)
-    Engine.ExecNow(controller, "friends_open")
-    Engine.SetModelValue(Engine.GetModel(element:getModel(), "displayText"), friendsPartyLabel())
-  end,
-  customId = "btnFriendsParty",
 }
 
 CoD.LobbyButtons.STEAM_STORE = {
@@ -267,18 +336,7 @@ end
 
 local oldAddButtonsForTarget = CoD.LobbyMenus.AddButtonsForTarget
 CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
-  local model = nil
-  if Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) then
-    model = Engine.GetModel(DataSources.LobbyRoot.getModel(controller), "gameClient.isHost")
-  else
-    model = Engine.GetModel(DataSources.LobbyRoot.getModel(controller), "privateClient.isHost")
-  end
-  local isLeader = nil
-  if model ~= nil then
-    isLeader = Engine.GetModelValue(model)
-  else
-    isLeader = 1
-  end
+  local isLeader = isLobbyLeader(controller)
   local result = oldAddButtonsForTarget(controller, id)
   addWorkshopButton(controller, id, result)
   addCustomButtons(controller, id, result, isLeader)
