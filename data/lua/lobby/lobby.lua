@@ -20,6 +20,22 @@ require("lua.Lobby.LobbyTimer")
 require("lua.Lobby.LobbyEvents")
 require("lua.Lobby.UserGeneratedContent")
 
+-- Teams are never split within a party, and split-screen players are one, so on their own they can never be balanced
+-- and the lobby waits for more players forever. With only local players there's nobody to balance against, so start
+-- like a single player can and let the game pick teams when they spawn
+local autoSplitTeam = Lobby.TeamSelection.AutoSplitTeam
+Lobby.TeamSelection.AutoSplitTeam = function(requireBalanced, ...)
+  local remoteClients = Engine.GetLobbyClientCount(
+    Enum.LobbyModule.LOBBY_MODULE_HOST,
+    Enum.LobbyType.LOBBY_TYPE_GAME,
+    Enum.LobbyClientType.LOBBY_CLIENT_TYPE_REMOTE
+  )
+  if requireBalanced and remoteClients == 0 then
+    return true
+  end
+  return autoSplitTeam(requireBalanced, ...)
+end
+
 Util = {
   IsNil = function(value)
     if value == nil then
