@@ -241,7 +241,6 @@ if SB.RequestServers then
     filteredServerIndices = nil
     skullSortedOrder = nil
     skullSortAscending = nil
-    currentSortType = nil
     currentRequestedServerType = serverType
 
     local customModes = { [CUSTOM_TYPE_ALL] = "all", [CUSTOM_TYPE_CAMPAIGN] = "cp", [CUSTOM_TYPE_ZOMBIES] = "zm" }
@@ -272,8 +271,8 @@ end
 if SB.Sort then
   Engine.SteamServerBrowser_Sort = function(sortType)
     pcall(SB.Sort, sortType)
+    currentSortType = sortType
     if isCustomTab() and filteredServerIndices then
-      currentSortType = sortType
       skullSortedOrder = nil
       skullSortAscending = nil
       sortFilteredIndices(sortType)
