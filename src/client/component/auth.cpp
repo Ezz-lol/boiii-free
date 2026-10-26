@@ -336,7 +336,12 @@ void handle_new_player(const game::net::netadr_t &target) {
     game::first_connected_client(
         [&player_index, &target, &xuid](game::sv::client_s &client,
                                         const game::ClientNum_t index) {
-          if (client.address == target && client.get_xuid() == 0) {
+          // SV_UserinfoChanged has already set a player's XUID from their
+          // userinfo. Bots share one XUID, so only take a bot that has none yet
+          const game::XUID client_xuid = client.get_xuid();
+          if (client.address == target &&
+              (client_xuid == 0 ||
+               (target.type != game::net::NA_BOT && client_xuid == xuid))) {
             // Every bot connects with the same XUID. Clients read its low byte
             // as the bot's slot to pick its default emblem and calling card,
             // which the engine only adds in its session info
