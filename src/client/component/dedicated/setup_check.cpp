@@ -171,10 +171,6 @@ void check_mod() {
   if (folder.empty()) {
     warn(std::format("Mod '{}' (fs_game) was not found. Put it in {}", mod,
                      (game::get_game_path() / "mods" / mod).string()));
-  } else if (!has_workshop_json(folder)) {
-    warn(std::format("Mod '{}' in {} has no workshop.json, so the game "
-                     "can't load it.",
-                     mod, folder.string()));
   }
 }
 
