@@ -154,6 +154,9 @@ Engine.PurchaseDWSKU = function(controller, sku, ...)
   return originalPurchaseDWSKU(controller, sku, ...)
 end
 
+-- Outfit contracts can't be completed without Demonware, so only the outfits are sold
+Engine.SetDvar("store_hideOutfitContracts", "1")
+
 local purchaseVialsOverlay = CoD.OverlayUtility.Overlays.PurchaseVialsConfirmation
 local originalVialsList = purchaseVialsOverlay.listDatasource
 
