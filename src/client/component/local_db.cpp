@@ -22,6 +22,7 @@ struct item_row {
   uint32_t item_id;
   uint32_t quantity;
   uint32_t expire_time;
+  uint32_t obtained_time;
 };
 
 auto make_storage() {
@@ -31,11 +32,13 @@ auto make_storage() {
       make_table("balances",
                  make_column("currency", &balance_row::currency, primary_key()),
                  make_column("value", &balance_row::value)),
-      make_table("inventory",
-                 make_column("item_id", &item_row::item_id, primary_key()),
-                 make_column("quantity", &item_row::quantity),
-                 make_column("expire_time", &item_row::expire_time,
-                             default_value(0))));
+      make_table(
+          "inventory",
+          make_column("item_id", &item_row::item_id, primary_key()),
+          make_column("quantity", &item_row::quantity),
+          make_column("expire_time", &item_row::expire_time, default_value(0)),
+          make_column("obtained_time", &item_row::obtained_time,
+                      default_value(0))));
 }
 using storage = decltype(make_storage());
 
@@ -78,7 +81,7 @@ void load(bool reload = false) {
       balances[row.currency] = row.value;
     }
     for (const item_row &row : database->get_all<item_row>()) {
-      items[row.item_id] = {row.quantity, row.expire_time};
+      items[row.item_id] = {row.quantity, row.expire_time, row.obtained_time};
     }
   } catch (const std::exception &) {
   }
@@ -118,7 +121,8 @@ std::optional<item> get_item(uint32_t item_id) {
   return found->second;
 }
 
-bool set_item(uint32_t item_id, uint32_t quantity, uint32_t expire_time) {
+bool set_item(uint32_t item_id, uint32_t quantity, uint32_t expire_time,
+              uint32_t obtained_time) {
   std::lock_guard _(db_mutex);
   load();
   storage *database = open();
@@ -126,11 +130,11 @@ bool set_item(uint32_t item_id, uint32_t quantity, uint32_t expire_time) {
     return false;
   }
   try {
-    database->replace(item_row{item_id, quantity, expire_time});
+    database->replace(item_row{item_id, quantity, expire_time, obtained_time});
   } catch (const std::exception &) {
     return false;
   }
-  items[item_id] = {quantity, expire_time};
+  items[item_id] = {quantity, expire_time, obtained_time};
   return true;
 }
 
