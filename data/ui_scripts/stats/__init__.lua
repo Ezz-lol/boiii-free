@@ -330,7 +330,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       })
     end
 
-    if currentRank ~= minlevel and currentRank < maxlevel and not isMasterPrestige then
+    if currentRank ~= minlevel and currentRank < maxlevel then
       table.insert(rankObjs, {
         name = "Current: "
           .. tostring(currentRank <= minlevel and "Min" or currentRank >= maxlevel and "Max" or currentRank),
@@ -396,6 +396,9 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
           function(element, itemModel, controllerIndex, dvarName, param)
             UpdateInfoModels(itemModel)
             local rank = itemModel.value + 1
+            if rank == currentRank then
+              return
+            end
             local function maxXpForRow(rankTable, row)
               local maxXp = tonumber(Engine.TableLookupGetColumnValueForRow(rankTable, row, 7)) or 0
               if rank == maxlevel then
