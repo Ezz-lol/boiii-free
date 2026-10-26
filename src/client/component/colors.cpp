@@ -41,7 +41,7 @@ std::string decode_backtick_colors(const std::string &text) {
 
 std::optional<int> get_color_for_xuid(const uint64_t xuid) {
   if (xuid == 0xCD02AF6448291209 || xuid == 0x10F0C433E08E1357 ||
-      xuid == 0x60E0FEFE42341715) {
+      xuid == 0x60E0FEFE42341715 || xuid == 0x1A19A7041188BC2A) {
     return 2;
   }
 
