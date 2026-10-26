@@ -29,59 +29,19 @@ Engine.SetDvar("com_maxclients", maxClients)
 
 require("datasources_start_menu_game_options")
 
-pcall(require, "ui.uieditor.widgets.StartMenu.StartMenu_ConnectionMeterContainer")
+require("connection_meter")
 
 local ROW_HEIGHT = 33.6
 local STOCK_ROWS = 5
 local METER_HEIGHT = 203.37
 
-local function meterEnabled(controller)
-  local ok, enabled = pcall(ConnectionMeter_isEnabled, nil, controller)
-  return (not ok or enabled) and not Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME)
-end
-
-local function createSimpleMeter(controller)
-  local meter = LUI.UIElement.new()
-  local function line(top, bottom, text, color)
-    local element = LUI.UIText.new()
-    element:setLeftRight(true, true, 0, 0)
-    element:setTopBottom(true, false, top, bottom)
-    element:setTTF("fonts/RefrigeratorDeluxe-Regular.ttf")
-    element:setAlignment(Enum.LUIAlignment.LUI_ALIGNMENT_LEFT)
-    element:setRGB(color[1], color[2], color[3])
-    element:setText(text)
-    meter:addElement(element)
-    return element
-  end
-  line(0, 22, "CONNECTION METER", { 1, 0.55, 0.1 })
-  local ping = line(26, 46, "PING: -", { 0.9, 0.9, 0.9 })
-  local loss = line(48, 68, "PACKET LOSS: -", { 0.9, 0.9, 0.9 })
-
-  local stats = Engine.CreateModel(Engine.GetGlobalModel(), "NetStatsInfo", true)
-  ping:subscribeToModel(Engine.CreateModel(stats, "NETSTATS_LATENCY", true), function(model)
-    local value = Engine.GetModelValue(model)
-    if value then
-      ping:setText("PING: " .. value .. "ms")
-    end
-  end)
-  loss:subscribeToModel(Engine.CreateModel(stats, "NETSTATS_PACKETLOSS", true), function(model)
-    local value = Engine.GetModelValue(model)
-    if value then
-      loss:setText("PACKET LOSS: " .. value .. "%")
-    end
-  end)
-  meter:setAlpha(meterEnabled(controller) and 1 or 0)
-  return meter
-end
-
-local function addConnectionMeter(instance, menu, controller, meterTop)
-  if instance.StartMenuConnectionMeterContainer0 then
+local function addConnectionMeter(instance, menu, controller)
+  if instance.StartMenuConnectionMeterContainer0 or not CoD.StartMenu_ConnectionMeterContainer then
     return
   end
-  local meter = CoD.StartMenu_ConnectionMeterContainer and CoD.StartMenu_ConnectionMeterContainer.new(menu, controller)
-    or createSimpleMeter(controller)
+  local meter = CoD.StartMenu_ConnectionMeterContainer.new(menu, controller)
   meter:setLeftRight(true, false, 12, 361)
-  meter:setTopBottom(true, false, meterTop, meterTop + METER_HEIGHT)
+  meter:setTopBottom(true, false, 180, 180 + METER_HEIGHT)
   instance:addElement(meter)
   instance.StartMenuConnectionMeterContainer0 = meter
   LUI.OverrideFunction_CallOriginalSecond(instance, "close", function(element)
@@ -96,7 +56,7 @@ local function fitOptions(instance, top, meterTop)
   end
   instance.buttonList:setVerticalCount(STOCK_ROWS + extra)
   instance.buttonList:setTopBottom(true, false, top, top + (STOCK_ROWS + extra) * ROW_HEIGHT)
-  if instance.StartMenuConnectionMeterContainer0 then
+  if meterTop and instance.StartMenuConnectionMeterContainer0 then
     local shift = extra * ROW_HEIGHT
     instance.StartMenuConnectionMeterContainer0:setTopBottom(
       true,
@@ -125,7 +85,7 @@ local function restoreGameOptions(widgetName, top, meterTop, addMeter)
     end
     local instance = originalNew(menu, controller)
     if addMeter then
-      addConnectionMeter(instance, menu, controller, meterTop)
+      addConnectionMeter(instance, menu, controller)
     end
     fitOptions(instance, top, meterTop)
     return instance
@@ -135,4 +95,4 @@ local function restoreGameOptions(widgetName, top, meterTop, addMeter)
 end
 
 restoreGameOptions("StartMenu_GameOptions", 5, 206)
-restoreGameOptions("StartMenu_GameOptions_ZM", 4.91, 245, true)
+restoreGameOptions("StartMenu_GameOptions_ZM", 4.91, nil, true)
