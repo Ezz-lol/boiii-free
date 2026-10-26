@@ -192,6 +192,11 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Disable plugin load.")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-nouiscripts", "--nouiscripts")
+      .help("Disable the custom UI scripts, so the game uses its own menus "
+            "(or a mod's).")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-nologs", "--nologs")
       .help("Disable all patches to developer console.")
       .default_value(false)
