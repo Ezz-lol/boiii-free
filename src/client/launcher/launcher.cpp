@@ -2070,7 +2070,7 @@ bool run() {
     window.get_html_frame()->register_callback(
         "readFriendIdentity",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-          const game::XUID friend_code = auth::get_guid();
+          const game::XUID friend_code = auth::get_client_guid();
           if (friend_code == 0)
             return CComVariant("{}");
 

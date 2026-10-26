@@ -565,6 +565,12 @@ alwaysinline const game::LocalClientPool<game::XUID> &server_guids() {
   return guids;
 }
 
+game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
+  return client_guids()[game::valid_controller_index(controllerIndex)
+                            ? controllerIndex
+                            : game::CONTROLLER_INDEX_0];
+}
+
 game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
   static const game::LocalClientPool<game::XUID> &guids =
       game::is_client() ? client_guids() : server_guids();
