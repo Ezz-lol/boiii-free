@@ -528,6 +528,12 @@ void load_script(const std::string &name, const std::string &data,
   }
 }
 
+bool load_ui_scripts() {
+  static const bool enabled =
+      game::is_server() || !utils::flags::has_flag("nouiscripts");
+  return enabled;
+}
+
 void load_local_script_files(const std::string &script_dir) {
   if (utils::io::directory_exists(script_dir)) {
     const std::vector<std::filesystem::path> scripts =
@@ -655,6 +661,10 @@ void setup_lua_globals() {
 void start() {
   setup_lua_globals();
 
+  if (!load_ui_scripts()) {
+    return;
+  }
+
   const utils::nt::library host{};
   const char *folder = game::is_server() ? "lobby_scripts/" : "ui_scripts/";
   load_scripts((game::get_data_path() / folder).string());
@@ -670,6 +680,10 @@ void try_start() {
 }
 
 void reload_private_game_menu_scripts() {
+  if (!load_ui_scripts()) {
+    return;
+  }
+
   const utils::nt::library host{};
   const std::filesystem::path roots[] = {
       game::get_data_path() / "ui_scripts",
@@ -711,6 +725,9 @@ void ui_cod_init_stub(const bool frontend) {
     const utils::nt::library host{};
     doneFirstSnapshot.store(false, std::memory_order_release);
 
+    if (!load_ui_scripts()) {
+      return;
+    }
     load_local_script_files((game::get_data_path() / "ui_scripts/").string());
     load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
     return;
