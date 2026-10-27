@@ -15,6 +15,8 @@ local function updateDvar(controller, optionModel, optionsList, dvarName, extraP
   Engine.SetDvar(dvarName, optionModel.value)
 end
 
+local ADVANCED_BOTS_DESC = "Bots strafe, hear, slide cancel, use more scorestreaks and play objectives better."
+
 local function toggle(controller, dvar, name, description)
   return CoD.OptionsUtility.CreateDvarSettings(controller, name, description, "QuickSettings_" .. dvar, dvar, {
     { option = "MENU_DISABLED", value = 0, default = true },
@@ -223,6 +225,10 @@ DataSources.BoiiiQuickSettingsGame = DataSourceHelpers.ListSetup("BoiiiQuickSett
     )
   )
 
+  if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
+    table.insert(optionsTable, toggle(controller, "boiii_advancedBots", "Advanced Bots", ADVANCED_BOTS_DESC))
+  end
+
   -- Max clients for custom games (MP only)
   if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
     local maxClientOptions = {}
@@ -332,6 +338,30 @@ DataSources.BoiiiQuickSettingsGame = DataSourceHelpers.ListSetup("BoiiiQuickSett
 
   return optionsTable
 end)
+
+-- Also in Combat Training's bot setup, next to the bot count and difficulty
+require("ui.uieditor.menus.GameSettings.GameSettings_Bots")
+if DataSources.BotSettings then
+  local prepareBotSettings = DataSources.BotSettings.prepare
+  DataSources.BotSettings.prepare = function(controller, list, filter)
+    prepareBotSettings(controller, list, filter)
+    local items = list[list.customDataSourceHelper]
+    if not items or Engine.CurrentSessionMode() ~= Enum.eModes.MODE_MULTIPLAYER then
+      return
+    end
+
+    local option = toggle(controller, "boiii_advancedBots", "Advanced Bots", ADVANCED_BOTS_DESC)
+    local root = ListHelper_GetListHelperModel(list, true)
+    local index = #items + 1
+    local oldModel = Engine.GetModel(root, index)
+    if oldModel then
+      Engine.UnsubscribeAndFreeModel(oldModel)
+    end
+    local model = Engine.CreateModel(root, index)
+    ListHelper_CreateModelsFromTable(model, option.models)
+    table.insert(items, { model = model, properties = option.properties })
+  end
+end
 
 DataSources.BoiiiQuickSettingsConsole = DataSourceHelpers.ListSetup("BoiiiQuickSettingsConsole", function(controller)
   return {
