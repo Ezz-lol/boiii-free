@@ -352,7 +352,9 @@ void handle_new_player(const game::net::netadr_t &target) {
             // SV_DirectConnect copied the XUID into the session info while it
             // was still 0. Update it, as the engine does when a lobby client's
             // XUID changes.
-            game::G_ClientSessionInfoChanged(index);
+            if (game::is_server() || game::com::Com_IsInGame()) {
+              game::G_ClientSessionInfoChanged(index);
+            }
             player_index = index;
             return true;
           }
