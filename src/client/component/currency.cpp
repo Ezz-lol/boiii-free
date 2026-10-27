@@ -538,14 +538,18 @@ bool buy_crate(ControllerIndex_t controller, int32_t crate, int32_t currency) {
 // confirmation. The SKU is also the inventory item it grants.
 std::unordered_map<uint32_t, uint32_t> store_prices;
 
-// Specialist outfits from the store (SKUs 90083 to 90091) also unlock the item
-// the Specialist menu checks (90047, 90049, ... 90063).
+// Specialist outfits from the store (SKUs 90083 to 90091) also unlock the body
+// and helmet items the Specialist menu checks (90047 and 90048, ... 90063 and
+// 90064). Their contracts (SKUs 90101 to 90109) can't be completed, since
+// Demonware grants the outfit for that, so the store hides them and one bought
+// before counts as the outfit.
 constexpr uint32_t first_outfit_sku = 90083, last_outfit_sku = 90091;
+constexpr uint32_t first_outfit_contract_sku = 90101;
 constexpr uint32_t first_outfit_item = 90047;
 
 std::optional<uint32_t> outfit_sku(uint32_t item_id) {
   const uint32_t offset = item_id - first_outfit_item;
-  if (item_id < first_outfit_item || offset % 2 ||
+  if (item_id < first_outfit_item ||
       offset / 2 > last_outfit_sku - first_outfit_sku) {
     return std::nullopt;
   }
@@ -1490,9 +1494,12 @@ std::optional<uint32_t> item_quantity(ControllerIndex_t controller,
           local_db::get_item(inventory_id)) {
     return item->quantity;
   }
-  if (const std::optional<uint32_t> sku = outfit_sku(inventory_id);
-      sku && item_count(*sku)) {
-    return 1;
+  if (const std::optional<uint32_t> sku = outfit_sku(inventory_id)) {
+    const uint32_t contract_sku =
+        first_outfit_contract_sku + *sku - first_outfit_sku;
+    if (item_count(*sku) || item_count(contract_sku)) {
+      return 1;
+    }
   }
   game::EngineDependentDvarMut free_id =
       engine_dvar("loot_distill_free_balance_id");
