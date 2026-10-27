@@ -248,8 +248,8 @@ inline constexpr djb2Hash_t hashName(const char *name) {
   return djb2<BGCACHE_NAMEHASH_DJB2_INITIAL_SEED,
               BGCACHE_NAMEHASH_DJB2_CONSTANT>(name);
 
-#ifndef DEFINE_BGCACHED_GENERIC_DATA_REF_COUNT_FUNCS
-#define DEFINE_BGCACHED_GENERIC_DATA_REF_COUNT_FUNCS(refCount)                 \
+#ifndef DEFINE_BGCACHED_DATA_REF_COUNT_FUNCS
+#define DEFINE_BGCACHED_DATA_REF_COUNT_FUNCS(refCount)                         \
   inline uint32_t ref_count() volatile noexcept {                              \
     return atomic_load(refCount);                                              \
   }                                                                            \
@@ -300,7 +300,7 @@ template <typename Asset> struct bgCachedData {
     }
   }
 
-  DEFINE_BGCACHED_GENERIC_DATA_REF_COUNT_FUNCS(__refCount);
+  DEFINE_BGCACHED_DATA_REF_COUNT_FUNCS(__refCount);
 };
 #pragma pack(pop)
 
@@ -339,7 +339,7 @@ PACKED(struct bgCachedGenericData {
            sizeof(std::remove_pointer_t<decltype(this)>));
   }
 
-  DEFINE_BGCACHED_GENERIC_DATA_REF_COUNT_FUNCS(__refCount);
+  DEFINE_BGCACHED_DATA_REF_COUNT_FUNCS(__refCount);
 });
 ASSERT_SIZE(bgCachedGenericData, 0x408);
 // Verified
