@@ -93,31 +93,39 @@ struct RegisteredCfgString {
     return s_bgCacheTypeInfo->get(CACHE_TYPE).configStringStart + get_idx();
   }
 };
-struct HudElemCfgStringPool : ui::he::HudElementPool<RegisteredCfgString> {
+struct HudElemCfgStringPool
+    : public ui::he::HudElementPool<RegisteredCfgString> {
   inline bool contains(int32_t loc_cfgstr_idx) volatile {
-    for (size_t i = 0; i < SIZE; ++i) {
-      if (this->pool[i].has_value() &&
-          this->pool[i].get_idx() == loc_cfgstr_idx) {
+    for (volatile RegisteredCfgString &cfgstr : pool) {
+      if (cfgstr.has_value() && cfgstr.get_idx() == loc_cfgstr_idx) {
         return true;
       }
     }
     return false;
   }
+
+  inline void clear() volatile noexcept {
+    for (volatile RegisteredCfgString &cfgstr : pool) {
+      cfgstr.clear();
+    }
+  }
 };
 
 static HudElemCfgStringPool hudelem_cfgstr_pool = {};
 
-void unregister_clear_hudelem_cfgstr(uint16_t hudElemIdx) {
-  volatile RegisteredCfgString *entry = &hudelem_cfgstr_pool[hudElemIdx];
-  if (entry->has_value()) {
+void clear_hudelem_cfgstr(uint16_t hudElemIdx) {
+  volatile RegisteredCfgString &entry = hudelem_cfgstr_pool[hudElemIdx];
+  if (entry.has_value()) {
     ui::he::g_hudelems->get(hudElemIdx).elem.text = 0;
     // TAC-protected on client, so we use a re-implementation to circumvent.
-    sv::SV_SetConfigString_Impl(entry->abs_idx(), "");
+    sv::SV_SetConfigString_Impl(entry.abs_idx(), "");
 
-    s_bgCache->server.dataSet.localizedStrings[entry->get_idx()].reset();
-    s_bgCache->server.checksum.isDirty = true;
+    volatile bgCachedGenericData &localizedString =
+        s_bgCache->server.dataSet.localizedStrings[entry.get_idx()];
+    localizedString.setName("");
+    localizedString.set_ref_count(1);
 
-    hudelem_cfgstr_pool[hudElemIdx].clear();
+    s_bgCache->server.checksum.set_dirty();
   }
 }
 
@@ -184,8 +192,8 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 #endif
       }
 
-      volatile bgCachedGenericData *data =
-          &s_bgCache->server.dataSet.localizedStrings[pool_entry->get_idx()];
+      volatile bgCachedGenericData &data =
+          s_bgCache->server.dataSet.localizedStrings[pool_entry->get_idx()];
 
 #ifndef NDEBUG
       trace("[Scr][HECmd_SetText] Localized config string entry with "
@@ -194,13 +202,11 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
             "pointer: {:p}",
             pool_entry->get_idx(), pool_entry->abs_idx(),
             const_cast<void *>(
-                static_cast<volatile void *>(game::derelocate(data))));
+                static_cast<volatile void *>(game::derelocate(&data))));
 #endif
-      data->setName(cleaned_message_buf);
-      if (!data->refCount) {
-        data->add_ref();
-      }
-      s_bgCache->get(cache_inst).checksum.isDirty = true;
+      data.setName(cleaned_message_buf);
+      data.ensure_ref();
+      s_bgCache->get(cache_inst).checksum.set_dirty();
 
 #ifndef NDEBUG
       trace("[Scr][HECmd_SetText] Localized config string entry with "
@@ -219,16 +225,13 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 }
 } // namespace hecmd_settext
 
-void forget_hudelem_cfgstr_pool() {
-  for (uint16_t slot = 0; slot < hudelem_cfgstr_pool.size(); ++slot) {
-    hudelem_cfgstr_pool[slot].clear();
-  }
-}
-
 utils::hook::detour HudElem_DestroyAll_hook;
 
+// Only exists to de-duplicate method used in game event callbacks further below
+void clear_hudelem_cfgstr_pool() { hudelem_cfgstr_pool.clear(); }
+
 void HudElem_DestroyAll_ClearCfgStrEntry_Invoke() {
-  forget_hudelem_cfgstr_pool();
+  clear_hudelem_cfgstr_pool();
   return HudElem_DestroyAll_hook.invoke();
 }
 
@@ -242,23 +245,22 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
         +bgCacheInstance::CLIENT, serialize(localClientNum), index,
         serialize(name));
 #endif
-  const bool is_localized_string =
+  const bool localized_string =
       index >= s_bgCacheTypeInfo->locstring.configStringStart &&
       index < s_bgCacheTypeInfo->locstring.configStringStart +
                   static_cast<int32_t>(
                       std::size(s_bgCache->client.dataSet.localizedStrings));
 
-  if (is_localized_string) {
-    volatile bgCachedGenericData *data =
-        &s_bgCache->client.dataSet
-             .localizedStrings[index -
-                               s_bgCacheTypeInfo->locstring.configStringStart];
+  if (localized_string) {
+    const uint32_t relativeIdx =
+        index - s_bgCacheTypeInfo->locstring.configStringStart;
+    volatile bgCachedGenericData &data =
+        s_bgCache->client.dataSet.localizedStrings[relativeIdx];
 
-    data->setName(name);
-    if (!data->refCount) {
-      data->add_ref();
-    }
-    s_bgCache->client.checksum.isDirty = true;
+    data.setName(name);
+    data.ensure_ref();
+
+    s_bgCache->client.checksum.set_dirty();
   } else {
     BG_Cache_HandleConfigStringChange_hook.invoke(localClientNum, index);
   }
@@ -267,7 +269,7 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
 template <const BuiltinMethod &hooked>
 void HECmd_ClearInvoke(scriptInstance_t inst, scr_entref_t *entref) {
   if (entref->is_hudelem() && sv::sv->running()) {
-    unregister_clear_hudelem_cfgstr(entref->u.hudElemIndex);
+    clear_hudelem_cfgstr(entref->u.hudElemIndex);
   }
   hooked(inst, entref);
 }
@@ -301,7 +303,6 @@ inline void apply_hecmd_hooks() {
 }
 
 inline void apply_hudelem_hooks() {
-
   HudElem_DestroyAll_hook.create(game::ui::he::HudElem_DestroyAll,
                                  HudElem_DestroyAll_ClearCfgStrEntry_Invoke);
 
@@ -319,12 +320,9 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("gsc/hud");
 
   void post_unpack() override {
-
     apply_hudelem_hooks();
 
-    game_event::on_g_shutdown_game(forget_hudelem_cfgstr_pool);
-
-    game_event::on_g_init_game(forget_hudelem_cfgstr_pool);
+    game_event::on_any(clear_hudelem_cfgstr_pool);
   }
 };
 } // namespace hud

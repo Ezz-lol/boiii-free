@@ -50,10 +50,12 @@
 template <typename Out, typename In>
   requires(std::is_pointer_v<In> && std::is_pointer_v<Out>)
 inline constexpr Out constexpr_ptr_cast(const In in) {
+  using stripped_in_t =
+      std::add_pointer_t<std::remove_cv_t<std::remove_pointer_t<In>>>;
   if (std::is_constant_evaluated()) {
-    return std::bit_cast<Out>(in);
+    return std::bit_cast<Out>(const_cast<stripped_in_t>(in));
   } else {
-    return reinterpret_cast<Out>(in);
+    return reinterpret_cast<Out>(const_cast<stripped_in_t>(in));
   }
 }
 

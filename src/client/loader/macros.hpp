@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef DEFINE_COMPONENT_NAME
 #ifdef NDEBUG
 #define DEFINE_COMPONENT_NAME(name)

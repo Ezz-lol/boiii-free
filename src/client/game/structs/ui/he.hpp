@@ -68,6 +68,38 @@ template <typename T> struct HudElementPool {
 
   inline static constexpr auto size() noexcept { return SIZE; }
 
+  inline constexpr T *begin() noexcept { return pool; }
+  inline constexpr const T *begin() const noexcept { return pool; }
+  inline constexpr volatile T *begin() volatile noexcept { return pool; }
+  inline constexpr const T *cbegin() const noexcept { return pool; }
+  inline constexpr volatile T *cbegin() volatile noexcept { return pool; }
+
+  inline constexpr T *end() noexcept { return pool + SIZE; }
+  inline constexpr const T *end() const noexcept { return pool + SIZE; }
+  inline constexpr volatile T *end() volatile noexcept { return pool + SIZE; }
+  inline constexpr const T *cend() const noexcept { return pool + SIZE; }
+  inline constexpr volatile T *cend() volatile noexcept { return pool + SIZE; }
+
+  inline constexpr std::reverse_iterator<T *> rbegin() noexcept {
+    return std::reverse_iterator<T *>(pool + SIZE);
+  }
+  inline constexpr std::reverse_iterator<const T *> rbegin() const noexcept {
+    return std::reverse_iterator<const T *>(pool + SIZE);
+  }
+  inline constexpr std::reverse_iterator<const T *> crbegin() const noexcept {
+    return std::reverse_iterator<const T *>(pool + SIZE);
+  }
+
+  inline constexpr std::reverse_iterator<T *> rend() noexcept {
+    return std::reverse_iterator<T *>(pool);
+  }
+  inline constexpr std::reverse_iterator<const T *> rend() const noexcept {
+    return std::reverse_iterator<const T *>(pool);
+  }
+  inline constexpr std::reverse_iterator<const T *> crend() const noexcept {
+    return std::reverse_iterator<const T *>(pool);
+  }
+
   template <IntegralLike<index_t> Index>
   inline constexpr void clear(Index index_arg) noexcept {
     const index_t index = static_cast<index_t>(index_arg);

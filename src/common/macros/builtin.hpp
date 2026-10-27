@@ -1,12 +1,6 @@
 #pragma once
 
-#ifndef GNUC_OR_CLANG
-#if defined(__GNUC__) || defined(__clang__)
-#define GNUC_OR_CLANG 1
-#else
-#define GNUC_OR_CLANG 0
-#endif
-#endif
+#include "meta.hpp"
 
 #if !GNUC_OR_CLANG
 #include <atomic>

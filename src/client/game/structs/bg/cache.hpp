@@ -177,45 +177,47 @@ template <typename T> union BGCacheTypePool {
            "BGCacheTypes::INVALID < index < BGCacheTypes::COUNT");
   }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &get(Index index_arg) const {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return pool[index];
   }
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &operator[](Index index) const {
     return get(index);
   }
 
-  template <IntegralLike Index> inline constexpr T &get(Index index_arg) {
+  template <IntegralLike<index_t> Index>
+  inline constexpr T &get(Index index_arg) {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return pool[index];
   }
-  template <IntegralLike Index> inline constexpr T &operator[](Index index) {
+  template <IntegralLike<index_t> Index>
+  inline constexpr T &operator[](Index index) {
     return get(index);
   }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr volatile T &get(Index index_arg) volatile {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return pool[index];
   }
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr volatile T &operator[](Index index) volatile {
     return get(index);
   }
 
   inline constexpr auto size() const noexcept { return +BGCacheTypes::COUNT; }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr void clear(Index index_arg) noexcept {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     const T default_val = {};
-    this->pool[index] = default_val;
+    pool[index] = default_val;
   }
 
   inline constexpr void clear() noexcept {
@@ -226,9 +228,16 @@ template <typename T> union BGCacheTypePool {
 };
 
 PACKED(struct bgCacheChecksum {
-  volatile bool isDirty;
-  uint8_t _padding01[3];
-  volatile uint32_t value;
+  volatile qboolean isDirty;
+  volatile qboolean value;
+
+  inline void set_dirty(bool value = true) volatile noexcept {
+    return atomic_store<bool>(isDirty, value);
+  }
+
+  inline bool toggle_dirty() volatile noexcept {
+    return atomic_toggle(isDirty);
+  }
 });
 
 typedef djb2Hash_t BGCacheNameHash;
@@ -238,13 +247,36 @@ inline constexpr BGCacheNameHash BGCACHE_NAMEHASH_DJB2_CONSTANT = 0x21;
 inline constexpr djb2Hash_t hashName(const char *name) {
   return djb2<BGCACHE_NAMEHASH_DJB2_INITIAL_SEED,
               BGCACHE_NAMEHASH_DJB2_CONSTANT>(name);
+
+#ifndef DEFINE_BGCACHED_GENERIC_DATA_REF_COUNT_FUNCS
+#define DEFINE_BGCACHED_GENERIC_DATA_REF_COUNT_FUNCS(refCount)                 \
+  inline uint32_t ref_count() volatile noexcept {                              \
+    return atomic_load(refCount);                                              \
+  }                                                                            \
+                                                                               \
+  inline void set_ref_count(uint8_t count) volatile noexcept {                 \
+    return atomic_store(refCount, count);                                      \
+  }                                                                            \
+                                                                               \
+  inline uint32_t remove_ref() volatile noexcept {                             \
+    return atomic_dec(refCount);                                               \
+  }                                                                            \
+                                                                               \
+  inline bool ensure_ref() volatile noexcept {                                 \
+    uint8_t zero = 0;                                                          \
+    constexpr uint8_t ONE = 1;                                                 \
+    return atomic_compare_exchange(refCount, zero, ONE);                       \
+  }                                                                            \
+                                                                               \
+  inline uint32_t add_ref() volatile noexcept { return atomic_inc(refCount); }
+#endif
 }
 
 #pragma pack(push, 1)
 template <typename Asset> struct bgCachedData {
   Asset *def;
   BGCacheNameHash nameHash;
-  volatile uint8_t refCount;
+  volatile uint8_t __refCount;
   uint8_t _padding0D[3];
 
   inline void reset() noexcept {
@@ -260,7 +292,7 @@ template <typename Asset> struct bgCachedData {
   }
 
   inline constexpr void setName(const char *new_name) volatile {
-    if (new_name) {
+    if (new_name && new_name[0]) {
       nameHash = hashName(new_name);
       strscpy(def->name, new_name);
     } else {
@@ -268,29 +300,7 @@ template <typename Asset> struct bgCachedData {
     }
   }
 
-  inline uint32_t remove_ref() volatile noexcept {
-#if defined(__clang__) || defined(__GNUC__)
-    __atomic_sub_fetch(&refCount, 1, __ATOMIC_SEQ_CST);
-#elif defined(_MSC_VER)
-    _InterlockedDecrement8(reinterpret_cast<volatile char *>(&refCount));
-#else
-    // Unsupported, but we have an obvious fallback for this case.
-    refCount -= 1;
-#endif
-    return refCount;
-  }
-
-  inline uint32_t add_ref() volatile noexcept {
-#if defined(__clang__) || defined(__GNUC__)
-    __atomic_add_fetch(&refCount, 1, __ATOMIC_SEQ_CST);
-#elif defined(_MSC_VER)
-    _InterlockedIncrement8(reinterpret_cast<volatile char *>(&refCount));
-#else
-    // Unsupported, but we have an obvious fallback for this case.
-    refCount += 1;
-#endif
-    return refCount;
-  }
+  DEFINE_BGCACHED_GENERIC_DATA_REF_COUNT_FUNCS(__refCount);
 };
 #pragma pack(pop)
 
@@ -307,18 +317,16 @@ typedef bgCachedData<db::xasset::TagFxSet> bgCachedTagFxSet;
 PACKED(struct bgCachedGenericData {
   str1024_t name;
   BGCacheNameHash nameHash;
-  volatile uint8_t refCount;
+  volatile uint8_t __refCount;
   uint8_t _padding0D[3];
 
   inline constexpr void clearName() volatile {
+    constexpr_memset(name, NULL);
     nameHash = BGCACHE_NAMEHASH_NULLPTR;
-    for (size_t i = 0; i < std::size(name); ++i) {
-      name[i] = NULL;
-    }
   }
 
   inline constexpr void setName(const char *new_name) volatile {
-    if (new_name) {
+    if (new_name && new_name[0]) {
       nameHash = hashName(new_name);
       strscpy(name, new_name);
     } else {
@@ -331,29 +339,7 @@ PACKED(struct bgCachedGenericData {
            sizeof(std::remove_pointer_t<decltype(this)>));
   }
 
-  inline uint32_t remove_ref() volatile noexcept {
-#if defined(__clang__) || defined(__GNUC__)
-    __atomic_sub_fetch(&refCount, 1, __ATOMIC_SEQ_CST);
-#elif defined(_MSC_VER)
-    _InterlockedDecrement8(reinterpret_cast<volatile char*>(&refCount));
-#else
-       // Unsupported, but we have an obvious fallback for this case.
-      refCount -= 1;
-#endif
-    return refCount;
-  }
-
-  inline uint32_t add_ref() volatile noexcept {
-#if defined(__clang__) || defined(__GNUC__)
-    __atomic_add_fetch(&refCount, 1, __ATOMIC_SEQ_CST);
-#elif defined(_MSC_VER)
-    _InterlockedIncrement8(reinterpret_cast<volatile char*>(&refCount));
-#else
-       // Unsupported, but we have an obvious fallback for this case.
-      refCount += 1;
-#endif
-    return refCount;
-  }
+  DEFINE_BGCACHED_GENERIC_DATA_REF_COUNT_FUNCS(__refCount);
 });
 ASSERT_SIZE(bgCachedGenericData, 0x408);
 // Verified

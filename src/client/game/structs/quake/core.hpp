@@ -10,26 +10,30 @@
 
 namespace game {
 
-struct qboolean {
-  int32_t value;
+union qboolean {
+  bool value;
+  int32_t raw_value;
 
   static constexpr const char FALSE_STR[] = "false";
   static constexpr const char TRUE_STR[] = "true";
 
-  inline constexpr operator bool() noexcept { return value != 0; }
+  inline constexpr operator bool() && noexcept { return value; }
+  inline constexpr operator const bool &() const & noexcept { return value; }
+  inline constexpr operator bool &() & noexcept { return value; }
+  inline constexpr operator volatile bool &() volatile & noexcept {
+    return value;
+  }
   template <IntegralLike<int32_t> T> inline constexpr operator T() noexcept {
     return static_cast<T>(value);
   }
   inline constexpr bool operator!() noexcept { return value == 0; }
 
-  inline constexpr operator bool() const noexcept { return value != 0; }
   template <IntegralLike<int32_t> T>
   inline constexpr operator T() const noexcept {
     return static_cast<T>(value);
   }
   inline constexpr bool operator!() const noexcept { return value == 0; }
 
-  inline constexpr operator bool() volatile noexcept { return value != 0; }
   template <IntegralLike<int32_t> T>
   inline constexpr operator T() volatile noexcept {
     return static_cast<T>(value);
@@ -38,7 +42,7 @@ struct qboolean {
 
   template <IntegralLike<int32_t> T>
   static inline constexpr qboolean from(T val) noexcept {
-    return qboolean{.value = static_cast<int32_t>(val)};
+    return qboolean{.raw_value = static_cast<int32_t>(val)};
   }
 
   inline constexpr const char *serialize() const noexcept {
