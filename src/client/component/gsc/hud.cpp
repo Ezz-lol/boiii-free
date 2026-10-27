@@ -123,7 +123,6 @@ void clear_hudelem_cfgstr(uint16_t hudElemIdx) {
     volatile bgCachedGenericData &localizedString =
         s_bgCache->server.dataSet.localizedStrings[entry.get_idx()];
     localizedString.setName("");
-    localizedString.set_ref_count(1);
 
     s_bgCache->server.checksum.set_dirty();
   }

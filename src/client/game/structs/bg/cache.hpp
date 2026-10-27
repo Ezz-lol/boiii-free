@@ -292,7 +292,7 @@ template <typename Asset> struct bgCachedData {
   }
 
   inline constexpr void setName(const char *new_name) volatile {
-    if (new_name && new_name[0]) {
+    if (new_name) {
       nameHash = hashName(new_name);
       strscpy(def->name, new_name);
     } else {
@@ -326,7 +326,7 @@ PACKED(struct bgCachedGenericData {
   }
 
   inline constexpr void setName(const char *new_name) volatile {
-    if (new_name && new_name[0]) {
+    if (new_name) {
       nameHash = hashName(new_name);
       strscpy(name, new_name);
     } else {
