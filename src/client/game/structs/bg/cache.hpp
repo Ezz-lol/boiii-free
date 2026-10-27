@@ -228,11 +228,11 @@ template <typename T> union BGCacheTypePool {
 };
 
 PACKED(struct bgCacheChecksum {
-  volatile qboolean isDirty;
-  volatile qboolean value;
+  qboolean isDirty;
+  uint32_t value;
 
-  inline void set_dirty(bool value = true) volatile noexcept {
-    return atomic_store<bool>(isDirty, value);
+  inline void set_dirty(bool val = true) volatile noexcept {
+    return atomic_store<bool>(isDirty, val);
   }
 
   inline bool toggle_dirty() volatile noexcept {
