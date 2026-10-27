@@ -7,7 +7,6 @@ namespace game {
 EngineDependentDvar sv_wwwBaseURL;
 EngineDependentDvar sv_wwwDownload;
 EngineDependentDvar sv_wwwDlDisconnected;
-EngineDependentDvar workshop_id;
 EngineDependentDvar com_pauseSupported;
 
 dvarStrHash_t Dvar_GenerateHash_Impl(const char *str) {

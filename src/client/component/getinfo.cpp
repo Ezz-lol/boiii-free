@@ -61,10 +61,6 @@ struct component final : generic_component {
           game::sv_wwwBaseURL = game::register_dvar_string(
               "sv_wwwBaseURL", "", game::DVAR_NONE,
               "The base url for files downloaded via http");
-          game::workshop_id = game::register_dvar_string(
-              "workshop_id", "", game::DVAR_NONE,
-              "Steam workshop ID of loaded mod, if any, "
-              "or loaded usermap otherwise.");
         },
         scheduler::pipeline::main);
 
@@ -131,8 +127,9 @@ struct component final : generic_component {
 
       info.set("sv_wwwBaseURL", game::fastdl_uri().value_or(""));
       info.set("sv_wwwBaseUrl", game::fastdl_uri().value_or(""));
-      info.set("workshop_id", game::get_workshop_id().value_or(""));
-      info.set("usermapId", game::get_workshop_id().value_or(""));
+      const std::string_view usermapId = game::ugc::active_usermap->publisherId;
+      info.set("workshop_id", usermapId);
+      info.set("usermapId", usermapId);
 
       if (network_password::is_password_set()) {
         info.set("net_password_hash",

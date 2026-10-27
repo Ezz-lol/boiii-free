@@ -1089,10 +1089,9 @@ bool check_valid_usermap_id(const std::string_view &mapname,
             game::ui::UI_OpenErrorPopupWithMessage(
                 game::LOCAL_CLIENT_0, game::errorCode::UI,
                 utils::string::va(
-                    "Missing usermap: %s\n\nThis server did not provide FastDL "
-                    "and did not set workshop_id.\n\nSubscribe on Steam "
-                    "Workshop, or ask the server to set sv_wwwBaseURL or "
-                    "workshop_id.",
+                    "Missing usermap: %s\n\nThis server did not provide "
+                    "FastDL\n\nSubscribe on Steam "
+                    "Workshop, or ask the server to set sv_wwwBaseURL.",
                     name_copy.c_str()));
           },
           scheduler::main);

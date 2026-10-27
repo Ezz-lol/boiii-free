@@ -290,9 +290,6 @@ constexpr uint16_t DEFAULT_PORT = 3074;
 [[nodiscard]] inline ClientNum_t get_max_client_count() {
   return static_cast<ClientNum_t>(get_com_maxclients());
 }
-[[nodiscard]] inline std::optional<std::string_view> get_workshop_id() {
-  return workshop_id ? workshop_id.get_string() : std::nullopt;
-}
 
 typedef fastcall_t<void(
     const std::function<void(sv::client_s &cl, ClientNum_t clientNum)>
