@@ -31,6 +31,16 @@ inline constexpr fnv1aHash_t fnv1a(const char *str) noexcept {
   return hash;
 }
 
+template <const fnv1aHash_t IV = 0x811c9dc5,
+          const fnv1aHash_t PRIME = 0x01000193>
+inline constexpr fnv1aHash_t fnv1a(const std::string_view &str) noexcept {
+  fnv1aHash_t hash = IV;
+  for (const char c : str) {
+    hash = PRIME * (static_cast<fnv1aHash_t>(tolower(c)) ^ hash);
+  }
+  return hash;
+}
+
 typedef hash32_t fnv1aHashNull_t;
 
 // Same as fnv1a, but also hashes null terminator.
@@ -38,6 +48,13 @@ typedef hash32_t fnv1aHashNull_t;
 template <const fnv1aHashNull_t IV = 0x811c9dc5,
           const fnv1aHashNull_t PRIME = 0x01000193>
 inline constexpr fnv1aHashNull_t fnv1a_null(const char *str) noexcept {
+  return PRIME * fnv1a<IV, PRIME>(str);
+}
+
+template <const fnv1aHashNull_t IV = 0x811c9dc5,
+          const fnv1aHashNull_t PRIME = 0x01000193>
+alwaysinline constexpr fnv1aHashNull_t
+fnv1a_null(const std::string_view &str) noexcept {
   return PRIME * fnv1a<IV, PRIME>(str);
 }
 
@@ -139,6 +156,26 @@ inline constexpr fnv1aHash64_t fnv1a64(fnv1aHash64_t iv, const uint8_t *buf,
   return hash;
 }
 
+template <const fnv1aHash64_t PRIME = 0x100000001b3>
+inline constexpr fnv1aHash64_t fnv1a64(fnv1aHash64_t iv,
+                                       const std::string_view &str) noexcept {
+  fnv1aHash64_t hash = iv;
+  for (const char c : str) {
+    hash = PRIME * (static_cast<fnv1aHash64_t>(tolower(c)) ^ hash);
+  }
+  return hash;
+}
+
+template <const fnv1aHash64_t IV = 0xcbf29ce484222325,
+          const fnv1aHash64_t PRIME = 0x100000001b3>
+inline constexpr fnv1aHash64_t fnv1a64(const std::string_view &str) noexcept {
+  fnv1aHash64_t hash = IV;
+  for (const char c : str) {
+    hash = PRIME * (static_cast<fnv1aHash64_t>(tolower(c)) ^ hash);
+  }
+  return hash;
+}
+
 typedef hash32_t djb2Hash_t;
 template <const djb2Hash_t INITIAL_SEED = 0x1505,
           const djb2Hash_t CONSTANT = 0x21>
@@ -150,6 +187,17 @@ inline constexpr djb2Hash_t djb2(const char *str) noexcept {
   return hash;
 }
 
+typedef hash32_t djb2Hash_t;
+template <const djb2Hash_t INITIAL_SEED = 0x1505,
+          const djb2Hash_t CONSTANT = 0x21>
+inline constexpr djb2Hash_t djb2(const std::string_view &str) noexcept {
+  djb2Hash_t hash = INITIAL_SEED;
+  for (const char c : str) {
+    hash = static_cast<djb2Hash_t>(tolower(c)) + hash * CONSTANT;
+  }
+  return hash;
+}
+
 typedef hash64_t djb2Hash64_t;
 template <const djb2Hash64_t INITIAL_SEED = 0x1505,
           const djb2Hash_t CONSTANT = 0x21>
@@ -157,6 +205,17 @@ inline constexpr djb2Hash64_t djb264(const char *str) noexcept {
   djb2Hash64_t hash = INITIAL_SEED;
   for (const char *c = str; *c; ++c) {
     hash = static_cast<djb2Hash64_t>(tolower(*c)) + hash * CONSTANT;
+  }
+  return hash;
+}
+
+typedef hash32_t djb2Hash_t;
+template <const djb2Hash_t INITIAL_SEED = 0x1505,
+          const djb2Hash_t CONSTANT = 0x21>
+alwaysinline constexpr djb2Hash_t djb264(const std::string_view &str) noexcept {
+  djb2Hash64_t hash = INITIAL_SEED;
+  for (const char c : str) {
+    hash = static_cast<djb2Hash64_t>(tolower(c)) + hash * CONSTANT;
   }
   return hash;
 }
