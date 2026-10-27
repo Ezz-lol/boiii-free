@@ -40,6 +40,9 @@ public:
         "boiii_xpBarColor", 0, 0, 6, game::DVAR_ARCHIVE,
         "XP bar color: 0 = orange, 1 = gold, 2 = blue, 3 = green, 4 = red, "
         "5 = purple, 6 = white");
+    game::register_dvar_bool(
+        "boiii_advancedBots", false, game::DVAR_ARCHIVE,
+        "Multiplayer bots use the advanced AI from custom_bots.gsc");
 
     apply_flags();
     scheduler::once(apply_flags, scheduler::pipeline::dvars_loaded);
