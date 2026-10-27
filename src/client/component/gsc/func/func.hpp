@@ -908,7 +908,7 @@ inline bool custom_builtin_function(scriptInstance_t inst, const char *name) {
 }
 inline bool custom_builtin_function(scriptInstance_t inst,
                                     const std::string_view &name) {
-  return custom_builtin_function(inst, game::scr::builtin::fnv1a(name.data()));
+  return custom_builtin_function(inst, game::scr::builtin::fnv1a(name));
 }
 
 inline bool builtin_function(scriptInstance_t inst, const char *name) {
@@ -916,7 +916,7 @@ inline bool builtin_function(scriptInstance_t inst, const char *name) {
 }
 inline bool builtin_function(scriptInstance_t inst,
                              const std::string_view &name) {
-  return builtin_function(inst, game::scr::builtin::fnv1a(name.data()));
+  return builtin_function(inst, game::scr::builtin::fnv1a(name));
 }
 
 inline bool custom_builtin_method(scriptInstance_t inst,
@@ -1027,7 +1027,7 @@ inline std::optional<std::string_view> builtin_name(ScrVarCanonicalName_t id) {
 
 inline bool custom_builtin_method(scriptInstance_t inst,
                                   const std::string_view &name) {
-  return custom_builtin_method(inst, game::scr::builtin::fnv1a(name.data()));
+  return custom_builtin_method(inst, game::scr::builtin::fnv1a(name));
 }
 inline bool custom_builtin_method(scriptInstance_t inst, const char *name) {
   return custom_builtin_method(inst, game::scr::builtin::fnv1a(name));
@@ -1035,7 +1035,7 @@ inline bool custom_builtin_method(scriptInstance_t inst, const char *name) {
 
 inline bool builtin_method(scriptInstance_t inst,
                            const std::string_view &name) {
-  return builtin_method(inst, game::scr::builtin::fnv1a(name.data()));
+  return builtin_method(inst, game::scr::builtin::fnv1a(name));
 }
 inline bool builtin_method(scriptInstance_t inst, const char *name) {
   return builtin_method(inst, game::scr::builtin::fnv1a(name));

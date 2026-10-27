@@ -14,6 +14,10 @@ inline constexpr fnv1aHashNull_t fnv1a(const char *s) {
   return ::fnv1a_null<FNV1A_IV, FNV1A_PRIME>(s);
 }
 
+inline constexpr fnv1aHashNull_t fnv1a(const std::string_view &s) {
+  return ::fnv1a_null<FNV1A_IV, FNV1A_PRIME>(s);
+}
+
 template <const IntegralLike auto ArraySize>
 inline constexpr std::array<fnv1aHash_t, ArraySize>
 fnv1a(const array<const char *, ArraySize> &strings) {

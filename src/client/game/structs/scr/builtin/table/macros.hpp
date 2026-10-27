@@ -132,7 +132,7 @@ struct NameIdxPair {
   frozen::make_unordered_map(to_array<names.size()>(                           \
       std::views::transform(Enumerate{names}, [](auto &&pair) {                \
         auto [idx, name] = pair;                                               \
-        const fnv1aHashNull_t hash = fnv1a(name.data());                       \
+        const fnv1aHashNull_t hash = fnv1a(name);                              \
         return std::make_pair(hash, NameIdxPair{name, idx});                   \
       })));
 #endif
@@ -173,7 +173,7 @@ struct NameIdxPair {
                                                                                \
   inline constexpr const element_of<decltype(table)> *get(                     \
       std::string_view name) const noexcept {                                  \
-    const ScrVarCanonicalName_t hash = fnv1a(name.data());                     \
+    const ScrVarCanonicalName_t hash = fnv1a(name);                            \
     return get(hash);                                                          \
   }                                                                            \
                                                                                \
