@@ -28,6 +28,20 @@ bool check_valid_usermap_id(const std::string_view &mapname,
                             const std::string_view &base_uri = {});
 bool check_valid_mod_id(const std::string_view &pub_id,
                         const std::string_view &workshop_id);
+struct content_info {
+  std::string hash;
+  uint64_t built{};
+};
+content_info mod_content(const std::string_view &id);
+content_info usermap_content(const std::string_view &mapname);
+content_info loaded_mod_content();
+content_info loaded_usermap_content();
+bool check_matching_content(const std::string_view &mod,
+                            const content_info &server_mod,
+                            const std::string_view &mapname,
+                            const std::string_view &workshop_id,
+                            const content_info &server_map,
+                            const std::string_view &base_uri);
 bool mod_switch_requires_fs_reinitialization(
     const std::string_view &current_mod, const std::string_view &new_mod);
 bool mod_load_requires_fs_reinitialization(std::string_view &mod_name);

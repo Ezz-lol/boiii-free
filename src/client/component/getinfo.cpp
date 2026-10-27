@@ -121,6 +121,12 @@ struct component final : generic_component {
                    "hardcoremode", false)));
       info.set("modName", workshop::get_mod_resized_name());
       info.set("modId", workshop::get_mod_publisher_id());
+      const workshop::content_info mod = workshop::loaded_mod_content();
+      info.set("modHash", mod.hash);
+      info.set("modBuilt", std::to_string(mod.built));
+      const workshop::content_info usermap = workshop::loaded_usermap_content();
+      info.set("usermapHash", usermap.hash);
+      info.set("usermapBuilt", std::to_string(usermap.built));
       info.set("rounds_played",
                std::to_string(*game::level::level_rounds_played));
       info.set("shortversion", SHORTVERSION);

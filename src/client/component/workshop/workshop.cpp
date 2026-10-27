@@ -1033,6 +1033,86 @@ void offer_download(const std::string_view &kind, const std::string_view &name,
       [workshop_id, kind] { start_download(workshop_id, kind); });
 }
 
+void start_fastdl_usermap(const std::string_view &mapname,
+                          const std::string_view &workshop_id,
+                          const std::string_view &base_uri) {
+  const std::filesystem::path map_path = std::format("usermaps/{}", mapname);
+  const std::string map_path_str = map_path.generic_string();
+  const std::string map_tree_uri = std::format("{}/{}", base_uri, map_path_str);
+  fastdl::download_context context{};
+  context.mapname = mapname;
+  context.pub_id = workshop_id.empty() ? mapname : workshop_id;
+  context.map_path = map_path;
+  context.map_tree_uri = map_tree_uri;
+  context.success_callback = []() {
+    scheduler::once(game::ugc::UGC_LoadPools_Impl, scheduler::main);
+  };
+  printf("[ Workshop ] Server has FastDL, attempting download for %s from "
+         "%s\n",
+         mapname.data(), base_uri.data());
+  fastdl::start_map_download(context);
+}
+
+bool is_busy_downloading() {
+  if (downloading_workshop_item.load() || launcher_downloading.load() ||
+      fastdl::is_downloading()) {
+    scheduler::once(
+        [] {
+          game::ui::UI_OpenErrorPopupWithMessage(
+              game::LOCAL_CLIENT_0, game::errorCode::UI,
+              "You are already downloading an item in the background. You can "
+              "download only one item at a time.");
+        },
+        scheduler::main);
+    return true;
+  }
+  return false;
+}
+
+void report_version_mismatch(const std::string_view &kind,
+                             const std::string_view &name,
+                             const std::string_view &workshop_id,
+                             const uint64_t local_built,
+                             const uint64_t server_built) {
+  const std::string what =
+      std::format("{} '{}'", utils::string::to_lower(std::string(kind)), name);
+  if (local_built && server_built > local_built &&
+      utils::string::is_numeric(workshop_id.data())) {
+    const std::string id(workshop_id);
+    const std::string kind_copy(kind);
+    download_overlay::show_confirmation(
+        std::format("{} update needed", kind),
+        std::format("This server runs a newer version of the {} than "
+                    "yours.\n\nDownload the latest version from the Workshop "
+                    "now?",
+                    what),
+        [id, kind_copy] { start_download(id, kind_copy); });
+    return;
+  }
+
+  std::string message;
+  if (local_built && server_built > local_built) {
+    message = std::format("This server runs a newer version of the {} than "
+                          "yours. Get the updated version to join.",
+                          what);
+  } else if (server_built && local_built > server_built) {
+    message = std::format("This server runs an older version of the {} than "
+                          "yours. The server owner needs to update it before "
+                          "you can join.",
+                          what);
+  } else {
+    message = std::format("Your files for the {} don't match this server's. "
+                          "Reinstall it to fix this.",
+                          what);
+  }
+  scheduler::once(
+      [message] {
+        game::ui::UI_OpenErrorPopupWithMessage(
+            game::LOCAL_CLIENT_0, game::errorCode::UI, message.c_str());
+      },
+      scheduler::main);
+}
+
 bool check_valid_usermap_id(const std::string_view &mapname,
                             const std::string_view &pub_id,
                             const std::string_view &workshop_id,
@@ -1057,23 +1137,7 @@ bool check_valid_usermap_id(const std::string_view &mapname,
     }
 
     if (!base_uri.empty()) {
-      const std::filesystem::path map_path =
-          std::format("usermaps/{}", mapname);
-      const std::string map_path_str = map_path.generic_string();
-      const std::string map_tree_uri =
-          std::format("{}/{}", base_uri, map_path_str);
-      fastdl::download_context context{};
-      context.mapname = mapname;
-      context.pub_id = workshop_id.empty() ? mapname : workshop_id;
-      context.map_path = map_path;
-      context.map_tree_uri = map_tree_uri;
-      context.success_callback = []() {
-        scheduler::once(game::ugc::UGC_LoadPools_Impl, scheduler::main);
-      };
-      printf("[ Workshop ] Server has FastDL, attempting download for %s from "
-             "%s\n",
-             mapname.data(), base_uri.data());
-      fastdl::start_map_download(context);
+      start_fastdl_usermap(mapname, workshop_id, base_uri);
       return false;
     }
 
@@ -1151,6 +1215,43 @@ bool check_valid_mod_id(const std::string_view &mod,
 
 bool mod_load_requires_fs_reinitialization(const std::string_view &mod_name) {
   return !mod_name.empty() && mod_name != "usermaps";
+}
+
+bool check_matching_content(const std::string_view &mod,
+                            const content_info &server_mod,
+                            const std::string_view &mapname,
+                            const std::string_view &workshop_id,
+                            const content_info &server_map,
+                            const std::string_view &base_uri) {
+  if (!server_mod.hash.empty()) {
+    const content_info local = mod_content(mod);
+    if (!local.hash.empty() && local.hash != server_mod.hash) {
+      if (!is_busy_downloading()) {
+        const std::string id = utils::string::is_numeric(mod.data())
+                                   ? std::string(mod)
+                                   : resolve_mod_workshop_id(mod);
+        report_version_mismatch("Mod", mod, id, local.built, server_mod.built);
+      }
+      return false;
+    }
+  }
+
+  if (!server_map.hash.empty()) {
+    const content_info local = usermap_content(mapname);
+    if (!local.hash.empty() && local.hash != server_map.hash) {
+      if (!is_busy_downloading()) {
+        if (!base_uri.empty()) {
+          start_fastdl_usermap(mapname, workshop_id, base_uri);
+        } else {
+          report_version_mismatch("Map", mapname, workshop_id, local.built,
+                                  server_map.built);
+        }
+      }
+      return false;
+    }
+  }
+
+  return true;
 }
 
 bool mod_switch_requires_fs_reinitialization(

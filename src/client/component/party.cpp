@@ -480,6 +480,12 @@ void handle_connect_query_response(const bool success,
   }
 
   const std::string mod_id = info.get("modId");
+  const workshop::content_info server_mod{
+      info.get("modHash"),
+      std::strtoull(info.get("modBuilt").data(), nullptr, 10)};
+  const workshop::content_info server_map{
+      info.get("usermapHash"),
+      std::strtoull(info.get("usermapBuilt").data(), nullptr, 10)};
 
   const std::string workshop_id = info.get("workshop_id").empty()
                                       ? info.get("usermapId")
@@ -507,7 +513,10 @@ void handle_connect_query_response(const bool success,
 
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
                                              base_uri) &&
-            workshop::check_valid_mod_id(mod_id, workshop_id)) {
+            workshop::check_valid_mod_id(mod_id, workshop_id) &&
+            workshop::check_matching_content(mod_id, server_mod, mapname,
+                                             workshop_id, server_map,
+                                             base_uri)) {
           connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
                           lobby);
         } else {
