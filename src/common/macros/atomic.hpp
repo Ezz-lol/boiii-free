@@ -2,6 +2,7 @@
 
 #include <type_traits>
 
+#include "macros/builtin.hpp"
 #include "meta.hpp"
 
 #if !defined(GNUC_OR_CLANG) && defined(MSC)
@@ -12,7 +13,8 @@ template <typename T>
 concept UnderlyingAtomicIntegral =
     std::is_integral_v<T> && (sizeof(T) <= sizeof(size_t));
 
-template <UnderlyingAtomicIntegral T> inline T atomic_load(volatile T *ptr) {
+template <UnderlyingAtomicIntegral T>
+alwaysinline T atomic_load(volatile T *ptr) {
 #if defined(GNUC_OR_CLANG)
   return __atomic_load_n(ptr, __ATOMIC_SEQ_CST);
 #else
@@ -21,7 +23,7 @@ template <UnderlyingAtomicIntegral T> inline T atomic_load(volatile T *ptr) {
 }
 
 template <UnderlyingAtomicIntegral T>
-inline void atomic_store(volatile T *ptr, T desired) {
+alwaysinline void atomic_store(volatile T *ptr, T desired) {
 #if defined(GNUC_OR_CLANG)
   __atomic_store_n(ptr, desired, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
@@ -43,7 +45,8 @@ inline void atomic_store(volatile T *ptr, T desired) {
 #endif
 }
 
-template <UnderlyingAtomicIntegral T> inline T atomic_inc(volatile T *ptr) {
+template <UnderlyingAtomicIntegral T>
+alwaysinline T atomic_inc(volatile T *ptr) {
   constexpr T ONE = 1;
 #if defined(GNUC_OR_CLANG)
   return __atomic_add_fetch(ptr, ONE, __ATOMIC_SEQ_CST);
@@ -67,7 +70,8 @@ template <UnderlyingAtomicIntegral T> inline T atomic_inc(volatile T *ptr) {
 #endif
 }
 
-template <UnderlyingAtomicIntegral T> inline T atomic_dec(volatile T *ptr) {
+template <UnderlyingAtomicIntegral T>
+alwaysinline T atomic_dec(volatile T *ptr) {
   constexpr T ONE = 1;
 #if defined(GNUC_OR_CLANG)
   return __atomic_sub_fetch(ptr, ONE, __ATOMIC_SEQ_CST);
@@ -92,7 +96,7 @@ template <UnderlyingAtomicIntegral T> inline T atomic_dec(volatile T *ptr) {
 }
 
 template <UnderlyingAtomicIntegral T>
-inline T atomic_add(volatile T *ptr, T value) {
+alwaysinline T atomic_add(volatile T *ptr, T value) {
 #if defined(GNUC_OR_CLANG)
   return __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
@@ -123,7 +127,7 @@ inline T atomic_add(volatile T *ptr, T value) {
 }
 
 template <UnderlyingAtomicIntegral T>
-inline T atomic_sub(volatile T *ptr, T value) {
+alwaysinline T atomic_sub(volatile T *ptr, T value) {
 #if defined(GNUC_OR_CLANG)
   return __atomic_sub_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
@@ -154,7 +158,8 @@ inline T atomic_sub(volatile T *ptr, T value) {
 }
 
 template <UnderlyingAtomicIntegral T>
-inline bool atomic_compare_exchange(volatile T *ptr, T *expected, T desired) {
+alwaysinline bool atomic_compare_exchange(volatile T *ptr, T *expected,
+                                          T desired) {
 #if defined(GNUC_OR_CLANG)
   return __atomic_compare_exchange_n(ptr, expected, desired, false,
                                      __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
@@ -195,7 +200,7 @@ inline bool atomic_compare_exchange(volatile T *ptr, T *expected, T desired) {
 #endif
 }
 template <UnderlyingAtomicIntegral T>
-inline T atomic_and(volatile T *ptr, T value) {
+alwaysinline T atomic_and(volatile T *ptr, T value) {
 #if defined(GNUC_OR_CLANG)
   return __atomic_and_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
@@ -222,7 +227,7 @@ inline T atomic_and(volatile T *ptr, T value) {
 }
 
 template <UnderlyingAtomicIntegral T>
-inline T atomic_or(volatile T *ptr, T value) {
+alwaysinline T atomic_or(volatile T *ptr, T value) {
 #if defined(GNUC_OR_CLANG)
   return __atomic_or_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
@@ -249,7 +254,7 @@ inline T atomic_or(volatile T *ptr, T value) {
 }
 
 template <UnderlyingAtomicIntegral T>
-inline T atomic_xor(volatile T *ptr, T value) {
+alwaysinline T atomic_xor(volatile T *ptr, T value) {
 #if defined(GNUC_OR_CLANG)
   return __atomic_xor_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
@@ -275,7 +280,7 @@ inline T atomic_xor(volatile T *ptr, T value) {
 #endif
 }
 
-inline bool atomic_toggle(volatile bool *ptr) {
+alwaysinline bool atomic_toggle(volatile bool *ptr) {
 #if defined(GNUC_OR_CLANG)
   return __atomic_xor_fetch(ptr, true, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
@@ -288,51 +293,57 @@ inline bool atomic_toggle(volatile bool *ptr) {
 #endif
 }
 
-template <UnderlyingAtomicIntegral T> inline T atomic_load(volatile T &ptr) {
+template <UnderlyingAtomicIntegral T>
+alwaysinline T atomic_load(volatile T &ptr) {
   return atomic_load(&ptr);
 }
 
 template <UnderlyingAtomicIntegral T>
-inline void atomic_store(volatile T &ptr, T desired) {
+alwaysinline void atomic_store(volatile T &ptr, T desired) {
   return atomic_store(&ptr, desired);
 }
 
-template <UnderlyingAtomicIntegral T> inline T atomic_inc(volatile T &ptr) {
+template <UnderlyingAtomicIntegral T>
+alwaysinline T atomic_inc(volatile T &ptr) {
   return atomic_inc(&ptr);
 }
 
-template <UnderlyingAtomicIntegral T> inline T atomic_dec(volatile T &ptr) {
+template <UnderlyingAtomicIntegral T>
+alwaysinline T atomic_dec(volatile T &ptr) {
   return atomic_dec(&ptr);
 }
 
 template <UnderlyingAtomicIntegral T>
-inline T atomic_add(volatile T &ptr, T value) {
+alwaysinline T atomic_add(volatile T &ptr, T value) {
   return atomic_add(&ptr, value);
 }
 
 template <UnderlyingAtomicIntegral T>
-inline T atomic_sub(volatile T &ptr, T value) {
+alwaysinline T atomic_sub(volatile T &ptr, T value) {
   return atomic_sub(&ptr, value);
 }
 
 template <UnderlyingAtomicIntegral T>
-inline bool atomic_compare_exchange(volatile T &ptr, T &expected, T desired) {
+alwaysinline bool atomic_compare_exchange(volatile T &ptr, T &expected,
+                                          T desired) {
   return atomic_compare_exchange(&ptr, &expected, desired);
 }
 
 template <UnderlyingAtomicIntegral T>
-inline T atomic_xor(volatile T &ptr, T value) {
+alwaysinline T atomic_xor(volatile T &ptr, T value) {
   return atomic_xor(&ptr, value);
 }
 
 template <UnderlyingAtomicIntegral T>
-inline T atomic_or(volatile T &ptr, T value) {
+alwaysinline T atomic_or(volatile T &ptr, T value) {
   return atomic_or(&ptr, value);
 }
 
 template <UnderlyingAtomicIntegral T>
-inline T atomic_and(volatile T &ptr, T value) {
+alwaysinline T atomic_and(volatile T &ptr, T value) {
   return atomic_and(&ptr, value);
 }
 
-inline bool atomic_toggle(volatile bool &ptr) { return atomic_toggle(&ptr); }
+alwaysinline bool atomic_toggle(volatile bool &ptr) {
+  return atomic_toggle(&ptr);
+}
