@@ -65,7 +65,8 @@ bool is_beta() {
 
 const std::filesystem::path &get_data_path() {
   static const std::filesystem::path data_path =
-      get_appdata_path() / (is_beta() ? "beta_data" : "data");
+      is_beta() ? get_appdata_path() / "user" / "beta_data"
+                : get_appdata_path() / "data";
   return data_path;
 }
 

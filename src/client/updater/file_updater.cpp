@@ -53,7 +53,7 @@ std::string get_update_file() {
 }
 
 const char *get_data_folder() {
-  return get_selected_version() == "beta" ? "beta_data" : "data";
+  return get_selected_version() == "beta" ? "user/beta_data" : "data";
 }
 
 std::string get_update_folder() {
@@ -664,8 +664,7 @@ void file_updater::cleanup_root_directory(
   for (const auto &file : existing_files) {
     const std::filesystem::path entry =
         std::filesystem::relative(file, this->base_);
-    if ((entry.string() == "user" || entry.string() == "data" ||
-         entry.string() == "beta_data") &&
+    if ((entry.string() == "user" || entry.string() == "data") &&
         utils::io::directory_exists(file)) {
       continue;
     }
