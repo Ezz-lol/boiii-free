@@ -325,6 +325,26 @@ void distribute_player_xuid(const game::net::netadr_t &target,
   }
 }
 
+// The game draws a bot's default emblem from its XUID and keeps it per XUID,
+// and every bot that takes a slot gets that slot's XUID. Redraw it, or a bot
+// can keep the unfinished emblem of the one that left and show it as loading.
+void refresh_bot_emblem(const game::XUID xuid) {
+  if ((xuid & 0xFFFFFFFFFFFFFF00) != 0xFFFFFFFFFFFFFF00) {
+    return;
+  }
+
+  scheduler::once(
+      [xuid] {
+        const game::sys::ScopedCriticalSection lock(
+            game::sys::CriticalSection::PCACHE,
+            game::sys::ScopedCriticalSection::ScopedCriticalSectionType::
+                NORMAL);
+        game::pcache::PCache_InvalidatePlayerEmblem(
+            game::CONTROLLER_INDEX_FIRST, xuid);
+      },
+      scheduler::main);
+}
+
 void handle_new_player(const game::net::netadr_t &target) {
   const command::params_sv params{};
 
@@ -349,6 +369,9 @@ void handle_new_player(const game::net::netadr_t &target) {
               xuid |= static_cast<game::XUID>(index);
             }
             client.set_xuid(xuid);
+            if (game::is_client()) {
+              refresh_bot_emblem(xuid);
+            }
             // SV_DirectConnect copied the XUID into the session info while it
             // was still 0. Update it, as the engine does when a lobby client's
             // XUID changes.
@@ -552,10 +575,14 @@ void handle_player_xuid_packet(const game::net::netadr_t &target,
     const game::ClientNum_t clientNum = buffer.read<game::ClientNum_t>();
     const game::XUID xuid = buffer.read<game::XUID>();
 
-    std::scoped_lock lock(client_xuids_mutex);
-    if (game::valid_client_num(clientNum)) {
-      client_xuids[clientNum] = xuid;
+    {
+      std::scoped_lock lock(client_xuids_mutex);
+      if (game::valid_client_num(clientNum)) {
+        client_xuids[clientNum] = xuid;
+      }
     }
+
+    refresh_bot_emblem(xuid);
   }
 }
 
