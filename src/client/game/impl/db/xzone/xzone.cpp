@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
-#include "../../ugc/ugc.hpp"
 #include "xzone.hpp"
+#include <game/impl/ugc/ugc.hpp>
 
 namespace game {
 namespace db {

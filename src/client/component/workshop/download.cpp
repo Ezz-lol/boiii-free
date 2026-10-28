@@ -117,8 +117,7 @@ download_with_steamcmd(const download_job &job,
   return ec ? download_result::install_failed : download_result::success;
 }
 
-download_result run_download(const std::string_view &id,
-                             const std::string_view &kind,
+download_result run_download(const std::string_view &id, game::ZoneType type,
                              const bool show_overlay) {
   if (launcher_downloading.load()) {
     scheduler::once(
@@ -135,8 +134,7 @@ download_result run_download(const std::string_view &id,
   const std::string title =
       info.title.empty() ? std::format("Workshop item {}", id) : info.title;
 
-  download_job job{
-      std::string(id), std::string(kind), &cancel_requested, nullptr, {}};
+  download_job job{std::string(id), type, &cancel_requested, nullptr, {}};
   job.report = [&](const download_status &status) {
     download_overlay::download_state state;
     state.active = true;
@@ -289,7 +287,7 @@ download_result download_item(const download_job &job,
     if (job.report)
       job.report({"Installing..."});
     const std::filesystem::path target =
-        install_folder(staging, job.id, job.kind);
+        install_folder(staging, job.id, job.type);
     if (target.empty())
       result = download_result::install_failed;
     else if (installed)
@@ -300,8 +298,8 @@ download_result download_item(const download_job &job,
   return result;
 }
 
-void start_download(const std::string_view &id, const std::string_view &kind) {
-  queue::add(id, kind);
+void start_download(const std::string_view &id, game::ZoneType type) {
+  queue::add(id, type);
 }
 
 bool cancel_download() {
@@ -342,7 +340,7 @@ void worker() {
     }
 
     const download_result result =
-        run_download(next.id, next.kind, next.show_overlay);
+        run_download(next.id, next.type, next.show_overlay);
 
     std::lock_guard lock(mutex);
     next.state = result == download_result::success     ? item_state::done
@@ -373,7 +371,7 @@ const char *state_name(const item_state state) {
   }
 }
 
-bool add(const std::string_view &id, const std::string_view &kind,
+bool add(const std::string_view &id, game::ZoneType type,
          const std::string_view &title, const uint64_t file_size,
          const bool show_overlay) {
   if (id.empty() || !utils::string::is_numeric(id))
@@ -387,7 +385,7 @@ bool add(const std::string_view &id, const std::string_view &kind,
     if ((current && current->id == id) ||
         std::ranges::any_of(pending, by_id(id)))
       return false;
-    pending.push_back({std::string(id), std::string(kind),
+    pending.push_back({std::string(id), type,
                        title.empty() ? std::string(id) : std::string(title),
                        file_size, item_state::queued, -1, show_overlay});
     std::erase_if(history, by_id(id));

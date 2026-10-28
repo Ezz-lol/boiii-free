@@ -1,9 +1,10 @@
 #pragma once
 
+#include "download_overlay.hpp"
 #include <updater/file_info.hpp>
 #include <updater/progress_listener.hpp>
 
-#include <utils/progress_ui.hpp>
+#include <game/game.hpp>
 
 #include <chrono>
 
@@ -35,19 +36,21 @@ struct speed_tracker {
 };
 
 struct download_context {
-  std::string mapname;
+  std::string item_name;
   std::string pub_id;
-  std::filesystem::path map_path;
-  std::string map_tree_uri;
-  std::string kind = "Map";
-  bool verify_hashes = false;
+  std::filesystem::path item_path;
+  std::string content_tree_uri;
   std::function<void()> success_callback;
-  std::function<void()> missing_manifest_callback;
+  std::function<void()> failure_callback;
+  game::ZoneType type;
 };
 
-void start_map_download(const download_context &context);
+void start_download(const download_context &context);
 void cancel_download();
 bool is_downloading();
+
+typedef std::unordered_map<std::string, std::pair<size_t, size_t>>
+    downloadingFilesMap_t;
 
 class fastdl_ui : public updater::progress_listener {
 public:
@@ -71,18 +74,16 @@ public:
   }
 
 private:
+  download_overlay::download_state ui;
   mutable std::recursive_mutex mutex_;
   std::vector<updater::file_info> total_files_{};
   std::vector<updater::file_info> downloaded_files_{};
-  std::unordered_map<std::string, std::pair<size_t, size_t>>
-      downloading_files_{};
+  downloadingFilesMap_t downloading_files_{};
 
-  utils::progress_ui progress_ui_{false};
   speed_tracker speed_{};
   std::string current_filename_{};
   updater::file_info current_file_{};
 
-  void handle_cancellation() const;
   void update_progress();
   void update_file_name();
 

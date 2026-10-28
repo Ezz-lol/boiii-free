@@ -49,7 +49,7 @@ std::mutex catalog_mutex;
 std::vector<item_details> catalog_items;
 catalog_status status{};
 std::string catalog_query;
-std::string catalog_kind;
+game::ZoneType catalog_type;
 std::atomic<uint64_t> catalog_request{0};
 std::unordered_map<std::string, uint64_t> known_sizes;
 
@@ -130,17 +130,16 @@ std::string strip_tags(const std::string_view &text) {
 }
 
 std::vector<item_details> fetch_page(int page, const std::string_view &query,
-                                     const std::string_view &kind) {
+                                     game::ZoneType type) {
   utils::http::headers headers;
   headers["User-Agent"] = USER_AGENT;
   headers["Accept-Language"] = "en-US,en;q=0.9";
 
-  const std::string base =
-      std::format("https://steamcommunity.com/workshop/browse/"
-                  "?appid={}&childpublishedfileid=0&numperpage=30&p={}{}",
-                  game::APP_ID_STR, page,
-                  kind.empty() ? std::string{}
-                               : std::format("&requiredtags%5B%5D={}", kind));
+  const std::string base = std::format(
+      "https://steamcommunity.com/workshop/browse/"
+      "?appid={}&childpublishedfileid=0&numperpage=30&p={}{}",
+      game::APP_ID_STR, page,
+      std::format("&requiredtags%5B%5D={}", game::toWorkshopKind(type)));
   std::vector<std::string> urls;
   if (query.empty()) {
     urls.push_back(std::format(
@@ -174,7 +173,7 @@ std::vector<item_details> fetch_page(int page, const std::string_view &query,
       std::lock_guard lock(catalog_mutex);
       remember_page_sizes(*html);
     }
-    for (auto &item : get_details(ids)) {
+    for (item_details &item : get_details(ids)) {
       if (!query.empty() && !matches_query(item, query))
         continue;
       item.description = strip_tags(item.description);
@@ -381,27 +380,25 @@ void apply_cover() {
 } // namespace
 
 void request_catalog_page(const std::string_view &query, int page,
-                          const std::string_view &kind) {
+                          game::ZoneType type) {
   page = std::max(page, 1);
   {
     std::lock_guard lock(catalog_mutex);
-    if (catalog_query == query && catalog_kind == kind && status.page == page &&
+    if (catalog_query == query && catalog_type == type && status.page == page &&
         (status.loading || !catalog_items.empty() || !status.error.empty()))
       return;
     catalog_query = query;
-    catalog_kind = kind;
     catalog_items.clear();
     status = {true, false, page, status.generation + 1, {}};
   }
 
   const uint64_t request = ++catalog_request;
-  std::thread([query = std::string(query), kind = std::string(kind), page,
-               request] {
-    std::vector<item_details> items = fetch_page(page, query, kind);
+  std::thread([query = std::string(query), type, page, request] {
+    std::vector<item_details> items = fetch_page(page, query, type);
     // Items tagged both Map and Mod would otherwise be hidden on one tab
-    if (!kind.empty())
-      for (item_details &item : items)
-        item.kind = kind;
+    for (item_details &item : items) {
+      item.type = type;
+    }
     for (const item_details &item : items)
       request_preview(item.id, item.preview_url);
 

@@ -826,16 +826,14 @@ uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
 }
 
 std::string human_readable_size(uint64_t bytes) {
-  const char *suffixes[] = {"B", "KB", "MB", "GB", "TB"};
+  const std::string_view suffixes[] = {"B", "KB", "MB", "GB", "TB"};
   double value = static_cast<double>(bytes);
   int idx = 0;
   while (value >= 1024.0 && idx < 4) {
     value /= 1024.0;
     ++idx;
   }
-  char buf[64]{};
-  std::snprintf(buf, sizeof(buf), "%.2f %s", value, suffixes[idx]);
-  return buf;
+  return std::format("{:.2f} {}", value, suffixes[idx]);
 }
 
 uint64_t parse_human_size_to_bytes(const std::string_view &text) {
@@ -976,21 +974,19 @@ std::vector<item_details> get_details(const std::vector<std::string> &ids) {
                                               ? number_of("lifetime_favorited")
                                               : number_of("favorited"));
 
-            bool map = false;
-            bool mod = false;
+            game::ZoneType type = game::ZoneType::USERMAP;
             if (entry.HasMember("tags") && entry["tags"].IsArray()) {
               for (const rapidjson::GenericValue<rapidjson::UTF8<>> &tag :
                    entry["tags"].GetArray()) {
                 if (tag.IsObject() && tag.HasMember("tag") &&
                     tag["tag"].IsString()) {
                   item.tags.emplace_back(tag["tag"].GetString());
-                  const std::string kind = normalize_kind(item.tags.back());
-                  map |= kind == "Map";
-                  mod |= kind == "Mod";
+                  type = normalize_kind(item.tags.back())
+                             .value_or(game::ZoneType::USERMAP);
                 }
               }
             }
-            item.kind = mod && !map ? "Mod" : "Map";
+            item.type = type;
             result.push_back(std::move(item));
           }
         }
@@ -1015,10 +1011,11 @@ workshop_info get_steam_workshop_info(const std::string_view &workshop_id) {
   return info;
 }
 
-void offer_download(const std::string_view &kind, const std::string_view &name,
+void offer_download(game::ZoneType zoneType, const std::string_view &name,
                     const std::string_view &workshop_id) {
   const workshop_info info = get_steam_workshop_info(workshop_id);
-  std::string message = std::format("{}  '{}' was not found.\n", kind, name);
+  std::string message =
+      std::format("{}  '{}' was not found.\n", game::toString(zoneType), name);
   if (name != workshop_id)
     message += std::format("Workshop ID: {}\n", workshop_id);
   if (!info.title.empty())
@@ -1027,28 +1024,27 @@ void offer_download(const std::string_view &kind, const std::string_view &name,
     message += "Size: " + human_readable_size(info.file_size) + "\n";
   message += "\nDo you want to download it from the Steam Workshop?";
   download_overlay::show_confirmation(
-      std::format("Download{}?", kind), message,
-      [workshop_id, kind] { start_download(workshop_id, kind); });
+      std::format("Download {}?", game::toString(zoneType)), message,
+      [workshop_id, zoneType] { start_download(workshop_id, zoneType); });
 }
 
-void start_fastdl(const std::string_view &kind, const std::string_view &name,
+void start_fastdl(game::ZoneType zoneType, const std::string_view &name,
                   const std::string_view &workshop_id,
-                  const std::string_view &base_uri, const bool verify_hashes,
-                  std::function<void()> missing_manifest = {}) {
+                  const std::string_view &base_uri,
+                  std::function<void()> failure_callback = {}) {
   std::string_view base = base_uri;
   while (base.ends_with('/')) {
     base.remove_suffix(1);
   }
   const std::string folder =
-      std::format("{}/{}", kind == "Mod" ? "mods" : "usermaps", name);
+      std::format("{}s/{}", game::toString(zoneType), name);
   fastdl::download_context context{};
-  context.mapname = name;
+  context.item_name = name;
   context.pub_id = workshop_id.empty() ? name : workshop_id;
-  context.map_path = folder;
-  context.map_tree_uri = std::format("{}/{}", base, folder);
-  context.kind = kind;
-  context.verify_hashes = verify_hashes;
-  context.missing_manifest_callback = std::move(missing_manifest);
+  context.item_path = folder;
+  context.content_tree_uri = std::format("{}/{}", base, folder);
+  context.type = zoneType;
+  context.failure_callback = {};
   context.success_callback = [title = std::string(name)] {
     scheduler::once(
         [title] {
@@ -1072,15 +1068,8 @@ void start_fastdl(const std::string_view &kind, const std::string_view &name,
   };
   printf("[ Workshop ] Server has FastDL, attempting download for %s from "
          "%s\n",
-         context.mapname.c_str(), context.map_tree_uri.c_str());
-  fastdl::start_map_download(context);
-}
-
-void start_fastdl_usermap(const std::string_view &mapname,
-                          const std::string_view &workshop_id,
-                          const std::string_view &base_uri,
-                          const bool verify_hashes = false) {
-  start_fastdl("Map", mapname, workshop_id, base_uri, verify_hashes);
+         context.item_name.c_str(), context.content_tree_uri.c_str());
+  fastdl::start_download(context);
 }
 
 bool is_busy_downloading() {
@@ -1099,24 +1088,23 @@ bool is_busy_downloading() {
   return false;
 }
 
-void report_version_mismatch(const std::string_view &kind,
+void report_version_mismatch(game::ZoneType zoneType,
                              const std::string_view &name,
                              const std::string_view &workshop_id,
                              const uint64_t local_built,
                              const uint64_t server_built) {
   const std::string what =
-      std::format("{} '{}'", utils::string::to_lower(std::string(kind)), name);
+      std::format("{} '{}'", game::toString(zoneType), name);
   if (local_built && server_built > local_built &&
       utils::string::is_numeric(workshop_id.data())) {
     const std::string id(workshop_id);
-    const std::string kind_copy(kind);
     download_overlay::show_confirmation(
-        std::format("{} update needed", kind),
+        std::format("{} update needed", game::toString(zoneType)),
         std::format("This server runs a newer version of the {} than "
                     "yours.\n\nDownload the latest version from the Workshop "
                     "now?",
                     what),
-        [id, kind_copy] { start_download(id, kind_copy); });
+        [id, zoneType] { start_download(id, zoneType); });
     return;
   }
 
@@ -1167,15 +1155,27 @@ bool check_valid_usermap_id(const std::string_view &mapname,
     }
 
     if (!base_uri.empty()) {
-      start_fastdl_usermap(mapname, workshop_id, base_uri);
+      std::function<void()> failure_callback = {};
+      if (utils::string::is_numeric(mapname.data())) {
+        failure_callback = [mapname] {
+          offer_download(game::ZoneType::USERMAP, mapname, mapname);
+        };
+      } else if (!workshop_id.empty() &&
+                 utils::string::is_numeric(workshop_id.data())) {
+        failure_callback = [mapname, workshop_id] {
+          offer_download(game::ZoneType::USERMAP, mapname, workshop_id);
+        };
+      }
+      start_fastdl(game::ZoneType::USERMAP, mapname, workshop_id, base_uri,
+                   failure_callback);
       return false;
     }
 
     if (utils::string::is_numeric(mapname.data())) {
-      offer_download("Map", mapname, mapname);
+      offer_download(game::ZoneType::USERMAP, mapname, mapname);
     } else if (!workshop_id.empty() &&
                utils::string::is_numeric(workshop_id.data())) {
-      offer_download("Map", mapname, workshop_id);
+      offer_download(game::ZoneType::USERMAP, mapname, workshop_id);
     } else {
       const std::string name_copy = std::string(mapname);
       scheduler::once(
@@ -1204,7 +1204,7 @@ void offer_mod_from_workshop(const std::string &mod,
                  ? workshop_id
                  : resolve_mod_workshop_id(mod));
   if (!resolved_id.empty()) {
-    offer_download("Mod", mod, resolved_id);
+    offer_download(game::ZoneType::MOD, mod, resolved_id);
     return;
   }
   scheduler::once(
@@ -1212,9 +1212,8 @@ void offer_mod_from_workshop(const std::string &mod,
         game::ui::UI_OpenErrorPopupWithMessage(
             game::LOCAL_CLIENT_0, game::errorCode::UI,
             utils::string::va(
-                "Could not download: folder name is not numeric and "
-                "'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id, "
-                "set up FastDL on the server or subscribe on Steam Workshop.",
+                "Could not download mod %s: workshop ID is not provided by "
+                "server and does not have FastDL setup",
                 mod.c_str()));
       },
       scheduler::main);
@@ -1223,79 +1222,28 @@ void offer_mod_from_workshop(const std::string &mod,
 bool check_valid_mod_id(const std::string_view &mod,
                         const std::string_view &workshop_id,
                         const std::string_view &base_uri) {
-  if (mod.empty() || mod == "usermaps") {
-    return true;
-  }
-
-  if (!has_mod(mod)) {
-    if (is_busy_downloading()) {
+  if (!mod.empty() && mod != "usermaps") {
+    if (!has_mod(mod)) {
+      if (!is_busy_downloading()) {
+        const std::string mod_copy(mod);
+        const std::string id_copy(workshop_id);
+        if (base_uri.empty()) {
+          offer_mod_from_workshop(mod_copy, id_copy);
+        } else {
+          start_fastdl(game::ZoneType::MOD, mod, workshop_id, base_uri,
+                       [id_copy, mod_copy]() {
+                         offer_mod_from_workshop(mod_copy, id_copy);
+                       });
+        }
+      }
       return false;
     }
-
-    const std::string mod_copy(mod);
-    const std::string id_copy(workshop_id);
-    if (!base_uri.empty()) {
-      start_fastdl(
-          "Mod", mod, workshop_id, base_uri, false,
-          [mod_copy, id_copy] { offer_mod_from_workshop(mod_copy, id_copy); });
-    } else {
-      offer_mod_from_workshop(mod_copy, id_copy);
-    }
-    return false;
   }
-
   return true;
 }
 
 bool mod_load_requires_fs_reinitialization(const std::string_view &mod_name) {
   return !mod_name.empty() && mod_name != "usermaps";
-}
-
-bool check_matching_content(const std::string_view &mod,
-                            const content_info &server_mod,
-                            const std::string_view &mapname,
-                            const std::string_view &workshop_id,
-                            const content_info &server_map,
-                            const std::string_view &base_uri) {
-  if (!server_mod.hash.empty()) {
-    const content_info local = mod_content(mod);
-    if (!local.hash.empty() && local.hash != server_mod.hash) {
-      if (!is_busy_downloading()) {
-        const std::string mod_copy(mod);
-        const auto report = [mod_copy, local_built = local.built,
-                             server_built = server_mod.built] {
-          const std::string id = utils::string::is_numeric(mod_copy)
-                                     ? mod_copy
-                                     : resolve_mod_workshop_id(mod_copy);
-          report_version_mismatch("Mod", mod_copy, id, local_built,
-                                  server_built);
-        };
-        if (!base_uri.empty()) {
-          start_fastdl("Mod", mod, workshop_id, base_uri, true, report);
-        } else {
-          report();
-        }
-      }
-      return false;
-    }
-  }
-
-  if (!server_map.hash.empty()) {
-    const content_info local = usermap_content(mapname);
-    if (!local.hash.empty() && local.hash != server_map.hash) {
-      if (!is_busy_downloading()) {
-        if (!base_uri.empty()) {
-          start_fastdl_usermap(mapname, workshop_id, base_uri, true);
-        } else {
-          report_version_mismatch("Map", mapname, workshop_id, local.built,
-                                  server_map.built);
-        }
-      }
-      return false;
-    }
-  }
-
-  return true;
 }
 
 bool mod_switch_requires_fs_reinitialization(
@@ -1315,23 +1263,22 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
                             const std::string_view &mod, bool force_fs_reinit) {
   const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
   // Dedicated servers always report usermaps, even on stock maps. Stock maps
-  // don't need it, so keep whatever usermaps state we have instead of reloading
+  // don't need it, so keep whatever usermaps state we have instead of
+  // reloading
   const std::string_view target =
       mod == "usermaps" && usermap.empty() && loaded_mod != "usermaps"
           ? std::string_view{}
           : mod;
-  if (loaded_mod == target) {
-    return;
-  }
-
-  const bool fs_reinit_required =
-      force_fs_reinit ||
-      mod_switch_requires_fs_reinitialization(loaded_mod, target);
-  const std::string target_str{target};
-  game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, target_str.data(),
-                                           fs_reinit_required);
-  if (fs_reinit_required) {
-    wait_for_mod_load();
+  if (loaded_mod != target) {
+    const bool fs_reinit_required =
+        force_fs_reinit ||
+        mod_switch_requires_fs_reinitialization(loaded_mod, target);
+    const std::string target_str{target};
+    game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, target_str.data(),
+                                             fs_reinit_required);
+    if (fs_reinit_required) {
+      wait_for_mod_load();
+    }
   }
 }
 
@@ -1391,19 +1338,6 @@ void UGC_LoadMod_LogFirst(game::LocalClientNum_t localClientNum,
 }
 #endif
 
-utils::hook::detour DB_CheckModXFile_hook;
-utils::hook::detour UGC_GetByPublisherId_hook;
-utils::hook::detour UGC_GetCount_hook;
-utils::hook::detour UGC_LoadPool_hook;
-utils::hook::detour UGC_LoadModsPool_hook;
-utils::hook::detour UGC_LoadUsermapsPool_hook;
-utils::hook::detour UGC_LoadPools_hook;
-utils::hook::detour UGC_LoadModByPublisherId_hook;
-utils::hook::detour UGC_SetMapPreviewImageByPublisherId_hook;
-utils::hook::detour UGC_LoadManifest_hook;
-utils::hook::detour Mods_Lists_GetInfoEntries_Slice_hook;
-utils::hook::detour UGC_SetMapLoadingImage_hook;
-
 /*
   The hooks below re-implement and replace most UGC handling logic.
   They are modified from the base engine implementation to:
@@ -1415,41 +1349,38 @@ utils::hook::detour UGC_SetMapLoadingImage_hook;
   labelled with internal ID of the usermap, as opposed to its publisher ID.
 */
 void extend_ugc_pools() {
-  DB_CheckModXFile_hook.create(game::db::xzone::DB_CheckModXFile.get(),
-                               game::db::xzone::DB_CheckModXFile_Impl);
-  UGC_GetByPublisherId_hook.create(game::ugc::UGC_GetByPublisherId.get(),
-                                   game::ugc::UGC_GetByPublisherId_Impl);
-  UGC_GetCount_hook.create(game::ugc::UGC_GetCount.get(),
-                           game::ugc::UGC_GetCount_Impl);
-  UGC_VerifyVersion_hook.create(game::ugc::UGC_VerifyVersion.get(),
-                                UGC_VerifyVersion_HandleInternalName);
-  UGC_LoadPool_hook.create(game::ugc::UGC_LoadPool.get(),
-                           game::ugc::UGC_LoadPool_Impl);
-  UGC_LoadModsPool_hook.create(game::ugc::UGC_LoadModsPool.get(),
-                               game::ugc::UGC_LoadModsPool_Impl);
-  UGC_LoadUsermapsPool_hook.create(game::ugc::UGC_LoadUsermapsPool.get(),
-                                   game::ugc::UGC_LoadUsermapsPool_Impl);
-  UGC_LoadPools_hook.create(game::ugc::UGC_LoadPools.get(),
-                            game::ugc::UGC_LoadPools_Impl);
-  UGC_LoadModByPublisherId_hook.create(
-      game::ugc::UGC_LoadModByPublisherId.get(),
-      game::ugc::UGC_LoadModByPublisherId_Impl);
-  UGC_SetMapPreviewImageByPublisherId_hook.create(
-      game::ugc::UGC_SetMapPreviewImageByPublisherId.get(),
-      game::ugc::UGC_SetMapPreviewImageByPublisherId_Impl);
-  UGC_LoadManifest_hook.create(game::ugc::UGC_LoadManifest.get(),
-                               game::ugc::UGC_LoadManifest_Impl);
+  utils::hook::jump(game::db::xzone::DB_CheckModXFile.get(),
+                    game::db::xzone::DB_CheckModXFile_Impl);
+  utils::hook::jump(game::ugc::UGC_GetByPublisherId.get(),
+                    game::ugc::UGC_GetByPublisherId_Impl);
+  utils::hook::jump(game::ugc::UGC_GetCount.get(),
+                    game::ugc::UGC_GetCount_Impl);
+  utils::hook::jump(game::ugc::UGC_VerifyVersion.get(),
+                    UGC_VerifyVersion_HandleInternalName);
+  utils::hook::jump(game::ugc::UGC_LoadPool.get(),
+                    game::ugc::UGC_LoadPool_Impl);
+  utils::hook::jump(game::ugc::UGC_LoadModsPool.get(),
+                    game::ugc::UGC_LoadModsPool_Impl);
+  utils::hook::jump(game::ugc::UGC_LoadUsermapsPool.get(),
+                    game::ugc::UGC_LoadUsermapsPool_Impl);
+  utils::hook::jump(game::ugc::UGC_LoadPools.get(),
+                    game::ugc::UGC_LoadPools_Impl);
+  utils::hook::jump(game::ugc::UGC_LoadModByPublisherId.get(),
+                    game::ugc::UGC_LoadModByPublisherId_Impl);
+  utils::hook::jump(game::ugc::UGC_SetMapPreviewImageByPublisherId.get(),
+                    game::ugc::UGC_SetMapPreviewImageByPublisherId_Impl);
+  utils::hook::jump(game::ugc::UGC_LoadManifest.get(),
+                    game::ugc::UGC_LoadManifest_Impl);
   UGC_LoadUsermapByPublisherId_hook.create(
       game::ugc::UGC_LoadUsermapByPublisherId.get(),
       UGC_LoadUsermapByPublisherId_HandleInternalName);
 
   if (game::is_client()) {
-    Mods_Lists_GetInfoEntries_Slice_hook.create(
-        game::lua::Mods_Lists_GetInfoEntries_Slice.get(),
-        game::lua::Mods_Lists_GetInfoEntries_Slice_Impl);
+    utils::hook::jump(game::lua::Mods_Lists_GetInfoEntries_Slice.get(),
+                      game::lua::Mods_Lists_GetInfoEntries_Slice_Impl);
 
-    UGC_SetMapLoadingImage_hook.create(game::ugc::UGC_SetMapLoadingImage.get(),
-                                       game::ugc::UGC_SetMapLoadingImage_Impl);
+    utils::hook::jump(game::ugc::UGC_SetMapLoadingImage.get(),
+                      game::ugc::UGC_SetMapLoadingImage_Impl);
   }
 
 #ifndef NDEBUG
@@ -1496,28 +1427,32 @@ public:
           return;
         }
         const std::string id = params.get(1);
-        std::string type_str = params.size() >= 3 ? params.get(2) : "Map";
-        if (id.empty())
-          return;
-        if (type_str != "Map" && type_str != "Mod")
-          type_str = "Map";
-        start_download(id, type_str);
+        if (!id.empty()) {
+
+          game::ZoneType zoneType =
+              params.size() >= 3 &&
+                      utils::string::to_lower(params.get(2)).find("mod") !=
+                          std::string::npos
+                  ? game::ZoneType::MOD
+                  : game::ZoneType::USERMAP;
+          start_download(id, zoneType);
+        }
       });
       command::add("loadmod", [](const command::params &params) {
         if (params.size() > 0) {
           const std::string mod = params.get(1);
 
-          if (mod == "" || mod == "usermaps") {
-            return game::ugc::UGC_LoadModByPublisherId_Impl(
-                game::LOCAL_CLIENT_0, mod.c_str(), true);
-          }
-
-          for (size_t i = 0; i < game::ugc::modsPool.count; ++i) {
-            const game::ugc::UGCItem *data = &game::ugc::modsPool.data[i];
-            if (std::string_view(data->internalName) == mod ||
-                std::string_view(data->publisherId) == mod) {
-              return game::ugc::UGC_LoadModByPublisherId_Impl(
-                  game::LOCAL_CLIENT_0, data->publisherId, true);
+          if (mod.empty() || mod == "usermaps") {
+            game::ugc::UGC_LoadModByPublisherId_Impl(game::LOCAL_CLIENT_0,
+                                                     mod.c_str(), true);
+          } else {
+            for (size_t i = 0; i < game::ugc::modsPool.count; ++i) {
+              const game::ugc::UGCItem *data = &game::ugc::modsPool.data[i];
+              if (std::string_view(data->internalName) == mod ||
+                  std::string_view(data->publisherId) == mod) {
+                return game::ugc::UGC_LoadModByPublisherId_Impl(
+                    game::LOCAL_CLIENT_0, data->publisherId, true);
+              }
             }
           }
         }

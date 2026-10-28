@@ -37,12 +37,6 @@ content_info mod_content(const std::string_view &id);
 content_info usermap_content(const std::string_view &mapname);
 content_info loaded_mod_content();
 content_info loaded_usermap_content();
-bool check_matching_content(const std::string_view &mod,
-                            const content_info &server_mod,
-                            const std::string_view &mapname,
-                            const std::string_view &workshop_id,
-                            const content_info &server_map,
-                            const std::string_view &base_uri);
 bool mod_switch_requires_fs_reinitialization(
     const std::string_view &current_mod, const std::string_view &new_mod);
 bool mod_load_requires_fs_reinitialization(std::string_view &mod_name);
@@ -67,7 +61,7 @@ struct item_details {
   std::string title;
   std::string description;
   std::string preview_url;
-  std::string kind;
+  game::ZoneType type;
   std::vector<std::string> tags;
   std::uint64_t file_size{};
   std::uint64_t time_updated{};
@@ -93,7 +87,7 @@ const char *va_mods_path(const char *fmt, const char *root_dir,
 const char *va_user_content_path(const char *fmt, const char *root_dir,
                                  const char *user_content_dir);
 
-std::string normalize_kind(const std::string_view &kind);
+std::optional<game::ZoneType> normalize_kind(const std::string_view &kind);
 std::string clean_description(const std::string_view &text);
 
 struct installed_item {
@@ -101,7 +95,7 @@ struct installed_item {
   std::string folder;
   std::string title;
   std::string description;
-  std::string kind;
+  game::ZoneType type;
   std::string path;
   std::uint64_t file_size{};
 };
@@ -110,7 +104,7 @@ std::filesystem::path find_installed(const std::string_view &id);
 bool delete_installed(const std::string_view &id, std::string &error);
 std::filesystem::path install_folder(const std::filesystem::path &download,
                                      const std::string_view &id,
-                                     const std::string_view &kind_hint);
+                                     game::ZoneType type);
 void request_content_reload(const std::string_view &finished_title = {});
 
 struct download_status {
@@ -133,7 +127,7 @@ enum class download_result {
 
 struct download_job {
   std::string id;
-  std::string kind;
+  game::ZoneType type;
   const std::atomic<bool> *cancel{};
   const std::atomic<bool> *pause{};
   std::function<void(const download_status &)> report;
@@ -153,8 +147,7 @@ bool download_from_steam(const std::string_view &workshop_id,
                          const std::filesystem::path &destination,
                          const download_job &job, cdn_progress &progress);
 
-void start_download(const std::string_view &id,
-                    const std::string_view &kind = {});
+void start_download(const std::string_view &id, game::ZoneType zoneType);
 bool cancel_download();
 
 namespace queue {
@@ -162,7 +155,7 @@ enum class item_state { queued, downloading, done, failed, cancelled };
 
 struct entry {
   std::string id;
-  std::string kind;
+  game::ZoneType type;
   std::string title;
   std::uint64_t file_size{};
   item_state state{item_state::queued};
@@ -171,7 +164,7 @@ struct entry {
 };
 
 const char *state_name(item_state state);
-bool add(const std::string_view &id, const std::string_view &kind,
+bool add(const std::string_view &id, game::ZoneType type,
          const std::string_view &title = {}, std::uint64_t file_size = 0,
          bool show_overlay = true);
 bool remove(const std::string_view &id);
@@ -193,7 +186,7 @@ struct catalog_status {
 std::unordered_map<std::string, uint64_t>
 parse_page_sizes(const std::string_view &html);
 void request_catalog_page(const std::string_view &query, int page,
-                          const std::string_view &kind = {});
+                          game::ZoneType type = game::ZoneType::USERMAP);
 std::vector<item_details> get_catalog_page();
 catalog_status get_catalog_status();
 void request_preview(const std::string_view &id, const std::string_view &url);

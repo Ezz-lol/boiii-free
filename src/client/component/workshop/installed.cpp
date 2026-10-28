@@ -23,8 +23,8 @@ bool cache_valid = false;
 std::mutex reload_mutex;
 std::vector<std::string> finished_in_match;
 
-std::filesystem::path root_for(const std::string_view &kind) {
-  return game::get_game_path() / (kind == "Map" ? "usermaps" : "mods");
+std::filesystem::path root_for(const game::ZoneType type) {
+  return game::get_game_path() / std::format("{}s", game::toString(type));
 }
 
 std::optional<rapidjson::Document>
@@ -53,12 +53,12 @@ std::string json_string(const rapidjson::Document &doc,
   return {};
 }
 
-std::string detect_kind(const std::filesystem::path &dir) {
+std::optional<game::ZoneType> detect_kind(const std::filesystem::path &dir) {
   if (const std::optional<rapidjson::Document> doc = read_workshop_json(dir)) {
-    const std::string kind =
+    const std::optional<game::ZoneType> kind =
         normalize_kind(json_string(*doc, {"Type", "type"}));
-    if (!kind.empty())
-      return kind;
+    if (kind.has_value())
+      return kind.value();
   }
 
   bool has_map_zone = false;
@@ -69,20 +69,19 @@ std::string detect_kind(const std::filesystem::path &dir) {
       const std::string name =
           utils::string::to_lower(entry.path().filename().string());
       if (name == "mod.ff" || name == "core_mod.ff")
-        return "Mod";
+        return game::ZoneType::MOD;
       has_map_zone |= entry.path().extension() == ".ff" &&
                       (name.starts_with("zm_") || name.starts_with("mp_") ||
                        name.starts_with("cp_"));
     }
   }
-  return has_map_zone ? "Map" : "";
+  return has_map_zone ? std::optional(game::ZoneType::USERMAP) : std::nullopt;
 }
 
-void scan_root(const std::string_view &kind,
-               std::vector<installed_item> &items) {
+void scan_root(game::ZoneType type, std::vector<installed_item> &items) {
   std::error_code ec;
   for (const std::filesystem::directory_entry &entry :
-       std::filesystem::directory_iterator(root_for(kind), ec)) {
+       std::filesystem::directory_iterator(root_for(type), ec)) {
     if (!entry.is_directory(ec) || entry.path().extension() == ".deleting")
       continue;
     const std::optional<rapidjson::Document> doc =
@@ -92,7 +91,7 @@ void scan_root(const std::string_view &kind,
 
     installed_item item{};
     item.folder = entry.path().filename().string();
-    item.kind = kind;
+    item.type = type;
     item.path = entry.path().generic_string();
     item.id = json_string(*doc, {"PublisherID", "PublishedFileId"});
     item.title = json_string(*doc, {"Title", "FolderName"});
@@ -112,7 +111,7 @@ void invalidate_cache() {
 }
 
 bool is_loaded_by_game(const installed_item &item) {
-  const game::ugc::UGCItem *active = item.kind == "Mod"
+  const game::ugc::UGCItem *active = item.type == game::ZoneType::MOD
                                          ? game::ugc::active_mod.get()
                                          : game::ugc::active_usermap.get();
   return (active->publisherId[0] && (item.id == active->publisherId ||
@@ -130,14 +129,16 @@ void reload_now() {
 }
 } // namespace
 
-std::string normalize_kind(const std::string_view &kind) {
+std::optional<game::ZoneType> normalize_kind(const std::string_view &kind) {
   const std::string k = utils::string::to_lower(std::string(kind));
   if (k.starts_with("map") || k.starts_with("usermap") ||
-      k.starts_with("custom map"))
-    return "Map";
-  if (k.starts_with("mod"))
-    return "Mod";
-  return {};
+      k.starts_with("custom map")) {
+    return game::ZoneType::USERMAP;
+  }
+  if (k.find("mod") != std::string::npos) {
+    return game::ZoneType::MOD;
+  }
+  return std::nullopt;
 }
 
 std::vector<installed_item> list_installed() {
@@ -145,8 +146,8 @@ std::vector<installed_item> list_installed() {
   if (!cache_valid ||
       std::chrono::steady_clock::now() - cache_time > CACHE_TTL) {
     cache.clear();
-    scan_root("Map", cache);
-    scan_root("Mod", cache);
+    scan_root(game::ZoneType::MOD, cache);
+    scan_root(game::ZoneType::USERMAP, cache);
     cache_time = std::chrono::steady_clock::now();
     cache_valid = true;
   }
@@ -178,7 +179,7 @@ std::filesystem::path find_installed(const std::string_view &id) {
     return false;
   };
   for (const std::filesystem::path &root :
-       {root_for("Map"), root_for("Mod"),
+       {root_for(game::ZoneType::USERMAP), root_for(game::ZoneType::MOD),
         game::get_game_path().parent_path().parent_path() / "workshop" /
             "content" / game::APP_ID_STR}) {
     if (has_content(root / id))
@@ -189,17 +190,12 @@ std::filesystem::path find_installed(const std::string_view &id) {
 
 std::filesystem::path install_folder(const std::filesystem::path &download,
                                      const std::string_view &id,
-                                     const std::string_view &kind_hint) {
-  std::string kind = detect_kind(download);
-  if (kind.empty())
-    kind = normalize_kind(kind_hint);
-  if (kind.empty())
-    kind = "Map";
-
+                                     game::ZoneType type) {
   const std::filesystem::path existing = find_installed(id);
-  const bool replaces = existing.parent_path() == root_for("Map") ||
-                        existing.parent_path() == root_for("Mod");
-  const std::filesystem::path root = root_for(kind);
+  const bool replaces =
+      existing.parent_path() == root_for(game::ZoneType::USERMAP) ||
+      existing.parent_path() == root_for(game::ZoneType::MOD);
+  const std::filesystem::path root = root_for(type);
   const std::filesystem::path target =
       root / (replaces ? existing.filename() : std::filesystem::path(id));
 

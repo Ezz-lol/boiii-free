@@ -791,6 +791,34 @@ inline constexpr const char *serialize(ZoneType zoneType) {
     return "ZoneType::INVALID";
   }
 }
+
+inline constexpr const char *toString(ZoneType zoneType) {
+  switch (zoneType) {
+  case ZoneType::OFFICIAL:
+    return "official content";
+  case ZoneType::MOD:
+    return "mod";
+  case ZoneType::USERMAP:
+    return "usermap";
+  default:
+    return "invalid";
+  }
+}
+
+inline constexpr const char *toWorkshopKind(game::ZoneType type) {
+  switch (type) {
+  case game::ZoneType::MOD:
+    return "Mod";
+  case game::ZoneType::USERMAP:
+    return "Map";
+  default:
+    return "";
+  }
+}
+
+inline constexpr game::ZoneType fromWorkshopKind(const std::string_view &kind) {
+  return kind == "Mod" ? game::ZoneType::MOD : game::ZoneType::USERMAP;
+}
 IMPL_ENUM_OPERATORS(ZoneType);
 
 inline constexpr const char *dirname(ZoneType zoneType) {

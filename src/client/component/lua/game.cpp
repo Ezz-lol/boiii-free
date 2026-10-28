@@ -391,15 +391,17 @@ luaReturnCount_e getworkshopcatalog(lua_State *luaVM) {
   return call(luaVM,
               [](const std::string &query, const int page,
                  const std::string &kind) -> table {
-                workshop::request_catalog_page(query, page, kind);
+                workshop::request_catalog_page(query, page,
+                                               game::fromWorkshopKind(kind));
                 table result{};
                 int index = 1;
-                for (const auto &item : workshop::get_catalog_page()) {
+                for (const workshop::item_details &item :
+                     workshop::get_catalog_page()) {
                   table row{};
                   row.set("id", item.id);
                   row.set("title", item.title);
                   row.set("description", item.description);
-                  row.set("kind", item.kind);
+                  row.set("kind", game::toWorkshopKind(item.type));
                   row.set("file_size", static_cast<double>(item.file_size));
                   row.set("preview", item.preview_url);
                   result.set(index++, row);
@@ -411,7 +413,7 @@ luaReturnCount_e getworkshopcatalog(lua_State *luaVM) {
 luaReturnCount_e requestworkshopcatalog(lua_State *luaVM) {
   return call(luaVM, [](const std::string &query, const int page,
                         const std::string &kind) {
-    workshop::request_catalog_page(query, page, kind);
+    workshop::request_catalog_page(query, page, game::fromWorkshopKind(kind));
   });
 }
 
@@ -463,8 +465,9 @@ luaReturnCount_e queueworkshopitem(lua_State *luaVM) {
   return call(luaVM,
               [](const std::string &id, const std::string &kind,
                  const std::string &title, const std::string &size) -> bool {
+                const game::ZoneType type = game::fromWorkshopKind(kind);
                 if (!workshop::queue::add(
-                        id, kind, title,
+                        id, type, title,
                         std::strtoull(size.c_str(), nullptr, 10), false))
                   return false;
                 const int position = workshop::queue::position(id);
@@ -485,7 +488,7 @@ luaReturnCount_e getworkshopqueue(lua_State *luaVM) {
     for (const auto &entry : workshop::queue::list()) {
       table row{};
       row.set("id", entry.id);
-      row.set("kind", entry.kind);
+      row.set("kind", game::toWorkshopKind(entry.type));
       row.set("title", entry.title);
       row.set("file_size", static_cast<double>(entry.file_size));
       row.set("state", std::string(workshop::queue::state_name(entry.state)));
@@ -533,7 +536,7 @@ luaReturnCount_e getworkshopinstalled(lua_State *luaVM) {
       row.set("id", item.id);
       row.set("title", item.title);
       row.set("description", item.description);
-      row.set("kind", item.kind);
+      row.set("kind", game::toWorkshopKind(item.type));
       row.set("path", item.path);
       row.set("file_size", static_cast<double>(item.file_size));
       row.set("installed", true);
