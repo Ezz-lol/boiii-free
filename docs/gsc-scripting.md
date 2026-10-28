@@ -11,6 +11,7 @@ can mix styles when it helps.
 - [Hooks](#hooks)
 - [Commands and output](#commands-and-output)
 - [File and data helpers](#file-and-data-helpers)
+- [Date and time helpers](#date-and-time-helpers)
 - [Player helpers](#player-helpers)
 - [HUD text](#hud-text)
 - [Small helpers](#small-helpers)
@@ -362,6 +363,57 @@ Notes:
 
 - Int64 helpers return strings for the non-boolean results.
 - Use `int64_toint` only when the value is in normal 32-bit range.
+
+## Date and time helpers
+
+Available helpers:
+
+- `getdate(field, [time], [utc])`
+- `strftime(format, [time], [utc])`
+
+`getdate` returns one part of the date as an int:
+
+| Field     | Value                        |
+| --------- | ---------------------------- |
+| `year`    | e.g. `2026`                  |
+| `month`   | `1` - `12`                   |
+| `day`     | `1` - `31`                   |
+| `hour`    | `0` - `23`                   |
+| `minute`  | `0` - `59`                   |
+| `second`  | `0` - `59`                   |
+| `weekday` | `0` - `6`, `0` is Sunday     |
+| `yearday` | `1` - `366`                  |
+| `week`    | ISO week number, `1` - `53`  |
+
+`strftime` returns a formatted string using the C `strftime` specifiers, for
+example `%Y-%m-%d %H:%M:%S` gives `2026-12-25 18:30:00`, `%A` gives the day
+name and `%B` the month name.
+
+Example:
+
+```gsc
+if (getdate("month") == 12 && getdate("day") >= 24 && getdate("day") <= 26)
+{
+    level.xp_multiplier = 2;
+}
+
+if (getdate("weekday") == 0 || getdate("weekday") == 6)
+{
+    println("weekend event is on");
+}
+
+println("server time: " + strftime("%Y-%m-%d %H:%M"));
+println("utc time: " + strftime("%H:%M", getutc(), true));
+```
+
+Notes:
+
+- `time` is a unix timestamp in seconds and defaults to now. Stock `getutc()`
+  returns the current one.
+- The date uses the server's local time zone unless `utc` is `true`.
+- `getdate` returns `-1` for an unknown field, `strftime` returns `""` for an
+  invalid time.
+- Unknown `%` specifiers are printed as-is.
 
 # Player helpers
 
