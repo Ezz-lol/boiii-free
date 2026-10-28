@@ -8,6 +8,7 @@
 #include "scheduler.hpp"
 
 #include <utils/concurrency.hpp>
+#include <utils/hook.hpp>
 #include <utils/properties.hpp>
 
 #include <steam/steam.hpp>
@@ -123,6 +124,55 @@ void refresh_cached_profile(const game::XUID xuid) {
             game::CONTROLLER_INDEX_FIRST, xuid);
       },
       scheduler::main);
+}
+
+// A profile can arrive while the game's own request for it is still out. That
+// request's miss then lands after our refresh and the emblem stays loading, so
+// fetch again any player the game has no data for whose profile we now have.
+void refresh_missed_profiles() {
+  scheduler::once(
+      [] {
+        std::vector<game::XUID> xuids{};
+        profile_mapping.access([&xuids](const profile_map &profiles) {
+          for (const auto &[xuid, _] : profiles) {
+            xuids.push_back(xuid);
+          }
+        });
+
+        using namespace game::live::pcache;
+
+        const game::sys::ScopedCriticalSection lock(
+            game::sys::CriticalSection::PCACHE,
+            game::sys::ScopedCriticalSection::ScopedCriticalSectionType::
+                NORMAL);
+
+        for (const game::XUID xuid : xuids) {
+          PCacheComponent *profile = game::pcache::PCache_GetComponent(
+              game::CONTROLLER_INDEX_FIRST, xuid,
+              PCACHE_COMPONENT_PUBLIC_PROFILE);
+          if (profile && (profile->state & PCACHE_STATE_NO_DATA) &&
+              !(profile->state & PCACHE_STATE_STALE)) {
+            profile->state |= PCACHE_STATE_STALE;
+            game::pcache::PCache_InvalidatePlayerEmblem(
+                game::CONTROLLER_INDEX_FIRST, xuid);
+          }
+        }
+      },
+      scheduler::main);
+}
+
+utils::hook::detour PCache_GetPublicProfilesSuccess_hook;
+bool PCache_GetPublicProfilesSuccess_stub(game::dw::TaskRecord *task) {
+  const bool result = PCache_GetPublicProfilesSuccess_hook.invoke<bool>(task);
+  refresh_missed_profiles();
+  return result;
+}
+
+utils::hook::detour PCache_GetPublicProfilesFailure_hook;
+bool PCache_GetPublicProfilesFailure_stub(game::dw::TaskRecord *task) {
+  const bool result = PCache_GetPublicProfilesFailure_hook.invoke<bool>(task);
+  refresh_missed_profiles();
+  return result;
 }
 
 bool is_connected_client(const game::net::netadr_t &address) {
@@ -273,6 +323,15 @@ struct component final : generic_component {
 
   void post_unpack() override {
     scheduler::loop(clean_cached_profile_infos, scheduler::main, 5s);
+
+    if (game::is_client()) {
+      PCache_GetPublicProfilesSuccess_hook.create(
+          game::pcache::PCache_GetPublicProfilesSuccess.get(),
+          PCache_GetPublicProfilesSuccess_stub);
+      PCache_GetPublicProfilesFailure_hook.create(
+          game::pcache::PCache_GetPublicProfilesFailure.get(),
+          PCache_GetPublicProfilesFailure_stub);
+    }
 
     network::on("profileInfoRequest", [](const game::net::netadr_t &address,
                                          const network::data_view &data,
