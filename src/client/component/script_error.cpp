@@ -754,51 +754,56 @@ bool show_script_error(const report &report) {
   return true;
 }
 
+void drop_with_report(const char *file, const int32_t line,
+                      const report &report) {
+  if (game::is_server()) {
+    stop_server_map(file, line, report);
+    return;
+  }
+  print_report(report, {});
+  game::com::Com_Error_(file, line, game::errorParm::DROP, "\x15%s",
+                        report_text(report, {}).c_str());
+}
+
 void Com_Error_ScriptNotFound(const char *file, const int32_t line,
                               const game::errorParm code, const char *fmt,
                               const char *script) {
-  const report missing = build_missing_script_report(active_instance, script);
-  if (!show_script_error(missing)) {
-    stop_server_map(file, line, missing);
-  }
+  drop_with_report(file, line,
+                   build_missing_script_report(active_instance, script));
 }
 
 void Com_Error_LinkErrors(const char *file, const int32_t line,
                           const game::errorParm code, const char *fmt,
                           const int32_t count, const char *details) {
-  const report link = build_link_report(active_instance, details);
-  if (!show_script_error(link)) {
-    stop_server_map(file, line, link);
-  }
+  drop_with_report(file, line, build_link_report(active_instance, details));
 }
 
 std::optional<std::string> missing_include(const std::string &script) {
   const std::vector<known_script> scripts = collect_scripts(active_instance);
   const std::string key = script_key(script);
+  std::optional<std::string> other;
   for (const known_script &owner : scripts) {
-    if (owner.key != key) {
-      continue;
-    }
     for (const std::string &include : object_includes(owner.obj)) {
       const std::string include_key = script_key(include);
       if (std::ranges::none_of(scripts, [&](const known_script &known) {
             return known.key == include_key;
           })) {
-        return include;
+        if (owner.key == key) {
+          return include;
+        }
+        if (!other) {
+          other = include;
+        }
       }
     }
   }
-  return std::nullopt;
+  return other;
 }
 
 void Com_Error_LinkScript(const char *file, const int32_t line,
                           const game::errorParm code, const char *fmt,
                           const char *script, const char *reason,
                           const char *detail) {
-  if (!game::is_server()) {
-    return;
-  }
-
   report failure{};
   if (const auto missing = missing_include(script)) {
     failure = build_missing_script_report(active_instance, *missing);
@@ -808,7 +813,7 @@ void Com_Error_LinkScript(const char *file, const int32_t line,
     append_field(failure.text, "Error", "^1", reason);
     append_field(failure.text, "Detail", "^7", detail);
   }
-  stop_server_map(file, line, failure);
+  drop_with_report(file, line, failure);
 }
 
 void Com_Error_ScriptRuntime(const char *file, const int32_t line,
