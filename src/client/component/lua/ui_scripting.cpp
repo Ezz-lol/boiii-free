@@ -837,8 +837,10 @@ constexpr std::string_view LOADING_SCREEN_OVERRIDE = R"(
 if LUI.createMenu.Loading and not __boiiiLoadingWrapped then
   __boiiiLoadingWrapped = true
   local createLoading = LUI.createMenu.Loading
+  local fadeInTime = CoD.Loading.FadeInTime
   LUI.createMenu.Loading = function(controller)
     local mode = Engine.DvarInt(nil, "boiii_loadingScreen")
+    CoD.Loading.FadeInTime = mode == 1 and 1 or fadeInTime
     if mode ~= 1 and mode ~= 2 or mode == 2 and not CoD.GetMapValue(Engine.GetCurrentMap(), "introMovie") then
       return createLoading(controller)
     end
