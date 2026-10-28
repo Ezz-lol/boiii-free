@@ -681,7 +681,6 @@ game::EngineDependentDvar restart_delay;
 std::atomic<int64_t> restart_not_before{0};
 std::atomic<bool> restart_queued{false};
 std::atomic<bool> console_muted{false};
-utils::hook::detour LaunchGame_hook;
 utils::hook::detour Com_Printf_hook;
 
 void Com_Printf_Muted(const game::consoleChannel_e channel,
@@ -706,29 +705,6 @@ int64_t now_ms() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
              std::chrono::steady_clock::now().time_since_epoch())
       .count();
-}
-
-void LaunchGame_Delayed() {
-  const int64_t remaining = restart_not_before.load() - now_ms();
-  if (remaining <= 0) {
-    LaunchGame_hook.invoke<void>();
-    return;
-  }
-
-  if (restart_queued.exchange(true)) {
-    return;
-  }
-
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT,
-                        "^3Script error: restarting the map in %.1f seconds\n",
-                        static_cast<double>(remaining) / 1000.0);
-  scheduler::once(
-      [] {
-        restart_queued = false;
-        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "launchgame\n");
-      },
-      scheduler::pipeline::main, std::chrono::milliseconds(remaining));
 }
 
 void stop_server_map(const char *file, const int32_t line,
@@ -913,8 +889,6 @@ struct component final : generic_component {
           "Seconds to wait before launching the map again after a script "
           "error stopped it");
       Com_Printf_hook.create(game::com::Com_Printf, Com_Printf_Muted);
-      LaunchGame_hook.create(game::lobby::LobbyHostLaunch_LaunchGame_f,
-                             LaunchGame_Delayed);
     }
 
     ReportObjLinkError_hook.create(ReportObjLinkError,
