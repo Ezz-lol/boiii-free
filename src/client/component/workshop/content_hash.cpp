@@ -42,9 +42,10 @@ content_info compute_content(const std::filesystem::path &folder) {
   for (std::filesystem::recursive_directory_iterator it(folder, ec), end;
        !ec && it != end; it.increment(ec)) {
     std::error_code file_ec;
-    if (!it->is_regular_file(file_ec) ||
-        utils::string::to_lower(it->path().filename().string()) ==
-            "workshop.json") {
+    const std::string file_name =
+        utils::string::to_lower(it->path().filename().string());
+    if (!it->is_regular_file(file_ec) || file_name == "workshop.json" ||
+        file_name == "manifest.json") {
       continue;
     }
     files.emplace_back(utils::string::to_lower(std::filesystem::relative(

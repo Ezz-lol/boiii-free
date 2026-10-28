@@ -58,8 +58,10 @@ struct component final : generic_component {
         "Should clients stay connected while downloading?");
     scheduler::once(
         []() {
+          const std::string configured(
+              game::get_dvar_string("sv_wwwBaseURL").value_or(""));
           game::sv_wwwBaseURL = game::register_dvar_string(
-              "sv_wwwBaseURL", "", game::DVAR_NONE,
+              "sv_wwwBaseURL", configured.c_str(), game::DVAR_NONE,
               "The base url for files downloaded via http");
         },
         scheduler::pipeline::main);

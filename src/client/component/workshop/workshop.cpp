@@ -414,8 +414,6 @@ void load_workshop_data(game::ugc::UGCItem *item) {
   const std::string json_str = utils::io::read_file(path);
 
   if (json_str.empty()) {
-    printf("[ Workshop ] workshop.json has not been found in folder:\n%s\n",
-           path);
     return;
   }
 
@@ -1033,24 +1031,56 @@ void offer_download(const std::string_view &kind, const std::string_view &name,
       [workshop_id, kind] { start_download(workshop_id, kind); });
 }
 
-void start_fastdl_usermap(const std::string_view &mapname,
-                          const std::string_view &workshop_id,
-                          const std::string_view &base_uri) {
-  const std::filesystem::path map_path = std::format("usermaps/{}", mapname);
-  const std::string map_path_str = map_path.generic_string();
-  const std::string map_tree_uri = std::format("{}/{}", base_uri, map_path_str);
+void start_fastdl(const std::string_view &kind, const std::string_view &name,
+                  const std::string_view &workshop_id,
+                  const std::string_view &base_uri, const bool verify_hashes,
+                  std::function<void()> missing_manifest = {}) {
+  std::string_view base = base_uri;
+  while (base.ends_with('/')) {
+    base.remove_suffix(1);
+  }
+  const std::string folder =
+      std::format("{}/{}", kind == "Mod" ? "mods" : "usermaps", name);
   fastdl::download_context context{};
-  context.mapname = mapname;
-  context.pub_id = workshop_id.empty() ? mapname : workshop_id;
-  context.map_path = map_path;
-  context.map_tree_uri = map_tree_uri;
-  context.success_callback = []() {
-    scheduler::once(game::ugc::UGC_LoadPools_Impl, scheduler::main);
+  context.mapname = name;
+  context.pub_id = workshop_id.empty() ? name : workshop_id;
+  context.map_path = folder;
+  context.map_tree_uri = std::format("{}/{}", base, folder);
+  context.kind = kind;
+  context.verify_hashes = verify_hashes;
+  context.missing_manifest_callback = std::move(missing_manifest);
+  context.success_callback = [title = std::string(name)] {
+    scheduler::once(
+        [title] {
+          game::ugc::UGC_LoadPools_Impl();
+          const std::string reconnect = get_pending_download_reconnect();
+          if (reconnect.empty()) {
+            toast::success("Download finished", title + " is ready.");
+            return;
+          }
+          download_overlay::show_confirmation(
+              "Download Complete",
+              title + " downloaded successfully!\n\nDo you want to connect to "
+                      "the server?",
+              [reconnect] {
+                game::cbuf::Cbuf_AddText(
+                    game::LOCAL_CLIENT_0,
+                    utils::string::va("connect %s\n", reconnect.c_str()));
+              });
+        },
+        scheduler::main);
   };
   printf("[ Workshop ] Server has FastDL, attempting download for %s from "
          "%s\n",
-         mapname.data(), base_uri.data());
+         context.mapname.c_str(), context.map_tree_uri.c_str());
   fastdl::start_map_download(context);
+}
+
+void start_fastdl_usermap(const std::string_view &mapname,
+                          const std::string_view &workshop_id,
+                          const std::string_view &base_uri,
+                          const bool verify_hashes = false) {
+  start_fastdl("Map", mapname, workshop_id, base_uri, verify_hashes);
 }
 
 bool is_busy_downloading() {
@@ -1165,47 +1195,51 @@ bool check_valid_usermap_id(const std::string_view &mapname,
   return true;
 }
 
+void offer_mod_from_workshop(const std::string &mod,
+                             const std::string &workshop_id) {
+  const std::string resolved_id =
+      utils::string::is_numeric(mod.data())
+          ? mod
+          : (!workshop_id.empty() && utils::string::is_numeric(workshop_id)
+                 ? workshop_id
+                 : resolve_mod_workshop_id(mod));
+  if (!resolved_id.empty()) {
+    offer_download("Mod", mod, resolved_id);
+    return;
+  }
+  scheduler::once(
+      [mod] {
+        game::ui::UI_OpenErrorPopupWithMessage(
+            game::LOCAL_CLIENT_0, game::errorCode::UI,
+            utils::string::va(
+                "Could not download: folder name is not numeric and "
+                "'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id, "
+                "set up FastDL on the server or subscribe on Steam Workshop.",
+                mod.c_str()));
+      },
+      scheduler::main);
+}
+
 bool check_valid_mod_id(const std::string_view &mod,
-                        const std::string_view &workshop_id) {
+                        const std::string_view &workshop_id,
+                        const std::string_view &base_uri) {
   if (mod.empty() || mod == "usermaps") {
     return true;
   }
 
   if (!has_mod(mod)) {
-    if (downloading_workshop_item.load() || launcher_downloading.load()) {
-      scheduler::once(
-          [] {
-            game::ui::UI_OpenErrorPopupWithMessage(
-                game::LOCAL_CLIENT_0, game::errorCode::UI,
-                "You are already downloading a mod in the background. You can "
-                "download only one item at a time.");
-          },
-          scheduler::main);
+    if (is_busy_downloading()) {
       return false;
     }
 
-    const std::string resolved_id =
-        utils::string::is_numeric(mod.data())
-            ? std::string(mod)
-            : (!workshop_id.empty() &&
-                       utils::string::is_numeric(workshop_id.data())
-                   ? std::string(workshop_id)
-                   : resolve_mod_workshop_id(mod));
-    if (!resolved_id.empty()) {
-      offer_download("Mod", mod, resolved_id);
+    const std::string mod_copy(mod);
+    const std::string id_copy(workshop_id);
+    if (!base_uri.empty()) {
+      start_fastdl(
+          "Mod", mod, workshop_id, base_uri, false,
+          [mod_copy, id_copy] { offer_mod_from_workshop(mod_copy, id_copy); });
     } else {
-      const std::string name_copy = std::string(mod);
-      scheduler::once(
-          [name_copy] {
-            game::ui::UI_OpenErrorPopupWithMessage(
-                game::LOCAL_CLIENT_0, game::errorCode::UI,
-                utils::string::va(
-                    "Could not download: folder name is not numeric and "
-                    "'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id "
-                    "or subscribe on Steam Workshop.",
-                    name_copy.c_str()));
-          },
-          scheduler::main);
+      offer_mod_from_workshop(mod_copy, id_copy);
     }
     return false;
   }
@@ -1227,10 +1261,20 @@ bool check_matching_content(const std::string_view &mod,
     const content_info local = mod_content(mod);
     if (!local.hash.empty() && local.hash != server_mod.hash) {
       if (!is_busy_downloading()) {
-        const std::string id = utils::string::is_numeric(mod.data())
-                                   ? std::string(mod)
-                                   : resolve_mod_workshop_id(mod);
-        report_version_mismatch("Mod", mod, id, local.built, server_mod.built);
+        const std::string mod_copy(mod);
+        const auto report = [mod_copy, local_built = local.built,
+                             server_built = server_mod.built] {
+          const std::string id = utils::string::is_numeric(mod_copy)
+                                     ? mod_copy
+                                     : resolve_mod_workshop_id(mod_copy);
+          report_version_mismatch("Mod", mod_copy, id, local_built,
+                                  server_built);
+        };
+        if (!base_uri.empty()) {
+          start_fastdl("Mod", mod, workshop_id, base_uri, true, report);
+        } else {
+          report();
+        }
       }
       return false;
     }
@@ -1241,7 +1285,7 @@ bool check_matching_content(const std::string_view &mod,
     if (!local.hash.empty() && local.hash != server_map.hash) {
       if (!is_busy_downloading()) {
         if (!base_uri.empty()) {
-          start_fastdl_usermap(mapname, workshop_id, base_uri);
+          start_fastdl_usermap(mapname, workshop_id, base_uri, true);
         } else {
           report_version_mismatch("Map", mapname, workshop_id, local.built,
                                   server_map.built);

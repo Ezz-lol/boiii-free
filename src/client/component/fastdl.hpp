@@ -39,7 +39,10 @@ struct download_context {
   std::string pub_id;
   std::filesystem::path map_path;
   std::string map_tree_uri;
+  std::string kind = "Map";
+  bool verify_hashes = false;
   std::function<void()> success_callback;
+  std::function<void()> missing_manifest_callback;
 };
 
 void start_map_download(const download_context &context);

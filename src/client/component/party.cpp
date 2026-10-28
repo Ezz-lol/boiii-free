@@ -513,7 +513,7 @@ void handle_connect_query_response(const bool success,
 
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
                                              base_uri) &&
-            workshop::check_valid_mod_id(mod_id, workshop_id) &&
+            workshop::check_valid_mod_id(mod_id, workshop_id, base_uri) &&
             workshop::check_matching_content(mod_id, server_mod, mapname,
                                              workshop_id, server_map,
                                              base_uri)) {
