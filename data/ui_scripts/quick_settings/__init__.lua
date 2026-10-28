@@ -39,6 +39,20 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
       "Skip All Cinematics",
       "Skip every cinematic and video, including map videos."
     ),
+    CoD.OptionsUtility.CreateDvarSettings(
+      controller,
+      "Loading Screen",
+      "Show the map image with a loading bar or the map's cinematic while a game loads. Default lets the game pick.",
+      "QuickSettings_boiii_loadingScreen",
+      "boiii_loadingScreen",
+      {
+        { option = "Default", value = 0, default = true },
+        { option = "Map Image", value = 1 },
+        { option = "Cinematic", value = 2 },
+      },
+      nil,
+      updateDvar
+    ),
     toggle(
       controller,
       "boiii_ultrawide",

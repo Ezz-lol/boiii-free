@@ -833,11 +833,48 @@ void ui_shutdown_stub() {
   ui_initialized.store(false, std::memory_order_release);
 }
 
+constexpr std::string_view LOADING_SCREEN_OVERRIDE = R"(
+if LUI.createMenu.Loading and not __boiiiLoadingWrapped then
+  __boiiiLoadingWrapped = true
+  local createLoading = LUI.createMenu.Loading
+  LUI.createMenu.Loading = function(controller)
+    local mode = Engine.DvarInt(nil, "boiii_loadingScreen")
+    if mode ~= 1 and mode ~= 2 or mode == 2 and not CoD.GetMapValue(Engine.GetCurrentMap(), "introMovie") then
+      return createLoading(controller)
+    end
+    local getClientCount = Engine.GetLobbyClientCount
+    Engine.GetLobbyClientCount = function()
+      return mode == 1 and 2 or 1
+    end
+    Engine.SetDvar("ui_useloadingmovie", mode == 2 and 1 or 0)
+    local ok, menu = pcall(createLoading, controller)
+    Engine.GetLobbyClientCount = getClientCount
+    if not ok then
+      error(menu)
+    end
+    return menu
+  end
+end
+)";
+
 void *hks_package_require_stub(lua_State *state) {
   const std::string script = get_current_script(state);
   const std::string root = get_root_script(script);
   globals.in_require_script = root;
-  return hks_package_require_hook.invoke<void *>(state);
+
+  const char *module =
+      state->m_apistack.base < state->m_apistack.top &&
+              state->m_apistack.base->t == HksObjectType::TSTRING
+          ? hks_obj_tolstring(state, state->m_apistack.base, nullptr)
+          : nullptr;
+  const bool is_loading =
+      module && _stricmp(module, "ui_mp.T6.HUD.Loading") == 0;
+
+  void *result = hks_package_require_hook.invoke<void *>(state);
+  if (is_loading) {
+    execute_raw_lua(std::string(LOADING_SCREEN_OVERRIDE), "loading_screen");
+  }
+  return result;
 }
 
 hksInt32 hks_load_stub(lua_State *state, HksCompilerSettings *compiler_options,
