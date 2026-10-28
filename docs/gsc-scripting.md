@@ -373,21 +373,21 @@ Available helpers:
 
 `getdate` returns one part of the date as an int:
 
-| Field     | Value                        |
-| --------- | ---------------------------- |
-| `year`    | e.g. `2026`                  |
-| `month`   | `1` - `12`                   |
-| `day`     | `1` - `31`                   |
-| `hour`    | `0` - `23`                   |
-| `minute`  | `0` - `59`                   |
-| `second`  | `0` - `59`                   |
-| `weekday` | `0` - `6`, `0` is Sunday     |
-| `yearday` | `1` - `366`                  |
-| `week`    | ISO week number, `1` - `53`  |
+| Field     | Value                       |
+| --------- | --------------------------- |
+| `year`    | e.g. `2026`                 |
+| `month`   | `1` - `12`                  |
+| `day`     | `1` - `31`                  |
+| `hour`    | `0` - `23`                  |
+| `minute`  | `0` - `59`                  |
+| `second`  | `0` - `59`                  |
+| `weekday` | `0` - `6`, `0` is Sunday    |
+| `yearday` | `1` - `366`                 |
+| `week`    | ISO week number, `1` - `53` |
 
 `strftime` returns a formatted string using the C `strftime` specifiers, for
-example `%Y-%m-%d %H:%M:%S` gives `2026-12-25 18:30:00`, `%A` gives the day
-name and `%B` the month name.
+example `%Y-%m-%d %H:%M:%S` gives `2026-12-25 18:30:00`, `%A` gives the day name
+and `%B` the month name.
 
 Example:
 
