@@ -739,7 +739,10 @@ void load_scripts_directory(
         std::error_code ec;
         const std::filesystem::path relative =
             std::filesystem::relative(script, script_dir, ec);
+        // Only map folders are left for the map's own pass, not files named
+        // like one
         if (!ec && relative.begin() != relative.end() &&
+            std::next(relative.begin()) != relative.end() &&
             is_map_override_directory_name(relative.begin()->string()))
           return;
       }
