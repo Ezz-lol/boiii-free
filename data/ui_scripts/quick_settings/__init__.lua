@@ -26,19 +26,6 @@ end
 
 DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings", function(controller)
   return {
-    toggle(controller, "boiii_skipIntro", "Skip Intro", "Skip the intro video on startup."),
-    toggle(
-      controller,
-      "boiii_skipForestCinematic",
-      "Skip Forest Video",
-      "Skip only the forest video before joining a Zombies game. Map videos still play."
-    ),
-    toggle(
-      controller,
-      "boiii_skipCinematics",
-      "Skip All Cinematics",
-      "Skip every cinematic and video, including map videos."
-    ),
     CoD.OptionsUtility.CreateDvarSettings(
       controller,
       "Loading Screen",
@@ -52,6 +39,19 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
       },
       nil,
       updateDvar
+    ),
+    toggle(controller, "boiii_skipIntro", "Skip Intro", "Skip the intro video on startup."),
+    toggle(
+      controller,
+      "boiii_skipForestCinematic",
+      "Skip Forest Video",
+      "Skip only the forest video before joining a Zombies game. Map videos still play."
+    ),
+    toggle(
+      controller,
+      "boiii_skipCinematics",
+      "Skip All Cinematics",
+      "Skip every cinematic and video, including map videos."
     ),
     toggle(
       controller,
