@@ -113,6 +113,18 @@ bool has_mod(const std::string_view &pub_id) {
   return false;
 }
 
+bool has_usermap(const std::string_view &internal_id) {
+  for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
+    const game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[i];
+    if (mod_data->publisherId == internal_id ||
+        mod_data->internalName == internal_id) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 std::string resolve_mod_workshop_id(const std::string_view &mod_name) {
   for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
     const game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[i];
@@ -1167,11 +1179,10 @@ bool check_valid_usermap_id(const std::string_view &mapname,
       };
     }
     return !start_fastdl(game::ZoneType::USERMAP, mapname, workshop_id,
-                         base_uri, failure_callback) &&
-           DB_ValidFastFile(mapname.data(), 0);
+                         base_uri, failure_callback);
   }
 
-  if (!DB_ValidFastFile(mapname.data(), 0)) {
+  if (!has_usermap(mapname.data())) {
     if (utils::string::is_numeric(mapname.data())) {
       offer_download(game::ZoneType::USERMAP, mapname, mapname);
     } else if (!workshop_id.empty() &&

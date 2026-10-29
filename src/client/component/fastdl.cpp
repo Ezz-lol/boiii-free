@@ -366,9 +366,6 @@ void perform_download(download_context &context) {
       download_active = false;
       context.requires_download.set_value(false);
 
-      if (context.success_callback) {
-        context.success_callback();
-      }
       return;
     }
 
