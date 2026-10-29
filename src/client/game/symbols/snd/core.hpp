@@ -266,6 +266,9 @@ WEAK symbol<void()> SND_ProcessSNDQueue{0x142214950, 0x142271480, 0x140546720};
 WEAK symbol<void(snd::SndQueue *queue, snd::cmd::SndCommandType cmd,
                  uint32_t size, snd::cmd::SndCommand *data)>
     SND_QueueAdd{0x1422175B0, 0x1422740E0, 0x140549A20};
+WEAK symbol<snd::cmd::SndCommandBuffer *(snd::cmd::SndQueueBuffers *buffers,
+                                         snd::cmd::SndCommandBuffer *buffer)>
+    SND_QueueBufferFree{0x142217A40, 0x0, 0x0};
 WEAK symbol<void()> SND_RestartDriver{0x142216B80, 0x0, 0x140548BC0};
 WEAK symbol<void(snd::SndSpeakerMap *map)> Snd_SpeakerMapZero{0x14251E590, 0x0,
                                                               0x140652D60};
