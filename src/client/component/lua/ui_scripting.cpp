@@ -2562,13 +2562,16 @@ alwaysinline int32_t GetSizeForQuadCache(const int16_t numQuads) {
 }
 
 luaReturnCount_e UI_CoD_LuaCall_QuadCache_GC_Safe(lua_State *luaVM) {
-  if (UI_IsInitialized() && lua_gettop(luaVM) > 0 && lua_isuserdata(luaVM, 1)) {
-    UIQuadCache *cache = lua_touserdata(luaVM, 1).uiQuadCache;
-    if (nonnull(cache)) {
-      --*quad::g_LUIAllocatedQuadCaches;
-      *quad::g_LUIAllocatedQuadCachesMemory -=
-          GetSizeForQuadCache(cache->numQuads);
-      UI_CoD_UnrefQuadCacheChain_Safe(luaVM, cache);
+  if (UI_IsInitialized()) {
+    --*quad::g_LUIAllocatedQuadCaches;
+    const HksObject *top = luaVM->m_apistack.top;
+    if (nonnull(top)) {
+      UIQuadCache *const cache = top->lightUserData().uiQuadCache;
+      if (nonnull(cache)) {
+        *quad::g_LUIAllocatedQuadCachesMemory -=
+            GetSizeForQuadCache(cache->numQuads);
+        UI_CoD_UnrefQuadCacheChain_Safe(luaVM, cache);
+      }
     }
   }
   return luaReturnCount_e::NONE;

@@ -470,6 +470,25 @@ PACKED(struct HksObject {
     }
   }
 
+  inline constexpr LightUserData lightUserData() const {
+    switch (t) {
+    case HksObjectType::TUSERDATA: {
+      if (v.userData) {
+        return v.userData->m_data;
+      }
+      break;
+    }
+    case HksObjectType::TLIGHTUSERDATA: {
+      return v.lightUserData;
+    }
+    default: {
+      break;
+    }
+    }
+
+    return {.ptr = nullptr};
+  }
+
   constexpr HksObject() noexcept = default;
   constexpr HksObject(const HksObject &) noexcept = default;
   constexpr HksObject &operator=(const HksObject &) = default;

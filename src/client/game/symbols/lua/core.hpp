@@ -198,26 +198,10 @@ alwaysinline hks::HashTable *lua_totable(hks::lua_State *s, int32_t index) {
   return nullptr;
 }
 
-inline hks::LightUserData lua_touserdata(hks::lua_State *s, int32_t index) {
+alwaysinline hks::LightUserData lua_touserdata(hks::lua_State *s,
+                                               int32_t index) {
   hks::HksObject *const object = hks::getObjectForIndex(s, index);
-  if (object) {
-    switch (object->t) {
-    case hks::HksObjectType::TUSERDATA: {
-      if (object->v.userData) {
-        return object->v.userData->m_data;
-      }
-      break;
-    }
-    case hks::HksObjectType::TLIGHTUSERDATA: {
-      return object->v.lightUserData;
-    }
-    default: {
-      break;
-    }
-    }
-  }
-
-  return {.ptr = nullptr};
+  return object ? object->lightUserData() : hks::LightUserData{.ptr = nullptr};
 }
 
 alwaysinline void lua_pop(hks::lua_State *s, int n) { hks::hksi_lua_pop(s, n); }
