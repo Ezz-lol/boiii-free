@@ -24,7 +24,7 @@ struct stream_helper {
 int progress_callback(void *clientp, const curl_off_t /*dltotal*/,
                       const curl_off_t dlnow, const curl_off_t /*ultotal*/,
                       const curl_off_t /*ulnow*/) {
-  auto *helper = static_cast<progress_helper *>(clientp);
+  progress_helper *helper = static_cast<progress_helper *>(clientp);
 
   try {
     if (*helper->callback) {
@@ -42,7 +42,8 @@ int stream_progress_callback(void *clientp, const curl_off_t dltotal,
                              const curl_off_t dlnow,
                              const curl_off_t /*ultotal*/,
                              const curl_off_t /*ulnow*/) {
-  auto *helper = static_cast<stream_progress_helper *>(clientp);
+  stream_progress_helper *helper =
+      static_cast<stream_progress_helper *>(clientp);
 
   try {
     if (*helper->callback) {
@@ -59,17 +60,17 @@ int stream_progress_callback(void *clientp, const curl_off_t dltotal,
 
 size_t write_callback(void *contents, const size_t size, const size_t nmemb,
                       void *userp) {
-  auto *buffer = static_cast<std::string *>(userp);
+  std::string *buffer = static_cast<std::string *>(userp);
 
-  const auto total_size = size * nmemb;
+  const size_t total_size = size * nmemb;
   buffer->append(static_cast<char *>(contents), total_size);
   return total_size;
 }
 
 size_t write_callback_stream(void *contents, const size_t size,
                              const size_t nmemb, void *userp) {
-  const auto total_size = size * nmemb;
-  auto *write_helper = static_cast<stream_helper *>(userp);
+  const size_t total_size = size * nmemb;
+  stream_helper *write_helper = static_cast<stream_helper *>(userp);
 
   try {
     if (write_helper->callback && *write_helper->callback) {
@@ -89,7 +90,7 @@ std::optional<std::string> get_data(const std::string_view &url,
                                     const std::function<void(size_t)> &callback,
                                     const uint32_t retries) {
   curl_slist *header_list = nullptr;
-  auto *curl = curl_easy_init();
+  CURL *curl = curl_easy_init();
   if (!curl) {
     return {};
   }
@@ -100,7 +101,7 @@ std::optional<std::string> get_data(const std::string_view &url,
   });
 
   for (const auto &header : headers) {
-    auto data = header.first + ": " + header.second;
+    const std::string data = header.first + ": " + header.second;
     header_list = curl_slist_append(header_list, data.data());
   }
 
@@ -125,11 +126,12 @@ std::optional<std::string> get_data(const std::string_view &url,
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 3L);
   // Request raw data without encoding modifications
   curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
                    PREFERRED_ACCEPT_ENCODING_HEADER);
 
-  for (auto i = 0u; i < retries + 1; ++i) {
+  for (uint32_t i = 0u; i < retries + 1; ++i) {
     // Due to CURLOPT_FAILONERROR, CURLE_OK will not be met when the server
     // returns 400 or 500
     if (curl_easy_perform(curl) == CURLE_OK) {
@@ -163,7 +165,7 @@ std::optional<std::string> get_data(const std::string_view &url,
 std::optional<std::string> post_data(const std::string_view &url,
                                      const std::string &post_body,
                                      const uint32_t timeout_sec) {
-  auto *curl = curl_easy_init();
+  CURL *curl = curl_easy_init();
   if (!curl) {
     return {};
   }
@@ -188,7 +190,7 @@ std::optional<std::string> post_data(const std::string_view &url,
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
 
-  const auto code = curl_easy_perform(curl);
+  const CURLcode code = curl_easy_perform(curl);
   if (code != CURLE_OK) {
     return {};
   }
@@ -206,14 +208,14 @@ int get_data_stream(const std::string_view &url, const headers &headers,
                     const std::function<void(size_t, size_t)> &progress_cb,
                     const std::function<void(const char *, size_t)> &write_cb,
                     const uint32_t retries) {
-  auto *curl = curl_easy_init();
+  CURL *curl = curl_easy_init();
   if (!curl) {
     return CURLE_FAILED_INIT;
   }
 
   curl_slist *header_list = nullptr;
   for (const auto &header : headers) {
-    auto data = header.first + ": " + header.second;
+    const std::string data = header.first + ": " + header.second;
     header_list = curl_slist_append(header_list, data.data());
   }
   header_list =
@@ -248,7 +250,7 @@ int get_data_stream(const std::string_view &url, const headers &headers,
     curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &progress_helper);
     curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 
-    const auto code = curl_easy_perform(curl);
+    const CURLcode code = curl_easy_perform(curl);
 
     if (code == CURLE_OK) {
       long http_code = 0;
