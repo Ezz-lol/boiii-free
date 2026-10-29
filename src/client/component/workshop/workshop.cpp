@@ -1117,7 +1117,7 @@ bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
   context->item_path = folder;
   context->content_tree_uri = std::format("{}/{}", base, folder);
   context->type = zoneType;
-  context->failure_callback = {};
+  context->failure_callback = failure_callback;
   context->success_callback = [title = std::string(name)] {
     scheduler::once(
         [title] {

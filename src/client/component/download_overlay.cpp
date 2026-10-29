@@ -131,9 +131,9 @@ void apply_cod_theme() {
   // Tabs (override default blue)
   c[ImGuiCol_Tab] = ImVec4(0.14f, 0.11f, 0.08f, 1.00f);
   c[ImGuiCol_TabHovered] = orange_mid;
-  c[ImGuiCol_TabActive] = orange_lo;
-  c[ImGuiCol_TabUnfocused] = ImVec4(0.10f, 0.08f, 0.06f, 1.00f);
-  c[ImGuiCol_TabUnfocusedActive] = ImVec4(0.16f, 0.12f, 0.08f, 1.00f);
+  c[ImGuiCol_TabSelected] = orange_lo;
+  c[ImGuiCol_TabDimmed] = ImVec4(0.10f, 0.08f, 0.06f, 1.00f);
+  c[ImGuiCol_TabDimmedSelected] = ImVec4(0.16f, 0.12f, 0.08f, 1.00f);
 
   // Nav / selection highlight
   c[ImGuiCol_NavHighlight] = orange_hi;

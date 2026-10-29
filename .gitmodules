@@ -75,3 +75,6 @@
 [submodule "deps/xz"]
 	path = deps/xz
 	url = https://github.com/tukaani-project/xz.git
+[submodule "deps/stb_image_resize"]
+	path = deps/stb_image_resize
+	url = https://github.com/nothings/stb_image_resize
