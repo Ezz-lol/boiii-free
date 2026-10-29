@@ -1147,62 +1147,64 @@ bool check_valid_usermap_id(const std::string_view &mapname,
                             const std::string_view &pub_id,
                             const std::string_view &workshop_id,
                             const std::string_view &base_uri) {
-  if (pub_id.empty() && is_zm_dlc_map(mapname.data()) &&
-      !DB_ValidFastFile(mapname.data(), 0)) {
-    queue_dlc_popup(mapname);
-    return false;
-  }
-
-  if (downloading_workshop_item.load() || launcher_downloading.load() ||
-      fastdl::is_downloading()) {
-    scheduler::once(
-        [] {
-          game::ui::UI_OpenErrorPopupWithMessage(
-              game::LOCAL_CLIENT_0, game::errorCode::UI,
-              "You are already downloading a map in the background. You can "
-              "download only one item at a time.");
-        },
-        scheduler::main);
-    return false;
-  }
-
-  if (!base_uri.empty()) {
-    std::function<void()> failure_callback = {};
-    if (utils::string::is_numeric(mapname.data())) {
-      failure_callback = [mapname] {
-        offer_download(game::ZoneType::USERMAP, mapname, mapname);
-      };
-    } else if (!workshop_id.empty() &&
-               utils::string::is_numeric(workshop_id.data())) {
-      failure_callback = [mapname, workshop_id] {
-        offer_download(game::ZoneType::USERMAP, mapname, workshop_id);
-      };
+  if (pub_id.empty() && is_zm_dlc_map(mapname.data())) {
+    if (!DB_ValidFastFile(mapname.data(), 0)) {
+      queue_dlc_popup(mapname);
+      return false;
     }
-    return !start_fastdl(game::ZoneType::USERMAP, mapname, workshop_id,
-                         base_uri, failure_callback);
-  }
+  } else {
 
-  if (!has_usermap(mapname.data())) {
-    if (utils::string::is_numeric(mapname.data())) {
-      offer_download(game::ZoneType::USERMAP, mapname, mapname);
-    } else if (!workshop_id.empty() &&
-               utils::string::is_numeric(workshop_id.data())) {
-      offer_download(game::ZoneType::USERMAP, mapname, workshop_id);
-    } else {
-      const std::string name_copy = std::string(mapname);
+    if (downloading_workshop_item.load() || launcher_downloading.load() ||
+        fastdl::is_downloading()) {
       scheduler::once(
-          [name_copy] {
+          [] {
             game::ui::UI_OpenErrorPopupWithMessage(
                 game::LOCAL_CLIENT_0, game::errorCode::UI,
-                utils::string::va(
-                    "Missing usermap: %s\n\nThis server did not provide "
-                    "FastDL\n\nSubscribe on Steam "
-                    "Workshop, or ask the server to set sv_wwwBaseURL.",
-                    name_copy.c_str()));
+                "You are already downloading a map in the background. You can "
+                "download only one item at a time.");
           },
           scheduler::main);
+      return false;
     }
-    return false;
+
+    if (!base_uri.empty()) {
+      std::function<void()> failure_callback = {};
+      if (utils::string::is_numeric(mapname.data())) {
+        failure_callback = [mapname] {
+          offer_download(game::ZoneType::USERMAP, mapname, mapname);
+        };
+      } else if (!workshop_id.empty() &&
+                 utils::string::is_numeric(workshop_id.data())) {
+        failure_callback = [mapname, workshop_id] {
+          offer_download(game::ZoneType::USERMAP, mapname, workshop_id);
+        };
+      }
+      return !start_fastdl(game::ZoneType::USERMAP, mapname, workshop_id,
+                           base_uri, failure_callback);
+    }
+
+    if (!has_usermap(mapname.data())) {
+      if (utils::string::is_numeric(mapname.data())) {
+        offer_download(game::ZoneType::USERMAP, mapname, mapname);
+      } else if (!workshop_id.empty() &&
+                 utils::string::is_numeric(workshop_id.data())) {
+        offer_download(game::ZoneType::USERMAP, mapname, workshop_id);
+      } else {
+        const std::string name_copy = std::string(mapname);
+        scheduler::once(
+            [name_copy] {
+              game::ui::UI_OpenErrorPopupWithMessage(
+                  game::LOCAL_CLIENT_0, game::errorCode::UI,
+                  utils::string::va(
+                      "Missing usermap: %s\n\nThis server did not provide "
+                      "FastDL\n\nSubscribe on Steam "
+                      "Workshop, or ask the server to set sv_wwwBaseURL.",
+                      name_copy.c_str()));
+            },
+            scheduler::main);
+      }
+      return false;
+    }
   }
 
   return true;
