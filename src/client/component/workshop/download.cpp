@@ -325,7 +325,7 @@ auto by_id(const std::string_view &id) {
 }
 
 void worker() {
-  for (;;) {
+  while (true) {
     entry next{};
     {
       std::unique_lock lock(mutex);

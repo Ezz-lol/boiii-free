@@ -16,7 +16,6 @@
 #include <frozen/string.h>
 #include <frozen/unordered_set.h>
 #include <fstream>
-#include <future>
 
 namespace fastdl {
 namespace {
@@ -347,7 +346,7 @@ get_outdated_files(const std::vector<updater::file_info> &files,
   return outdated_files;
 }
 
-void perform_download(const download_context &context) {
+void perform_download(download_context &context) {
   try {
     download_active = true;
     download_cancelled.store(false);
@@ -365,12 +364,16 @@ void perform_download(const download_context &context) {
     if (outdated_files.empty()) {
       download_workshop_file(workshop_json, context);
       download_active = false;
+      context.requires_download.set_value(false);
 
       if (context.success_callback) {
         context.success_callback();
       }
       return;
     }
+
+    context.requires_download.set_value(true);
+    context.set_requires_download.store(true, std::memory_order_release);
 
     size_t total_download_size = 0;
     for (const updater::file_info &file : outdated_files) {
@@ -412,9 +415,17 @@ void perform_download(const download_context &context) {
       context.success_callback();
     }
   } catch (const download_is_cancelled &) {
+    if (!context.set_requires_download.exchange(true,
+                                                std::memory_order_acquire)) {
+      context.requires_download.set_value(true);
+    }
     download_active = false;
     show_ingame_error("Download was cancelled.");
   } catch (const std::exception &e) {
+    if (!context.set_requires_download.exchange(true,
+                                                std::memory_order_acquire)) {
+      context.requires_download.set_value(true);
+    }
     download_active = false;
     show_ingame_error(e.what());
     if (context.failure_callback) {
@@ -424,12 +435,21 @@ void perform_download(const download_context &context) {
 }
 } // namespace
 
-void start_download(const download_context &context) {
+bool start_download(download_context *context) {
   bool expected = false;
+  std::future<bool> requires_download_fut =
+      context->requires_download.get_future();
+
   if (download_active.compare_exchange_strong(expected, true)) {
-    scheduler::once([context]() { perform_download(context); },
-                    scheduler::async);
+    scheduler::once(
+        [context]() {
+          perform_download(*context);
+          delete context;
+        },
+        scheduler::async);
   }
+
+  return requires_download_fut.get();
 }
 
 void cancel_download() { download_cancelled.store(true); }

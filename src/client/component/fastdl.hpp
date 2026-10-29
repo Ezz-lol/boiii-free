@@ -1,6 +1,7 @@
 #pragma once
 
 #include "download_overlay.hpp"
+#include <future>
 #include <updater/file_info.hpp>
 #include <updater/progress_listener.hpp>
 
@@ -43,9 +44,11 @@ struct download_context {
   std::function<void()> success_callback;
   std::function<void()> failure_callback;
   game::ZoneType type;
+  std::promise<bool> requires_download = std::promise<bool>{};
+  std::atomic_bool set_requires_download = std::atomic_bool(false);
 };
 
-void start_download(const download_context &context);
+bool start_download(download_context *context);
 void cancel_download();
 bool is_downloading();
 

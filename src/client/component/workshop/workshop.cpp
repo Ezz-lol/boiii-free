@@ -1028,7 +1028,7 @@ void offer_download(game::ZoneType zoneType, const std::string_view &name,
       [workshop_id, zoneType] { start_download(workshop_id, zoneType); });
 }
 
-void start_fastdl(game::ZoneType zoneType, const std::string_view &name,
+bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
                   const std::string_view &workshop_id,
                   const std::string_view &base_uri,
                   std::function<void()> failure_callback = {}) {
@@ -1038,14 +1038,14 @@ void start_fastdl(game::ZoneType zoneType, const std::string_view &name,
   }
   const std::string folder =
       std::format("{}s/{}", game::toString(zoneType), name);
-  fastdl::download_context context{};
-  context.item_name = name;
-  context.pub_id = workshop_id.empty() ? name : workshop_id;
-  context.item_path = folder;
-  context.content_tree_uri = std::format("{}/{}", base, folder);
-  context.type = zoneType;
-  context.failure_callback = {};
-  context.success_callback = [title = std::string(name)] {
+  fastdl::download_context *context = new fastdl::download_context();
+  context->item_name = name;
+  context->pub_id = workshop_id.empty() ? name : workshop_id;
+  context->item_path = folder;
+  context->content_tree_uri = std::format("{}/{}", base, folder);
+  context->type = zoneType;
+  context->failure_callback = {};
+  context->success_callback = [title = std::string(name)] {
     scheduler::once(
         [title] {
           game::ugc::UGC_LoadPools_Impl();
@@ -1068,8 +1068,8 @@ void start_fastdl(game::ZoneType zoneType, const std::string_view &name,
   };
   printf("[ Workshop ] Server has FastDL, attempting download for %s from "
          "%s\n",
-         context.item_name.c_str(), context.content_tree_uri.c_str());
-  fastdl::start_download(context);
+         context->item_name.c_str(), context->content_tree_uri.c_str());
+  return fastdl::start_download(context);
 }
 
 bool is_busy_downloading() {
@@ -1135,42 +1135,43 @@ bool check_valid_usermap_id(const std::string_view &mapname,
                             const std::string_view &pub_id,
                             const std::string_view &workshop_id,
                             const std::string_view &base_uri) {
-  if (!DB_ValidFastFile(mapname.data(), 0) && pub_id.empty()) {
-    if (is_zm_dlc_map(mapname.data())) {
-      queue_dlc_popup(mapname);
-      return false;
-    }
+  if (pub_id.empty() && is_zm_dlc_map(mapname.data()) &&
+      !DB_ValidFastFile(mapname.data(), 0)) {
+    queue_dlc_popup(mapname);
+    return false;
+  }
 
-    if (downloading_workshop_item.load() || launcher_downloading.load() ||
-        fastdl::is_downloading()) {
-      scheduler::once(
-          [] {
-            game::ui::UI_OpenErrorPopupWithMessage(
-                game::LOCAL_CLIENT_0, game::errorCode::UI,
-                "You are already downloading a map in the background. You can "
-                "download only one item at a time.");
-          },
-          scheduler::main);
-      return false;
-    }
+  if (downloading_workshop_item.load() || launcher_downloading.load() ||
+      fastdl::is_downloading()) {
+    scheduler::once(
+        [] {
+          game::ui::UI_OpenErrorPopupWithMessage(
+              game::LOCAL_CLIENT_0, game::errorCode::UI,
+              "You are already downloading a map in the background. You can "
+              "download only one item at a time.");
+        },
+        scheduler::main);
+    return false;
+  }
 
-    if (!base_uri.empty()) {
-      std::function<void()> failure_callback = {};
-      if (utils::string::is_numeric(mapname.data())) {
-        failure_callback = [mapname] {
-          offer_download(game::ZoneType::USERMAP, mapname, mapname);
-        };
-      } else if (!workshop_id.empty() &&
-                 utils::string::is_numeric(workshop_id.data())) {
-        failure_callback = [mapname, workshop_id] {
-          offer_download(game::ZoneType::USERMAP, mapname, workshop_id);
-        };
-      }
-      start_fastdl(game::ZoneType::USERMAP, mapname, workshop_id, base_uri,
-                   failure_callback);
-      return false;
+  if (!base_uri.empty()) {
+    std::function<void()> failure_callback = {};
+    if (utils::string::is_numeric(mapname.data())) {
+      failure_callback = [mapname] {
+        offer_download(game::ZoneType::USERMAP, mapname, mapname);
+      };
+    } else if (!workshop_id.empty() &&
+               utils::string::is_numeric(workshop_id.data())) {
+      failure_callback = [mapname, workshop_id] {
+        offer_download(game::ZoneType::USERMAP, mapname, workshop_id);
+      };
     }
+    return !start_fastdl(game::ZoneType::USERMAP, mapname, workshop_id,
+                         base_uri, failure_callback) &&
+           DB_ValidFastFile(mapname.data(), 0);
+  }
 
+  if (!DB_ValidFastFile(mapname.data(), 0)) {
     if (utils::string::is_numeric(mapname.data())) {
       offer_download(game::ZoneType::USERMAP, mapname, mapname);
     } else if (!workshop_id.empty() &&
@@ -1192,6 +1193,7 @@ bool check_valid_usermap_id(const std::string_view &mapname,
     }
     return false;
   }
+
   return true;
 }
 
@@ -1203,40 +1205,41 @@ void offer_mod_from_workshop(const std::string &mod,
           : (!workshop_id.empty() && utils::string::is_numeric(workshop_id)
                  ? workshop_id
                  : resolve_mod_workshop_id(mod));
-  if (!resolved_id.empty()) {
+  if (resolved_id.empty()) {
+    scheduler::once(
+        [mod] {
+          game::ui::UI_OpenErrorPopupWithMessage(
+              game::LOCAL_CLIENT_0, game::errorCode::UI,
+              utils::string::va(
+                  "Could not download mod %s: workshop ID is not provided by "
+                  "server and does not have FastDL setup",
+                  mod.c_str()));
+        },
+        scheduler::main);
+  } else {
     offer_download(game::ZoneType::MOD, mod, resolved_id);
-    return;
   }
-  scheduler::once(
-      [mod] {
-        game::ui::UI_OpenErrorPopupWithMessage(
-            game::LOCAL_CLIENT_0, game::errorCode::UI,
-            utils::string::va(
-                "Could not download mod %s: workshop ID is not provided by "
-                "server and does not have FastDL setup",
-                mod.c_str()));
-      },
-      scheduler::main);
 }
 
 bool check_valid_mod_id(const std::string_view &mod,
                         const std::string_view &workshop_id,
                         const std::string_view &base_uri) {
   if (!mod.empty() && mod != "usermaps") {
-    if (!has_mod(mod)) {
-      if (!is_busy_downloading()) {
-        const std::string mod_copy(mod);
-        const std::string id_copy(workshop_id);
-        if (base_uri.empty()) {
+    if (!is_busy_downloading()) {
+      const std::string mod_copy(mod);
+      const std::string id_copy(workshop_id);
+      if (base_uri.empty()) {
+        if (!has_mod(workshop_id)) {
           offer_mod_from_workshop(mod_copy, id_copy);
-        } else {
-          start_fastdl(game::ZoneType::MOD, mod, workshop_id, base_uri,
-                       [id_copy, mod_copy]() {
-                         offer_mod_from_workshop(mod_copy, id_copy);
-                       });
+          return false;
         }
+      } else {
+        return !start_fastdl(game::ZoneType::MOD, mod, workshop_id, base_uri,
+                             [id_copy, mod_copy]() {
+                               offer_mod_from_workshop(mod_copy, id_copy);
+                             }) &&
+               has_mod(workshop_id);
       }
-      return false;
     }
   }
   return true;
