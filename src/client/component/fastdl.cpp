@@ -2,8 +2,10 @@
 
 #include <loader/component_loader.hpp>
 
+#include "command.hpp"
 #include "fastdl.hpp"
 #include "scheduler.hpp"
+#include "workshop/workshop.hpp"
 
 #include <utils/concurrency.hpp>
 #include <utils/cryptography.hpp>
@@ -597,10 +599,100 @@ std::string fastdl_ui::get_relevant_file_name() const {
   return name;
 }
 
+namespace {
+std::filesystem::path content_folder(const char *zone_path) {
+  if (!zone_path || !zone_path[0]) {
+    return {};
+  }
+  std::filesystem::path folder(zone_path);
+  if (utils::string::to_lower(folder.filename().string()) == "zone") {
+    folder = folder.parent_path();
+  }
+  std::error_code ec;
+  return std::filesystem::is_directory(folder, ec) ? folder
+                                                   : std::filesystem::path{};
+}
+
+void write_manifest(const std::filesystem::path &folder,
+                    const std::string &url_path) {
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  writer.StartArray();
+  size_t count = 0;
+  std::error_code ec;
+  for (std::filesystem::recursive_directory_iterator it(folder, ec), end;
+       !ec && it != end; it.increment(ec)) {
+    std::error_code file_ec;
+    if (!it->is_regular_file(file_ec)) {
+      continue;
+    }
+    const std::string name =
+        std::filesystem::relative(it->path(), folder, file_ec).generic_string();
+    if (file_ec || utils::string::to_lower(name) == "manifest.json") {
+      continue;
+    }
+    std::ifstream file(it->path(), std::ios::binary);
+    writer.StartArray();
+    writer.String(name.c_str());
+    writer.Int64(static_cast<int64_t>(it->file_size(file_ec)));
+    writer.String(get_hash(file).c_str());
+    writer.EndArray();
+    ++count;
+  }
+  writer.EndArray();
+
+  const std::filesystem::path manifest =
+      (folder / "manifest.json").make_preferred();
+  if (!utils::io::write_file(manifest, buffer.GetString(), false)) {
+    printf("FastDL: failed to write %s\n", manifest.string().c_str());
+    return;
+  }
+  printf("FastDL: wrote %s (%zu files)\nUpload that folder so it is reachable "
+         "at <sv_wwwBaseURL>/%s/\n",
+         manifest.string().c_str(), count, url_path.c_str());
+}
+
+void generate_manifests() {
+  bool wrote = false;
+  const std::string mod_id = workshop::get_mod_publisher_id();
+  if (!mod_id.empty() && mod_id != "usermaps") {
+    for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
+      const game::ugc::UGCItem &mod = game::ugc::modsPool.data[i];
+      if (mod_id == mod.publisherId) {
+        const std::filesystem::path folder =
+            content_folder(mod.absolutePathZoneFiles);
+        if (!folder.empty()) {
+          write_manifest(folder, "mods/" + mod_id);
+          wrote = true;
+        }
+        break;
+      }
+    }
+  }
+
+  const game::ugc::UGCItem &usermap = *game::ugc::active_usermap;
+  const std::filesystem::path map_folder =
+      content_folder(usermap.absolutePathZoneFiles);
+  std::error_code ec;
+  if (usermap.internalName[0] && !map_folder.empty() &&
+      !std::filesystem::equivalent(map_folder, game::get_game_path(), ec)) {
+    write_manifest(map_folder, std::string("usermaps/") + usermap.internalName);
+    wrote = true;
+  }
+
+  if (!wrote) {
+    printf("FastDL: no mod or custom map is loaded\n");
+  }
+}
+} // namespace
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("fastdl");
 
 public:
+  void post_unpack() override {
+    command::add("fastdl_manifest", generate_manifests);
+  }
   void pre_destroy() override { cancel_download(); }
 };
 } // namespace fastdl
