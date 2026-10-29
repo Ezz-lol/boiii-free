@@ -2532,26 +2532,9 @@ luaReturnCount_e Lua_CoD_LuaCall_GetHeroName_Safe(lua_State *luaVM) {
   return Lua_CoD_LuaCall_GetHeroName_hook.invoke<luaReturnCount_e>(luaVM);
 }
 
-int32_t GetSizeForQuadCache(const int16_t numQuads) {
-  return 0x4 * numQuads + 0x50 * numQuads + sizeof(UIQuadCache);
-}
-
-luaReturnCount_e UI_CoD_LuaCall_QuadCache_GC_Safe(lua_State *luaVM) {
-  if (UI_IsInitialized() && lua_gettop(luaVM) > 0 && lua_isuserdata(luaVM, 1)) {
-    UIQuadCache *cache = lua_touserdata(luaVM, 1).uiQuadCache;
-    if (nonnull(cache)) {
-      --*quad::g_LUIAllocatedQuadCaches;
-      *quad::g_LUIAllocatedQuadCachesMemory -=
-          GetSizeForQuadCache(cache->numQuads);
-      api::ui::quad::UI_CoD_UnrefQuadCacheChain(luaVM, cache);
-    }
-  }
-  return luaReturnCount_e::NONE;
-}
-
 UIQuadCache *UI_CoD_GetNextQuadCache_Safe(lua_State *luaVM,
                                           UIQuadCache *quadCache) {
-  if (quadCache != nullptr && quadCache->next != -2) {
+  if (nonnull(quadCache) && quadCache->next != -2) {
     lua_rawgeti(luaVM, -10000, quadCache->next);
     UIQuadCache *const nextCache = lua_touserdata(luaVM, -1).uiQuadCache;
     lua_pop(luaVM, 1);
@@ -2562,6 +2545,33 @@ UIQuadCache *UI_CoD_GetNextQuadCache_Safe(lua_State *luaVM,
   }
 
   return nullptr;
+}
+
+void UI_CoD_UnrefQuadCacheChain_Safe(lua_State *luaVM, UIQuadCache *quadCache) {
+  for (UIQuadCache *nextCache = UI_CoD_GetNextQuadCache_Safe(luaVM, quadCache);
+       nonnull(nextCache);
+       nextCache = UI_CoD_GetNextQuadCache_Safe(luaVM, nextCache)) {
+    luaL_unref(luaVM, -10000, quadCache->next);
+    quadCache->next = -2;
+    quadCache = nextCache;
+  }
+}
+
+alwaysinline int32_t GetSizeForQuadCache(const int16_t numQuads) {
+  return 0x4 * numQuads + 0x50 * numQuads + sizeof(UIQuadCache);
+}
+
+luaReturnCount_e UI_CoD_LuaCall_QuadCache_GC_Safe(lua_State *luaVM) {
+  if (UI_IsInitialized() && lua_gettop(luaVM) > 0 && lua_isuserdata(luaVM, 1)) {
+    UIQuadCache *cache = lua_touserdata(luaVM, 1).uiQuadCache;
+    if (nonnull(cache)) {
+      --*quad::g_LUIAllocatedQuadCaches;
+      *quad::g_LUIAllocatedQuadCachesMemory -=
+          GetSizeForQuadCache(cache->numQuads);
+      UI_CoD_UnrefQuadCacheChain_Safe(luaVM, cache);
+    }
+  }
+  return luaReturnCount_e::NONE;
 }
 
 class component final : public generic_component {
@@ -2629,6 +2639,8 @@ public:
                         UI_CoD_LuaCall_QuadCache_GC_Safe);
       utils::hook::jump(api::ui::quad::UI_CoD_GetNextQuadCache,
                         UI_CoD_GetNextQuadCache_Safe);
+      utils::hook::jump(api::ui::quad::UI_CoD_UnrefQuadCacheChain,
+                        UI_CoD_UnrefQuadCacheChain_Safe);
     }
 
     if (game::is_client()) {
