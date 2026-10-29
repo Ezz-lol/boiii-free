@@ -139,9 +139,9 @@ std::vector<updater::file_info> parse_manifest(const std::string &json) {
 }
 
 std::pair<std::vector<updater::file_info>, updater::file_info>
-get_manifest_files(const download_context &context) {
+get_manifest_files(const std::shared_ptr<download_context> &context) {
   const std::string manifest_json_uri =
-      context.content_tree_uri + "/manifest.json";
+      context->content_tree_uri + "/manifest.json";
 
   const std::optional<std::string> json =
       utils::http::get_data(manifest_json_uri);
@@ -171,16 +171,17 @@ get_manifest_files(const download_context &context) {
 }
 
 void download_file(const updater::file_info &file,
-                   const download_context &context, fastdl_ui &ui) {
+                   const std::shared_ptr<download_context> &context,
+                   fastdl_ui &ui) {
   if (download_cancelled.load()) {
     throw download_is_cancelled();
   }
 
-  const std::string file_url = context.content_tree_uri + "/" + file.name;
+  const std::string file_url = context->content_tree_uri + "/" + file.name;
   const std::string out_relative =
       file.name.starts_with("zone/") ? file.name : ("zone/" + file.name);
   const std::filesystem::path local_path =
-      std::filesystem::path(context.item_path) / file.name;
+      std::filesystem::path(context->item_path) / file.name;
   bool completed = false;
 
   try {
@@ -264,12 +265,12 @@ void download_file(const updater::file_info &file,
 }
 
 void download_workshop_file(const updater::file_info &file,
-                            const download_context &context) {
+                            const std::shared_ptr<download_context> &context) {
   if (download_cancelled.load()) {
     throw download_is_cancelled();
   }
 
-  const std::string file_url = context.content_tree_uri + "/" + file.name;
+  const std::string file_url = context->content_tree_uri + "/" + file.name;
   const std::optional<std::string> data = utils::http::get_data(file_url);
 
   if (!data ||
@@ -282,7 +283,7 @@ void download_workshop_file(const updater::file_info &file,
   const std::string out_relative =
       file.name.starts_with("zone/") ? file.name : ("zone/" + file.name);
   const std::filesystem::path local_path =
-      std::filesystem::path(context.item_path) / file.name;
+      std::filesystem::path(context->item_path) / file.name;
   if (!utils::io::write_file(local_path, *data, false)) {
     throw std::runtime_error(
         utils::string::va("Failed to write: %s", local_path.c_str()));
@@ -290,7 +291,8 @@ void download_workshop_file(const updater::file_info &file,
 }
 
 void download_files(const std::vector<updater::file_info> &files,
-                    const download_context &context, fastdl_ui &ui) {
+                    const std::shared_ptr<download_context> &context,
+                    fastdl_ui &ui) {
   /* Note: don't multi-thread these downloads.
      For large usermaps or mods, in combination with a slow hard drive (writes
      buffered in memory for extended period), this results in catastrophically
@@ -348,7 +350,7 @@ get_outdated_files(const std::vector<updater::file_info> &files,
   return outdated_files;
 }
 
-void perform_download(download_context &context) {
+void perform_download(const std::shared_ptr<download_context> &context) {
   try {
     download_active = true;
     download_cancelled.store(false);
@@ -362,17 +364,17 @@ void perform_download(download_context &context) {
     }
 
     const std::vector<updater::file_info> outdated_files =
-        get_outdated_files(files, context.item_path);
+        get_outdated_files(files, context->item_path);
     if (outdated_files.empty()) {
       download_workshop_file(workshop_json, context);
       download_active = false;
-      context.requires_download.set_value(false);
+      context->requires_download.set_value(false);
 
       return;
     }
 
-    context.requires_download.set_value(true);
-    context.set_requires_download.store(true, std::memory_order_release);
+    context->requires_download.set_value(true);
+    context->set_requires_download = true;
 
     size_t total_download_size = 0;
     for (const updater::file_info &file : outdated_files) {
@@ -385,11 +387,11 @@ void perform_download(download_context &context) {
         std::make_shared<std::promise<bool>>();
     std::future<bool> accepted = answer->get_future();
     download_overlay::show_confirmation(
-        std::format("FastDL - {} Download", game::toString(context.type)),
+        std::format("FastDL - {} Download", game::toString(context->type)),
         utils::string::va(
             "You don't have this content. Would you like to download "
             "it?\nName: %s\nDownload size: %.2f GB",
-            context.item_name.data(), size_gb),
+            context->item_name.data(), size_gb),
         [answer] { answer->set_value(true); },
         [answer] { answer->set_value(false); });
 
@@ -397,8 +399,8 @@ void perform_download(download_context &context) {
       throw download_is_cancelled();
     }
 
-    if (!utils::io::directory_exists(context.item_path)) {
-      utils::io::create_directory(context.item_path);
+    if (!utils::io::directory_exists(context->item_path)) {
+      utils::io::create_directory(context->item_path);
     }
 
     fastdl_ui ui{};
@@ -410,42 +412,38 @@ void perform_download(download_context &context) {
 
     download_active = false;
 
-    if (context.success_callback) {
-      context.success_callback();
+    if (context->success_callback) {
+      context->success_callback();
     }
   } catch (const download_is_cancelled &) {
-    if (!context.set_requires_download.exchange(true,
-                                                std::memory_order_acquire)) {
-      context.requires_download.set_value(true);
+    if (context->set_requires_download) {
+      context->requires_download.set_value(true);
+      context->set_requires_download = true;
     }
     download_active = false;
     show_ingame_error("Download was cancelled.");
   } catch (const std::exception &e) {
-    if (!context.set_requires_download.exchange(true,
-                                                std::memory_order_acquire)) {
-      context.requires_download.set_value(true);
+    if (context->set_requires_download) {
+      context->requires_download.set_value(true);
+      context->set_requires_download = true;
     }
     download_active = false;
     show_ingame_error(e.what());
-    if (context.failure_callback) {
-      context.failure_callback();
+    if (context->failure_callback) {
+      context->failure_callback();
     }
   }
 }
 } // namespace
 
-bool start_download(download_context *context) {
+bool start_download(const std::shared_ptr<download_context> context) {
   bool expected = false;
   std::future<bool> requires_download_fut =
       context->requires_download.get_future();
 
   if (download_active.compare_exchange_strong(expected, true)) {
-    scheduler::once(
-        [context]() {
-          perform_download(*context);
-          delete context;
-        },
-        scheduler::async);
+    scheduler::once([context]() { perform_download(context); },
+                    scheduler::async);
   }
 
   return requires_download_fut.get();

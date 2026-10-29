@@ -1050,7 +1050,10 @@ bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
   }
   const std::string folder =
       std::format("{}s/{}", game::toString(zoneType), name);
-  fastdl::download_context *context = new fastdl::download_context();
+
+  std::shared_ptr<fastdl::download_context> context =
+      std::make_shared<fastdl::download_context>();
+
   context->item_name = name;
   context->pub_id = workshop_id.empty() ? name : workshop_id;
   context->item_path = folder;

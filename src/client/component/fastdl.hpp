@@ -45,10 +45,10 @@ struct download_context {
   std::function<void()> failure_callback;
   game::ZoneType type;
   std::promise<bool> requires_download = std::promise<bool>{};
-  std::atomic_bool set_requires_download = std::atomic_bool(false);
+  bool set_requires_download = false;
 };
 
-bool start_download(download_context *context);
+bool start_download(const std::shared_ptr<download_context> context);
 void cancel_download();
 bool is_downloading();
 
