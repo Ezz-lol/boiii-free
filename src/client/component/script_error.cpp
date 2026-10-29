@@ -884,10 +884,6 @@ struct component final : generic_component {
     }
 
     if (game::is_server()) {
-      restart_delay = game::register_dvar_int(
-          "sv_errorRestartDelay", 5, 0, 300, game::DVAR_NONE,
-          "Seconds to wait before launching the map again after a script "
-          "error stopped it");
       Com_Printf_hook.create(game::com::Com_Printf, Com_Printf_Muted);
     }
 
