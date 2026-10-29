@@ -1153,6 +1153,11 @@ bool check_valid_usermap_id(const std::string_view &mapname,
     return false;
   }
 
+  if (pub_id.empty() && !has_usermap(mapname) &&
+      DB_ValidFastFile(mapname.data(), 0)) {
+    return true;
+  }
+
   if (downloading_workshop_item.load() || launcher_downloading.load() ||
       fastdl::is_downloading()) {
     scheduler::once(
