@@ -4,3 +4,4 @@
 #include "core.hpp"        // IWYU pragma: export
 #include "hks.hpp"         // IWYU pragma: export
 #include "lobby/lobby.hpp" // IWYU pragma: export
+#include "lui/lui.hpp"     // IWYU pragma: export

@@ -92,8 +92,8 @@ WEAK symbol<void(hks::lua_State *s, int32_t index)> lua_remove{
     0x141D47360, 0x141D53DF0, 0x0};
 WEAK symbol<void(hks::lua_State *s, int32_t index, const char *k)> lua_setfield{
     0x1414296A0, 0x141429680, 0x1401DEA20};
-WEAK symbol<void *(hks::lua_State *s, int32_t index)> lua_touserdata{
-    0x141D426B0, 0x141D4F140, 0x0};
+WEAK symbol<hks::LightUserData(hks::lua_State *s, int32_t index)>
+    _lua_touserdata{0x141D426B0, 0x141D4F140, 0x0};
 WEAK symbol<hks::lua_CFunction> luaWrapper_finalizeUserdata{0x141D46B00,
                                                             0x141D53590, 0x0};
 WEAK symbol<const hks::hksInstruction *(hks::lua_State *s,
@@ -196,6 +196,28 @@ inline hks::HashTable *lua_totable(hks::lua_State *s, int32_t index) {
   return nullptr;
 }
 
+inline hks::LightUserData lua_touserdata(hks::lua_State *s, int32_t index) {
+  hks::HksObject *object = hks::getObjectForIndex(s, index);
+  if (object) {
+    switch (object->t) {
+    case hks::HksObjectType::TUSERDATA: {
+      if (object->v.userData) {
+        return object->v.userData->m_data;
+      }
+      break;
+    }
+    case hks::HksObjectType::TLIGHTUSERDATA: {
+      return object->v.lightUserData;
+    }
+    default: {
+      break;
+    }
+    }
+  }
+
+  return {.ptr = nullptr};
+}
+
 inline void lua_pushstring(hks::lua_State *s, const char *str) {
   return _lua_pushstring(s, str);
 }
@@ -284,6 +306,10 @@ inline bool lua_isstring(hks::lua_State *s, int32_t index) {
 
 inline bool lua_isnumber(hks::lua_State *s, int32_t index) {
   return hks::hksi_lua_isnumber(s, index);
+}
+
+inline bool lua_isuserdata(hks::lua_State *s, int32_t index) {
+  return hks::hksi_lua_isuserdata(s, index);
 }
 
 inline bool lua_isboolean(hks::lua_State *s, int32_t index) {

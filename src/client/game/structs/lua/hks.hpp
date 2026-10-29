@@ -30,6 +30,7 @@ namespace lua {
 namespace lui {
 // TODO
 struct LUIElement;
+struct UIQuadCache;
 } // namespace lui
 
 struct LuaStateContext;
@@ -303,6 +304,7 @@ union LightUserData {
   LUA_MATERIAL_DATATYPE material;
   lui::LUIElement *uiElement;
   ui::UIModelIndex uiModelIndex;
+  lui::UIQuadCache *uiQuadCache;
   double fp;
   uint64_t raw;
   void *ptr;
@@ -326,7 +328,7 @@ ASSERT_SIZE(ChunkList, 0x10);
 struct UserData : ChunkHeader {
   hksSize m_envAndSizeOffsetHighBits;
   hksSize m_metaAndSizeOffsetLowBits;
-  char m_data[8];
+  LightUserData m_data;
 };
 
 PACKED(struct InternString : GenericChunkHeader {

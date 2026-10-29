@@ -392,6 +392,21 @@ inline bool hksi_lua_isnumber(lua_State *s, int index) {
   return obj && hks_obj_isnumber(s, obj);
 }
 
+inline bool hksi_lua_isuserdata(lua_State *s, int index) {
+  const HksObject *obj = getObjectForIndex(s, index);
+  if (obj) {
+    switch (obj->t) {
+    case HksObjectType::TUSERDATA:
+    case HksObjectType::TLIGHTUSERDATA:
+      return true;
+    default:
+      break;
+    }
+  }
+
+  return false;
+}
+
 } // namespace hks
 } // namespace lua
 } // namespace game
