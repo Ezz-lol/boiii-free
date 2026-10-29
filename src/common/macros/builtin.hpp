@@ -6,17 +6,6 @@
 #include <atomic>
 #endif
 
-#ifndef __inline_def
-#if GNUC_OR_CLANG
-#define __inline_def __attribute__((always_inline))
-#elif defined(_MSC_VER)
-#define __inline_def __forceinline
-#define TEMPLATE_INVALID_HANDLE_VALUE -1
-#else
-#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
-#endif
-#endif
-
 #ifndef __optimize
 #if GNUC_OR_CLANG
 #define __optimize __attribute__((hot))

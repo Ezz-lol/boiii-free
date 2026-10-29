@@ -7,9 +7,9 @@ namespace lua {
 namespace hks {
 
 template <typename Op>
-inline HksRegister *operator_outofline(HksRegister *retstr, lua_State *s,
-                                       HksObject *left, HksObject *right,
-                                       const hksInstruction *PC) {
+alwaysinline HksRegister *operator_outofline(HksRegister *retstr, lua_State *s,
+                                             HksObject *left, HksObject *right,
+                                             const hksInstruction *PC) {
 
   if constexpr (std::is_same_v<Op, OpcodeAdd>) {
     return op::OpcodeAdd(retstr, s, left, right, PC);
@@ -57,8 +57,8 @@ luaReturnCount_e executeIsolated(lua_State *s, const hksInstruction *PC,
                                  hksInt32 call_depth);
 
 template <const HksBytecodeSharingMode Mode>
-inline luaReturnCount_e execute(lua_State *s, const hksInstruction *PC,
-                                hksInt32 call_depth) {
+alwaysinline luaReturnCount_e execute(lua_State *s, const hksInstruction *PC,
+                                      hksInt32 call_depth) {
   switch (Mode) {
   case HksBytecodeSharingMode::SECURE:
     return executeSharedSecure(s, PC, call_depth);
@@ -66,8 +66,6 @@ inline luaReturnCount_e execute(lua_State *s, const hksInstruction *PC,
     return executeShared(s, PC, call_depth);
   case HksBytecodeSharingMode::OFF:
     return executeIsolated(s, PC, call_depth);
-  default:
-    unreachable();
   }
 }
 

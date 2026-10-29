@@ -6,30 +6,83 @@
 
 namespace game {
 
-[[nodiscard]] EngineDependentDvarMut get_dvar(const char *name);
-[[nodiscard]] std::optional<std::string_view>
-get_dvar_string(const char *dvar_name);
-[[nodiscard]] std::optional<int32_t> get_dvar_int(const char *dvar_name);
-[[nodiscard]] std::optional<uint32_t> get_dvar_uint(const char *dvar_name);
-[[nodiscard]] std::optional<int64_t> get_dvar_int64(const char *dvar_name);
-[[nodiscard]] std::optional<uint64_t> get_dvar_uint64(const char *dvar_name);
-[[nodiscard]] std::optional<float> get_dvar_float(const char *dvar_name);
-[[nodiscard]] std::optional<bool> get_dvar_bool(const char *dvar_name);
+alwaysinline EngineDependentDvarMut get_dvar(const char *name) {
+  return Dvar_FindVar(name);
+}
 
-std::optional<int> set_dvar_int(const char *dvar_name, int32_t val,
-                                bool execModifiedCallback = true);
-std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val,
-                                      bool execModifiedCallback = true);
-std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val,
-                                        bool execModifiedCallback = true);
-bool set_dvar_bool(EngineDependentDvar dvar, bool val,
-                   bool execModifiedCallback = true);
-std::optional<bool> set_dvar_bool(const char *dvar_name, bool val,
-                                  bool execModifiedCallback = true);
-std::optional<float> set_dvar_float(const char *dvar_name, float val,
-                                    bool execModifiedCallback = true);
-std::optional<std::string> set_dvar_string(const char *dvar_name,
-                                           const char *val);
+alwaysinline std::optional<std::string_view>
+get_dvar_string(const char *dvar_name) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? dvar.get_string() : std::nullopt;
+}
+
+alwaysinline std::optional<int32_t> get_dvar_int(const char *dvar_name) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? std::optional(dvar.get_int()) : std::nullopt;
+}
+
+alwaysinline std::optional<int32_t>
+set_dvar_int(const char *dvar_name, int32_t val, bool execModifiedCallback) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? dvar.set(val, execModifiedCallback) : std::nullopt;
+}
+
+alwaysinline std::optional<uint32_t> get_dvar_uint(const char *dvar_name) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? std::optional(dvar.get_uint()) : std::nullopt;
+}
+
+alwaysinline std::optional<uint64_t> get_dvar_uint64(const char *dvar_name) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? std::optional(dvar.get_uint64()) : std::nullopt;
+}
+
+alwaysinline std::optional<uint64_t>
+set_dvar_uint64(const char *dvar_name, uint64_t val,
+                bool execModifiedCallback) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? dvar.set(val, execModifiedCallback) : std::nullopt;
+}
+
+alwaysinline std::optional<int64_t> get_dvar_int64(const char *dvar_name) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? std::optional(dvar.get_int64()) : std::nullopt;
+}
+
+alwaysinline std::optional<int64_t>
+set_dvar_int64(const char *dvar_name, int64_t val, bool execModifiedCallback) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? dvar.set(val, execModifiedCallback) : std::nullopt;
+}
+
+alwaysinline std::optional<bool> get_dvar_bool(const char *dvar_name) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? std::optional(dvar.get_bool()) : std::nullopt;
+}
+
+alwaysinline std::optional<bool> set_dvar_bool(const char *dvar_name, bool val,
+                                               bool execModifiedCallback) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? dvar.set(val, execModifiedCallback) : std::nullopt;
+}
+
+alwaysinline std::optional<float> get_dvar_float(const char *dvar_name) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? std::optional(dvar.get_float()) : std::nullopt;
+}
+
+alwaysinline std::optional<float>
+set_dvar_float(const char *dvar_name, float val, bool execModifiedCallback) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? dvar.set(val, execModifiedCallback) : std::nullopt;
+}
+
+alwaysinline std::optional<std::string>
+set_dvar_string(const char *dvar_name, const char *val,
+                bool execModifiedCallback) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  return dvar ? dvar.set(val, execModifiedCallback) : std::nullopt;
+}
 
 void record_registered_dvar_name(const char *dvar_name);
 

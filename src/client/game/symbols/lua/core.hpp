@@ -86,8 +86,6 @@ WEAK symbol<const char *(hks::lua_State *s, const char *fmt)> lua_pushfstring{
     0x141D47330, 0x141D53DC0, 0x0};
 WEAK symbol<void(hks::lua_State *s, const char *str)> _lua_pushstring{
     0x140A186B0, 0x140A186B0, 0x1401DEE30};
-WEAK symbol<void(hks::lua_State *s, int32_t index, int32_t n)> lua_rawgeti{
-    0x141D3EA80, 0x141D4B510, 0x0};
 WEAK symbol<void(hks::lua_State *s, int32_t index)> lua_remove{
     0x141D47360, 0x141D53DF0, 0x0};
 WEAK symbol<void(hks::lua_State *s, int32_t index, const char *k)> lua_setfield{
@@ -126,6 +124,10 @@ inline std::optional<hks::HksObjectType> lua_gettype(hks::lua_State *s,
   return std::nullopt;
 }
 
+alwaysinline void lua_rawgeti(hks::lua_State *s, int32_t index, int32_t n) {
+  return hks::hksi_lua_rawgeti(s, index, n);
+}
+
 inline hks::HksNumber lua_tonumber(hks::lua_State *s, int32_t index) {
   const hks::HksObject *object = hks::getObjectForIndex(s, index);
   if (object && object->t == hks::HksObjectType::TNUMBER) {
@@ -161,7 +163,7 @@ inline bool lua_toboolean(hks::lua_State *s, int32_t index) {
 }
 
 template <IntegralLike<int32_t> T = int32_t>
-inline T lua_tointeger(hks::lua_State *s, int32_t index) {
+alwaysinline T lua_tointeger(hks::lua_State *s, int32_t index) {
   return static_cast<T>(lua_tonumber(s, index));
 }
 
@@ -188,8 +190,8 @@ inline const char *lua_tostring(hks::lua_State *s, int32_t index,
   return nullptr;
 }
 
-inline hks::HashTable *lua_totable(hks::lua_State *s, int32_t index) {
-  hks::HksObject *object = hks::getObjectForIndex(s, index);
+alwaysinline hks::HashTable *lua_totable(hks::lua_State *s, int32_t index) {
+  hks::HksObject *const object = hks::getObjectForIndex(s, index);
   if (object && object->t == hks::HksObjectType::TTABLE) {
     return object->v.table;
   }
@@ -197,7 +199,7 @@ inline hks::HashTable *lua_totable(hks::lua_State *s, int32_t index) {
 }
 
 inline hks::LightUserData lua_touserdata(hks::lua_State *s, int32_t index) {
-  hks::HksObject *object = hks::getObjectForIndex(s, index);
+  hks::HksObject *const object = hks::getObjectForIndex(s, index);
   if (object) {
     switch (object->t) {
     case hks::HksObjectType::TUSERDATA: {
@@ -218,112 +220,117 @@ inline hks::LightUserData lua_touserdata(hks::lua_State *s, int32_t index) {
   return {.ptr = nullptr};
 }
 
-inline void lua_pushstring(hks::lua_State *s, const char *str) {
+alwaysinline void lua_pop(hks::lua_State *s, int n) { hks::hksi_lua_pop(s, n); }
+alwaysinline void lua_push(hks::lua_State *s) { hks::hksi_lua_push(s); }
+alwaysinline void lua_pushstring(hks::lua_State *s, const char *str) {
   return _lua_pushstring(s, str);
 }
 
-inline void lua_pushstring(hks::lua_State *s, const std::string_view &str) {
+alwaysinline void lua_pushstring(hks::lua_State *s,
+                                 const std::string_view &str) {
   return lua_pushstring(s, str.data());
 }
 
-inline void lua_pushstring(hks::lua_State *s, const std::string &str) {
+alwaysinline void lua_pushstring(hks::lua_State *s, const std::string &str) {
   return lua_pushstring(s, str.data());
 }
 
-inline void lua_pushstring(hks::lua_State *s,
-                           const std::filesystem::path &path) {
+alwaysinline void lua_pushstring(hks::lua_State *s,
+                                 const std::filesystem::path &path) {
   const std::string path_str = path.generic_string();
   return lua_pushstring(s, path_str.data());
 }
 
-inline void lua_push(hks::lua_State *s, const hks::HksObject &obj) {
+alwaysinline void lua_push(hks::lua_State *s, const hks::HksObject &obj) {
   *s->m_apistack.top = obj;
-  s->m_apistack.top += 1;
+  lua_push(s);
 }
 
-inline void lua_push(hks::lua_State *s, const hks::HksObject *obj) {
+alwaysinline void lua_push(hks::lua_State *s, const hks::HksObject *obj) {
   *s->m_apistack.top = *obj;
-  s->m_apistack.top += 1;
+  lua_push(s);
 }
 
-inline void lua_pushnumber(hks::lua_State *s, hks::HksNumber n) {
+alwaysinline void lua_pushnumber(hks::lua_State *s, hks::HksNumber n) {
   hks::HksObject *top = s->m_apistack.top;
   top->v.number = n;
   top->t = hks::HksObjectType::TNUMBER;
-  s->m_apistack.top = top + 1;
+  lua_push(s);
 }
 
 template <IntegralLike<int32_t> Value>
-inline void lua_pushinteger(hks::lua_State *s, Value n) {
+alwaysinline void lua_pushinteger(hks::lua_State *s, Value n) {
   return lua_pushnumber(s, float(static_cast<int32_t>(n)));
 }
 
-inline void lua_pushnil(hks::lua_State *s) {
+alwaysinline void lua_pushnil(hks::lua_State *s) {
   hks::HksObject *top = s->m_apistack.top;
   top->v.number = 0;
   top->t = hks::HksObjectType::TNIL;
-  s->m_apistack.top = top + 1;
+  lua_push(s);
 }
 
-inline void lua_pushboolean(hks::lua_State *s, hks::hksBool b) {
+alwaysinline void lua_pushboolean(hks::lua_State *s, hks::hksBool b) {
   hks::HksObject *top = s->m_apistack.top;
   top->v.boolean = b;
   top->t = hks::HksObjectType::TBOOLEAN;
-  s->m_apistack.top = top + 1;
+  lua_push(s);
 }
 
-inline void lua_pushboolean(hks::lua_State *s, bool b) {
+alwaysinline void lua_pushboolean(hks::lua_State *s, bool b) {
   return lua_pushboolean(s, hks::hksBool::from(b));
 }
 
-inline void lua_pushfunction(hks::lua_State *s, hks::lua_CFunction *func,
-                             const char *name = nullptr) {
+alwaysinline void lua_pushfunction(hks::lua_State *s, hks::lua_CFunction *func,
+                                   const char *name = nullptr) {
   hks::hks_pushnamedcclosure(s, func, 0, name, hks::hfalse);
 }
 
 template <typename T>
   requires(sizeof(T) <= sizeof(uint64_t))
-inline void lua_pushlightuserdata(hks::lua_State *s, T val) {
+alwaysinline void lua_pushlightuserdata(hks::lua_State *s, T val) {
   hks::HksObject *top = s->m_apistack.top;
   top->v.lightUserData = hks::LightUserData{.raw = static_cast<uint64_t>(val)};
   top->t = hks::HksObjectType::TLIGHTUSERDATA;
-  s->m_apistack.top = top + 1;
+  lua_push(s);
 }
 
-inline void lua_pushvalue(hks::lua_State *s, int32_t index) {
+alwaysinline void lua_pushvalue(hks::lua_State *s, int32_t index) {
   hks::HksObject *object = getObjectForIndex(s, index);
   hks::HksObject *st = s->m_apistack.top;
   *st = *object;
-  s->m_apistack.top = st + 1;
+  lua_push(s);
 }
 
-inline void lua_pushvfstring(hks::lua_State *s, const char *fmt, va_list argp) {
+alwaysinline void lua_pushvfstring(hks::lua_State *s, const char *fmt,
+                                   va_list argp) {
   hks::hksi_lua_pushvfstring(s, fmt, argp);
 }
-inline bool lua_isstring(hks::lua_State *s, int32_t index) {
+alwaysinline bool lua_isstring(hks::lua_State *s, int32_t index) {
   return hks::hksi_lua_isstring(s, index);
 }
 
-inline bool lua_isnumber(hks::lua_State *s, int32_t index) {
+alwaysinline bool lua_isnumber(hks::lua_State *s, int32_t index) {
   return hks::hksi_lua_isnumber(s, index);
 }
 
-inline bool lua_isuserdata(hks::lua_State *s, int32_t index) {
+alwaysinline bool lua_isuserdata(hks::lua_State *s, int32_t index) {
   return hks::hksi_lua_isuserdata(s, index);
 }
 
-inline bool lua_isboolean(hks::lua_State *s, int32_t index) {
+alwaysinline bool lua_isboolean(hks::lua_State *s, int32_t index) {
   hks::HksObject *object = hks::getObjectForIndex(s, index);
   return object && object->t == hks::HksObjectType::TBOOLEAN;
 }
 
-inline bool lua_is(hks::lua_State *s, int32_t index, hks::HksObjectType type) {
+alwaysinline bool lua_is(hks::lua_State *s, int32_t index,
+                         hks::HksObjectType type) {
   hks::HksObject *object = hks::getObjectForIndex(s, index);
   return object && object->t == type;
 }
 
-inline bool lua_is(hks::lua_State *s, int32_t index,
-                   const hks::HksObjectType *types, size_t count) {
+alwaysinline bool lua_is(hks::lua_State *s, int32_t index,
+                         const hks::HksObjectType *types, size_t count) {
   hks::HksObject *object = hks::getObjectForIndex(s, index);
   if (object) {
     for (size_t i = 0; i < count; ++i) {
@@ -336,34 +343,34 @@ inline bool lua_is(hks::lua_State *s, int32_t index,
 }
 
 template <const size_t N>
-inline bool lua_is(hks::lua_State *s, int32_t index,
-                   const hks::HksObjectType (&types)[N]) {
+alwaysinline bool lua_is(hks::lua_State *s, int32_t index,
+                         const hks::HksObjectType (&types)[N]) {
   return lua_is(s, index, types, N);
 }
 
 template <const size_t N>
-inline bool lua_is(hks::lua_State *s, int32_t index,
-                   const std::array<hks::HksObjectType, N> &types) {
+alwaysinline bool lua_is(hks::lua_State *s, int32_t index,
+                         const std::array<hks::HksObjectType, N> &types) {
   return lua_is(s, index, types.data(), types.size());
 }
 
 template <const size_t N>
-inline bool lua_is(hks::lua_State *s, int32_t index,
-                   const std::span<hks::HksObjectType, N> &types) {
+alwaysinline bool lua_is(hks::lua_State *s, int32_t index,
+                         const std::span<hks::HksObjectType, N> &types) {
   return lua_is(s, index, types.data(), types.size());
 }
 
-inline bool lua_is(hks::lua_State *s, int32_t index,
-                   const std::span<hks::HksObjectType> &types) {
+alwaysinline bool lua_is(hks::lua_State *s, int32_t index,
+                         const std::span<hks::HksObjectType> &types) {
   return lua_is(s, index, types.data(), types.size());
 }
 
-inline bool lua_is(hks::lua_State *s, int32_t index,
-                   const std::vector<hks::HksObjectType> &types) {
+alwaysinline bool lua_is(hks::lua_State *s, int32_t index,
+                         const std::vector<hks::HksObjectType> &types) {
   return lua_is(s, index, types.data(), types.size());
 }
 
-inline bool lua_isboolean_like(hks::lua_State *s, int32_t index) {
+alwaysinline bool lua_isboolean_like(hks::lua_State *s, int32_t index) {
   return lua_is(s, index,
                 {hks::HksObjectType::TBOOLEAN, hks::HksObjectType::TSTRING,
                  hks::HksObjectType::TNUMBER});
@@ -373,7 +380,7 @@ inline bool lua_isboolean_like(hks::lua_State *s, int32_t index) {
   Function confirmed to not exist in release build engine, but exists in debug
   profile builds. Function was thus re-created here accordingly.
 */
-inline void *lua_newuserdata(hks::lua_State *s, size_t size) {
+alwaysinline void *lua_newuserdata(hks::lua_State *s, size_t size) {
   return hks::hksi_lua_newuserdata(s, size);
 }
 
@@ -381,7 +388,7 @@ inline void *lua_newuserdata(hks::lua_State *s, size_t size) {
   Function confirmed to not exist in release build engine, but exists in debug
   profile builds. Function was thus re-created here accordingly.
 */
-inline void lua_settable(hks::lua_State *luaVM, hks::hksInt32 index) {
+alwaysinline void lua_settable(hks::lua_State *luaVM, hks::hksInt32 index) {
   return hks::hksi_lua_settable(luaVM, index);
 }
 /*
@@ -389,16 +396,16 @@ inline void lua_settable(hks::lua_State *luaVM, hks::hksInt32 index) {
   profile builds. Function was thus re-created here accordingly.
   Adds value to table by integer key.
 */
-inline void Lua_SetTableUserData(hks::lua_Integer key, void *value,
-                                 int32_t size, hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableUserData(hks::lua_Integer key, void *value,
+                                       int32_t size, hks::lua_State *luaVM) {
   lua_pushinteger(luaVM, key);
   void *userdata = lua_newuserdata(luaVM, size);
   memcpy(userdata, value, size);
   lua_settable(luaVM, -3);
 }
 
-inline void Lua_SetTableUserData(const char *key, void *value, int32_t size,
-                                 hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableUserData(const char *key, void *value,
+                                       int32_t size, hks::lua_State *luaVM) {
   return _Lua_SetTableUserData(key, value, size, luaVM);
 }
 
@@ -407,20 +414,21 @@ inline void Lua_SetTableUserData(const char *key, void *value, int32_t size,
   profile builds. Function was thus re-created here accordingly.
   Adds value to table by integer key.
 */
-inline void Lua_SetTableNumber(hks::lua_Integer key, hks::lua_Number value,
-                               hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableNumber(hks::lua_Integer key,
+                                     hks::lua_Number value,
+                                     hks::lua_State *luaVM) {
   lua_pushinteger(luaVM, key);
   lua_pushnumber(luaVM, value);
   lua_settable(luaVM, -3);
 }
 
-inline void Lua_SetTableNumber(const char *key, hks::lua_Number value,
-                               hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableNumber(const char *key, hks::lua_Number value,
+                                     hks::lua_State *luaVM) {
   return _Lua_SetTableNumber(key, value, luaVM);
 }
 
-inline void Lua_SetTableInt(const char *key, hks::hksInt32 value,
-                            hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableInt(const char *key, hks::hksInt32 value,
+                                  hks::lua_State *luaVM) {
   return _Lua_SetTableInt(key, value, luaVM);
 }
 /*
@@ -431,14 +439,14 @@ inline void Lua_SetTableInt(const char *key, hks::hksInt32 value,
 
   Adds value to table by integer key.
 */
-inline void Lua_SetTableInt(hks::lua_Integer key, hks::hksInt32 value,
-                            hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableInt(hks::lua_Integer key, hks::hksInt32 value,
+                                  hks::lua_State *luaVM) {
   lua_pushinteger(luaVM, key);
   lua_pushinteger(luaVM, value);
   lua_settable(luaVM, -3);
 }
-inline void Lua_SetTableBool(const char *key, bool value,
-                             hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableBool(const char *key, bool value,
+                                   hks::lua_State *luaVM) {
   return _Lua_SetTableBool(key, value, luaVM);
 }
 
@@ -448,25 +456,25 @@ inline void Lua_SetTableBool(const char *key, bool value,
 
   Adds value to table by integer key.
 */
-inline void Lua_SetTableBool(hks::lua_Integer key, bool value,
-                             hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableBool(hks::lua_Integer key, bool value,
+                                   hks::lua_State *luaVM) {
   lua_pushinteger(luaVM, key);
   lua_pushboolean(luaVM, value);
   lua_settable(luaVM, -3);
 }
 
-inline void Lua_SetTableBool(const char *key, hks::hksBool value,
-                             hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableBool(const char *key, hks::hksBool value,
+                                   hks::lua_State *luaVM) {
   return Lua_SetTableBool(key, static_cast<bool>(value), luaVM);
 }
 
-inline void Lua_SetTableBool(hks::lua_Integer key, hks::hksBool value,
-                             hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableBool(hks::lua_Integer key, hks::hksBool value,
+                                   hks::lua_State *luaVM) {
   return Lua_SetTableBool(key, static_cast<bool>(value), luaVM);
 }
 
-inline void Lua_SetTableString(const char *key, const char *value,
-                               hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableString(const char *key, const char *value,
+                                     hks::lua_State *luaVM) {
   return _Lua_SetTableString(key, value, luaVM);
 }
 
@@ -476,22 +484,24 @@ inline void Lua_SetTableString(const char *key, const char *value,
 
   Adds value to table by integer key.
 */
-inline void Lua_SetTableString(hks::lua_Integer key, const char *value,
-                               hks::lua_State *luaVM) {
+alwaysinline void Lua_SetTableString(hks::lua_Integer key, const char *value,
+                                     hks::lua_State *luaVM) {
   lua_pushinteger(luaVM, key);
   lua_pushstring(luaVM, value);
   lua_settable(luaVM, -3);
 }
 
 // bool
-inline void lua_pusharray(hks::lua_State *luaVM, const std::span<bool> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::span<bool> &arr) {
   lua_createtable(luaVM, arr.size(), 0);
   for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(arr.size()); ++i) {
     Lua_SetTableBool(i, arr[i], luaVM);
   }
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM, const std::vector<bool> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::vector<bool> &arr) {
   // boolean values are 1-byte, packed, so cannot be converted to either an
   // `std::span` or a `bool*` from `arr.data(). As such, we need to iterate
   // the values here, inline.
@@ -502,136 +512,139 @@ inline void lua_pusharray(hks::lua_State *luaVM, const std::vector<bool> &arr) {
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM, const bool (&arr)[N]) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM, const bool (&arr)[N]) {
   return lua_pusharray(luaVM, std::span<bool, N>(arr.data(), N));
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::array<bool, N> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::array<bool, N> &arr) {
   return lua_pusharray(luaVM, std::span<bool, N>(arr.data(), N));
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM, const hks::hksBool *arr,
-                          size_t size) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM, const hks::hksBool *arr,
+                                size_t size) {
   lua_createtable(luaVM, size, 0);
   for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableBool(i, arr[i], luaVM);
   }
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::span<hks::hksBool> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::span<hks::hksBool> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::vector<hks::hksBool> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::vector<hks::hksBool> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM, const hks::hksBool (&arr)[N]) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const hks::hksBool (&arr)[N]) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::array<hks::hksBool, N> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::array<hks::hksBool, N> &arr) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
 // String
-inline void lua_pusharray(hks::lua_State *luaVM, const char *const *arr,
-                          size_t size) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM, const char *const *arr,
+                                size_t size) {
   lua_createtable(luaVM, size, 0);
   for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableString(i, arr[i], luaVM);
   }
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::span<const char *> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::span<const char *> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::vector<const char *> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::vector<const char *> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM, const char *const (&arr)[N]) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const char *const (&arr)[N]) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::array<const char *, N> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::array<const char *, N> &arr) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM, const std::string_view *arr,
-                          size_t size) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::string_view *arr, size_t size) {
   lua_createtable(luaVM, size, 0);
   for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableString(i, arr[i].data(), luaVM);
   }
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::span<std::string_view> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::span<std::string_view> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::vector<std::string_view> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::vector<std::string_view> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::string_view (&arr)[N]) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::string_view (&arr)[N]) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::array<std::string_view, N> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::array<std::string_view, N> &arr) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM, const std::string *arr,
-                          size_t size) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM, const std::string *arr,
+                                size_t size) {
   lua_createtable(luaVM, size, 0);
   for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableString(i, arr[i].data(), luaVM);
   }
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::span<std::string> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::span<std::string> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::vector<std::string> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::vector<std::string> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM, const std::string (&arr)[N]) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::string (&arr)[N]) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::array<std::string, N> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::array<std::string, N> &arr) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::filesystem::path *arr, size_t size) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::filesystem::path *arr, size_t size) {
   lua_createtable(luaVM, size, 0);
   for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     const std::string path_str = arr[i].generic_string();
@@ -639,25 +652,26 @@ inline void lua_pusharray(hks::lua_State *luaVM,
   }
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::span<std::filesystem::path> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::span<std::filesystem::path> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::vector<std::filesystem::path> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::vector<std::filesystem::path> &arr) {
   return lua_pusharray(luaVM, arr.data(), arr.size());
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::filesystem::path (&arr)[N]) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::filesystem::path (&arr)[N]) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
 template <const size_t N>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::array<std::filesystem::path, N> &arr) {
+alwaysinline void
+lua_pusharray(hks::lua_State *luaVM,
+              const std::array<std::filesystem::path, N> &arr) {
   return lua_pusharray(luaVM, arr.data(), N);
 }
 
@@ -665,8 +679,8 @@ inline void lua_pusharray(hks::lua_State *luaVM,
 // Note: this is also valid for arrays of integer values, as integer values
 // are pushed to the stack as casted floating-point values internally anyway.
 template <IntegralLike<hks::HksNumber> Number>
-inline void lua_pusharray(hks::lua_State *luaVM, const Number *arr,
-                          size_t size) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM, const Number *arr,
+                                size_t size) {
   lua_createtable(luaVM, size, 0);
   for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableNumber(i, arr[i], luaVM);
@@ -674,31 +688,30 @@ inline void lua_pusharray(hks::lua_State *luaVM, const Number *arr,
 }
 
 template <IntegralLike<hks::HksNumber> Number>
-inline void lua_pusharray(hks::lua_State *luaVM, std::span<Number> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM, std::span<Number> &arr) {
   return lua_pusharray<Number>(luaVM, arr.data(), arr.size());
 }
 
 template <IntegralLike<hks::HksNumber> Number>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::vector<Number> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::vector<Number> &arr) {
   return lua_pusharray<Number>(luaVM, arr.data(), arr.size());
 }
 
 template <const size_t N, IntegralLike<hks::HksNumber> Number>
-inline void lua_pusharray(hks::lua_State *luaVM, const Number (&arr)[N]) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM, const Number (&arr)[N]) {
   return lua_pusharray<Number>(luaVM, arr, N);
 }
 
 template <const size_t N, IntegralLike<hks::HksNumber> Number>
-inline void lua_pusharray(hks::lua_State *luaVM,
-                          const std::array<Number, N> &arr) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM,
+                                const std::array<Number, N> &arr) {
   return lua_pusharray<Number>(luaVM, arr.data(), N);
 }
 
 // Empty array
-inline void lua_pusharray(hks::lua_State *luaVM) {
+alwaysinline void lua_pusharray(hks::lua_State *luaVM) {
   lua_createtable(luaVM, 0, 0);
 }
-
 } // namespace lua
 } // namespace game

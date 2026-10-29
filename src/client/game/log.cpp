@@ -46,9 +46,7 @@ void shutdown() {
 }
 } // namespace thread
 
-__inline_def void enqueue(const std::string &msg) {
-  message_queue.enqueue(std::move(msg));
-}
+void enqueue(const std::string &msg) { message_queue.enqueue(std::move(msg)); }
 
 } // namespace log
 } // namespace game

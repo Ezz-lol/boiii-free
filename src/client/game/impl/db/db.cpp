@@ -1,6 +1,5 @@
 #include <std_include.hpp>
 
-#include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -10,20 +9,6 @@
 namespace game {
 namespace db {
 namespace xasset {
-// The engine always inlines this function, so we reimplement it here for use
-// elsewhere.
-__inline_def uint32_t DB_HashForName(const char *name, const XAssetType type) {
-  uint32_t hash = static_cast<uint32_t>(type);
-  while (*name) {
-    char c = *name++;
-    if (c == '\\') {
-      c = '/';
-    }
-    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    hash = (hash << 16) + (hash << 6) + c - hash;
-  }
-  return hash;
-}
 
 int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
 
@@ -338,24 +323,6 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
       pool->itemCount = new_size;
     }
   }
-}
-
-pool::XAssetEntryPoolEntry *
-DB_GetAssetEntryPoolEntryByName(const char *name, const XAssetType type) {
-  uint32_t hash = DB_HashForName(name, type);
-  uint32_t index = hash % pool::XASSET_ENTRY_POOL_LENGTH;
-  pool::XAssetEntryPoolEntry *entry =
-      reinterpret_cast<pool::XAssetEntryPoolEntry *>(
-          &pool::g_assetEntryPool->pool[index]);
-
-  // Find match in collision list
-  for (; entry != nullptr &&
-         (entry->entry.asset.type != type ||
-          strcmp(entry->entry.asset.header.named->name, name) != 0);
-       entry = entry->next) {
-  }
-
-  return entry;
 }
 
 void DB_InitBSPGlobals_Impl() {

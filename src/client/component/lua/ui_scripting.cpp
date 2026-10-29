@@ -2549,13 +2549,19 @@ luaReturnCount_e UI_CoD_LuaCall_QuadCache_GC_Safe(lua_State *luaVM) {
   return luaReturnCount_e::NONE;
 }
 
-utils::hook::detour UI_CoD_GetNextQuadCache_hook;
 UIQuadCache *UI_CoD_GetNextQuadCache_Safe(lua_State *luaVM,
                                           UIQuadCache *quadCache) {
-  UIQuadCache *result =
-      UI_CoD_GetNextQuadCache_hook.invoke<UIQuadCache *>(luaVM, quadCache);
+  if (quadCache != nullptr && quadCache->next != -2) {
+    lua_rawgeti(luaVM, -10000, quadCache->next);
+    UIQuadCache *const nextCache = lua_touserdata(luaVM, -1).uiQuadCache;
+    lua_pop(luaVM, 1);
 
-  return nonnull(result) ? result : nullptr;
+    if (nonnull(nextCache)) {
+      return nextCache;
+    }
+  }
+
+  return nullptr;
 }
 
 class component final : public generic_component {
@@ -2621,8 +2627,8 @@ public:
     if (game::is_client()) {
       utils::hook::jump(api::ui::quad::UI_CoD_LuaCall_QuadCache_GC,
                         UI_CoD_LuaCall_QuadCache_GC_Safe);
-      UI_CoD_GetNextQuadCache_hook.create(
-          api::ui::quad::UI_CoD_GetNextQuadCache, UI_CoD_GetNextQuadCache_Safe);
+      utils::hook::jump(api::ui::quad::UI_CoD_GetNextQuadCache,
+                        UI_CoD_GetNextQuadCache_Safe);
     }
 
     if (game::is_client()) {

@@ -198,7 +198,7 @@ static std::mutex aliasIdNameMapMutex;
 typedef str256_t AliasName;
 static std::unordered_map<SndAliasId, AliasName> aliasIdNameMap{};
 #endif
-__inline_def SndStringHash SND_HashName_Impl(const char *name) {
+SndStringHash SND_HashName_Impl(const char *name) {
   if (!name || !*name)
     return SND_HASH_EMPTY_STRING;
 
@@ -220,7 +220,7 @@ __inline_def SndStringHash SND_HashName_Impl(const char *name) {
 }
 
 #ifndef NDEBUG
-__inline_def const char *SND_AliasLookup(SndAliasId aliasId) {
+const char *SND_AliasLookup(SndAliasId aliasId) {
   bool mapped_alias;
   {
     std::lock_guard lock(aliasIdNameMapMutex);
@@ -242,7 +242,8 @@ int32_t SND_GetPlaybackTimeById(SndAliasId id) {
   if (id) {
     SndAliasList *list = game::snd::SND_BankAliasLookup(id);
     if (list) {
-      uint32_t count = (std::min)(SOUND_ALIAS_LIST_MAX_COUNT, list->count);
+      uint32_t count =
+          std::min<uint32_t>(SOUND_ALIAS_LIST_MAX_COUNT, list->count);
       for (uint32_t i = 0; i < count; i++) {
         SndAlias *alias = &list->head[i];
         if (alias) {
@@ -252,20 +253,18 @@ int32_t SND_GetPlaybackTimeById(SndAliasId id) {
           if (assetId) {
             stream::stream_fileid fid = 0;
             if (SND_AssetBankFindEntry(assetId, &entry, &fid, 1)) {
-              playbackTime =
-                  (std::max)(static_cast<int32_t>(
-                                 SND_AssetBankGetLengthMs_Impl(entry)) +
-                                 500,
-                             playbackTime);
+              playbackTime = std::max<int32_t>(
+                  static_cast<int32_t>(SND_AssetBankGetLengthMs_Impl(entry)) +
+                      500,
+                  playbackTime);
             }
           } else if (SND_AssetBankFindLoaded(
                          alias->assetId, &entry,
                          reinterpret_cast<void **>(&data))) {
-            playbackTime =
-                (std::max)(static_cast<int32_t>(
-                               SND_AssetBankGetLengthMs_Impl(entry)) +
-                               250,
-                           playbackTime);
+            playbackTime = std::max<int32_t>(
+                static_cast<int32_t>(SND_AssetBankGetLengthMs_Impl(entry)) +
+                    250,
+                playbackTime);
           }
         } else {
           return 0;

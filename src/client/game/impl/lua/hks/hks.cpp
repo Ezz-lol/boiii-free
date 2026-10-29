@@ -15,9 +15,9 @@ constexpr hksSize HKS_STR_LEN_BITS_MASK =
 constexpr HksNumber MAX_SAFE_FLOAT_TO_INT = 1073741800.0f;
 constexpr HksNumber FP_ERROR = -1.0f;
 
-__optimize __inline_def void checkInstructionPointer(lua_State *s,
-                                                     const hksInstruction *ptr,
-                                                     const Method *method) {
+alwaysinline void checkInstructionPointer(lua_State *s,
+                                          const hksInstruction *ptr,
+                                          const Method *method) {
   const hksInstruction *base = method->instructions.data;
   if (ptr < base || ptr > &base[method->instructions.size] ||
       ((reinterpret_cast<uintptr_t>(ptr) - reinterpret_cast<uintptr_t>(base)) &
@@ -26,7 +26,7 @@ __optimize __inline_def void checkInstructionPointer(lua_State *s,
   }
 }
 
-__optimize __inline_def HksNumber getNumber(lua_State *s, HksObject *obj) {
+alwaysinline HksNumber getNumber(lua_State *s, HksObject *obj) {
   HksNumber result = 0.0f;
   if (obj->type() == HksObjectType::TNUMBER) {
     result = obj->v.number;
@@ -53,8 +53,8 @@ inline constexpr bool rk_reg(hksUint32 reg) {
 // Register-Register
 inline constexpr bool rr_reg(hksUint32 reg) { return !rk_reg(reg); }
 
-__optimize __inline_def HksObject tableLookup(const HashTable *table,
-                                              const HksObject *keyObj) {
+__optimize HksObject tableLookup(const HashTable *table,
+                                 const HksObject *keyObj) {
   if (!table->m_hashPart) {
     return *NilValue;
   }
@@ -94,8 +94,9 @@ __optimize __inline_def HksObject tableLookup(const HashTable *table,
 }
 
 // hks::execute<(HksBytecodeSharingMode)2>
-__optimize __inline_def luaReturnCount_e executeSharedSecure(
-    lua_State *s, const hksInstruction *PC, hksInt32 call_depth) {
+__optimize luaReturnCount_e executeSharedSecure(lua_State *s,
+                                                const hksInstruction *PC,
+                                                hksInt32 call_depth) {
   hksInt32 current_call_depth = call_depth;
   HksObject *fp = s->m_apistack.base;
   HksObject *m_base = fp;

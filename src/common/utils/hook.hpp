@@ -18,7 +18,7 @@ template <size_t Entries> std::vector<size_t (*)()> get_iota_functions() {
     std::vector<size_t (*)()> functions;
     return functions;
   } else {
-    auto functions = get_iota_functions<Entries - 1>();
+    std::vector<size_t (*)()> functions = get_iota_functions<Entries - 1>();
     functions.emplace_back([]() { return Entries - 1; });
     return functions;
   }
@@ -40,11 +40,12 @@ void **get_vtable_entry(Class *obj, T (Class::*entry)(Args...)) {
 
   func = entry;
 
-  auto iota_functions = detail::get_iota_functions<Entries>();
+  std::vector<size_t (*)()> iota_functions =
+      detail::get_iota_functions<Entries>();
   auto *object = iota_functions.data();
 
   using fake_func = size_t(__thiscall *)(void *self);
-  auto index = static_cast<fake_func>(pointer)(&object);
+  size_t index = static_cast<fake_func>(pointer)(&object);
 
   void **obj_v_table = *reinterpret_cast<void ***>(obj);
   return &obj_v_table[index];

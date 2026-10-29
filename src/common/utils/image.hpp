@@ -1,7 +1,7 @@
 #pragma once
 
-#include "nt.hpp"
 #include <string>
+#include <windows.h>
 
 namespace utils::image {
 struct image {

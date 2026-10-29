@@ -374,25 +374,33 @@ inline hks::HksObject *getObjectForIndex(hks::lua_State *s, int32_t index) {
   return object;
 }
 
-inline hksInt32 hksi_lua_gettop(lua_State *s) {
+alwaysinline void hksi_lua_push(lua_State *s) { s->m_apistack.top++; }
+
+alwaysinline void hksi_lua_rawgeti(lua_State *s, int32_t index, int32_t n) {
+  hks::HksObject *const obj = getObjectForIndex(s, index);
+  hks_obj_rawgeti(obj->v.table, s->m_apistack.top, n);
+  hksi_lua_push(s);
+}
+
+alwaysinline hksInt32 hksi_lua_gettop(lua_State *s) {
   return s->m_apistack.top - s->m_apistack.base;
 }
 
-inline bool hks_obj_isstring(const HksObject *x) {
+alwaysinline bool hks_obj_isstring(const HksObject *x) {
   return x->t == HksObjectType::TSTRING || x->t == HksObjectType::TNUMBER;
 }
 
-inline bool hksi_lua_isstring(lua_State *s, int index) {
+alwaysinline bool hksi_lua_isstring(lua_State *s, int index) {
   const HksObject *obj = getObjectForIndex(s, index);
   return obj && hks_obj_isstring(obj);
 }
 
-inline bool hksi_lua_isnumber(lua_State *s, int index) {
+alwaysinline bool hksi_lua_isnumber(lua_State *s, int index) {
   const HksObject *obj = getObjectForIndex(s, index);
   return obj && hks_obj_isnumber(s, obj);
 }
 
-inline bool hksi_lua_isuserdata(lua_State *s, int index) {
+alwaysinline bool hksi_lua_isuserdata(lua_State *s, int index) {
   const HksObject *obj = getObjectForIndex(s, index);
   if (obj) {
     switch (obj->t) {
@@ -407,6 +415,7 @@ inline bool hksi_lua_isuserdata(lua_State *s, int index) {
   return false;
 }
 
+alwaysinline void hksi_lua_pop(lua_State *s, int n) { s->m_apistack.top -= n; }
 } // namespace hks
 } // namespace lua
 } // namespace game

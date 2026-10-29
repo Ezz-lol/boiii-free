@@ -1,5 +1,6 @@
 #pragma once
 
+#include "macros/builtin.hpp"
 #include "macros/type/integral.hpp"
 #include <cstdint>
 #include <span>
@@ -14,7 +15,7 @@ bool valid_heap_ptr(uintptr_t ptr);
 /// heap blocks.
 /// @warning Walking the heap is extremely slow and blocks other threads. Do not
 /// use in a hot loop!
-template <typename T> inline bool valid_heap_ptr(const T *ptr) {
+template <typename T> alwaysinline bool valid_heap_ptr(const T *ptr) {
   return valid_heap_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 
@@ -24,32 +25,34 @@ template <typename T> inline bool valid_heap_ptr(const T *ptr) {
 /// Safe to use in high-frequency loops.
 bool readable_ptr(uintptr_t ptr);
 
-template <typename T> inline bool readable_ptr(const T *ptr) {
+template <typename T> alwaysinline bool readable_ptr(const T *ptr) {
   return readable_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 
-inline constexpr bool nonnull(uintptr_t ptr) {
+alwaysinline constexpr bool nonnull(uintptr_t ptr) {
   return ptr >= 0x00000000'00010000 && ptr <= 0x00007FFF'FFFFFFFF;
 }
 
-template <typename T> inline constexpr bool nonnull(const T *ptr) {
+template <typename T> alwaysinline constexpr bool nonnull(const T *ptr) {
   return nonnull(reinterpret_cast<uintptr_t>(ptr));
 }
 
 template <IntegralLike<size_t> S>
-inline constexpr bool contains(const uintptr_t base, const S size,
-                               const uintptr_t cmp) {
+alwaysinline constexpr bool contains(const uintptr_t base, const S size,
+                                     const uintptr_t cmp) {
   return cmp >= base && cmp < base + static_cast<size_t>(size);
 }
 
 template <typename A, typename B, IntegralLike<size_t> S>
-inline constexpr bool contains(const A *base, const S size, const B *cmp) {
+alwaysinline constexpr bool contains(const A *base, const S size,
+                                     const B *cmp) {
   return contains<S>(reinterpret_cast<uintptr_t>(base), size,
                      reinterpret_cast<uintptr_t>(cmp));
 }
 
 template <typename A, typename B>
-inline constexpr bool contains(const std::span<const A> base, const B *cmp) {
+alwaysinline constexpr bool contains(const std::span<const A> base,
+                                     const B *cmp) {
   return contains<uint64_t>(reinterpret_cast<uintptr_t>(base.data()),
                             base.size(), reinterpret_cast<uintptr_t>(cmp));
 }

@@ -1,6 +1,7 @@
 #pragma once
-#include "nt.hpp"
-#include <thread>
+
+#include <cstdint>
+#include <windows.h>
 
 namespace utils::hardware_breakpoint {
 enum condition { execute = 0, write = 1, read_write = 3 };

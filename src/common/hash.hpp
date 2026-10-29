@@ -236,3 +236,79 @@ alwaysinline constexpr djb2Hash_t djb264(const std::string_view &str) noexcept {
   }
   return hash;
 }
+
+inline constexpr auto DEFAULT_SDBM_INITIAL_SEED = 0;
+inline constexpr auto DEFAULT_SDBM_CONSTANT = 0x1003f;
+
+template <const auto CONSTANT, typename T = decltype(CONSTANT)>
+alwaysinline constexpr T sdbm_update(const T hash, const char c) {
+  return static_cast<T>(tolower(c)) + hash * CONSTANT;
+}
+
+template <const auto CONSTANT, typename T = decltype(CONSTANT)>
+alwaysinline constexpr T sdbm_shift_update(const T hash, const char c) {
+  return (hash << 16) + (hash << 6) + static_cast<T>(tolower(c)) - hash;
+}
+
+typedef hash32_t sdbmHash_t;
+template <const sdbmHash_t INITIAL_SEED = DEFAULT_SDBM_INITIAL_SEED,
+          const sdbmHash_t CONSTANT = DEFAULT_SDBM_CONSTANT>
+inline constexpr sdbmHash_t sdbm(const char *str) noexcept {
+  sdbmHash_t hash = INITIAL_SEED;
+  for (const char *c = str; *c; ++c) {
+    hash = sdbm_update<CONSTANT>(hash, *c);
+  }
+  return hash;
+}
+
+template <const sdbmHash_t INITIAL_SEED = DEFAULT_SDBM_INITIAL_SEED,
+          const sdbmHash_t CONSTANT = DEFAULT_SDBM_CONSTANT>
+inline constexpr sdbmHash_t sdbm(const std::string_view &str) noexcept {
+  sdbmHash_t hash = INITIAL_SEED;
+  for (const char c : str) {
+    hash = sdbm_update<CONSTANT>(hash, c);
+  }
+  return hash;
+}
+
+typedef hash64_t sdbmHash64_t;
+template <const sdbmHash64_t INITIAL_SEED = DEFAULT_SDBM_INITIAL_SEED,
+          const sdbmHash64_t CONSTANT = DEFAULT_SDBM_CONSTANT>
+inline constexpr sdbmHash64_t sdbm64(const char *str) noexcept {
+  sdbmHash64_t hash = INITIAL_SEED;
+  for (const char *c = str; *c; ++c) {
+    hash = sdbm_update<CONSTANT>(hash, *c);
+  }
+  return hash;
+}
+
+template <const sdbmHash64_t INITIAL_SEED = DEFAULT_SDBM_INITIAL_SEED,
+          const sdbmHash64_t CONSTANT = DEFAULT_SDBM_CONSTANT>
+inline constexpr sdbmHash64_t sdbm64(const std::string_view &str) noexcept {
+  sdbmHash64_t hash = INITIAL_SEED;
+  for (const char c : str) {
+    hash = sdbm_update<CONSTANT>(hash, c);
+  }
+  return hash;
+}
+
+// Used in engine when hashing paths, with part separator normalized
+template <const sdbmHash_t INITIAL_SEED = DEFAULT_SDBM_INITIAL_SEED,
+          const sdbmHash_t CONSTANT = DEFAULT_SDBM_CONSTANT>
+inline constexpr sdbmHash_t sdbm_path(const char *str) noexcept {
+  sdbmHash_t hash = INITIAL_SEED;
+  for (const char *c = str; *c; ++c) {
+    hash = sdbm_update<CONSTANT>(hash, *c == '\\' ? '/' : *c);
+  }
+  return hash;
+}
+
+template <const sdbmHash_t INITIAL_SEED = DEFAULT_SDBM_INITIAL_SEED,
+          const sdbmHash_t CONSTANT = DEFAULT_SDBM_CONSTANT>
+inline constexpr sdbmHash_t sdbm_path(const std::string_view &str) noexcept {
+  sdbmHash_t hash = INITIAL_SEED;
+  for (const char c : str) {
+    hash = sdbm_update<CONSTANT>(hash, c == '\\' ? '/' : c);
+  }
+  return hash;
+}
