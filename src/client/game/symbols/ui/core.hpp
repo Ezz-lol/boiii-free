@@ -57,5 +57,9 @@ WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Layout{
     0x141F1D770, 0x141F29EF0, 0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Render{
     0x141F219C0, 0x141F2E140, 0x0};
+WEAK symbol<float(LocalClientNum_t localClientNum, const char *text,
+                  db::xasset::ttf::TTFDef *font, float textHeight,
+                  float letterSpacing)>
+    UI_Interface_GetTextWidth{0x141C9F0A0, 0x0, 0x0};
 } // namespace ui
 } // namespace game

@@ -2577,6 +2577,16 @@ luaReturnCount_e UI_CoD_LuaCall_QuadCache_GC_Safe(lua_State *luaVM) {
   return luaReturnCount_e::NONE;
 }
 
+utils::hook::detour UI_Interface_GetTextWidth_hook;
+float UI_Interface_GetTextWidth_Safe(game::LocalClientNum_t localClientNum,
+                                     const char *text, ttf::TTFDef *font,
+                                     float textHeight, float letterSpacing) {
+  return nonnull(text)
+             ? UI_Interface_GetTextWidth_hook.invoke<float>(
+                   localClientNum, text, font, textHeight, letterSpacing)
+             : 0.0f;
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lua/ui_scripting");
 
@@ -2644,9 +2654,9 @@ public:
                         UI_CoD_GetNextQuadCache_Safe);
       utils::hook::jump(api::ui::quad::UI_CoD_UnrefQuadCacheChain,
                         UI_CoD_UnrefQuadCacheChain_Safe);
-    }
+      UI_Interface_GetTextWidth_hook.create(UI_Interface_GetTextWidth,
+                                            UI_Interface_GetTextWidth_Safe);
 
-    if (game::is_client()) {
       hks_traceback_hook.create(hksi_hks_traceback.get(), hks_traceback_stub);
       hks_where_hook.create(hksi_luaL_where.get(), hks_where_stub);
       ui_init_hook.create(UI_Init.get(), ui_init_stub);
