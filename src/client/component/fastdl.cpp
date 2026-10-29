@@ -369,6 +369,7 @@ void perform_download(const std::shared_ptr<download_context> &context) {
       download_workshop_file(workshop_json, context);
       download_active = false;
       context->requires_download.set_value(false);
+      context->set_requires_download = true;
 
       return;
     }
@@ -444,9 +445,10 @@ bool start_download(const std::shared_ptr<download_context> context) {
   if (download_active.compare_exchange_strong(expected, true)) {
     scheduler::once([context]() { perform_download(context); },
                     scheduler::async);
+    return requires_download_fut.get();
   }
 
-  return requires_download_fut.get();
+  return true;
 }
 
 void cancel_download() { download_cancelled.store(true); }

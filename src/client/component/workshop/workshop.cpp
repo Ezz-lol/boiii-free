@@ -763,17 +763,75 @@ int get_workshop_retry_attempts() {
 std::string get_mod_publisher_id() {
   return game::ugc::UGC_ActiveMod_PublisherId();
 }
-inline constexpr frozen::string ZM_DLC_MAP_ARRAY[] = {
+inline constexpr frozen::string ZM_MAP_ARRAY[] = {
     "zm_asylum", "zm_castle",  "zm_cosmodrome", "zm_factory",    "zm_genesis",
     "zm_island", "zm_moon",    "zm_prototype",  "zm_stalingrad", "zm_sumpf",
     "zm_temple", "zm_theater", "zm_tomb",       "zm_zod",
 };
 
-inline constexpr frozen::unordered_set<frozen::string,
-                                       std::size(ZM_DLC_MAP_ARRAY)>
-    ZM_DLC_MAPS = frozen::make_unordered_set(ZM_DLC_MAP_ARRAY);
-inline constexpr bool is_zm_dlc_map(const std::string_view mapname) {
-  return ZM_DLC_MAPS.contains(mapname);
+inline constexpr frozen::unordered_set<frozen::string, std::size(ZM_MAP_ARRAY)>
+    ZM_MAPS = frozen::make_unordered_set(ZM_MAP_ARRAY);
+
+inline constexpr bool is_official_zm_map(const std::string_view mapname) {
+  return ZM_MAPS.contains(mapname);
+}
+
+inline constexpr frozen::string MP_MAP_ARRAY[] = {
+    "mp_aerospace",     "mp_apartments", "mp_arena",       "mp_banzai",
+    "mp_biodome",       "mp_chinatown",  "mp_city",        "mp_conduit",
+    "mp_crucible",      "mp_cryogen",    "mp_ethiopia",    "mp_freerun_01",
+    "mp_freerun_02",    "mp_freerun_03", "mp_freerun_04",  "mp_havoc",
+    "mp_infection",     "mp_kung_fu",    "mp_metro",       "mp_miniature",
+    "mp_nuketown_x",    "mp_redwood",    "mp_redwood_ice", "mp_rise",
+    "mp_rome",          "mp_ruins",      "mp_sector",      "mp_shrine",
+    "mp_skyjacked",     "mp_spire",      "mp_stronghold",  "mp_veiled",
+    "mp_veiled_heyday", "mp_waterpark",  "mp_western",
+};
+
+inline constexpr frozen::unordered_set<frozen::string, std::size(MP_MAP_ARRAY)>
+    MP_MAPS = frozen::make_unordered_set(MP_MAP_ARRAY);
+
+inline constexpr bool is_official_mp_map(const std::string_view mapname) {
+  return MP_MAPS.contains(mapname);
+}
+
+inline constexpr frozen::string CP_MAP_ARRAY[] = {
+    "cp_doa_bo3",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection2",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus",
+    "cp_mi_cairo_lotus2",
+    "cp_mi_cairo_lotus3",
+    "cp_mi_cairo_ramses",
+    "cp_mi_cairo_ramses2",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_biodomes",
+    "cp_mi_sing_biodomes2",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_lotus",
+    "cp_mrg_cairo_ramses",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+};
+
+inline constexpr frozen::unordered_set<frozen::string, std::size(CP_MAP_ARRAY)>
+    CP_MAPS = frozen::make_unordered_set(CP_MAP_ARRAY);
+
+inline constexpr bool is_official_cp_map(const std::string_view mapname) {
+  return CP_MAPS.contains(mapname);
+}
+
+inline constexpr bool is_official_map(const std::string_view mapname) {
+  return CP_MAPS.contains(mapname) || MP_MAPS.contains(mapname) ||
+         ZM_MAPS.contains(mapname);
 }
 
 std::atomic<bool> downloading_workshop_item{false};
@@ -1150,7 +1208,7 @@ bool check_valid_usermap_id(const std::string_view &mapname,
                             const std::string_view &pub_id,
                             const std::string_view &workshop_id,
                             const std::string_view &base_uri) {
-  if (pub_id.empty() && is_zm_dlc_map(mapname.data())) {
+  if (is_official_map(mapname.data())) {
     if (!DB_ValidFastFile(mapname.data(), 0)) {
       queue_dlc_popup(mapname);
       return false;
