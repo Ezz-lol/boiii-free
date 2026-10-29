@@ -29,7 +29,7 @@ struct UIQuadCache {
   int16_t numQuads;
   bool dirty;
   uint8_t fontCacheVersion;
-  int next;
+  int32_t next;
 };
 
 enum class LUIAlignment : uint32_t {
@@ -49,9 +49,9 @@ struct __declspec(align(8)) LUIAnimationState {
   hks::LUA_MATERIAL_DATATYPE material;
   db::xasset::ttf::TTFDef *font;
   uint64_t flags;
-  int luaRef;
+  int32_t luaRef;
   unsigned __int8 tweenFlags;
-  int ui3DWindow;
+  int32_t ui3DWindow;
   float leftPct;
   float topPct;
   float rightPct;
@@ -100,14 +100,14 @@ struct __declspec(align(8)) LUIAnimationState {
   union {
     float userData;
     ui::UIModelIndex userDataModel;
-    int userDataInt;
+    int32_t userDataInt;
     short userDataShorts[2];
     byte userDataBytes[4];
     char userDataChars[4];
     float spacing;
   };
   LUIAlignment alignment;
-  unsigned __int32 useGameTime : 1;
+  uint32_t useGameTime : 1;
 };
 
 // TODO
@@ -130,14 +130,14 @@ struct __declspec(align(8)) LUIElement {
   LUIElementCloseFunction closeFunction;
   LUIAnimationState *prevAnimationState;
   LUIAnimationState *nextAnimationState;
-  int cacheRef;
+  int32_t cacheRef;
   UIQuadCache *cache;
-  int priority;
-  int textRef;
-  int animationTimeLeft;
-  int animationDuration;
-  int animationNameLuaRef;
-  int strongLuaReference;
+  int32_t priority;
+  int32_t textRef;
+  int32_t animationTimeLeft;
+  int32_t animationDuration;
+  int32_t animationNameLuaRef;
+  int32_t strongLuaReference;
   float left;
   float top;
   float right;
@@ -168,7 +168,7 @@ struct __declspec(align(8)) LUIElement {
 
 /*
    Mostly unverified. `memset` on LUIElementPool in engine uses size 0x7EF400,
-   which would nearly match, but does not include the fields up to and including
+   which would nearly match, but does not include the fields after and including
    m_firstFree. However, this could be purposefully resetting only data in the
    pool.
 
