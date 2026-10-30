@@ -241,7 +241,8 @@ thread_local struct {
 bool is_game_thread();
 
 constexpr std::array<uint32_t, game::scr::SCRIPTINSTANCE_MAX>
-    SCRIPT_VARIABLE_COUNT{0x1FBD0, 0xFDE8};
+    SCRIPT_VARIABLE_COUNT{game::scr::var::SCRIPTVARIABLE_POOL_SIZE.server,
+                          0xFDE8};
 
 struct script_state {
   const char *running = nullptr;

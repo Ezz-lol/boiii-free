@@ -217,11 +217,33 @@ inline void refcount_scrvar_object_keys() {
   utils::hook::jump(ScrVar_AddArrayKeys, ScrVar_AddArrayKeys_ObjectKeys);
 }
 
+void enlarge_server_variable_pool() {
+  constexpr uintptr_t client_sites[] = {
+      0x1412D3685, 0x1412D3708, 0x1412D3E24, 0x1412D4713, 0x1412D5355,
+      0x1412D5F7A, 0x1412DAACA, 0x1412DAC02, 0x1412DB81C, 0x1412DBAB2,
+      0x1412DF251, 0x1412DF403, 0x1412EA0F8, 0x1412EC557, 0x1412ED6FC,
+      0x1412ED7ED, 0x1412EDA95, 0x1412EEAB7, 0x1412EEB80};
+  constexpr uintptr_t server_sites[] = {
+      0x14015F7C5, 0x14015F848, 0x14015FF96, 0x14016089C, 0x140161475,
+      0x1401620E6, 0x140166F2A, 0x140167062, 0x140167C7E, 0x140167EB2,
+      0x14016B910, 0x14016BB63, 0x14016F9C8, 0x140171F07, 0x140172F5C,
+      0x14017304D, 0x140173335, 0x1401743B7, 0x140174480};
+  if (game::is_legacy_client()) {
+    return;
+  }
+  for (const uintptr_t site :
+       game::is_server() ? std::span(server_sites) : std::span(client_sites)) {
+    utils::hook::set<uint32_t>(game::relocate(site),
+                               SCRIPTVARIABLE_POOL_SIZE.server);
+  }
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("scrvar");
 
 public:
   void post_unpack() override {
+    enlarge_server_variable_pool();
     handle_invalid_scrvars();
     handle_invalid_mt_allocs();
 

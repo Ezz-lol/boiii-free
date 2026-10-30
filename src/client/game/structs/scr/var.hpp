@@ -436,7 +436,7 @@ ASSERT_OFFSET(scrVarPub_t, time, 0x18);
 
 typedef ScrPool<scrVarPub_t> ScrVarPubPool;
 
-constexpr ScrPool<ScrVarIndex_t> SCRIPTVARIABLE_POOL_SIZE = {.server = 130000,
+constexpr ScrPool<ScrVarIndex_t> SCRIPTVARIABLE_POOL_SIZE = {.server = 260000,
                                                              .client = 65000};
 } // namespace var
 } // namespace scr
