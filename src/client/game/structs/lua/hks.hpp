@@ -474,7 +474,7 @@ PACKED(struct HksObject {
     switch (t) {
     case HksObjectType::TUSERDATA: {
       if (v.userData) {
-        return v.userData->m_data;
+        return {.ptr = &v.userData->m_data};
       }
       break;
     }
