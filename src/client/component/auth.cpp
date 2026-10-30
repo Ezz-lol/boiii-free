@@ -372,11 +372,9 @@ void handle_new_player(const game::net::netadr_t &target) {
             if (game::is_client()) {
               refresh_bot_emblem(xuid);
             }
-            // SV_DirectConnect copied the XUID into the session info while it
-            // was still 0. Update it, as the engine does when a lobby client's
-            // XUID changes.
-            if (game::is_server() || game::com::Com_IsInGame()) {
-              game::G_ClientSessionInfoChanged(index);
+            if (game::valid_engine_ptr(client.gentity) &&
+                game::valid_engine_ptr(client.gentity->client)) {
+              client.gentity->client->sess.cs.xuid = xuid;
             }
             player_index = index;
             return true;
