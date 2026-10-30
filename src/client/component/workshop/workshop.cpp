@@ -777,15 +777,15 @@ inline constexpr bool is_official_zm_map(const std::string_view mapname) {
 }
 
 inline constexpr frozen::string MP_MAP_ARRAY[] = {
-    "mp_aerospace",     "mp_apartments", "mp_arena",       "mp_banzai",
-    "mp_biodome",       "mp_chinatown",  "mp_city",        "mp_conduit",
-    "mp_crucible",      "mp_cryogen",    "mp_ethiopia",    "mp_freerun_01",
-    "mp_freerun_02",    "mp_freerun_03", "mp_freerun_04",  "mp_havoc",
-    "mp_infection",     "mp_kung_fu",    "mp_metro",       "mp_miniature",
-    "mp_nuketown_x",    "mp_redwood",    "mp_redwood_ice", "mp_rise",
-    "mp_rome",          "mp_ruins",      "mp_sector",      "mp_shrine",
-    "mp_skyjacked",     "mp_spire",      "mp_stronghold",  "mp_veiled",
-    "mp_veiled_heyday", "mp_waterpark",  "mp_western",
+    "mp_aerospace",  "mp_apartments",    "mp_arena",      "mp_array",
+    "mp_banzai",     "mp_biodome",       "mp_chinatown",  "mp_city",
+    "mp_conduit",    "mp_crucible",      "mp_cryogen",    "mp_ethiopia",
+    "mp_freerun_01", "mp_freerun_02",    "mp_freerun_03", "mp_freerun_04",
+    "mp_havoc",      "mp_infection",     "mp_kung_fu",    "mp_metro",
+    "mp_miniature",  "mp_nuketown_x",    "mp_redwood",    "mp_redwood_ice",
+    "mp_rise",       "mp_rome",          "mp_ruins",      "mp_sector",
+    "mp_shrine",     "mp_skyjacked",     "mp_spire",      "mp_stronghold",
+    "mp_veiled",     "mp_veiled_heyday", "mp_waterpark",  "mp_western",
 };
 
 inline constexpr frozen::unordered_set<frozen::string, std::size(MP_MAP_ARRAY)>
