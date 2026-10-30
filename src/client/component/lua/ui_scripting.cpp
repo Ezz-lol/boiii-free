@@ -2650,6 +2650,17 @@ public:
     if (game::is_client()) {
       utils::hook::jump(api::ui::quad::UI_CoD_LuaCall_QuadCache_GC,
                         UI_CoD_LuaCall_QuadCache_GC_Safe);
+      if (!game::is_legacy_client()) {
+        const uintptr_t inlined_next_quad_cache = game::relocate(0x141F2720C);
+        constexpr uint8_t pass_args[] = {0x48, 0x8B, 0xD0, 0x49, 0x8B, 0xCD};
+        constexpr uint8_t skip_inlined[] = {0xEB, 0x50};
+        utils::hook::copy(inlined_next_quad_cache, pass_args,
+                          sizeof(pass_args));
+        utils::hook::call(inlined_next_quad_cache + 6,
+                          UI_CoD_GetNextQuadCache_Safe);
+        utils::hook::copy(inlined_next_quad_cache + 11, skip_inlined,
+                          sizeof(skip_inlined));
+      }
       utils::hook::jump(api::ui::quad::UI_CoD_GetNextQuadCache,
                         UI_CoD_GetNextQuadCache_Safe);
       utils::hook::jump(api::ui::quad::UI_CoD_UnrefQuadCacheChain,
