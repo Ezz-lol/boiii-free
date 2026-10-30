@@ -241,6 +241,13 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
         "Sets COD Points to maximum or zero.",
         Enum.InventoryCurrency.INVENTORY_CURRENCY_COD_POINTS
       )
+      addToggle(
+        "Black Market Duplicates",
+        "Supply drops can give items you already own. Burn them for Cryptokeys in the Black Market's Duplicates tab.",
+        "MPStatsSettings_loot_duplicates",
+        "cg_loot_duplicates",
+        true
+      )
       addCurrencyToggle(
         "Max Cryptokeys",
         "Sets Cryptokeys to maximum or zero.",

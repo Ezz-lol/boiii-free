@@ -43,6 +43,16 @@ WEAK symbol<EngineDependentDvarMut> loot_dailyDouble_rare_crate_dwid{
 WEAK symbol<EngineDependentDvarMut> loot_dailyDouble_cooloffSeconds{
     0x151271578, 0x1512F04E8, 0x0};
 
+// Registered by `LootConfig_Init`. Cryptokeys refunded per burned duplicate.
+WEAK symbol<EngineDependentDvarMut> loot_burnCommonRefund{0x1512727E8,
+                                                          0x1512F1758, 0x0};
+WEAK symbol<EngineDependentDvarMut> loot_burnRareRefund{0x1512727F0,
+                                                        0x1512F1760, 0x0};
+WEAK symbol<EngineDependentDvarMut> loot_burnLegendaryRefund{0x1512727F8,
+                                                             0x1512F1768, 0x0};
+WEAK symbol<EngineDependentDvarMut> loot_burnEpicRefund{0x151272800,
+                                                        0x1512F1770, 0x0};
+
 // Registered by `LiveInventory_Init`.
 WEAK symbol<EngineDependentDvarMut> blackjack_contract_dwid{0x15114E460,
                                                             0x1511CD3E0, 0x0};

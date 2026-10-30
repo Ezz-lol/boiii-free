@@ -32,6 +32,11 @@ WEAK symbol<bool(ControllerIndex_t controllerIndex, uint32_t itemId,
 WEAK symbol<void *(ControllerIndex_t controllerIndex, uint32_t *itemIds,
                    int32_t count, uint32_t *amounts)>
     LiveInventory_ConsumeItem{0x141DFC180, 0x141E08C10, 0x0};
+WEAK symbol<bool(ControllerIndex_t controllerIndex,
+                 const bdMarketplaceItemToPawn *items, int32_t count,
+                 void (*onSuccess)(ControllerIndex_t controllerIndex),
+                 void (*onFailure)(ControllerIndex_t controllerIndex))>
+    LiveInventory_BurnDuplicates{0x141DFBF50, 0x141E089E0, 0x0};
 WEAK symbol<EngineDependentDvar> inventory_blocking{0x15114E3E8, 0x1511CD368,
                                                     0x0};
 } // namespace inventory

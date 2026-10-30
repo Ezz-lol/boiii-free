@@ -100,8 +100,8 @@ tabs.prepare = function(controller, list, filter)
   if not items then
     return
   end
-  -- Crates don't keep duplicates, so there's nothing to burn
-  if Dvar.cg_local_currency:get() then
+  -- Without duplicates, crates only give items you don't own, so there's nothing to burn
+  if Dvar.cg_local_currency:get() and not Dvar.cg_loot_duplicates:get() then
     for index = #items, 1, -1 do
       if Engine.GetModelValue(Engine.GetModel(items[index].model, "displayText")) == "MPUI_BM_DUPLICATES" then
         table.remove(items, index)
