@@ -1428,8 +1428,8 @@ std::string get_source_line(const std::string &file, int32_t line_num) {
 }
 
 namespace {
-const uint8_t *containing_function(const scriptInstance_t inst,
-                                   const uint8_t *pos) {
+const GSC_EXPORT_ITEM *containing_export(const scriptInstance_t inst,
+                                         const uint8_t *pos) {
   if (!pos) {
     return nullptr;
   }
@@ -1442,13 +1442,33 @@ const uint8_t *containing_function(const scriptInstance_t inst,
   const GSC_OBJ *obj = info->activeVersion;
   const auto *base = reinterpret_cast<const uint8_t *>(obj);
   const auto offset = static_cast<uint32_t>(pos - 1 - base);
-  const uint8_t *start = nullptr;
+  const GSC_EXPORT_ITEM *found = nullptr;
   for (const GSC_EXPORT_ITEM &item : obj->exports()) {
-    if (item.address <= offset && (!start || base + item.address > start)) {
-      start = base + item.address;
+    if (item.address <= offset && (!found || item.address > found->address)) {
+      found = &item;
     }
   }
-  return start;
+  return found;
+}
+
+const uint8_t *containing_function(const scriptInstance_t inst,
+                                   const uint8_t *pos) {
+  const GSC_EXPORT_ITEM *item = containing_export(inst, pos);
+  if (!item) {
+    return nullptr;
+  }
+  const objFileInfo_t *info =
+      Scr_FindObjFileInfo_Impl(inst, const_cast<uint8_t *>(pos - 1));
+  return reinterpret_cast<const uint8_t *>(info->activeVersion) + item->address;
+}
+
+std::string function_name(const scriptInstance_t inst, const uint8_t *pos) {
+  const GSC_EXPORT_ITEM *item = containing_export(inst, pos);
+  if (!item) {
+    return {};
+  }
+  return std::format("{}::{}", resolve_hash(item->name_space),
+                     resolve_hash(item->name));
 }
 } // namespace
 
@@ -1486,6 +1506,7 @@ std::vector<script_frame> get_script_frames(scriptInstance_t inst,
     const char *source = nullptr;
     Scr_GetFileAndLineNum_Impl(inst, position - 1, &file, &frame.line, &source);
     frame.file = file ? file : "";
+    frame.function = function_name(inst, position);
     if (frame.line >= 0) {
       ++frame.line;
       for (; source && (*source == ' ' || *source == '\t'); ++source) {

@@ -18,6 +18,7 @@ struct script_frame {
   std::string file;
   int32_t line{-1};
   std::string source;
+  std::string function;
 };
 
 uint8_t *find_export_address(const std::string &script_name,

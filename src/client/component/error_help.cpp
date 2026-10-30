@@ -277,19 +277,35 @@ std::string explain_server_timeout() {
            "internet connection and join again, or try another server.";
   }
   using namespace game::scr;
-  if (vm::gScrVmPub->instance[SCRIPTINSTANCE_SERVER].function_count > 0) {
-    for (const script::script_frame &frame :
-         script::get_script_frames(SCRIPTINSTANCE_SERVER)) {
-      if (!frame.file.empty()) {
-        return std::format(
-            "^1Your game's server froze while running a script, so it "
-            "stopped sending updates.\n^3Script: ^7{}:{}\n^3Source: ^7{}\n"
-            "^3Fix: ^7This script runs without waiting, usually a loop "
-            "without a wait. Report it to the map/mod author with this "
-            "location, or play without that mod.",
-            frame.file, frame.line, frame.source);
+  std::unordered_map<std::string, int32_t> seen;
+  for (int32_t sample = 0; sample < 40; ++sample) {
+    if (vm::gScrVmPub->instance[SCRIPTINSTANCE_SERVER].function_count > 0) {
+      std::string chain;
+      for (const script::script_frame &frame :
+           script::get_script_frames(SCRIPTINSTANCE_SERVER)) {
+        if (!frame.file.empty()) {
+          chain += std::format("\n  {} ({}:{})", frame.function, frame.file,
+                               frame.line);
+        }
+      }
+      if (!chain.empty()) {
+        ++seen[chain];
       }
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+  }
+  if (!seen.empty()) {
+    const auto hottest = std::ranges::max_element(
+        seen, {}, [](const auto &entry) { return entry.second; });
+    for (const auto &[chain, count] : seen) {
+      printf("Server script samples %d/40:%s\n", count, chain.c_str());
+    }
+    return std::format(
+        "^1Your game's server froze while running a script, so it "
+        "stopped sending updates.\n^3Scripts:^7{}\n^3Fix: ^7This script "
+        "runs without waiting, usually a loop without a wait. Report it to "
+        "the map/mod author with this location, or play without that mod.",
+        hottest->first);
   }
   return "^1Your game's server stopped responding, so it stopped sending "
          "updates.\n^3Fix: ^7This is usually a map or mod script doing too "
