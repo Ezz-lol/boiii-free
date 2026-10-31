@@ -73,6 +73,7 @@ std::mutex pending_output_mutex;
 std::condition_variable pending_output_cv;
 std::string pending_output;
 std::atomic_bool output_post_pending{false};
+utils::concurrency::container<std::string> pending_title{};
 std::vector<std::string> dvar_name_list{};
 std::mutex dvar_list_mutex;
 std::atomic_bool dvar_list_loaded{false};
@@ -91,6 +92,7 @@ size_t history_index{0};
 std::string history_draft{};
 
 constexpr UINT WM_APPEND_CONSOLE_TEXT = WM_APP + 0x1337;
+constexpr UINT WM_SET_CONSOLE_TITLE = WM_APP + 0x1338;
 constexpr size_t MAX_CONSOLE_CHARS = 1'000'000;
 constexpr size_t MAX_CONSOLE_LINES = 20'000;
 constexpr int32_t COMPLETION_HINT_CONTROL_ID = 0x66;
@@ -1205,6 +1207,12 @@ LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam,
       preview_completion_hint(*game::s_wcd::hwndInputLine);
     }
     break;
+  case WM_SET_CONSOLE_TITLE: {
+    const std::string title = pending_title.access<std::string>(
+        [](const std::string &value) { return value; });
+    SetWindowTextA(hwnd, title.c_str());
+    return 0;
+  }
   case WM_APPEND_CONSOLE_TEXT: {
     static std::string text;
     output_post_pending = false;
@@ -1504,7 +1512,8 @@ void set_title(const std::string &title) {
   if (game::is_headless()) {
     SetConsoleTitleA(title.data());
   } else {
-    SetWindowTextA(*game::s_wcd::hWnd, title.data());
+    pending_title.access([&title](std::string &pending) { pending = title; });
+    PostMessageA(*game::s_wcd::hWnd, WM_SET_CONSOLE_TITLE, 0, 0);
   }
 }
 
