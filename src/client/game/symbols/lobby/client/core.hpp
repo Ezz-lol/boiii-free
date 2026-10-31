@@ -5,7 +5,8 @@
 namespace game {
 namespace lobby {
 namespace client {
-// Placeholder
+WEAK symbol<void(session::LobbyGameData *gameData)> ServerStatusNotRunning{
+    0x141EC1DB0, 0x0, 0x0};
 } // namespace client
 } // namespace lobby
 } // namespace game

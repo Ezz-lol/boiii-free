@@ -24,6 +24,8 @@ std::string joinable_lobby();
 void join_match_lobby(const game::net::netadr_t &host,
                       std::function<void()> fallback);
 bool is_lobby_peer(const game::net::netadr_t &address);
+bool has_party_lobby();
+void join_server_lobby(const game::net::netadr_t &server);
 bool is_rendezvous(const game::net::netadr_t &address);
 void send_invite(uint64_t steam_id, const std::string &sender_name);
 void refresh_friends(const std::vector<uint64_t> &steam_ids,

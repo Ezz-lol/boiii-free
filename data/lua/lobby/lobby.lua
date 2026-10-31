@@ -1320,6 +1320,36 @@ LobbyVM.LobbyLocalClientLeave = function(params)
   end
 end
 
+local function ModeLobbyTarget()
+  local mode = Engine.CurrentSessionMode()
+  if mode == Enum.eModes.MODE_ZOMBIES then
+    return LobbyData.UITargets.UI_ZMLOBBYONLINE
+  elseif mode == Enum.eModes.MODE_CAMPAIGN then
+    return LobbyData.UITargets.UI_CPLOBBYONLINE
+  end
+  return LobbyData.UITargets.UI_MPLOBBYONLINE
+end
+
+LobbyVM.StartPartyLobby = function()
+  if not Lobby.ProcessQueue.IsQueueEmpty() then
+    return
+  end
+  local controller = Engine.GetPrimaryController()
+  local target = ModeLobbyTarget()
+  local partyLobby = Enum.LobbyType.LOBBY_TYPE_PRIVATE
+  local hostStart =
+    Lobby.Actions.LobbyHostStart(controller, target.mainMode, partyLobby, target.lobbyMode, target.maxClients)
+  local addPrimary = Lobby.Actions.LobbyHostAddPrimary(partyLobby)
+  local clientStart = Lobby.Actions.LobbyClientStart(partyLobby)
+  Lobby.Process.AddActions(hostStart, addPrimary)
+  Lobby.Process.AddActions(addPrimary, clientStart)
+  Lobby.Process.AddActions(clientStart)
+  Lobby.ProcessQueue.AddToQueue(
+    "StartPartyLobby",
+    { head = hostStart, interrupt = Lobby.Interrupt.NONE, force = true, cancellable = false }
+  )
+end
+
 LobbyVM.SetMaxLocalPlayers = function(params)
   Dvar.lobby_maxLocalPlayers:set(math.min(params.maxLocalClients, Engine.GetMaxLocalControllers()))
 end
@@ -2250,7 +2280,19 @@ LobbyVM.CheckStarterPack = function(lobbyInfo)
   return false
 end
 
+local function IsBaseContent(ugcName)
+  return ugcName == nil or ugcName == "" or ugcName == LuaEnums.USERMAP_BASE_PATH
+end
+
+local function IsModLoaded(ugcInfo)
+  return IsBaseContent(ugcInfo and ugcInfo.ugcName) and IsBaseContent(LuaUtils.Mods_UsingModsUgcName())
+    or LuaUtils.Mods_IsModLoaded(ugcInfo)
+end
+
 LobbyVM.LoadMod = function(modInfo)
+  if IsModLoaded(modInfo) then
+    return
+  end
   local loadModProcess = Lobby.Process.LoadMod(Engine.GetPrimaryController(), modInfo)
   if loadModProcess ~= nil then
     Lobby.ProcessQueue.AddToQueue("LoadMod", loadModProcess)
@@ -2258,7 +2300,7 @@ LobbyVM.LoadMod = function(modInfo)
 end
 
 LobbyVM.OnModUpdate = function(modUpdate)
-  if LuaUtils.Mods_IsModLoaded(modUpdate.ugcInfo) then
+  if IsModLoaded(modUpdate.ugcInfo) then
     return false
   elseif Lobby.ProcessQueue.IsQueueEmpty() then
     modUpdate.ugcInfo.waitForInstall = true

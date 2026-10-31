@@ -66,6 +66,7 @@ struct lobby_request {
 
 lobby_request lobby_joining;
 std::function<void()> game_join_fallback;
+std::optional<game::net::netadr_t> server_lobby;
 std::mutex peers_mutex;
 typedef std::unordered_map<std::string, game::net::netadr_t> lobbyPeerMap_t;
 lobbyPeerMap_t lobby_peers;
@@ -456,7 +457,9 @@ void join_lobby(const game::net::netadr_t &host,
     }
   };
 
-  if (game::com::Com_IsInGame() || !lobby_host_info()) {
+  const bool on_server =
+      server_lobby && network::are_addresses_equal(*server_lobby, host);
+  if ((game::com::Com_IsInGame() && !on_server) || !lobby_host_info()) {
     fail("Leave your current match to join your friend's lobby.");
     return;
   }
@@ -874,10 +877,7 @@ void begin_join(const std::string &token, const std::string &fallback_address,
 }
 
 std::string joinable_lobby() {
-  if (game::is_server()) {
-    return "";
-  }
-  if (hosting_match()) {
+  if (hosting_match() || game::is_server()) {
     return lobby_host_info(game::lobby::LobbyType::GAME) ? "game" : "";
   }
   return open_to_friends && lobby_host_info() ? "party" : "";
@@ -895,6 +895,17 @@ void join_match_lobby(const game::net::netadr_t &host,
         return scheduler::cond_end;
       },
       scheduler::main, 250ms);
+}
+
+bool has_party_lobby() {
+  return lobby_host_info() && game::lobby::LobbyHost_GetClientCount(
+                                  game::lobby::LobbyType::PRIVATE,
+                                  game::lobby::LobbyClientType::LOCAL) > 0;
+}
+
+void join_server_lobby(const game::net::netadr_t &server) {
+  server_lobby = server;
+  request_lobby(server, "match", [] {});
 }
 
 bool is_lobby_peer(const game::net::netadr_t &address) {
@@ -965,7 +976,7 @@ void refresh_friends(const std::vector<game::XUID> &steam_ids,
   scheduler::once([request] { finish_lookup(request); }, scheduler::main, 2s);
 }
 
-class component final : public client_component {
+class component final : public generic_component {
   DEFINE_COMPONENT_NAME("nat");
 
 public:
@@ -979,6 +990,10 @@ public:
     dw_get_connection_status_hook.create(game::dw::dwGetConnectionStatus.get(),
                                          dw_get_connection_status_stub);
     network::on("lobbyJoin", receive_lobby_join);
+
+    if (game::is_server()) {
+      return;
+    }
 
     scheduler::once(
         [] {

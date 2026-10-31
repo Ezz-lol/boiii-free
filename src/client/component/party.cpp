@@ -327,6 +327,48 @@ bool ensure_networkmode_online() {
   return false;
 }
 
+void call_lobby_vm(const char *function) {
+  try {
+    lua_globals()["Engine"]["LobbyVM_CallFunc"](function,
+                                                ui_scripting::table{});
+  } catch (const std::exception &e) {
+    printf("LobbyVM %s failed: %s\n", function, e.what());
+  }
+}
+
+void with_party_lobby(const std::function<void()> &callback) {
+  if (nat::has_party_lobby()) {
+    callback();
+    return;
+  }
+  const auto deadline = std::chrono::steady_clock::now() + 10s;
+  scheduler::schedule(
+      [=] {
+        if (!nat::has_party_lobby() &&
+            std::chrono::steady_clock::now() < deadline) {
+          call_lobby_vm("StartPartyLobby");
+          return scheduler::cond_continue;
+        }
+        callback();
+        return scheduler::cond_end;
+      },
+      scheduler::main, 100ms);
+}
+
+void update_server_lobby() {
+  static bool requested = false;
+  const game::connstate_t state =
+      game::cg::clientUIActives->actives[0].connectionState;
+  if (state == game::connstate_t::DISCONNECTED) {
+    requested = false;
+  } else if (state == game::connstate_t::ACTIVE && !requested &&
+             cl_connected_to_dedi.get_bool() && !game::server_running() &&
+             nat::has_party_lobby()) {
+    requested = true;
+    nat::join_server_lobby(get_connected_server(game::LOCAL_CLIENT_0));
+  }
+}
+
 void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
                      const std::string_view &mapname,
                      const std::string_view &gametype,
@@ -345,7 +387,7 @@ void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
           addr, map, type, usermap, mod);
     };
     if (lobby.empty()) {
-      connect_direct();
+      with_party_lobby(connect_direct);
       return;
     }
     nat::join_match_lobby(addr, lobby == "party" ? [] {
@@ -455,8 +497,11 @@ void handle_connect_query_response(const bool success,
   }
 
   const std::string mapname = info.get("mapname");
-  const std::string lobby = info.get("lobby");
-  if (mapname == "core_frontend" && lobby != "party") {
+  const std::string lobby =
+      is_connecting_to_dedi && info.get("sv_running") == "1"
+          ? std::string{}
+          : info.get("lobby");
+  if (mapname == "core_frontend" && lobby.empty()) {
     printf("Connect failed: The host is in the menus, not in a match.\n");
     toast::show("Friend in menus",
                 "They are not in a match. Ask them to open their party, then "
@@ -725,6 +770,7 @@ struct component final : client_component {
     network::on("infoResponse", handle_info_response);
 
     scheduler::loop(cleanup_queried_servers, scheduler::async, 100ms);
+    scheduler::loop(update_server_lobby, scheduler::main, 500ms);
 
     sv_map_hook.create(game::sv::SV_Map_f.get(),
                        sv_map_in_mode_stub<&sv_map_hook>);
