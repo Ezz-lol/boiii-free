@@ -132,6 +132,19 @@ WEAK symbol<EngineDependentDvarMut> loc_language{0x15789FE48, 0x15791ED48,
 */
 WEAK symbol<EngineDependentDvarMut> lui_oom{0x157960BB0, 0x0, 0x0};
 
+WEAK symbol<EngineDependentDvarMut> scr_xpscalecp{0x15686EBF8, 0x1568EDB78,
+                                                  0x14948F1D8};
+WEAK symbol<EngineDependentDvarMut> scr_xpscalemp{0x15686EC00, 0x1568EDB80,
+                                                  0x14948F1E0};
+WEAK symbol<EngineDependentDvarMut> scr_xpscalezm{0x15686EC08, 0x1568EDB88,
+                                                  0x14948F1E8};
+WEAK symbol<EngineDependentDvarMut> scr_gunxpscalecp{0x15686EC18, 0x1568EDB98,
+                                                     0x14948DB18};
+WEAK symbol<EngineDependentDvarMut> scr_gunxpscalemp{0x15686EC20, 0x1568EDBA0,
+                                                     0x14948DB20};
+WEAK symbol<EngineDependentDvarMut> scr_gunxpscalezm{0x15686EC28, 0x1568EDBA8,
+                                                     0x14948DB28};
+
 WEAK symbol<int32_t> g_dvarCount{0x157A472CC, 0x157AC61CC, 0x14A3CB5FC};
 WEAK symbol<DvarPool> s_dvarPool{0x157A47320, 0x0, 0x14A3CB620};
 WEAK symbol<EncryptedDvarPool> s_dvarPool_cl{0x157A47320, 0x157AC6220, 0x0};
@@ -217,6 +230,8 @@ WEAK symbol<void(
     LocalClientNum_t localClientNum,
     void (*callback)(LocalClientNum_t localClientNum, const char *debugName))>
     Dvar_ForEachNameClientNum{0x142260260, 0x1422BCD80, 0x0};
+WEAK symbol<bool(EngineDependentDvar dvar)> Dvar_CanSetConfigDvar{
+    0x14225BD70, 0x1422B8890, 0x140574C00};
 WEAK symbol<bool(EngineDependentDvar dvar)> Dvar_GetBool{
     0x1422603B0, 0x1422BCED0, 0x140575740};
 WEAK symbol<int32_t(EngineDependentDvar dvar)> Dvar_GetDomainEnumStringCount{

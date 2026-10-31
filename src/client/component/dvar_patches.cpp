@@ -310,7 +310,35 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
   }
 }
 
+float Com_GetXPScale_Impl(EngineDependentDvarMut zm, EngineDependentDvarMut mp,
+                          EngineDependentDvarMut cp) {
+  switch (com::Com_SessionMode_GetMode()) {
+  case eModes::ZOMBIES:
+    return Dvar_GetFloat(zm);
+  case eModes::MULTIPLAYER:
+    return Dvar_GetFloat(mp);
+  case eModes::CAMPAIGN:
+    return Dvar_GetFloat(cp);
+  default:
+    return 1.0f;
+  }
+}
+
+float GetXPScale_Server([[maybe_unused]] ClientNum_t clientNum) {
+  return Com_GetXPScale_Impl(*scr_xpscalezm, *scr_xpscalemp, *scr_xpscalecp);
+}
+
+ddl::statValue_t
+GScr_GetGunXPScaled_Server([[maybe_unused]] ClientNum_t clientNum,
+                           ddl::statValue_t value) {
+  const float scale = Com_GetXPScale_Impl(*scr_gunxpscalezm, *scr_gunxpscalemp,
+                                          *scr_gunxpscalecp);
+  value.intValue = static_cast<int32_t>(value.intValue * scale + 0.5f);
+  return value;
+}
+
 bool return_false() { return false; }
+bool return_true() { return true; }
 } // namespace
 
 class component final : public generic_component {
@@ -351,6 +379,7 @@ public:
     Dvar_GetSessionModeSpecificDvarInternal_hook.create(
         game::Dvar_GetSessionModeSpecificDvarInternal.get(),
         Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault);
+    utils::hook::jump(game::Dvar_CanSetConfigDvar.get(), return_true);
 
     if (game::is_client()) {
       this->patch_client();
@@ -394,6 +423,10 @@ public:
 
     // Disable `sv_pure`
     utils::hook::call(0x140534DF2_g, Dvar_RegisterBool_Force<false>);
+
+    utils::hook::jump(game::scr::gscr::GetXPScale.get(), GetXPScale_Server);
+    utils::hook::jump(game::scr::gscr::GScr_GetGunXPScaled.get(),
+                      GScr_GetGunXPScaled_Server);
 
     // Enable or disable both (??) sv_cheats dvars immediately after
     // registration

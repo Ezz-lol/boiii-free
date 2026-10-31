@@ -107,5 +107,11 @@ struct StringTable {
 };
 ASSERT_SIZE(StringTable, 0x20);
 
+struct statValue_t {
+  int32_t intValue;
+  uint8_t _padding04[4];
+};
+ASSERT_SIZE(statValue_t, 0x8);
+
 } // namespace ddl
 } // namespace game
