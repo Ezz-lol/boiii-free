@@ -30,7 +30,41 @@ struct CasterState;
 struct CasterClientState;
 } // namespace level
 
+namespace gfx {
+struct GfxImage;
+} // namespace gfx
+
 namespace cl {
+
+// Actual name is unknown - a player emblem CL_CompositeRender draws into an
+// image
+enum class CompositeJobState : int32_t {
+  FREE = 0x0,
+  QUEUED = 0x1,
+  DRAWING = 0x2,
+  FENCED = 0x3,
+  DONE = 0x4,
+};
+
+#pragma pack(push, 1)
+// Actual name is unknown
+struct CompositeJob {
+  CompositeJobState state;
+  uint8_t _padding04[0x1C5C];
+  // Set when the image came from CL_CompositeRender's pool instead of the
+  // caller
+  bool ownsImage;
+  uint8_t _padding1C61[7];
+  gfx::GfxImage *image;
+  uint8_t _padding1C70[4];
+  bool cancelled;
+  uint8_t _padding1C75[0xB];
+};
+ASSERT_SIZE(CompositeJob, 0x1C80);
+ASSERT_OFFSET(CompositeJob, ownsImage, 0x1C60);
+ASSERT_OFFSET(CompositeJob, image, 0x1C68);
+ASSERT_OFFSET(CompositeJob, cancelled, 0x1C74);
+#pragma pack(pop)
 
 enum class CLSwitchState : uint32_t {
   IDLE = 0x0,

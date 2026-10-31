@@ -70,6 +70,13 @@ WEAK symbol<void(const LocalClientNum_t localClientNum, unsigned __int8 c,
                  vec4_t *color)>
     CL_LookupColor{0x141321F40, 0x0, 0x0};
 
+WEAK symbol<void()> CL_CompositeRender{0x141335BF0, 0x141335BD0, 0x0};
+// Actual name is unknown - gives an image back to CL_CompositeRender's pool
+WEAK symbol<void(gfx::GfxImage *image)> CL_CompositeRender_ReleaseImage{
+    0x141335B90, 0x141335B70, 0x0};
+// Actual name is unknown
+WEAK symbol<CompositeJob[16]> compositeJobs{0x1452CA460, 0x145349460, 0x0};
+
 WEAK symbol<ClientConnections *> clientConnections{0x145359BB8, 0x1453D8BB8,
                                                    0x0};
 WEAK symbol<ClientActives *> clients{0x14535D188, 0x1453DC188, 0x0};

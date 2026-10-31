@@ -454,6 +454,27 @@ void SV_RestartCmd_RotateOrDefault() {
 
 template <const auto Val> decltype(Val) return_const() { return Val; }
 
+utils::hook::detour CL_CompositeRender_hook;
+// The game cancels a player emblem's job when it drops that emblem from its
+// cache, which happens every frame once more than 18 are in use. The job only
+// checks for that while queued and never gives its image back, so the pool's
+// 24 images run out and no new emblem is drawn until the game restarts
+void CL_CompositeRender_stub() {
+  using game::cl::CompositeJobState;
+  for (game::cl::CompositeJob &job : *game::cl::compositeJobs) {
+    if (!job.cancelled || (job.state != CompositeJobState::QUEUED &&
+                           job.state != CompositeJobState::DONE)) {
+      continue;
+    }
+    if (job.ownsImage && job.image) {
+      game::cl::CL_CompositeRender_ReleaseImage(job.image);
+      job.image = nullptr;
+    }
+    job.state = CompositeJobState::FREE;
+  }
+  CL_CompositeRender_hook.invoke<void>();
+}
+
 utils::hook::detour Com_FPSLimit_hook;
 
 // The FPS limiter waits with Sleep(1), which can take up to 15 ms unless the
@@ -506,6 +527,8 @@ public:
                                 snd_queue_add_stub);
     }
     fix_mapswitch_crashes();
+    CL_CompositeRender_hook.create(game::cl::CL_CompositeRender,
+                                   CL_CompositeRender_stub);
 
     fix_amd_cpu_stuttering();
 
