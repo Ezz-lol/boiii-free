@@ -15,6 +15,10 @@ WEAK symbol<live::pcache::PCacheComponent *(
     PCache_GetComponent{0x141E80CA0, 0x141E8D730, 0x0};
 WEAK symbol<void(ControllerIndex_t controllerIndex, XUID xuid)>
     PCache_InvalidatePlayerEmblem{0x141E81580, 0x141E8E010, 0x0};
+// inMatch is set while in a match with no menu locking input, and makes it
+// skip fetching public profiles
+WEAK symbol<void(ControllerIndex_t controllerIndex, bool inMatch)>
+    PCache_Update{0x141E81720, 0x141E8E1B0, 0x0};
 // Task callbacks of PCache_BatchUpdatePublicProfiles. Both mark the players
 // that came back without a profile as PCACHE_STATE_NO_DATA.
 WEAK symbol<bool(dw::TaskRecord *task)> PCache_GetPublicProfilesSuccess{
