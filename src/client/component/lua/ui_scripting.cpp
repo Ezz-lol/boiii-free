@@ -841,6 +841,9 @@ if LUI.createMenu.Loading and not __boiiiLoadingWrapped then
   local fadeInTime = CoD.Loading.FadeInTime
   LUI.createMenu.Loading = function(controller)
     local mode = Engine.DvarInt(nil, "boiii_loadingScreen")
+    if mode == 0 and Engine.DvarBool(nil, "cl_connected_to_dedi") then
+      mode = 2
+    end
     CoD.Loading.FadeInTime = mode == 1 and 1 or fadeInTime
     if mode ~= 1 and mode ~= 2 or mode == 2 and not CoD.GetMapValue(Engine.GetCurrentMap(), "introMovie") then
       return createLoading(controller)
