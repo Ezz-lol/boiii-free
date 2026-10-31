@@ -677,66 +677,11 @@ void show_error_popup(const std::string &text) {
 }
 
 namespace {
-game::EngineDependentDvar restart_delay;
-std::atomic<int64_t> restart_not_before{0};
-std::atomic<bool> restart_queued{false};
-std::atomic<bool> console_muted{false};
-utils::hook::detour Com_Printf_hook;
-
-void Com_Printf_Muted(const game::consoleChannel_e channel,
-                      const game::consoleLabel_e label, const char *fmt, ...) {
-  if (console_muted) {
-    return;
-  }
-
-  va_list args;
-  va_start(args, fmt);
-  va_list measure;
-  va_copy(measure, args);
-  std::string text(std::max(vsnprintf(nullptr, 0, fmt, measure), 0), '\0');
-  va_end(measure);
-  vsnprintf(text.data(), text.size() + 1, fmt, args);
-  va_end(args);
-
-  Com_Printf_hook.invoke<void>(channel, label, "%s", text.c_str());
-}
-
-int64_t now_ms() {
-  return std::chrono::duration_cast<std::chrono::milliseconds>(
-             std::chrono::steady_clock::now().time_since_epoch())
-      .count();
-}
-
-void stop_server_map(const char *file, const int32_t line,
-                     const report &report) {
-  const int32_t delay = restart_delay.get_int();
-  restart_not_before = now_ms() + delay * 1000ll;
-  const std::string text =
-      report_text(report, std::format("The map restarts in {} seconds", delay));
-  console_muted = true;
-  scheduler::once([] { console_muted = false; }, scheduler::pipeline::main);
-  game::com::Com_Error_(file, line, game::errorParm::DROP, "\x15%s",
-                        text.c_str());
-}
-
-bool show_script_error(const report &report) {
-  if (game::is_server()) {
-    return false;
-  }
-  print_report(report, {});
-  if (game::com::Com_IsInGame()) {
-    show_error_popup(report.text);
-  }
-  return true;
-}
-
 void drop_with_report(const char *file, const int32_t line,
                       const report &report) {
-  if (game::is_server()) {
-    stop_server_map(file, line, report);
-    return;
+  if (!game::is_server()) {
+    print_report(report, {});
   }
-  print_report(report, {});
   game::com::Com_Error_(file, line, game::errorParm::DROP, "\x15%s",
                         report_text(report, {}).c_str());
 }
@@ -799,8 +744,13 @@ void Com_Error_ScriptRuntime(const char *file, const int32_t line,
                              const char *source, const int32_t source_line) {
   const report runtime =
       build_runtime_report(active_instance, error, detail, extra, source);
-  if (!show_script_error(runtime)) {
-    stop_server_map(file, line, runtime);
+  if (game::is_server()) {
+    drop_with_report(file, line, runtime);
+    return;
+  }
+  print_report(runtime, {});
+  if (game::com::Com_IsInGame()) {
+    show_error_popup(runtime.text);
   }
 }
 
@@ -881,10 +831,6 @@ struct component final : generic_component {
       Scr_LoadScript_hook.create(Scr_LoadScript, Scr_LoadScript_Scoped);
       GscObjResolve_hook.create(GscObjResolve, GscObjResolve_Scoped);
       VM_RuntimeError_hook.create(VM_RuntimeError, VM_RuntimeError_Scoped);
-    }
-
-    if (game::is_server()) {
-      Com_Printf_hook.create(game::com::Com_Printf, Com_Printf_Muted);
     }
 
     ReportObjLinkError_hook.create(ReportObjLinkError,
