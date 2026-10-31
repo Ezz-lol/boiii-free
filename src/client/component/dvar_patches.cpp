@@ -297,6 +297,53 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
   }
 }
 
+utils::hook::detour Dvar_CanSetConfigDvar_hook;
+// The engine only lets these be set while Demonware's feed of the day or
+// playlist rules run, which is how Treyarch turned on Double XP
+bool Dvar_CanSetConfigDvar_AllowXPScales(EngineDependentDvar dvar) {
+  for (EngineDependentDvar xpScale :
+       {*scr_xpscalecp, *scr_xpscalemp, *scr_xpscalezm, *scr_gunxpscalecp,
+        *scr_gunxpscalemp, *scr_gunxpscalezm}) {
+    if (dvar == xpScale) {
+      return true;
+    }
+  }
+  return Dvar_CanSetConfigDvar_hook.invoke<bool>(dvar);
+}
+
+// The dedicated server build has Com_GetXPScale and its weapon XP twin
+// compiled down to 1.0
+float Com_GetXPScale_Impl(EngineDependentDvarMut zm, EngineDependentDvarMut mp,
+                          EngineDependentDvarMut cp) {
+  switch (com::Com_SessionMode_GetMode()) {
+  case eModes::ZOMBIES:
+    return Dvar_GetFloat(zm);
+  case eModes::MULTIPLAYER:
+    return Dvar_GetFloat(mp);
+  case eModes::CAMPAIGN:
+    return Dvar_GetFloat(cp);
+  default:
+    return 1.0f;
+  }
+}
+
+// Without Demonware, every Double XP group mask matches on the client, so its
+// GetXPScale always reaches Com_GetXPScale. The engine's mod check is left out
+// because dedicated servers always run usermaps, which
+// patch_is_mod_loaded_checks already treats as no mod
+float GetXPScale_Server([[maybe_unused]] ClientNum_t clientNum) {
+  return Com_GetXPScale_Impl(*scr_xpscalezm, *scr_xpscalemp, *scr_xpscalecp);
+}
+
+ddl::statValue_t
+GScr_GetGunXPScaled_Server([[maybe_unused]] ClientNum_t clientNum,
+                           ddl::statValue_t value) {
+  const float scale = Com_GetXPScale_Impl(*scr_gunxpscalezm, *scr_gunxpscalemp,
+                                          *scr_gunxpscalecp);
+  value.intValue = static_cast<int32_t>(value.intValue * scale + 0.5f);
+  return value;
+}
+
 bool return_false() { return false; }
 } // namespace
 
@@ -338,6 +385,8 @@ public:
     Dvar_GetSessionModeSpecificDvarInternal_hook.create(
         game::Dvar_GetSessionModeSpecificDvarInternal.get(),
         Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault);
+    Dvar_CanSetConfigDvar_hook.create(game::Dvar_CanSetConfigDvar.get(),
+                                      Dvar_CanSetConfigDvar_AllowXPScales);
 
     if (game::is_client()) {
       this->patch_client();
@@ -378,6 +427,10 @@ public:
 
     // Disable `sv_pure`
     utils::hook::call(0x140534DF2_g, Dvar_RegisterBool_Force<false>);
+
+    utils::hook::jump(game::scr::gscr::GetXPScale.get(), GetXPScale_Server);
+    utils::hook::jump(game::scr::gscr::GScr_GetGunXPScaled.get(),
+                      GScr_GetGunXPScaled_Server);
 
     // Enable or disable both (??) sv_cheats dvars immediately after
     // registration

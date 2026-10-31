@@ -23,6 +23,11 @@ WEAK symbol<int32_t(const char *pszMenu)> GScr_GetScriptMenuIndex{
     0x141A878D0, 0x141A93CA0, 0x1402D4590};
 WEAK symbol<bool(ClientNum_t clientNum, int32_t itemIndex)>
     GScr_IsItemPurchasedForClientNum{0x1415F14B0, 0x1415F1490, 0x140252A20};
+WEAK symbol<float(ClientNum_t clientNum)> GetXPScale{0x1415F78B0, 0x1415F7890,
+                                                     0x140257BE0};
+// Actual name is unknown - GScr_GetXPScaled for weapon XP
+WEAK symbol<ddl::statValue_t(ClientNum_t clientNum, ddl::statValue_t value)>
+    GScr_GetGunXPScaled{0x1415ECA90, 0x1415ECA70, 0x140251210};
 
 } // namespace gscr
 } // namespace scr
