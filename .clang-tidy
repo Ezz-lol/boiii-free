@@ -1,0 +1,43 @@
+# --- Enabled / Disabled Checks ---
+# A comma-separated string or a YAML list of globs.
+# Use '*' to enable everything, and '-' prefixes to disable specific checks.
+Checks:
+  - "-*"
+  - "clang-diagnostic-*"
+  - "clang-analyzer-*"
+  - "cppcoreguidelines-*"
+  - "-cppcoreguidelines-pro-type-vararg"
+  - "-cppcoreguidelines-avoid-c-arrays"
+  - "-cppcoreguidelines-avoid-non-const-global-variables"
+  - "-cppcoreguidelines-pro-type-union-access"
+  - "-cppcoreguidelines-pro-type-reinterpret-cast"
+  - "-cppcoreguidelines-pro-bounds-array-to-pointer-decay"
+  - "-cppcoreguidelines-pro-bounds-avoid-unchecked-container-access"
+  - "-cppcoreguidelines-macro-usage"
+  - "-cppcoreguidelines-pro-type-const-cast"
+  - "-cppcoreguidelines-pro-bounds-pointer-arithmetic"
+  - "-cppcoreguidelines-missing-std-forward"
+  - "-cppcoreguidelines-pro-bounds-constant-array-index"
+  - "-cppcoreguidelines-special-member-functions"
+  - "-cppcoreguidelines-pro-type-member-init"
+  - "modernize-*"
+  - "-modernize-use-trailing-return-type"
+  - "-modernize-use-using"
+  - "-modernize-use-auto"
+  - "-modernize-avoid-c-arrays"
+  - "-modernize-concat-nested-namespaces"
+  - "-hicpp-use-auto"
+
+WarningsAsErrors: "bugprone-*,modernize-concat-nested-namespaces"
+
+FormatStyle: "file"
+
+ExtraArgs: ["-std=c++20", "-Wall"]
+
+CheckOptions:
+  - key: readability-identifier-naming.VariableCase
+    value: "lower_case"
+  - key: modernize-loop-convert.NamingStyle
+    value: "CamelCase"
+  - key: cppcoreguidelines-explicit-virtual-functions.IgnoreDestructors
+    value: "true"

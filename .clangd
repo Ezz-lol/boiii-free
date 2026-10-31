@@ -1,0 +1,11 @@
+Index:
+  Background: Build
+CompileFlags:
+  CompilationDatabase: build
+  Add: [-Isrc/common, -isystem=src/common, -Isrc/client, -isystem=src/client]
+Completion:
+  AllScopes: Yes
+  ArgumentLists: FullPlaceholders
+  HeaderInsertion: IWYU
+  CodePatterns: All
+  MacroFilter: ExactPrefix
