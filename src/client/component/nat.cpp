@@ -300,9 +300,25 @@ bool hosting_match() {
   return getinfo::is_host() && !game::com::Com_IsRunningUILevel();
 }
 
+// A player on a dedicated server only hosts their own party, which a joiner
+// would sit in while the match goes on, so they hand out the server. Matches
+// other players host are left out so their host decides who gets in
+std::optional<game::net::netadr_t> dedicated_server() {
+  if (hosting_match() || !game::com::Com_IsInGame() ||
+      !party::cl_connected_to_dedi.get_bool())
+    return std::nullopt;
+  // The dedicated flag comes from the last connect, which a later lobby join
+  // doesn't update
+  const game::net::netadr_t server = party::get_connected_server();
+  if (server != party::get_connect_host() ||
+      !network::is_connectable_address(server))
+    return std::nullopt;
+  return server;
+}
+
 bool can_host() {
   return hosting_match() || lobby_host_info() ||
-         lobby_host_info(game::lobby::LobbyType::GAME);
+         lobby_host_info(game::lobby::LobbyType::GAME) || dedicated_server();
 }
 
 void show_error(const std::string &message) {
@@ -625,6 +641,12 @@ void receive_lobby_join(const game::net::netadr_t &sender,
     return;
   }
 
+  if (const std::optional<game::net::netadr_t> server = dedicated_server()) {
+    network::send(sender, "lobbyGame",
+                  parts[0] + " " + network::address_to_string(*server));
+    return;
+  }
+
   const game::net::HostInfo *game_lobby =
       lobby_host_info(game::lobby::LobbyType::GAME);
   const game::net::HostInfo *host = game_lobby ? game_lobby : lobby_host_info();
@@ -675,13 +697,20 @@ void receive_lobby_host(const game::net::netadr_t &sender,
 void receive_lobby_game(const game::net::netadr_t &sender,
                         const network::data_view &data,
                         game::LocalClientNum_t) {
-  if (from_lobby_request(sender, payload_string(data))) {
-    const std::function<void()> fallback =
-        std::exchange(game_join_fallback, {});
-    scheduler::once(
-        fallback ? fallback : [sender] { connect_to(sender); },
-        scheduler::main);
+  const std::vector<std::string> parts = fields(payload_string(data));
+  if (parts.empty() || !from_lobby_request(sender, parts[0]))
+    return;
+
+  const std::function<void()> fallback = std::exchange(game_join_fallback, {});
+  if (parts.size() > 1) {
+    const game::net::netadr_t server = network::address_from_string(parts[1]);
+    if (network::is_connectable_address(server)) {
+      scheduler::once([server] { connect_to(server); }, scheduler::main);
+      return;
+    }
   }
+  scheduler::once(
+      fallback ? fallback : [sender] { connect_to(sender); }, scheduler::main);
 }
 
 void receive_register_ack(const game::net::netadr_t &sender,
