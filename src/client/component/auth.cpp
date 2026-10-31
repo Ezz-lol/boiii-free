@@ -703,7 +703,7 @@ struct component final : generic_component {
     scheduler::once(
         [] {
           password = game::register_dvar_string(
-              "password", "", game::DVAR_USERINFO, "password");
+              "password", "", game::dvarFlags_e::USERINFO, "password");
         },
         scheduler::pipeline::main);
 

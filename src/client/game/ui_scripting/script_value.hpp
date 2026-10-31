@@ -30,7 +30,7 @@ public:
 
   ~hks_object();
 
-  const HksObject &get() const;
+  [[nodiscard]] const HksObject &get() const;
 
 private:
   void assign(const HksObject &value);
@@ -90,7 +90,7 @@ public:
   [[nodiscard]] inline bool is() const {
     const HksNumber number = this->get_raw().v.number;
     return this->get_raw().t == HksObjectType::TNUMBER &&
-           static_cast<int32_t>(number) == number;
+           static_cast<float>(static_cast<int32_t>(number)) == number;
   }
 
   template <IntegralLike<int32_t> T>

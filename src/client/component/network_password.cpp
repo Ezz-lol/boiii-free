@@ -45,7 +45,7 @@ struct component final : generic_component {
     scheduler::once(
         [] {
           net_password_dvar = game::register_dvar_string(
-              "net_password", "", game::DVAR_NONE,
+              "net_password", "", game::dvarFlags_e::NONE,
               "Network password for private server isolation");
         },
         scheduler::pipeline::main);

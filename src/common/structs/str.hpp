@@ -34,7 +34,9 @@ template <int32_t N> struct ConstString {
       buf[i] = s[i];
   }
 
-  inline constexpr const char *c_str() const noexcept { return buf; }
+  [[nodiscard]] inline constexpr const char *c_str() const noexcept {
+    return buf;
+  }
   inline constexpr operator const char *() const noexcept { return c_str(); }
   inline constexpr operator std::string_view() const noexcept {
     return c_str();

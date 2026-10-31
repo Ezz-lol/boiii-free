@@ -1,7 +1,5 @@
 #pragma once
 
-#include <type_traits>
-
 #include "core.hpp"
 
 template <typename T>
@@ -35,9 +33,3 @@ template <typename From, typename To>
 concept SizedIntegralLike =
     (std::is_convertible_v<From, To> || ScopedIntegralLike<From, To>) &&
     !SizeGreaterThan<From, sizeof(To)>;
-
-template <typename T>
-concept Function = std::is_function_v<T>;
-
-template <typename T>
-concept NonFunction = !Function<T>;

@@ -1,9 +1,10 @@
 #pragma once
 
+#include "macros/type/integral.hpp" // IWYU pragma: keep
+#include "structs/array.hpp"        // IWYU pragma: keep
+
 #include <atomic>
-#include <macros/macros.hpp>
 #include <optional>
-#include <structs/array.hpp>
 
 template <typename T, const IntegralLike auto N>
 using atomicarray = array<std::atomic<T>, N>;

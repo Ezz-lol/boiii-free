@@ -29,8 +29,13 @@ template <typename T> alwaysinline bool readable_ptr(const T *ptr) {
   return readable_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 
+inline constexpr auto WIN_X86_64_MIN_ACCESSIBLE_MEMORY_ADDRESS =
+    0x00000000'00010000;
+inline constexpr auto WIN_X86_64_MAX_ACCESSIBLE_MEMORY_ADDRESS =
+    0x00007FFF'FFFFFFFF;
 alwaysinline constexpr bool nonnull(uintptr_t ptr) {
-  return ptr >= 0x00000000'00010000 && ptr <= 0x00007FFF'FFFFFFFF;
+  return ptr >= WIN_X86_64_MIN_ACCESSIBLE_MEMORY_ADDRESS &&
+         ptr <= WIN_X86_64_MAX_ACCESSIBLE_MEMORY_ADDRESS;
 }
 
 template <typename T> alwaysinline constexpr bool nonnull(const T *ptr) {

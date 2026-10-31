@@ -1114,7 +1114,7 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
     uintptr_t target;
     const char *found;
   };
-  lookup_ctx ctx{bytecode_header, nullptr};
+  lookup_ctx ctx{.target = bytecode_header, .found = nullptr};
 
   xasset::DB_EnumXAssets(
       xasset::XAssetType::RAWFILE,
@@ -1406,7 +1406,7 @@ std::string colorize_lua_error(const char *error_loc, const char *error_stack) {
       continue;
     }
 
-    if (trimmed.find("[C]:") == 0 || trimmed.find("<native>") == 0) {
+    if (trimmed.starts_with("[C]:") || trimmed.starts_with("<native>")) {
       size_t quote_start = trimmed.find('\'');
       size_t quote_end = trimmed.rfind('\'');
       if (quote_start != std::string::npos && quote_end > quote_start) {
@@ -1733,7 +1733,7 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
   }
 
 #ifndef NDEBUG
-  game::trace("Calling load_dll with filename: \"{}\", func_name: \"{}\"",
+  game::trace(R"(Calling load_dll with filename: "{}", func_name: "{}")",
               filename ? filename : "NULL", func_name ? func_name : "NULL");
 #endif
   if (filename) {
@@ -2690,7 +2690,7 @@ public:
             game::ui_error_callstack_ship->set(true);
 
             game::ui_error_report_delay->flags().clear();
-            game::ui_error_report_delay->set(true);
+            game::ui_error_report_delay->set(1u);
           },
           scheduler::pipeline::renderer);
 

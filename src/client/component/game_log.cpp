@@ -66,8 +66,8 @@ void g_log_printf_stub(const char *fmt, ...) {
 }
 
 game::EngineDependentDvar register_g_log_stub() {
-  return game::register_dvar_string("g_log", "games_mp.log", game::DVAR_NONE,
-                                    "Log file path");
+  return game::register_dvar_string("g_log", "games_mp.log",
+                                    game::dvarFlags_e::NONE, "Log file path");
 }
 } // namespace
 

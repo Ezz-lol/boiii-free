@@ -716,7 +716,7 @@ struct component final : client_component {
     network::on("friendInviteFailed", receive_invite_failed);
     scheduler::loop(record_recent_players, scheduler::main, 10s);
 
-    game::register_dvar_bool("friends_open", false, game::DVAR_NONE,
+    game::register_dvar_bool("friends_open", false, game::dvarFlags_e::NONE,
                              "Advertise this private match to saved friends");
     command::add("friends_open", [](const command::params &) {
       const bool enabled = !game::get_dvar_bool("friends_open").value_or(false);

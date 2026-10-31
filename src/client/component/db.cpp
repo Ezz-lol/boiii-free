@@ -155,9 +155,9 @@ public:
         Com_GametypeSettings_SetGametype_GetOrInitGameTypeSettingsDDL);
 
     PrintWaitedError_hook.create(PrintWaitedError.get(), PrintWaitedError_stub);
-    db_log_missing_assets =
-        register_dvar_bool("db_logMissingAssets", false, DVAR_NONE,
-                           "Print every asset that couldn't be found");
+    db_log_missing_assets = register_dvar_bool(
+        "db_logMissingAssets", false, game::dvarFlags_e::NONE,
+        "Print every asset that couldn't be found");
 
     if (game::is_client()) {
       command::add("DB_FreeUnusedResources", [](const command::params &params) {

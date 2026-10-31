@@ -565,11 +565,11 @@ public:
 
     cl_yaw_speed = game::register_dvar_float(
         "cl_yawspeed", 140.0f, std::numeric_limits<float>::min(),
-        std::numeric_limits<float>::max(), game::DVAR_NONE,
+        std::numeric_limits<float>::max(), game::dvarFlags_e::NONE,
         "Max yaw speed in degrees for game pad and keyboard");
     cl_pitch_speed = game::register_dvar_float(
         "cl_pitchspeed", 140.0f, std::numeric_limits<float>::min(),
-        std::numeric_limits<float>::max(), game::DVAR_NONE,
+        std::numeric_limits<float>::max(), game::dvarFlags_e::NONE,
         "Max pitch speed in degrees for game pad");
 
     // CL_AdjustAngles
@@ -632,7 +632,7 @@ public:
     if (game::is_new_client()) {
       utils::hook::call(0x1400AAB93_g, register_config_string_print_stub);
       cl_log_config_strings = game::register_dvar_bool(
-          "cl_logConfigStrings", false, game::DVAR_NONE,
+          "cl_logConfigStrings", false, game::dvarFlags_e::NONE,
           "Print every config string the client registers");
     }
   }

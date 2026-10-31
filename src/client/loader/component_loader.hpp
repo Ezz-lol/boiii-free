@@ -23,10 +23,7 @@ class premature_shutdown_trigger final : public std::exception {
   }
 };
 
-template <typename T> class installer final {
-  static_assert(std::is_base_of_v<generic_component, T>,
-                "component has invalid base class");
-
+template <BasedOn<generic_component> T> class installer final {
 public:
   installer() {
     register_component([] { return std::make_unique<T>(); }, T::type);

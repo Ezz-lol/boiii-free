@@ -27,24 +27,26 @@ class component final : public client_component {
 public:
   void post_unpack() override {
     for (flag_setting *setting : all_settings) {
-      setting->dvar = game::register_dvar_bool(
-          setting->dvar_name, false, game::DVAR_ARCHIVE, setting->description);
+      setting->dvar = game::register_dvar_bool(setting->dvar_name, false,
+                                               game::dvarFlags_e::ARCHIVE,
+                                               setting->description);
     }
 
-    game::register_dvar_int("boiii_xpBarPosition", 0, 0, 1, game::DVAR_ARCHIVE,
+    game::register_dvar_int("boiii_xpBarPosition", 0, 0, 1,
+                            game::dvarFlags_e::ARCHIVE,
                             "Where the XP bar sits: 0 = bottom, 1 = top");
     game::register_dvar_bool(
-        "boiii_xpBarPopups", true, game::DVAR_ARCHIVE,
+        "boiii_xpBarPopups", true, game::dvarFlags_e::ARCHIVE,
         "Show a popup with the XP earned next to the XP bar");
     game::register_dvar_int(
-        "boiii_xpBarColor", 0, 0, 6, game::DVAR_ARCHIVE,
+        "boiii_xpBarColor", 0, 0, 6, game::dvarFlags_e::ARCHIVE,
         "XP bar color: 0 = orange, 1 = gold, 2 = blue, 3 = green, 4 = red, "
         "5 = purple, 6 = white");
     game::register_dvar_int(
-        "boiii_loadingScreen", 0, 0, 2, game::DVAR_ARCHIVE,
+        "boiii_loadingScreen", 0, 0, 2, game::dvarFlags_e::ARCHIVE,
         "Loading screen: 0 = default, 1 = map image, 2 = cinematic");
     game::register_dvar_bool(
-        "boiii_advancedBots", false, game::DVAR_ARCHIVE,
+        "boiii_advancedBots", false, game::dvarFlags_e::ARCHIVE,
         "Multiplayer bots use the advanced AI from custom_bots.gsc");
 
     apply_flags();

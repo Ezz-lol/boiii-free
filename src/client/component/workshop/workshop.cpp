@@ -1532,12 +1532,12 @@ public:
 
     if (game::is_client()) {
       workshop_retry_attempts = game::register_dvar_int(
-          "workshop_retry_attempts", 30, 1, 1000, game::DVAR_ARCHIVE,
+          "workshop_retry_attempts", 30, 1, 1000, game::dvarFlags_e::ARCHIVE,
           "Number of connection retry attempts for workshop downloads "
           "(default "
           "15, increase for slow connections)");
       workshop_timeout = game::register_dvar_int(
-          "workshop_timeout", 300, 60, 3600, game::DVAR_ARCHIVE,
+          "workshop_timeout", 300, 60, 3600, game::dvarFlags_e::ARCHIVE,
           "Download timeout in seconds for workshop items (reserved for "
           "future "
           "use)");

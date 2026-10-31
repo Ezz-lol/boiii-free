@@ -760,9 +760,9 @@ struct component final : client_component {
   DEFINE_COMPONENT_NAME("party");
 
   void post_unpack() override {
-    cl_connected_to_dedi =
-        game::register_dvar_bool("cl_connected_to_dedi", false, game::DVAR_NONE,
-                                 "True when connected to a dedicated server");
+    cl_connected_to_dedi = game::register_dvar_bool(
+        "cl_connected_to_dedi", false, game::dvarFlags_e::NONE,
+        "True when connected to a dedicated server");
 
     utils::hook::jump(game::select(0x141ED9670, 0x141EE5FE0, 0x0),
                       &connect_stub);

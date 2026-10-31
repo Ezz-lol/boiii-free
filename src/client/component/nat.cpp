@@ -1008,7 +1008,7 @@ public:
 
     scheduler::once(
         [] {
-          game::register_dvar_bool("nat_open", false, game::DVAR_NONE,
+          game::register_dvar_bool("nat_open", false, game::dvarFlags_e::NONE,
                                    "Allow friends to join this match");
         },
         scheduler::main);

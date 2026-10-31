@@ -31,8 +31,9 @@ struct component final : client_component {
                       cg_calc_fov_stub);
 
     // Patch cg_fovScale flags
-    utils::hook::set<uint32_t>(game::select(0x14090E735, 0x14090E735, 0x0),
-                               game::DVAR_ARCHIVE);
+    utils::hook::set<game::dvarFlags_e>(
+        game::select(0x14090E735, 0x14090E735, 0x0),
+        game::dvarFlags_e::ARCHIVE);
 
     // Don't reset cg_fovScale
     utils::hook::set<uint8_t>(game::select(0x140926D2A, 0x140926D2A, 0x0),

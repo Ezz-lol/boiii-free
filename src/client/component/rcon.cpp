@@ -94,7 +94,7 @@ struct component final : server_component {
   void post_unpack() override {
     network::on("rcon", rcon_handler);
     rcon_timeout = game::register_dvar_int("rcon_timeout", 500, 100, 10000,
-                                           game::DVAR_NONE, "");
+                                           game::dvarFlags_e::NONE, "");
   }
 };
 } // namespace rcon

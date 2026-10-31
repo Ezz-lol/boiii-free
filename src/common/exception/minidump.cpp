@@ -24,7 +24,9 @@ std::string get_temp_filename() {
 
 HANDLE write_dump_to_temp_file(const LPEXCEPTION_POINTERS exceptioninfo) {
   MINIDUMP_EXCEPTION_INFORMATION minidump_exception_info = {
-      GetCurrentThreadId(), exceptioninfo, FALSE};
+      .ThreadId = GetCurrentThreadId(),
+      .ExceptionPointers = exceptioninfo,
+      .ClientPointers = FALSE};
 
   HANDLE file_handle = CreateFileA(
       get_temp_filename().data(), GENERIC_WRITE | GENERIC_READ,

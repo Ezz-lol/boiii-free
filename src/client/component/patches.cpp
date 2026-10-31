@@ -448,7 +448,7 @@ struct component final : generic_component {
                       sv_execute_client_messages_stub);
 
     lobby_min_players = game::register_dvar_int("lobby_min_players", 0, 0, 8,
-                                                game::DVAR_NONE, "");
+                                                game::dvarFlags_e::NONE, "");
 
     utils::hook::jump(game::select(0x141A6F920, 0x141A7BCF0, 0x1402CB900),
                       scr_get_num_expected_players, true);

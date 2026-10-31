@@ -44,7 +44,7 @@ private:
 #if HAS_NATIVE_FLOAT128
   native_float128_t value_{0.0};
 #else
-  detail::DoubleDouble value_{0.0, 0.0};
+  detail::DoubleDouble value_{.hi = 0.0, .lo = 0.0};
 #endif
 
 public:
@@ -98,8 +98,12 @@ public:
     return value_;
   }
 #else
-  inline constexpr double hi() const noexcept { return value_.hi; }
-  inline constexpr double lo() const noexcept { return value_.lo; }
+  [[nodiscard]] inline constexpr double hi() const noexcept {
+    return value_.hi;
+  }
+  [[nodiscard]] inline constexpr double lo() const noexcept {
+    return value_.lo;
+  }
 #endif
 
   // Explicit Conversions
@@ -136,7 +140,7 @@ public:
     res.value_ = -value_;
     return res;
 #else
-    return float128(-value_.hi, -value_.lo);
+    return {-value_.hi, -value_.lo};
 #endif
   }
 
@@ -280,7 +284,7 @@ namespace detail {
 // Compile-time string parser implementation
 inline constexpr float128 parse_float128(std::string_view sv) noexcept {
   if (sv.empty())
-    return float128(0.0);
+    return {0.0};
 
   std::size_t idx = 0;
   while (idx < sv.size() && (sv[idx] == ' ' || sv[idx] == '\t' ||
@@ -288,7 +292,7 @@ inline constexpr float128 parse_float128(std::string_view sv) noexcept {
     ++idx;
   }
   if (idx >= sv.size())
-    return float128(0.0);
+    return {0.0};
 
   bool negative = false;
   if (sv[idx] == '-') {
@@ -309,7 +313,7 @@ inline constexpr float128 parse_float128(std::string_view sv) noexcept {
     if ((sv[idx] == 'n' || sv[idx] == 'N') &&
         (sv[idx + 1] == 'a' || sv[idx + 1] == 'A') &&
         (sv[idx + 2] == 'n' || sv[idx + 2] == 'N')) {
-      return float128(std::numeric_limits<double>::quiet_NaN());
+      return {std::numeric_limits<double>::quiet_NaN()};
     }
   }
 
@@ -381,11 +385,11 @@ inline constexpr float128 parse_float128(std::string_view sv) noexcept {
 
 // User-Defined Literals
 inline constexpr float128 operator""_f128(long double val) noexcept {
-  return float128(static_cast<double>(val));
+  return {static_cast<double>(val)};
 }
 
 inline constexpr float128 operator""_f128(unsigned long long val) noexcept {
-  return float128(val);
+  return {val};
 }
 
 inline constexpr float128 operator""_f128(const char *str,
@@ -406,7 +410,7 @@ inline constexpr float128 abs(const float128 &f) noexcept {
 
 inline constexpr float128 sqrt(const float128 &f) noexcept {
   if (f <= float128(0))
-    return float128(0);
+    return {0};
 #if HAS_NATIVE_FLOAT128 &&                                                     \
     (defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 7))
   return float128(__builtin_sqrtf128(f.native_value()));
@@ -538,41 +542,39 @@ public:
       std::numeric_limits<double>::max_exponent10;
 
   static inline constexpr float128 min() noexcept {
-    return float128(std::numeric_limits<double>::min(), 0.0);
+    return {std::numeric_limits<double>::min(), 0.0};
   }
 
   static inline constexpr float128 max() noexcept {
-    return float128(1.79769313486231570815e+308, 1.99584030953471981165e+292);
+    return {1.79769313486231570815e+308, 1.99584030953471981165e+292};
   }
 
   static inline constexpr float128 lowest() noexcept {
-    return float128(-1.79769313486231570815e+308, -1.99584030953471981165e+292);
+    return {-1.79769313486231570815e+308, -1.99584030953471981165e+292};
   }
 
   static inline constexpr float128 epsilon() noexcept {
-    return float128(2.46519032881566189191e-32, 0.0);
+    return {2.46519032881566189191e-32, 0.0};
   }
 
   static inline constexpr float128 denorm_min() noexcept {
-    return float128(std::numeric_limits<double>::denorm_min(), 0.0);
+    return {std::numeric_limits<double>::denorm_min(), 0.0};
   }
 
   static inline constexpr float128 infinity() noexcept {
-    return float128(std::numeric_limits<double>::infinity(), 0.0);
+    return {std::numeric_limits<double>::infinity(), 0.0};
   }
 
   static inline constexpr float128 quiet_NaN() noexcept {
-    return float128(std::numeric_limits<double>::quiet_NaN(), 0.0);
+    return {std::numeric_limits<double>::quiet_NaN(), 0.0};
   }
 
   static inline constexpr float128 signaling_NaN() noexcept {
-    return float128(std::numeric_limits<double>::signaling_NaN(), 0.0);
+    return {std::numeric_limits<double>::signaling_NaN(), 0.0};
   }
 #endif
 
-  static inline constexpr float128 round_error() noexcept {
-    return float128(0.5);
-  }
+  static inline constexpr float128 round_error() noexcept { return {0.5}; }
 };
 
 typedef float128 float128_t;

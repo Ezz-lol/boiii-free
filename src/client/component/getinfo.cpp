@@ -51,17 +51,18 @@ struct component final : generic_component {
 
   void post_unpack() override {
 
-    game::sv_wwwDownload = game::register_dvar_bool(
-        "sv_wwwDownload", false, game::DVAR_NONE, "Enable http downloads");
+    game::sv_wwwDownload = game::register_dvar_bool("sv_wwwDownload", false,
+                                                    game::dvarFlags_e::NONE,
+                                                    "Enable http downloads");
     game::sv_wwwDlDisconnected = game::register_dvar_bool(
-        "sv_wwwDlDisconnected", true, game::DVAR_NONE,
+        "sv_wwwDlDisconnected", true, game::dvarFlags_e::NONE,
         "Should clients stay connected while downloading?");
     scheduler::once(
         []() {
           const std::string configured =
               std::string(game::get_dvar_string("sv_wwwBaseURL").value_or(""));
           game::sv_wwwBaseURL = game::register_dvar_string(
-              "sv_wwwBaseURL", configured.c_str(), game::DVAR_NONE,
+              "sv_wwwBaseURL", configured.c_str(), game::dvarFlags_e::NONE,
               "The base url for files downloaded via http");
         },
         scheduler::pipeline::main);

@@ -40,15 +40,15 @@ template <SerializablePtr T> inline std::string serialize(const T &ptr) {
   return ::readable_ptr(ptr) ? ptr->serialize() : "NULL";
 }
 
-inline std::string serialize(const void *ptr) {
+[[nodiscard]] inline std::string serialize(const void *ptr) {
   return std::format("{:p}", ptr);
 }
 
-inline std::string serialize(const uintptr_t ptr) {
+[[nodiscard]] inline std::string serialize(const uintptr_t ptr) {
   return serialize(reinterpret_cast<const void *>(ptr));
 }
 
-inline std::string serialize(const intptr_t ptr) {
+[[nodiscard]] inline std::string serialize(const intptr_t ptr) {
   return serialize(reinterpret_cast<const void *>(ptr));
 }
 
@@ -59,21 +59,21 @@ template <Serializable T> inline std::string serialize(const T &ptr) {
 template <typename T>
   requires(std::is_integral_v<T> && !std::is_same_v<T, char> &&
            !std::is_same_v<T, bool>)
-inline std::string serialize(const T *const(&val)) {
+[[nodiscard]] inline std::string serialize(const T *const(&val)) {
   return val ? std::format("0x{:X}", *val) : "NULL";
 }
 
 template <typename T>
   requires(std::floating_point<T> && !std::is_same_v<T, char> &&
            !std::is_same_v<T, bool>)
-inline std::string serialize(const T *const(&val)) {
+[[nodiscard]] inline std::string serialize(const T *const(&val)) {
   return val ? std::to_string(*val) : "NULL";
 }
 
 template <typename T>
   requires(std::is_integral_v<T> && !std::is_enum_v<T> &&
            !std::is_same_v<T, bool> && !std::is_same_v<T, char>)
-inline std::string serialize(const T *arr, const size_t N) {
+[[nodiscard]] inline std::string serialize(const T *arr, const size_t N) {
   std::string result = "[";
   if (N && arr) {
     result += std::format("0x{:X}", arr[0]);
@@ -89,7 +89,8 @@ inline std::string serialize(const T *arr, const size_t N) {
 template <typename T>
   requires(std::is_integral_v<T> && !std::is_enum_v<T> &&
            !std::is_same_v<T, bool> && !std::is_same_v<T, char>)
-inline std::string serialize(const T *const *const arr, const size_t N) {
+[[nodiscard]] inline std::string serialize(const T *const *const arr,
+                                           const size_t N) {
   std::string result = "[";
   if (N && arr && arr[0]) {
     result += std::format("0x{:X}", *arr[0]);
@@ -106,7 +107,8 @@ inline std::string serialize(const T *const *const arr, const size_t N) {
 
 template <typename T>
   requires(std::is_floating_point_v<T>)
-inline std::string serialize(const T *const *const arr, const size_t N) {
+[[nodiscard]] inline std::string serialize(const T *const *const arr,
+                                           const size_t N) {
   std::string result = "[";
   if (N && arr && arr[0]) {
     result += std::format("{}", *arr[0]);
@@ -123,7 +125,7 @@ inline std::string serialize(const T *const *const arr, const size_t N) {
 
 template <typename T>
   requires(std::is_floating_point_v<T>)
-inline std::string serialize(const T *arr, const size_t N) {
+[[nodiscard]] inline std::string serialize(const T *arr, const size_t N) {
   std::string result = "[";
   if (N && arr) {
     result += std::format("{}", arr[0]);
@@ -138,7 +140,7 @@ inline std::string serialize(const T *arr, const size_t N) {
 
 template <typename T>
   requires(std::is_enum_v<T> || std::is_same_v<T, bool>)
-inline std::string serialize(const T *const arr, const size_t N) {
+[[nodiscard]] inline std::string serialize(const T *const arr, const size_t N) {
   std::string result = "[";
   if (N && arr) {
     result += std::format(", {}", serialize(arr[0]));
@@ -154,7 +156,8 @@ inline std::string serialize(const T *const arr, const size_t N) {
 template <typename T>
   requires(std::is_enum_v<T> || std::is_same_v<T, bool> ||
            std::is_same_v<T, char>)
-inline std::string serialize(const T *const *const arr, const size_t N) {
+[[nodiscard]] inline std::string serialize(const T *const *const arr,
+                                           const size_t N) {
   std::string result = "[";
   if (N && arr && arr[0]) {
     if constexpr (std::is_same_v<T, char>) {
@@ -178,7 +181,7 @@ inline std::string serialize(const T *const *const arr, const size_t N) {
 }
 
 template <SerializablePtr T>
-inline std::string serialize(const T arr, const size_t N) {
+[[nodiscard]] inline std::string serialize(const T arr, const size_t N) {
   std::string result = "[";
   if (N && arr) {
     // Delegate to global ::serialize to allow recursive requirement resolution
@@ -193,7 +196,7 @@ inline std::string serialize(const T arr, const size_t N) {
 }
 
 template <SerializablePtr T>
-inline std::string serialize(const T *arr, const size_t N) {
+[[nodiscard]] inline std::string serialize(const T *arr, const size_t N) {
   std::string result = "[";
   if (N && arr && arr[0]) {
     // Delegate to global ::serialize to allow recursive requirement resolution
@@ -210,51 +213,52 @@ inline std::string serialize(const T *arr, const size_t N) {
 }
 
 template <typename T, const size_t N>
-  requires(std::is_integral_v<T> && !std::is_enum_v<T> &&
-           !std::is_same_v<T, bool> && !std::is_same_v<T, char>)
-inline std::string serialize(const T (&arr)[N]) {
+  requires(std::is_integral_v<T> || std::is_enum_v<T> ||
+           std::is_same_v<T, bool> || std::is_same_v<T, char> ||
+           std::is_floating_point_v<T>)
+[[nodiscard]] inline std::string serialize(const T (&arr)[N]) {
   return serialize(&arr[0], N);
 }
 
 template <typename T, const size_t N>
-  requires(std::is_floating_point_v<T>)
-inline std::string serialize(const T (&arr)[N]) {
-  return serialize(&arr[0], N);
-}
-
-template <typename T, const size_t N>
-  requires(std::is_enum_v<T> || std::is_same_v<T, bool> ||
-           std::is_same_v<T, char>)
-inline std::string serialize(const T (&arr)[N]) {
+  requires(std::is_integral_v<T> || std::is_enum_v<T> ||
+           std::is_same_v<T, bool> || std::is_same_v<T, char> ||
+           std::is_floating_point_v<T>)
+[[nodiscard]] inline std::string serialize(const volatile T (&arr)[N]) {
   return serialize(&arr[0], N);
 }
 
 template <Serializable T, const size_t N>
-inline std::string serialize(const T (&arr)[N]) {
+[[nodiscard]] inline std::string serialize(const T (&arr)[N]) {
+  return serialize(&arr[0], N);
+}
+
+template <Serializable T, const size_t N>
+[[nodiscard]] inline std::string serialize(const volatile T (&arr)[N]) {
   return serialize(&arr[0], N);
 }
 
 template <typename T, const size_t N>
   requires(std::is_integral_v<T> && !std::is_enum_v<T> &&
            !std::is_same_v<T, bool> && !std::is_same_v<T, char>)
-inline std::string serialize(const T *const (&arr)[N]) {
+[[nodiscard]] inline std::string serialize(const T *const (&arr)[N]) {
   return serialize(&arr[0], N);
 }
 
 template <typename T, const size_t N>
   requires(std::is_floating_point_v<T>)
-inline std::string serialize(const T *const (&arr)[N]) {
+[[nodiscard]] inline std::string serialize(const T *const (&arr)[N]) {
   return serialize(&arr[0], N);
 }
 
 template <typename T, const size_t N>
   requires(std::is_enum_v<T> || std::is_same_v<T, bool> ||
            std::is_same_v<T, char>)
-inline std::string serialize(const T *const (&arr)[N]) {
+[[nodiscard]] inline std::string serialize(const T *const (&arr)[N]) {
   return serialize(&arr[0], N);
 }
 
 template <SerializablePtr T, const size_t N>
-inline std::string serialize(const T (&arr)[N]) {
+[[nodiscard]] inline std::string serialize(const T (&arr)[N]) {
   return serialize(&arr[0], N);
 }

@@ -3,6 +3,8 @@
 #include <vector>
 #include <windows.h>
 
+#include <utils/nt.hpp>
+
 bool valid_heap_ptr(uintptr_t ptr) {
   if (ptr) {
     // Get the number of heaps belonging to the current process
@@ -49,6 +51,10 @@ bool valid_heap_ptr(uintptr_t ptr) {
   return false;
 }
 
+constexpr DWORD READ_FLAGS = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY |
+                             PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE |
+                             PAGE_EXECUTE_WRITECOPY;
+constexpr DWORD PROTECT_FLAGS = PAGE_GUARD | PAGE_NOACCESS;
 /// NOTE: DO NOT USE ON WINDOWS. Wine performs this check very quickly, but
 /// using this on Windows _throttles_ performance.
 /// @brief Rapidly checks if a memory address is committed and readable.
@@ -56,25 +62,21 @@ bool valid_heap_ptr(uintptr_t ptr) {
 bool readable_ptr(uintptr_t ptr) {
   if (ptr) {
 
-    MEMORY_BASIC_INFORMATION mbi;
-    if (VirtualQuery(reinterpret_cast<LPCVOID>(ptr), &mbi, sizeof(mbi))) {
-      // Check if the memory page is committed (actually exists in physical
-      // memory/pagefile)
-      if (mbi.State != MEM_COMMIT) {
-        return false;
-      }
-
-      // Check if the page has guard or no-access protections
-      if (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS)) {
-        return false;
-      }
-
-      // Check if we have some form of read access
-      const DWORD read_flags = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY |
-                               PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE |
-                               PAGE_EXECUTE_WRITECOPY;
-
-      return (mbi.Protect & read_flags) != 0;
+    // `VirtualQuery` is extremely slow on Windows. Use only in wine, and
+    // otherwise use an ugly try-catch block.
+    if (utils::nt::is_wine()) {
+      MEMORY_BASIC_INFORMATION mbi;
+      return VirtualQuery(reinterpret_cast<LPCVOID>(ptr), &mbi, sizeof(mbi)) &&
+             mbi.State == MEM_COMMIT && (mbi.Protect & PROTECT_FLAGS) == 0 &&
+             (mbi.Protect & READ_FLAGS) != 0;
+    }
+  } else {
+    __try {
+      [[maybe_unused]] const char _c = *reinterpret_cast<const char *>(ptr);
+      return true;
+    } __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION
+                    ? EXCEPTION_EXECUTE_HANDLER
+                    : EXCEPTION_CONTINUE_SEARCH) {
     }
   }
 

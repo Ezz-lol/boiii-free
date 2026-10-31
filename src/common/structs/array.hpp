@@ -1,9 +1,13 @@
 #pragma once
 
+#include <algorithm>
+#include <array>
 #include <bit>
 #include <cassert>
 #include <cstdint>
-#include <macros/macros.hpp>
+
+#include "macros/byte.hpp"          // IWYU pragma: keep
+#include "macros/type/integral.hpp" // IWYU pragma: keep
 
 template <typename T, const IntegralLike auto N>
 using array = T[static_cast<size_t>(N)];
@@ -70,18 +74,20 @@ struct aligned_array {
   inline operator const array<T, N> &() const noexcept { return items; }
   inline operator array<T, N> &() noexcept { return items; }
 
-  inline constexpr const void *allocation() const noexcept {
+  [[nodiscard]] inline constexpr const void *allocation() const noexcept {
     return reintepret_cast<const void *>(
         static_cast<uintptr_t>(this) -
         /* padding */
-        std::max<size_t>(alignment_size(sizeof(T) * N, Align), 0x8) -
+        std::max<size_t>(alignment_size(sizeof(T) * N, Align),
+                         sizeof(uintptr_t)) -
         /* original allocation pointer */ sizeof(void *));
   }
-  inline constexpr void *allocation() noexcept {
+  [[nodiscard]] inline constexpr void *allocation() noexcept {
     return reinterpret_cast<void *>(
         static_cast<uintptr_t>(this) -
         /* padding */
-        std::max<size_t>(alignment_size(sizeof(T) * N, Align), 0x8) -
+        std::max<size_t>(alignment_size(sizeof(T) * N, Align),
+                         sizeof(uintptr_t)) -
         /* original allocation pointer */ sizeof(void *));
   }
 };
@@ -127,7 +133,7 @@ struct aligned_array_ref {
   inline operator const array<T, N> &() const noexcept { return *ref; }
   inline operator array<T, N> &() noexcept { return *ref; }
 
-  inline constexpr const void *allocation() const noexcept {
+  [[nodiscard]] inline constexpr const void *allocation() const noexcept {
     return ref->allocation();
   }
   inline constexpr void *allocation() noexcept { return ref->allocation(); }

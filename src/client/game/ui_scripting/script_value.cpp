@@ -51,14 +51,14 @@ void hks_object::assign(const HksObject &value) {
     const detail::api_stack_guard stack_guard{state};
 
     push_value(this->value_);
-    this->ref_ = hksi_luaL_ref(state, -10000);
+    this->ref_ = hksi_luaL_ref(state, game::lua::LUA_REGISTRYINDEX);
   }
 }
 
 void hks_object::release() {
   lua_State *state = *primary_luaVM;
   if (this->ref_ && state) {
-    hksi_luaL_unref(state, -10000, this->ref_);
+    hksi_luaL_unref(state, game::lua::LUA_REGISTRYINDEX, this->ref_);
     this->value_.t = HksObjectType::TNONE;
     this->ref_ = 0;
   }

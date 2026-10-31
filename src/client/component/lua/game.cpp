@@ -772,7 +772,7 @@ public:
                                   getgpupreference>(),
         lua_state::luaL_LoggedReg<"game", "setgpupreference",
                                   setgpupreference>(),
-        {nullptr, nullptr},
+        {.name = nullptr, .function = nullptr},
     };
     lua_state::register_library("game", GameLibrary);
 
@@ -780,7 +780,7 @@ public:
       scheduler::once(
           [] {
             game::register_dvar_string("voice_input_device", "",
-                                       game::DVAR_ARCHIVE,
+                                       game::dvarFlags_e::ARCHIVE,
                                        "Microphone used for voice chat");
           },
           scheduler::main);

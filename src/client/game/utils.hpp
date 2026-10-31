@@ -177,7 +177,7 @@ EngineDependentDvarMut register_dvar_string(const char *dvar_name,
 template <DvarFlagLike T>
 void dvar_add_flags(EngineDependentDvarMut dvar, const T flags) {
   if (dvar) {
-    dvar.flags() |= flags;
+    dvar.flags() |= static_cast<uint32_t>(flags);
   }
 }
 template <DvarFlagLike T>
@@ -208,7 +208,7 @@ void dvar_set_flags(const char *dvar_name, const T flags) {
 template <DvarFlagLike T>
 void dvar_remove_flags(EngineDependentDvarMut dvar, const T flags) {
   if (dvar) {
-    dvar.flags() &= ~flags;
+    dvar.flags() &= ~static_cast<uint32_t>(flags);
   }
 }
 

@@ -49,24 +49,25 @@ public:
   template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator=(const Rhs &rhs) noexcept {
     value() = static_cast<Underlying>(rhs);
-    return value();
+
+    return *this;
   }
 
   template <IntegralLike<Underlying> Rhs>
   inline constexpr volatile Enum &operator=(const Rhs &rhs) volatile noexcept {
     value() = static_cast<Underlying>(rhs);
-    return value();
+    return *this;
   }
 
   inline constexpr Enum<Underlying> &operator=(const Underlying &rhs) noexcept {
     value() = static_cast<Underlying>(rhs);
-    return value();
+    return *this;
   }
 
   inline constexpr volatile Enum<Underlying> &
   operator=(const Underlying &rhs) volatile noexcept {
     value() = static_cast<Underlying>(rhs);
-    return value();
+    return *this;
   }
 
   // Implicit conversion to any integral type

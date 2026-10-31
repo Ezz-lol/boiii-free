@@ -1,9 +1,4 @@
-//
-//  HTTPRequest
-//
-
-#ifndef HTTPREQUEST_HPP
-#define HTTPREQUEST_HPP
+#pragma once
 
 #include <algorithm>
 #include <array>
@@ -1165,5 +1160,3 @@ private:
   Uri uri;
 };
 } // namespace http
-
-#endif // HTTPREQUEST_HPP

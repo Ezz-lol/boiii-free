@@ -249,13 +249,13 @@ public:
       scheduler::once(
           [] {
             sv_sayname = game::register_dvar_string(
-                "sv_sayname", "Server", game::DVAR_SERVERINFO,
+                "sv_sayname", "Server", game::dvarFlags_e::SERVERINFO,
                 "Custom name for server chat messages");
           },
           scheduler::pipeline::main);
 
       g_deadChat = game::register_dvar_bool(
-          "g_deadChat", false, game::DVAR_NONE,
+          "g_deadChat", false, game::dvarFlags_e::NONE,
           "Allow dead players to chat with living players");
 
       utils::hook::jump(0x140299051_g, utils::hook::assemble(g_say_to_stub));
@@ -263,7 +263,7 @@ public:
       scheduler::once(
           [] {
             sv_sayname = game::register_dvar_string(
-                "sv_sayname", "", game::DVAR_SERVERINFO,
+                "sv_sayname", "", game::dvarFlags_e::SERVERINFO,
                 "Custom name for server chat messages");
           },
           scheduler::pipeline::main);

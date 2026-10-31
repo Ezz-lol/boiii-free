@@ -128,7 +128,7 @@ constexpr const char supported_client_patch_url[] =
     "https://archive.org/download/black-ops-3_20260926/BlackOps3.exe";
 constexpr const char backup_supported_client_patch_url[] =
     "https://archive.org/download/black-ops-3_20260927/BlackOps3.exe";
-constexpr const char *supported_client_patch_sha1 =
+constexpr const char supported_client_patch_sha1[] =
     "9D03F81086112113BFB1DD22B8538B9398AC3B9B";
 
 enum class client_binary_state {
@@ -269,17 +269,15 @@ void close_running_client_binary_processes() {
   }
 }
 
-std::string
-get_manual_client_patch_message(const client_binary_state /*state*/) {
-  return "Incompatible game version detected:\n"
-         "The installed BlackOps3.exe version is not compatible with this "
-         "BOIII build.\n"
-         "This usually happens because Black Ops 3 was updated and BOIII "
-         "needs the older compatible BlackOps3.exe version.\n"
-         "To fix this, download the compatible BlackOps3.exe and replace the "
-         "one in your game directory.\n"
-         "You can find a download link under Settings => Patches.";
-}
+constexpr const char MANUAL_CLIENT_PATCH_MESSAGE[] =
+    "Incompatible game version detected:\n"
+    "The installed BlackOps3.exe version is not compatible with this "
+    "BOIII build.\n"
+    "This usually happens because Black Ops 3 was updated and BOIII "
+    "needs the older compatible BlackOps3.exe version.\n"
+    "To fix this, download the compatible BlackOps3.exe and replace the "
+    "one in your game directory.\n"
+    "You can find a download link under Settings => Patches.";
 
 std::string get_client_patch_prompt_message(const client_binary_state /*state*/,
                                             const bool close_running_game) {
@@ -317,18 +315,15 @@ std::string format_download_size(const size_t bytes) {
   const double megabytes = kilobytes / 1024.0;
   const double gigabytes = megabytes / 1024.0;
 
-  char buffer[64] = {};
   if (gigabytes >= 1.0) {
-    snprintf(buffer, sizeof(buffer), "%.2f GB", gigabytes);
+    return std::format("{:.2f} GB", gigabytes);
   } else if (megabytes >= 1.0) {
-    snprintf(buffer, sizeof(buffer), "%.2f MB", megabytes);
+    return std::format("{:.2f} MB", megabytes);
   } else if (kilobytes >= 1.0) {
-    snprintf(buffer, sizeof(buffer), "%.2f KB", kilobytes);
+    return std::format("{:.2f} KB", kilobytes);
   } else {
-    snprintf(buffer, sizeof(buffer), "%zu B", bytes);
+    return std::format("{} B", bytes);
   }
-
-  return buffer;
 }
 
 void install_supported_client_binary(
@@ -807,21 +802,21 @@ bool resolve_game_path() {
               SetCurrentDirectoryA(selected.c_str());
               path_set = true;
               {
-                std::lock_guard lock(setup_folder_mutex);
+                std::scoped_lock lock(setup_folder_mutex);
                 setup_folder_result = selected;
               }
               PostMessage(static_cast<HWND>(*(setup_window.get_window())),
                           WM_CLOSE, 0, 0);
             }
           } else {
-            std::lock_guard lock(setup_folder_mutex);
+            std::scoped_lock lock(setup_folder_mutex);
             setup_folder_result = "cancelled";
           }
           CoUninitialize();
           setup_folder_done = true;
           setup_folder_busy = false;
         }).detach();
-        return CComVariant("ok");
+        return {"ok"};
       });
 
   setup_window.get_html_frame()->register_callback(
@@ -829,9 +824,9 @@ bool resolve_game_path() {
       [&setup_folder_done, &setup_folder_mutex, &setup_folder_result](
           const std::vector<html_argument> & /*params*/) -> CComVariant {
         if (!setup_folder_done.load())
-          return CComVariant("pending");
-        std::lock_guard lock(setup_folder_mutex);
-        return CComVariant(setup_folder_result.c_str());
+          return {"pending"};
+        std::scoped_lock lock(setup_folder_mutex);
+        return {setup_folder_result.c_str()};
       });
 
   setup_window.get_html_frame()->load_html(R"html(
@@ -1079,14 +1074,11 @@ int main(int argc, char *argv[]) {
       }
 
       if (is_server != game::is_server()) {
-        throw std::runtime_error(
-            get_manual_client_patch_message(client_binary_state::incompatible));
+        throw std::runtime_error(MANUAL_CLIENT_PATCH_MESSAGE);
       }
 
       if (!is_server && !game::is_client()) {
-        throw std::runtime_error(get_manual_client_patch_message(
-            game::is_legacy_client() ? client_binary_state::legacy
-                                     : client_binary_state::incompatible));
+        throw std::runtime_error(MANUAL_CLIENT_PATCH_MESSAGE);
       }
 
       patch_imports();

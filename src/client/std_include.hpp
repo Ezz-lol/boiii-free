@@ -1,6 +1,6 @@
 #pragma once
 
-#define BINARY_PAYLOAD_SIZE 0x14000000
+inline constexpr auto BINARY_PAYLOAD_SIZE = 0x14000000;
 
 // Decide whether to load the game as lib or to inject it
 #define INJECT_HOST_AS_LIB

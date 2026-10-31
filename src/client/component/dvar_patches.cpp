@@ -127,18 +127,18 @@ inline bool enable_debug_dvars() {
 
 void patch_dvars() {
   com_pauseSupported = register_sessionmode_dvar_bool(
-      "com_pauseSupported", !is_server(), DVAR_SERVERINFO,
+      "com_pauseSupported", !is_server(), game::dvarFlags_e::SERVERINFO,
       "Whether pause is supported by the game mode");
 }
 
 void patch_flags() {
   if (is_client()) {
-    dvar_set_flags("r_dof_enable", DVAR_ARCHIVE);
-    dvar_set_flags("r_lodbiasrigid", DVAR_ARCHIVE);
-    dvar_set_flags("r_modellodbias", DVAR_ARCHIVE);
-    dvar_set_flags("gpad_stick_deadzone_max", DVAR_ARCHIVE);
-    dvar_set_flags("gpad_stick_deadzone_min", DVAR_ARCHIVE);
-    dvar_set_flags("cg_drawLagometer", DVAR_ARCHIVE);
+    dvar_set_flags("r_dof_enable", game::dvarFlags_e::ARCHIVE);
+    dvar_set_flags("r_lodbiasrigid", game::dvarFlags_e::ARCHIVE);
+    dvar_set_flags("r_modellodbias", game::dvarFlags_e::ARCHIVE);
+    dvar_set_flags("gpad_stick_deadzone_max", game::dvarFlags_e::ARCHIVE);
+    dvar_set_flags("gpad_stick_deadzone_min", game::dvarFlags_e::ARCHIVE);
+    dvar_set_flags("cg_drawLagometer", game::dvarFlags_e::ARCHIVE);
   }
 
   scheduler::execute(scheduler::pipeline::dvars_flags_patched);
@@ -146,14 +146,14 @@ void patch_flags() {
 
 void strip_cheat_flags() {
   if (is_client()) {
-    dvar_remove_flags("cg_drawGun", DVAR_CHEAT);
-    dvar_remove_flags("g_speed", DVAR_CHEAT);
-    dvar_remove_flags("bg_gravity", DVAR_CHEAT);
-    dvar_remove_flags("player_sustainAmmo", DVAR_CHEAT);
-    dvar_remove_flags("r_fog", DVAR_CHEAT);
-    dvar_remove_flags("timescale", DVAR_CHEAT);
-    dvar_remove_flags("r_lodbiasrigid", DVAR_CHEAT);
-    dvar_remove_flags("r_modellodbias", DVAR_CHEAT);
+    dvar_remove_flags("cg_drawGun", game::dvarFlags_e::CHEAT);
+    dvar_remove_flags("g_speed", game::dvarFlags_e::CHEAT);
+    dvar_remove_flags("bg_gravity", game::dvarFlags_e::CHEAT);
+    dvar_remove_flags("player_sustainAmmo", game::dvarFlags_e::CHEAT);
+    dvar_remove_flags("r_fog", game::dvarFlags_e::CHEAT);
+    dvar_remove_flags("timescale", game::dvarFlags_e::CHEAT);
+    dvar_remove_flags("r_lodbiasrigid", game::dvarFlags_e::CHEAT);
+    dvar_remove_flags("r_modellodbias", game::dvarFlags_e::CHEAT);
   }
 }
 
@@ -374,7 +374,7 @@ public:
     utils::hook::set<uint32_t>(0x140534FE7_g, 1000);
 
     // Set the flag of 'sv_network_fps'
-    utils::hook::set<uint32_t>(0x140534FD8_g, game::DVAR_NONE);
+    utils::hook::set<dvarFlags_e>(0x140534FD8_g, game::dvarFlags_e::NONE);
 
     // Disable `sv_pure`
     utils::hook::call(0x140534DF2_g, Dvar_RegisterBool_Force<false>);
