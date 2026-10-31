@@ -81,7 +81,7 @@ play!
 ## Install Instructions
 
 1. **Download** the latest `BOIII.exe` from
-   [Releases](https://github.com/ezz-boiii/boiii/releases/latest)
+   [Releases](https://github.com/Ezz-lol/boiii-free/releases/latest)
 2. **Place** the executable in your Call of Duty: Black Ops III game directory
 3. **Run** `BOIII.exe`
 4. **Play!** 🎮
