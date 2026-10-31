@@ -483,11 +483,10 @@ void register_config_string_print_stub(const game::consoleChannel_e channel,
 }
 
 inline void disable_dw_userfile_writes() {
-    utils::hook::jump(game::dw::task::fs::dwWriteAndValidateFile,
-                      reinterpret_cast<void*>(return_const<nullptr>));
-    utils::hook::jump(
-        game::live::storage::LiveStorage_WriteDWUserFile,
-        reinterpret_cast<void*>(return_const<nullptr>));
+  utils::hook::jump(game::dw::task::fs::dwWriteAndValidateFile,
+                    reinterpret_cast<void *>(return_const<nullptr>));
+  utils::hook::jump(game::live::storage::LiveStorage_WriteDWUserFile,
+                    reinterpret_cast<void *>(return_const<nullptr>));
 }
 
 } // namespace
