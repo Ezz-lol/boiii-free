@@ -152,7 +152,7 @@ union VehicleFlags {
     return VehicleFlags{static_cast<uint32_t>(flags)};
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"paused\": {}, \"initialized\": {}, \"script_control\": {}, "
         "\"debug_render\": {}, \"reserved_b4\": {}, \"reserved_b5\": {}, "
@@ -260,7 +260,7 @@ PACKED(struct WheelState {
   int32_t m_last_state;
   float m_rate[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_state\": {}, \"m_last_state\": {}, \"m_rate\": {} }}", m_state,
         m_last_state, ::serialize(m_rate));
@@ -310,7 +310,7 @@ PACKED(struct view_limits_t {
   float vertResistUp;
   float vertResistDown;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"horizSpanLeft\": {}, \"horizSpanRight\": {}, \"vertSpanUp\": {}, "
         "\"vertSpanDown\": {}, \"horizResistLeft\": {}, \"horizResistRight\": "
@@ -327,7 +327,7 @@ PACKED(struct VehicleGearData {
   float maxRPM;
   float ratio;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"minRPM\": {}, \"maxRPM\": {}, \"ratio\": {} }}",
                        minRPM, maxRPM, ratio);
   }
@@ -339,7 +339,7 @@ PACKED(struct VehicleEngineSound {
   snd::SndAliasId alias;
   float params[7];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"alias\": 0x{:08X}, \"params\": {} }}",
         ::serialize(name), alias, ::serialize(params));
@@ -392,7 +392,7 @@ PACKED(struct VehicleEngine {
   float eng_offload_end_pitch;
   uint8_t _padding2BC[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"simpleEngine\": {}, \"idleRpms\": {}, \"maxRpms\": {}, "
         "\"maxTorque\": {}, \"brakingCoeff\": {}, \"loadFadeParams\": {}, "
@@ -459,7 +459,7 @@ PACKED(struct DevGraph {
   bool disableEditingEndPoints;
   uint8_t _padding31[7];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"knots\": {}, \"knotCount\": {}, \"knotCountMax\": "
                        "{}, \"selectedKnot\": {}, "
                        "\"disableEditingEndPoints\": {} }}",
@@ -475,7 +475,7 @@ PACKED(struct GraphFloat {
   int32_t knotCount;
   float scale;
   DevGraph devguiGraph; // TODO: is this used in release?
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"knots\": {}, \"knotCount\": {}, "
                        "\"scale\": {}, \"devguiGraph\": {} }}",
                        name, ::serialize(knots), knotCount, scale,
@@ -497,7 +497,7 @@ PACKED(struct AircraftPreset {
   bool zAxis;
   uint8_t _padding23[5];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"presetName\": {}, \"maxSpeedVol\": {}, \"minVol\": {}, "
         "\"maxVol\": {}, \"maxSpeedPitch\": {}, \"minPitch\": {}, "
@@ -519,7 +519,7 @@ PACKED(struct AircraftSound {
   scr::ScrString_t tagScriptString;
   uint8_t _padding2C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"presetName\": {}, \"preset\": {}, \"aliasName\": {}, "
         "\"alias\": 0x{:08X}, \"tagName\": {} }}",
@@ -534,7 +534,7 @@ PACKED(struct VehicleSurfaceSound {
   snd::SndAliasId alias;
   uint8_t _padding0C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"surfaceSoundName\": {}, \"alias\": 0x{:08X} }}",
                        ::serialize(surfaceSoundName), alias);
   }
@@ -548,7 +548,7 @@ PACKED(struct VehicleDriveBySound {
   snd::SndAliasId alias;
   uint8_t _padding14[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"apex\": {}, \"name\": {}, \"alias\": 0x{:08X} }}",
                        apex, ::serialize(name), alias);
   }
@@ -565,7 +565,7 @@ PACKED(struct VehicleSoundDef {
   AircraftSound aircraftSounds[20];
   VehicleSurfaceSound surfaceSounds[40];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"engine\": {}, \"engineGraph\": {:p}, "
         "\"driveBySoundRadius\": {}, \"driveBySounds\": {}, "
@@ -618,7 +618,7 @@ PACKED(struct VehicleFxDef {
   db::xasset::FxEffectDefHandle peelFx[40];
   db::xasset::FxEffectDefHandle skidFx[40];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"type\": {}, \"treadFx\": {}, "
         "\"peelFx\": {}, \"skidFx\": {} }}",
@@ -741,7 +741,7 @@ PACKED(struct VehicleParameter {
   float m_gravity_scale;
   uint8_t _padding174[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_speed_max\": {}, \"m_accel_max\": {}, \"m_reverse_scale\": {}, "
         "\"m_steer_angle_max\": {}, \"m_steer_angle_speed_scale\": {}, "
@@ -847,7 +847,7 @@ PACKED(struct VehicleAntenna {
   bool useXAxis;
   uint8_t _padding11[3];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"springK\": {}, \"damp\": {}, \"length\": {}, "
                        "\"gravity\": {}, \"useXAxis\": {} }}",
                        springK, damp, length, gravity, ::serialize(useXAxis));
@@ -1226,7 +1226,7 @@ PACKED(struct VehicleDef {
   float tacticalModeHeight;
   uint8_t _paddingAA4[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"type\": {}, "
         "\"scriptVehicleType\": 0x{:08X}, "
@@ -1580,7 +1580,7 @@ PACKED(struct VehicleStun {
   float m_last_brake;
   float m_brake_stun_time;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_changed_this_frame\": {}, \"m_stun_time\": {}, "
                        "\"m_last_throttle\": {}, "
                        "\"m_throttle_stun_time\": {}, \"m_last_brake\": {}, "
@@ -1651,7 +1651,7 @@ public:
   game_button_bits_t m_last_update_button_bits;
   uint8_t _unknown106[0x2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_script_goal_position\": {}, \"m_script_goal_radius\": {}, "
         "\"m_script_goal_speed\": {}, \"m_desired_yaw\": {}, "
@@ -1739,7 +1739,7 @@ PACKED(struct NitrousVehicleController_cl {
   game_button_bits_t m_last_update_button_bits;
   uint8_t _unknown106[28];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_script_goal_position\": {}, \"m_script_goal_radius\": {}, "
         "\"m_script_goal_speed\": {}, \"m_desired_yaw\": {}, "
@@ -1784,7 +1784,7 @@ public:
   vec3_t m_angles;
   int32_t m_time;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_origin\": {}, \"m_angles\": {}, \"m_time\": {} }}",
         m_origin.serialize(), m_angles.serialize(), m_time);
@@ -1798,7 +1798,7 @@ PACKED(struct mover_info_t {
   uint8_t _padding384[4];
   hk::ai::hkaiNavMeshInstance *m_meshInstance;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_records\": {}, \"m_last_record\": {}, "
                        "\"m_meshInstance\": {:p} }}",
                        ::serialize(m_records), m_last_record,
@@ -1811,7 +1811,7 @@ PACKED(struct minspec_mutex {
 public:
   volatile uint32_t m_token;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     const uint32_t m_token_copy = m_token;
     return std::format("{{ \"m_token\": {} }}", m_token_copy);
   }
@@ -2035,7 +2035,7 @@ PACKED(struct NitrousVehicle {
   uint32_t m_state_flags;
   uint8_t _padding91C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_phys_user_data\": {:p}, \"m_wheel_state\": {}, "
         "\"m_wheel_orig_relpo\": {}, "
@@ -2129,7 +2129,7 @@ PACKED(struct vehicle_spline_node_t {
   vec3_t dir;
   float t;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"nextIdx\": {}, \"prevIdx\": {}, \"length\": {}, "
                        "\"dir\": {}, \"t\": {} }}",
                        nextIdx, prevIdx, length, dir.serialize(), t);
@@ -2154,7 +2154,7 @@ PACKED(struct vehicle_node_t {
   float tension;
   vehicle_spline_node_t splineNode;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": 0x{:08X}, \"target\": 0x{:08X}, \"target2\": 0x{:08X}, "
         "\"script_linkname\": {}, "
@@ -2223,7 +2223,7 @@ public:
   float tot_len;
   float tot_time;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"nodeIdx\": {}, \"prevIdx\": {}, \"endOfPath\": {}, \"frac\": {}, "
         "\"speed\": {}, \"lookAhead\": {}, \"slide\": {}, \"width\": {}, "
@@ -2279,7 +2279,7 @@ PACKED(struct vehicle_physic_t {
   float curveTime;
   float timeStep;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"origin\": {}, \"prevOrigin\": {}, \"angles\": {}, "
         "\"prevAngles\": {}, "
@@ -2813,7 +2813,7 @@ PACKED(struct VehicleTurret {
   float accuracy;
   VehicleTurretState turretState;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"fireTime\": {}, \"fireBarrel\": {}, \"barrelOffset\": {}, "
         "\"flags\": 0x{:08X}, \"heatVal\": {}, \"turretOnTargetRange\": {}, "
@@ -2833,7 +2833,7 @@ PACKED(struct VehicleJitter {
   vec3_t jitterAccel;
   vec3_t jitterPos;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"jitterPeriodMin\": {}, \"jitterPeriodMax\": {}, "
         "\"jitterEndTime\": {}, \"jitterOffsetRange\": {}, "
@@ -2852,7 +2852,7 @@ PACKED(struct VehicleHover {
   vec3_t hoverGoalPos;
   qboolean useHoverAccelForAngles;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"hoverRadius\": {}, \"hoverSpeed\": {}, \"hoverAccel\": {}, "
         "\"hoverGoalPos\": {}, \"useHoverAccelForAngles\": {} }}",
@@ -2869,7 +2869,7 @@ PACKED(struct VehicleGunnerTags {
   BoneIndex aim;
   BoneIndex flash[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"turretParent\": 0x{:04X}, \"turret\": 0x{:04X}, "
                        "\"barrel\": 0x{:04X}, "
                        "\"aim\": 0x{:04X}, \"flash\": {} }}",
@@ -2889,7 +2889,7 @@ PACKED(struct VehicleTags {
   BoneIndex seats[11];
   BoneIndex entryPoints[5];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"player\": 0x{:04X}, \"popout\": 0x{:04X}, \"body\": "
         "{:04X}, \"eye\": 0x{:04X}, "
@@ -2911,7 +2911,7 @@ PACKED(struct VehicleCornerCache {
   int32_t startSlidingTime;
   float travelDistance;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"start\": {}, \"end\": {}, \"center\": {}, "
                        "\"travelVector\": {}, \"lastUpdateTime\": {}, "
                        "\"startSlidingTime\": {}, \"travelDistance\": {} }}",
@@ -2929,7 +2929,7 @@ PACKED(struct VehicleTarget {
   vec3_t targetOffset;
   vec3_t targetRelativeAngles;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"targetType\": {}, \"targetEnt\": {}, \"targetOrigin\": {}, "
         "\"targetOffset\": {}, \"targetRelativeAngles\": {} }}",
@@ -3055,7 +3055,7 @@ PACKED(struct vehicle_cache_t {
   int32_t wheel_mask;
   uint8_t _padding1424[12];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"lastOrigin\": {}, \"lastAngles\": {}, \"hit_indices\": {}, "
         "\"hit_sflags\": {}, \"hit_normals\": {}, \"hit_fractions\": {}, "
@@ -3074,7 +3074,7 @@ PACKED(struct VehicleSeat {
   bool scriptOccupied;
   uint8_t _padding5[3];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"occupantEntNum\": {}, \"scriptOccupied\": {} }}",
                        occupantEntNum, ::serialize(scriptOccupied));
   }
@@ -3164,7 +3164,7 @@ PACKED(struct vehicle_t {
   float predictedCollisionTime;
   uint8_t _padding22A8[8];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"pathOffsetFlags\": 0x{:08X}, \"pathOffsetTransform\": {}, "
         "\"pathFixedOffset\": {}, \"pathVariableOffset\": {}, "
@@ -3202,7 +3202,7 @@ PACKED(struct vehicleAntilagFrame_t {
   uint8_t inUse[64];
   int32_t time;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"position\": {}, \"angles\": {}, \"useCount\": {}, "
                        "\"inUse\": {}, \"time\": {} }}",
                        ::serialize(position), ::serialize(angles),
@@ -3243,7 +3243,7 @@ PACKED(struct PlayerVehicleState {
   int32_t weaponWaitDuration;
   int32_t weaponWaitEndTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"origin\": {}, \"angles\": {}, \"velocity\": {}, "
         "\"angVelocity\": {}, \"tilt\": {}, \"tiltVelocity\": {}, "
@@ -3278,7 +3278,7 @@ PACKED(struct vehicleState_t {
   uint8_t vehicleDefIndex;
   uint8_t _padding0D[3];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"flags\": {}, \"animId\": {}, \"attachModelIndex\": {}, "
         "\"attachTagIndex\": {}, \"vehicleDefIndex\": {} }}",
@@ -3293,7 +3293,7 @@ PACKED(struct VehicleLocalPhysics {
   qboolean onGround;
   uint8_t _unknown[0x2a8];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"groundTrace\": {}, \"hasGround\": {}, \"onGround\": {} }}",
         groundTrace.serialize(), hasGround.serialize(), onGround.serialize());
@@ -3326,7 +3326,7 @@ struct VehicleHandler {
   get_vehicle_collmap collmap;
   vehicle_collision_notifies notifies;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"vehicle\": {:p}, \"wheel\": {:p}, \"proximityCache\": {:p}, "
         "\"collmap\": {:p}, \"notifies\": {:p} }}",
@@ -3356,7 +3356,7 @@ PACKED(struct VehicleState {
   int32_t clipmask;
   vec3_t groundNormal;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"entity\": {}, \"origin\": {}, \"angles\": {}, \"velocity\": "
         "{}, \"angVelocity\": {}, \"previousOrigin\": {}, "

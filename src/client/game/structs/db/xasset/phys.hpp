@@ -33,7 +33,7 @@ struct PhysPreset : NamedXAsset {
   FxImpactTablePtr impactFX;
   snd::SoundsImpactTablePtr impactSounds;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"flags\": 0x{:08X}, \"mass\": {}, \"bounce\": {}, "
         "\"friction\": {}, \"damping_linear\": {}, \"damping_angular\": {}, "
@@ -62,7 +62,7 @@ struct cplane_t {
   uint8_t signbits;
   uint8_t pad[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"normal\": {}, \"dist\": {}, \"type\": {}, "
                        "\"signbits\": {}, \"pad\": {} }}",
                        normal.serialize(), dist, type, signbits,
@@ -75,7 +75,7 @@ struct cbrushside_t {
   contents_t cflags;
   int32_t sflags;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"plane\": {}, \"cflags\": 0x{:08X}, \"sflags\": 0x{:08X} }}",
         ::serialize(plane), cflags, sflags);
@@ -93,7 +93,7 @@ struct __attribute__((aligned(16))) cbrush_t {
   uint32_t numverts;
   vec3_t *verts;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"mins\": {}, \"contents\": 0x{:08X}, \"maxs\": {}, "
         "\"numsides\": {}, "
@@ -120,7 +120,7 @@ struct BrushWrapper {
   vec3_t *verts;
   cplane_t *planes;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"mins\": {}, \"contents\": 0x{:08X}, \"maxs\": {}, "
                        "\"numsides\": {}, "
                        "\"sides\": {}, \"axial_cflags\": {}, \"axial_sflags\": "
@@ -143,7 +143,7 @@ struct PhysGeomInfo {
   vec3_t offset;
   vec3_t halfLengths;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"brush\": {}, \"type\": {}, \"orientation\": {}, "
                        "\"offset\": {}, \"halfLengths\": {} }}",
                        ::serialize(brush), type, ::serialize(orientation),
@@ -156,7 +156,7 @@ struct __attribute__((aligned(8))) PhysGeomList {
   PhysGeomInfo *geoms;
   contents_t contents;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"count\": {}, \"geoms\": {}, \"contents\": 0x{:08X} }}", count,
         ::serialize(geoms), contents);
@@ -264,7 +264,7 @@ PACKED(struct PhysConstraint {
   int32_t rope_index;
   int32_t centity_num[5];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"targetname\": 0x{:08X}, \"type\": {}, \"attach_point_type1\": "
         "{}, "
@@ -305,7 +305,7 @@ PACKED(struct PhysConstraints : NamedXAsset {
   uint8_t _padding0C[4];
   PhysConstraint data[8];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"count\": {}, \"data\": {} }}",
                        ::serialize(name), count, ::serialize(data, count));
   }

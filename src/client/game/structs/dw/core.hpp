@@ -22,7 +22,7 @@ public:
   Node *m_tail;
   bdUInt m_size;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_head\": {}, \"m_tail\": {}, \"m_size\": {} }}",
                        ::serialize(m_head), ::serialize(m_tail), m_size);
   }
@@ -31,7 +31,7 @@ public:
 template <typename T> struct bdQueue {
   bdLinkedList<T> m_list;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_list\": {} }}", m_list.serialize());
   }
 };
@@ -44,7 +44,7 @@ public:
   VTbl *vtbl;
   uint8_t gap8[16];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"vtbl\": {:p} }}",
                        reinterpret_cast<const void *>(vtbl));
   }
@@ -57,7 +57,7 @@ class bdMutex {
 public:
   bdMutexHandle m_handle;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_handle\": {:p} }}",
                        reinterpret_cast<const void *>(m_handle));
   }
@@ -72,7 +72,7 @@ public:
   VTbl *vtbl;
   bdSemaphoreHandle m_handle;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"vtbl\": {:p}, \"m_handle\": {:p} }}",
                        reinterpret_cast<const void *>(vtbl),
                        reinterpret_cast<const void *>(m_handle));
@@ -83,7 +83,7 @@ class bdString {
 public:
   bdNChar8 *m_string;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_string\": {} }}", ::serialize(m_string));
   }
 };
@@ -324,7 +324,7 @@ template <typename T> class bdReference {
 public:
   T *m_ptr;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_ptr\": {} }}", ::serialize(m_ptr));
   }
 };
@@ -334,7 +334,7 @@ class bdReferencableVTbl {
 public:
   thiscallPtr_t<void(bdReferencable *_this, int64_t)> releaseFunc;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"releaseFunc\": {:p} }}",
                        reinterpret_cast<const void *>(releaseFunc));
   }
@@ -347,14 +347,14 @@ public:
   volatile bdInt m_refCount;
   uint8_t _padding[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     const bdInt m_refCountCopy = m_refCount;
     return std::format("{{ \"vtbl\": {:p}, \"m_refCount\": {} }}",
                        reinterpret_cast<const void *>(vtbl), m_refCountCopy);
   }
 };
 class bdReferencable : public _bdReferencable<bdReferencableVTbl> {
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"base\": {} }}",
                        _bdReferencable<bdReferencableVTbl>::serialize());
   }
@@ -374,7 +374,7 @@ public:
   bdBool m_allocatedData;
   uint8_t _padding33[5];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_size\": {}, \"m_data\": {:p}, "
         "\"m_readPtr\": {:p}, "
@@ -393,7 +393,7 @@ class bdStopwatch {
 public:
   bdUInt64 m_start;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_start\": {} }}", m_start);
   }
 };
@@ -406,7 +406,7 @@ public:
   VTbl *vtable;
   uint8_t _padding[16];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"vtable\": {:p} }}",
                        reinterpret_cast<const void *>(vtable));
   }
@@ -419,7 +419,7 @@ public:
 
   VTbl *vtable;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"vtable\": {:p} }}",
                        reinterpret_cast<const void *>(vtable));
   }
@@ -459,7 +459,7 @@ public:
     }
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {} }}",
         reinterpret_cast<const _bdReferencable<VTbl> *>(this)->serialize());
@@ -1493,7 +1493,7 @@ public:
                      const bdNChar8 *line)>
       deserialize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"checkTimeout\": {:p}, \"deserializeResult\": {:p}, "
         "\"start\": {:p}, \"deserialize\": {:p} }}",
@@ -1525,7 +1525,7 @@ public:
   bdUByte8 m_taskId;
   uint8_t _padding62[6];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_timer\": {}, \"m_timeout\": {}, \"m_status\": "
         "{}, "
@@ -1556,7 +1556,7 @@ public:
   bdUInt m_capacity;
   bdUInt m_size;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_data\": {}, \"m_capacity\": {}, \"m_size\": {} }}",
         ::serialize(m_data, m_size), m_capacity, m_size);
@@ -1947,7 +1947,7 @@ PACKED(struct TaskDefinition {
   int32_t numUserEvents;
   UserEvent userEvents[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"category\": {}, \"name\": {}, \"payloadSize\": {}, "
         "\"completed_callback\": {:p}, "
@@ -1967,7 +1967,7 @@ struct Event {
   UserEvent event;
   int32_t returnCode;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"service\": {}, \"event\": {}, \"returnCode\": {} }}",
         game::dw::serialize(service), game::dw::serialize(event), returnCode);
@@ -2009,7 +2009,7 @@ template <typename T> struct _TaskRecord {
 };
 
 struct TaskRecord : public _TaskRecord<void *> {
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {} }}",
         reinterpret_cast<const _TaskRecord<void *> *>(this)->serialize());
@@ -2027,7 +2027,7 @@ public:
   bdNChar8 m_accountType[10];
   bdOnlineUserID m_userID;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"vtbl\": {:p}, \"m_accountType\": {}, \"m_userID\": {:016X} }}",
         reinterpret_cast<const void *>(vtbl), ::serialize(m_accountType),

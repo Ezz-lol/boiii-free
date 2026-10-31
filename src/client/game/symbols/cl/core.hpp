@@ -66,6 +66,9 @@ WEAK symbol<bool(const char *mapname, clientAllocFlags_t flags)>
     CL_AllocatePerLocalClientMemory{0x14135D670, 0x14135D650, 0x0};
 WEAK symbol<void(bool restartUI)> CL_FreePerLocalClientMemory{0x14135DC20,
                                                               0x14135DC00, 0x0};
+WEAK symbol<void(const LocalClientNum_t localClientNum, unsigned __int8 c,
+                 vec4_t *color)>
+    CL_LookupColor{0x141321F40, 0x0, 0x0};
 
 WEAK symbol<ClientConnections *> clientConnections{0x145359BB8, 0x1453D8BB8,
                                                    0x0};

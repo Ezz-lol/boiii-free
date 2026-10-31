@@ -368,7 +368,7 @@ struct trajectory_t {
   vec3_t trBase;
   vec3_t trDelta;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"trType\": {}, \"trTime\": {}, \"trDuration\": {}, "
                        "\"trBase\": {}, \"trDelta\": {} }}",
                        game::level::serialize(trType), trTime, trDuration,
@@ -398,7 +398,7 @@ union LerpEntityStateTypeUnion {
   LerpEntityStateAnonymous anonymous;
 
   // TODO: how do we differentiate which union member to use?
-  inline std::string serialize() const noexcept { return "TODO"; }
+  [[nodiscard]] inline std::string serialize() const noexcept { return "TODO"; }
 };
 
 PACKED(struct LerpEntityState {
@@ -413,7 +413,7 @@ PACKED(struct LerpEntityState {
   uint8_t _paddingBA[2];
   uint32_t clientFields[4];
   uint8_t _paddingCC[4];
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"eFlags\": 0x{:08X}, \"eFlags2\": 0x{:08X}, \"pos\": {}, "
         "\"apos\": "
@@ -429,7 +429,7 @@ PACKED(struct clientLinkInfo_t {
   uint8_t tagIndex;
   uint8_t flags;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"parentEnt\": 0x{:04X}, \"tagIndex\": 0x{:02X}, "
                        "\"flags\": 0x{:02X} }}",
                        parentEnt, tagIndex, flags);
@@ -476,7 +476,7 @@ PACKED(union entityStateUn2 {
   fxLightingState_t fxState;
 
   // TODO: how do we determine which union member to use?
-  inline std::string serialize() const noexcept { return "TODO"; }
+  [[nodiscard]] inline std::string serialize() const noexcept { return "TODO"; }
 });
 
 PACKED(union entityStateUn3 {
@@ -485,7 +485,7 @@ PACKED(union entityStateUn3 {
   uint32_t secondBcAlias;
   uint32_t soundTag;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"hintString\": 0x{:08X}, \"vehicleXModel\": 0x{:08X}, "
         "\"secondBcAlias\": 0x{:08X}, \"soundTag\": 0x{:08X} }}",
@@ -501,7 +501,7 @@ PACKED(union entityStateIndex {
   uint16_t probe;
   BoneIndex bone;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"brushModel\": 0x{:04X}, \"triggerModel\": 0x{:04X}, "
         "\"xmodel\": 0x{:04X}, \"primaryLight\": 0x{:04X}, "
@@ -517,7 +517,7 @@ PACKED(union entityStateUn1 {
   uint8_t destructibleid;
   uint8_t chainMeleeCounter;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"scale\": {}, \"eventParm2\": 0x{:02X}, \"helicopterStage\": {}, "
         "\"destructibleid\": 0x{:02X}, \"chainMeleeCounter\": {} }}",
@@ -2330,7 +2330,7 @@ PACKED(struct entityState_s {
   int16_t previousEventSequence;
   uint8_t _padding1EA[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"number\": {}, \"lerp\": {}, \"time2\": {}, \"loopSound\": {}, "
         "\"solid\": {}, \"renderOptions\": {}, "
@@ -2388,7 +2388,7 @@ PACKED(struct entityShared_t {
   EntHandle ownerNum;
   int32_t eventTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"linked\": {}, \"bmodel\": {}, \"svFlags\": 0x{:04X}, \"inuse\": "
         "{}, \"broadcastTime\": {}, \"mins\": {}, \"maxs\": {}, \"contents\": "
@@ -2434,7 +2434,7 @@ struct playerViewAngleState_s {
   vec2_t startAngles;
   vec2_t goalAngles;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"flags\": 0x{:08X}, \"time\": {}, \"startTimeMs\": "
                        "{}, \"durationMs\": {}, \"easeMode\": {}, "
                        "\"startAngles\": {}, \"goalAngles\": {} }}",
@@ -2482,7 +2482,7 @@ struct PlayerLens {
   float fStop;
   float unknown;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"lensState\": {}, \"focalLength\": {}, \"focalDistance\": {}, "
         "\"fStop\": {}, \"unknown\": {} }}",
@@ -2626,7 +2626,7 @@ PACKED(struct SprintState {
   int32_t sprintDuration;
   int32_t sprintCooldown;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"sprintButtonUpRequired\": {}, \"sprintRestore\": {}, "
         "\"sprintRestoreDelayStart\": {}, \"sprintDelay\": {}, "
@@ -2732,7 +2732,7 @@ PACKED(struct TRMState {
   vec2_t restoreAngles;
   int32_t doublejumpEndedTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"yaw\": {}, \"ledgeYaw\": {}, \"timer\": {}, \"flags\": 0x{:08X}, "
         "\"animIndex\": {}, \"moveVec\": {}, \"animTimeScale\": {}, "
@@ -2748,7 +2748,7 @@ PACKED(struct GrappleState {
   vec3_t startPos;
   int32_t startTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"startPos\": {}, \"startTime\": {} }}",
                        startPos.serialize(), startTime);
   }
@@ -2759,7 +2759,7 @@ PACKED(struct JukeState {
   float jukeYaw;
   int32_t flags;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"startTime\": {}, \"jukeYaw\": {}, \"flags\": 0x{:08X} }}",
         startTime, jukeYaw, flags);
@@ -2771,7 +2771,7 @@ PACKED(struct SlamState {
   float slamYaw;
   int32_t flags;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"startTime\": {}, \"slamYaw\": {}, \"flags\": 0x{:08X} }}",
         startTime, slamYaw, flags);
@@ -2807,7 +2807,7 @@ PACKED(struct SlideState {
   int32_t subsequentCount;
   SlideType slideType;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"slideAngleOffsets\": {}, \"flags\": 0x{:08X}, \"slideTime\": {}, "
         "\"slideOutDuration\": {}, \"subsequentCount\": {}, \"slideType\": {} "
@@ -2900,7 +2900,7 @@ struct playerGadgetState_t {
   float gadgetPowerRemaining;
   gadgetButtonInput_e gadgetButtonState;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"gadgetPlayerStateFlags\": 0x{:08X}, \"gadgetLastUsedTime\": {}, "
         "\"gadgetFlickerTime\": {}, \"gadgetEntNum\": {}, \"gadgetPressTime\": "
@@ -2927,7 +2927,7 @@ struct WallRunState {
   int32_t timeLastInputReceived;
   int32_t lastShotMs;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"startTimeMs\": {}, \"endTimeMs\": {}, \"flags\": 0x{:04X}, "
         "\"normal\": {}, \"startHeight\": {}, \"verticality\": {}, "
@@ -2944,7 +2944,7 @@ struct LeapState {
   int32_t volumeTimer;
   int32_t state;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"volumeTimer\": {}, \"state\": {} }}", volumeTimer,
                        state);
   }
@@ -2963,7 +2963,7 @@ struct AnimMovement {
   int32_t flags;
   float lerpTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"startOrigin\": {}, \"originErrorNormal\": {}, \"timer\": {}, "
         "\"originErrorDistance\": {}, \"startYaw\": {}, \"errorYaw\": {}, "
@@ -2984,7 +2984,7 @@ struct playerStateCameraInfo {
   vec3_t xcamBundleOrigin;
   vec4_t xcamBundleAnglesQuat;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"xcamIndex\": {}, \"xcamStartTime\": {}, \"xcamLerpEndTime\": {}, "
         "\"xcamSubCamera\": {}, \"xcamBundleOrigin\": {}, "
@@ -3000,7 +3000,7 @@ struct PlayerWeaponLock {
   int32_t targetEntNum;
   int32_t subtarget;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lockFlags\": 0x{:08X}, \"targetEntNum\": {}, "
                        "\"subtarget\": {} }}",
                        lockFlags, targetEntNum, subtarget);
@@ -3035,7 +3035,7 @@ struct ActionSlotParam {
   struct SpecifyWeapon {
     weapon::Weapon weapon;
 
-    inline std::string serialize() const noexcept {
+    [[nodiscard]] inline std::string serialize() const noexcept {
       return std::format("{{ \"weapon\": {} }}", weapon.serialize());
     }
   };
@@ -3044,7 +3044,7 @@ struct ActionSlotParam {
     SpecifyWeapon specifyWeapon;
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"specifyWeapon\": {} }}",
                        specifyWeapon.serialize());
   }
@@ -3056,7 +3056,7 @@ PACKED(struct PlayerRenderInfo {
   uint8_t _padding01[3];
   int32_t sunShadowSplitDistance;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"lightingState\": {}, \"sunShadowSplitDistance\": {} }}",
         lightingState, sunShadowSplitDistance);
@@ -3069,7 +3069,7 @@ struct clientCmdAngles_t {
   int16_t pitch;
   int16_t yaw;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"time\": {}, \"pitch\": 0x{:04X}, \"yaw\": 0x{:04X} }}", time,
         pitch, yaw);
@@ -3332,7 +3332,7 @@ PACKED(struct playerState_s {
   int32_t cmdAnglesHead;
   uint8_t _padding[51];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     // Format calls need to be split here, as MSVC's built-in `std::format`
     // function can't handle the number of arguments needed to serialize the
     // struct in one call
@@ -3561,7 +3561,7 @@ struct score_s {
   int32_t scoreMultiplier;
   int32_t currentStreak;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"ping\": {}, \"status_icon\": {}, \"place\": {}, \"score\": {}, "
         "\"kills\": {}, \"assists\": {}, \"deaths\": {}, "
@@ -3641,7 +3641,7 @@ PACKED(struct clientState_s {
   clientLinkInfo_t clientLinkInfo;
   lobby::LobbyClientPool<int32_t> lastUpdateIndex;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"clientIndex\": {}, \"scriptClientId\": {}, \"team\": {}, "
         "\"modelindex\": {}, \"riotShieldNext\": {}, \"attachments\": {}, "

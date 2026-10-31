@@ -73,7 +73,7 @@ union Weapon {
   };
 
   uint64_t weaponData;
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"weaponIdx\": {}, \"attachment1\": {}, \"attachment2\": {}, "
         "\"attachment3\": {}, \"attachment4\": {}, \"attachment5\": {}, "
@@ -97,7 +97,7 @@ union AttachmentCosmeticVariantIndexes {
   };
   uint32_t data;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"attachmentCosmeticVariantIndex1\": {}, "
         "\"attachmentCosmeticVariantIndex2\": {}, "
@@ -735,7 +735,7 @@ PACKED(struct gadgetProperties_t {
   bool activatesCast;
   qboolean targetedCast;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"activate_mode\": {}, \"gadget_type\": {}, \"weapon_hold_mode\": "
         "{}, "
@@ -912,7 +912,7 @@ struct WeaponAttachmentUniqueModelInfo {
   vec3_t offset;
   vec3_t rotation;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"model\": {}, \"modelADS\": {}, \"tag\": {}, "
                        "\"offset\": {}, \"rotation\": {} }}",
                        ::serialize(model), ::serialize(modelADS),
@@ -928,7 +928,7 @@ struct AttachmentCosmeticVariantModelInfo {
   vec3_t offset;
   vec3_t rotation;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"model\": {}, \"modelADS\": {}, \"tag\": {}, "
                        "\"offset\": {}, \"rotation\": {} }}",
                        ::serialize(model), ::serialize(modelADS),
@@ -945,7 +945,7 @@ struct AttachmentCosmeticVariantSet {
   const char *description;
   gfx::GfxImagePtr uiMaterial;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"viewModelInfo\": {}, \"worldModelInfo\": {}, "
         "\"displayNameShort\": {}, "
@@ -962,7 +962,7 @@ PACKED(struct AttachmentCosmeticVariant {
   int32_t numVariantSets;
   uint8_t _padding14[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"variantSets\": {}, \"numVariantSets\": {} }}",
         ::serialize(name), ::serialize(variantSets, numVariantSets),
@@ -981,7 +981,7 @@ struct WeaponAttachmentUniqueModelSet {
   const char *description;
   gfx::GfxImageHandle uiMaterial;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"attachmentModelAssociation\": {}, "
         "\"attachmentCosmeticVariantOverride\": {:p}, "
@@ -1013,7 +1013,7 @@ PACKED(struct CamoMaterialChannel {
   vec2_t detailScale;
   uint8_t _padding44[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"replaceFlags\": 0x{:04X}, \"camoMaterial\": {:p}, "
                        "\"translationX\": {}, "
                        "\"translationY\": {}, \"scaleX\": {}, \"scaleY\": {}, "
@@ -1034,8 +1034,8 @@ struct CamoBaseMaterial {
   db::xasset::MaterialDeferredHandle material;
   gfx::GfxImage *mask;
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"material\": {:p}, \"mask\": {:p} }}",
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "material": {:p}, "mask": {:p} }})",
                        reinterpret_cast<const void *>(material),
                        reinterpret_cast<const void *>(mask));
   }
@@ -1049,7 +1049,7 @@ PACKED(struct CamoMaterial {
   uint8_t _padding12[6];
   CamoMaterialChannel camoMaterialChannels[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"numBaseMaterials\": {}, \"baseMaterials\": {}, "
                        "\"activeChannels\": 0x{:04X}, "
                        "\"camoMaterialChannels\": {} }}",
@@ -1064,7 +1064,7 @@ PACKED(struct WeaponCamoMaterialSet {
   uint8_t _padding04[4];
   CamoMaterial *materials;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"numMaterials\": {}, \"materials\": {} }}",
                        numMaterials, ::serialize(materials, numMaterials));
   }
@@ -1076,7 +1076,7 @@ PACKED(struct WeaponCamo {
   uint32_t numCamoMaterials;
   uint8_t _padding014[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"camoMaterials\": {}, \"numCamoMaterials\": {} }}",
         ::serialize(name), ::serialize(camoMaterials, numCamoMaterials),
@@ -1229,7 +1229,7 @@ PACKED(struct WeaponAttachmentUnique {
   bool customBool5;
   uint8_t _padding832[6];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"szInternalName\": {}, \"szDisplayName\": {}, \"szDisplayDesc\": "
         "{}, "
@@ -1408,8 +1408,8 @@ struct ExplosionDamage {
   int32_t height;
   int32_t damage;
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"radius\": {}, \"height\": {}, \"damage\": {} }}",
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "radius": {}, "height": {}, "damage": {} }})",
                        radius, height, damage);
   }
 };
@@ -2233,7 +2233,7 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   bool customBool4;
   bool customBool5;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"szInternalName\": {}, \"szDisplayName\": {}, \"attachmentType\": "
         "{}, "
@@ -3584,7 +3584,7 @@ PACKED(struct WeaponDobjInfo {
     uint32_t dobjModelMask;
     uint8_t _padding14[4];
 
-    inline std::string serialize() const noexcept {
+    [[nodiscard]] inline std::string serialize() const noexcept {
       return std::format("{{ \"slot\": {}, \"weapon\": {}, \"target\": {:p}, "
                          "\"dobjModelMask\": 0x{:08X} }}",
                          WeaponDobjInfo::serialize(slot), weapon.serialize(),
@@ -3602,7 +3602,7 @@ PACKED(struct WeaponDobjInfo {
   uint8_t _padding0A[6];
   ModelMask modelMasks[32];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"numModelMasks\": {}, \"addingSlot\": {}, "
                        "\"lastAddedModel\": {}, \"modelMasks\": {} }}",
                        numModelMasks, serialize(addingSlot), lastAddedModel,
@@ -3615,7 +3615,7 @@ PACKED(struct DroppedWeaponDobjInfo {
   uint8_t _padding04[4];
   weapon::WeaponDobjInfo weaponDobjInfo;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"entnum\": {}, \"weaponDobjInfo\": {} }}", entnum,
                        weaponDobjInfo.serialize());
   }
@@ -3657,7 +3657,7 @@ PACKED(struct PlayerWeaponHandState {
   int32_t weaponFrameTimeRemainder;
   QueuedActionState queuedActionState;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"weaponTime\": {}, \"weaponDelay\": {}, \"weaponState\": {}, "
         "\"weaponShotCount\": {}, \"weapAnim\": {}, "
@@ -3673,7 +3673,7 @@ ASSERT_SIZE(PlayerWeaponHandState, 0x1C);
 struct AmmoPool {
   int32_t count;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"count\": {} }}", count);
   }
 };
@@ -3682,7 +3682,7 @@ ASSERT_SIZE(AmmoPool, 0x4);
 struct AmmoClip {
   int32_t count;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"count\": {} }}", count);
   }
 };
@@ -3723,7 +3723,7 @@ PACKED(struct PlayerHeldWeapon {
   };
   uint8_t _padding29[7];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"weapon\": {}, \"options\": {}, "
         "\"attachmentCosmeticVariantIndexes\": {}, "
@@ -3752,7 +3752,7 @@ PACKED(struct visWeapon_s {
   int32_t streamerOptions;
   uint8_t _padding0C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"weapon\": {}, \"streamerOptions\": 0x{:08X} }}",
                        weapon.serialize(), streamerOptions);
   }
@@ -3764,7 +3764,7 @@ struct visLoadOut_s {
   int32_t primaryGadgetIdx;
   int32_t secondaryGadgetIdx;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"primary\": {}, \"secondary\": {}, \"primaryGadgetIdx\": {}, "
         "\"secondaryGadgetIdx\": {} }}",
@@ -3778,7 +3778,7 @@ PACKED(struct DelayedWeaponFire {
   uint8_t _padding04[4];
   Weapon weapon;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"time\": {}, \"weapon\": {} }}", time,
                        weapon.serialize());
   }

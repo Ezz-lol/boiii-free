@@ -63,7 +63,7 @@ PACKED(struct bot_look_t {
   vec3_t grenadeOrigin;
   int32_t grenadeTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"anglesDesired\": {}, \"anglesCurrent\": {}, \"lookPoint\": {}, "
         "\"lookType\": {}, \"kickAngles\": {}, \"kickAVel\": {}, "
@@ -80,7 +80,7 @@ PACKED(struct bot_move_t {
   vec_t angleDesired;
   vec_t magnitude;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"angleDesired\": {}, \"magnitude\": {} }}",
                        angleDesired, magnitude);
   }
@@ -92,7 +92,7 @@ PACKED(struct bot_goal_t {
   int32_t radius;
   bot_goal_state state;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"position\": {}, radius: {}, state: {} }}",
                        position.serialize(), radius,
                        game::user::serialize(state));
@@ -125,7 +125,7 @@ PACKED(struct bot_t {
   char goal_callStack[1025];
   uint8_t _padding4A5[11];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"look\": {}, \"move\": {}, \"goal\": {}, "
                        "\"lastCorner\": {}, \"tapButtons\": {}, \"buttons\": "
                        "{}, \"weapon\": {}, \"lastMoveTime\": {} }}",
@@ -165,7 +165,7 @@ PACKED(struct usercmd_s {
   uint32_t kf_index;
   qboolean transition;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"serverTime\": {}, \"button_bits\": {}, \"serverFields\": {}, "
         "\"angles\": {}, \"level\": {}, \"weapon\": {}, \"offHandWeapon\": {}, "

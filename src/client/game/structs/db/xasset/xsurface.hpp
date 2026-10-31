@@ -70,7 +70,7 @@ PACKED(struct XSurfaceShared {
   const scr::ScrString_t *blendTargetNames;
   gfx::BlendTargetRemap *blendTargetRemap;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"flags\": 0x{:08X}, \"vertCount\": {}, \"skinVertCount\": {}, "
         "\"indexCount\": {}, "

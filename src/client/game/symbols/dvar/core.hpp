@@ -114,15 +114,30 @@ WEAK symbol<EngineDependentDvarMut> r_dof_enable{0x14AE95478, 0x14AE164F8,
                                                  0x147CBC5B8};
 WEAK symbol<EngineDependentDvarMut> cg_fovScale{0x1449B2A88, 0x144A31A88,
                                                 0x14222BFC0};
+WEAK symbol<EngineDependentDvarMut> loc_language{0x15789FE48, 0x15791ED48,
+                                                 0x14A2DB050};
+/*
+  Name of dvar is unknown.
+
+  Causes game to error with `EXE_LUI_OUT_OF_MEMORY` reason if UI model
+  allocation fails and value is 1 or 2 (initialised as 0).
+
+  Never set in the engine, and none of the set of permutation of words in Lua,
+  GSC scripts, nor engine strings has hash matching this dvar.
+  This somehow still is set, somewhere, to `1` or `2`, as the aforementioned
+  error _does_ occur on model allocation failure.
+
+  TODO: what is the name of this dvar?
+  TODO: how, where, and why is this dvar value changed?
+*/
+WEAK symbol<EngineDependentDvarMut> lui_oom{0x157960BB0, 0x0, 0x0};
 
 WEAK symbol<int32_t> g_dvarCount{0x157A472CC, 0x157AC61CC, 0x14A3CB5FC};
 WEAK symbol<DvarPool> s_dvarPool{0x157A47320, 0x0, 0x14A3CB620};
 WEAK symbol<EncryptedDvarPool> s_dvarPool_cl{0x157A47320, 0x157AC6220, 0x0};
 inline EngineDependentDvarPool dvar_pool() {
-  if (is_server()) {
-    return s_dvarPool.get();
-  }
-  return s_dvarPool_cl.get();
+  return is_server() ? EngineDependentDvarPool(s_dvarPool.get())
+                     : EngineDependentDvarPool(s_dvarPool_cl.get());
 }
 
 WEAK symbol<int32_t> s_nextFreeCallback{0x157A4730C, 0x157AC620C, 0x14A3CB60C};
@@ -357,7 +372,7 @@ dvar<T_DvarValue>::set(const char *val, bool execModifiedCallback) noexcept {
   switch (type()) {
   case dvarType_t::ENUM: {
     if (domain().contains(val)) {
-      const char *prev;
+      const char *prev = nullptr;
       if (flags().latch) {
         prev = latched().set(val);
       } else {
@@ -431,14 +446,14 @@ dvar<T_DvarValue>::set(const char *val, bool execModifiedCallback) noexcept {
   return std::nullopt;
 }
 template <typename T_DvarValue>
-inline std::optional<std::string>
+alwaysinline std::optional<std::string>
 dvar<T_DvarValue>::set(const std::string_view &val,
                        bool execModifiedCallback) noexcept {
-  return set(val.data(), true);
+  return set(val.data(), execModifiedCallback);
 }
 
 template <typename T_DvarValue>
-inline std::optional<std::string>
+alwaysinline std::optional<std::string>
 dvar<T_DvarValue>::set(const std::string &val,
                        bool execModifiedCallback) noexcept {
   return set(val.c_str(), execModifiedCallback);

@@ -18,7 +18,7 @@
 #include "fs.hpp"          // IWYU pragma: export
 #include "fx.hpp"          // IWYU pragma: export
 #include "game/game.hpp"   // IWYU pragma: export
-#include "gfx.hpp"         // IWYU pragma: export
+#include "gfx/gfx.hpp"     // IWYU pragma: export
 #include "glasssv.hpp"     // IWYU pragma: export
 #include "hunk.hpp"        // IWYU pragma: export
 #include "ik.hpp"          // IWYU pragma: export
@@ -46,6 +46,7 @@
 #include "s_wcd.hpp"       // IWYU pragma: export
 #include "savegame.hpp"    // IWYU pragma: export
 #include "scr/scr.hpp"     // IWYU pragma: export
+#include "sec.hpp"         // IWYU pragma: export
 #include "seh.hpp"         // IWYU pragma: export
 #include "sl.hpp"          // IWYU pragma: export
 #include "snd/snd.hpp"     // IWYU pragma: export

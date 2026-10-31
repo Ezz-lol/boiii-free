@@ -4,9 +4,11 @@
 
 namespace game {
 namespace pmem {
+#ifndef PMem_Alloc
 #define PMem_Alloc(size, alignment, pool, stack, asyncCommit, memTrack)        \
   _PMem_Alloc(size, alignment, pool, stack, asyncCommit, memTrack, __FILE__,   \
               __LINE__)
+#endif
 
 WEAK symbol<void(const char *name, int allocDir)> PMem_Free{
     0x1420C48B0, 0x141439190, 0x1405D8B30};

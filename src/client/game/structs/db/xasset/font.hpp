@@ -73,6 +73,11 @@ struct Font_s {
 ASSERT_SIZE(Font_s, 0x38);
 typedef Font_s Font;
 
+enum class FontCacheFXFlags : int32_t {
+  NONE = 0x0,
+  DISTANCE_FIELD = 0x1,
+};
+
 } // namespace font
 } // namespace xasset
 } // namespace db

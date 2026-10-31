@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <format>
 #include <numbers>
@@ -34,6 +35,18 @@ inline constexpr T normalizeAngle(T angle) noexcept {
                 0.5f)) *
       360.0f);
 }
+
+inline constexpr uint8_t to_rgba_byte(const float f) noexcept {
+  return static_cast<uint8_t>(
+      std::floor(std::clamp(f, 0.0f, 1.0f) *
+                     static_cast<float>(std::numeric_limits<uint8_t>::max()) +
+                 0.5f));
+}
+
+inline constexpr float to_rgba_float(const uint8_t b) noexcept {
+  return static_cast<float>(b) /
+         static_cast<float>(std::numeric_limits<uint8_t>::max());
+}
 } // namespace math
 
 template <typename T = vec_t> union vec2 {
@@ -46,6 +59,14 @@ template <typename T = vec_t> union vec2 {
 
   inline constexpr const T &operator[](size_t index) const { return v[index]; }
   inline constexpr T &operator[](size_t index) { return v[index]; }
+
+  // Iterators & Ranges support
+  inline constexpr const T *begin() const noexcept { return v; }
+  inline constexpr const T *end() const noexcept { return v + SIZE; }
+  inline constexpr T *begin() noexcept { return v; }
+  inline constexpr T *end() noexcept { return v + SIZE; }
+  inline constexpr const T *cbegin() const noexcept { return v; }
+  inline constexpr const T *cend() const noexcept { return v + SIZE; }
 
   // Compound assignment operators (Vector)
   inline constexpr vec2<T> &operator+=(const vec2<T> o) {
@@ -164,7 +185,12 @@ template <typename T = vec_t> union vec2 {
            std::pow(y - b.y, 2) <= epsilon_sq;
   }
 
-  inline std::string serialize() const noexcept {
+  inline constexpr void set(const T xVal, const T yVal) {
+    x = xVal;
+    y = yVal;
+  }
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
     if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
       return std::format("{{ \"x\": {}, \"y\": {} }}", x, y);
     } else if constexpr (std::is_enum_v<T> || std::is_same_v<T, char> ||
@@ -198,6 +224,14 @@ template <typename T = vec_t> union vec3 {
 
   inline constexpr const T &operator[](size_t index) const { return v[index]; }
   inline constexpr T &operator[](size_t index) { return v[index]; }
+
+  // Iterators & Ranges support
+  inline constexpr const T *begin() const noexcept { return v; }
+  inline constexpr const T *end() const noexcept { return v + SIZE; }
+  inline constexpr T *begin() noexcept { return v; }
+  inline constexpr T *end() noexcept { return v + SIZE; }
+  inline constexpr const T *cbegin() const noexcept { return v; }
+  inline constexpr const T *cend() const noexcept { return v + SIZE; }
 
   // Compound assignment operators (Vector)
   inline constexpr vec3<T> &operator+=(const vec3<T> o) {
@@ -349,7 +383,13 @@ template <typename T = vec_t> union vec3 {
            std::pow(z - b.z, 2) <= epsilon_sq;
   }
 
-  inline std::string serialize() const noexcept {
+  inline constexpr void set(const T xVal, const T yVal, const T zVal) {
+    x = xVal;
+    y = yVal;
+    z = zVal;
+  }
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
     if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
       return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {} }}", x, y, z);
     } else if constexpr (std::is_enum_v<T> || std::is_same_v<T, char> ||
@@ -390,6 +430,14 @@ template <typename T = vec_t> union vec4 {
 
   inline constexpr const T &operator[](size_t index) const { return v[index]; }
   inline constexpr T &operator[](size_t index) { return v[index]; }
+
+  // Iterators & Ranges support
+  inline constexpr const T *begin() const noexcept { return v; }
+  inline constexpr const T *end() const noexcept { return v + SIZE; }
+  inline constexpr T *begin() noexcept { return v; }
+  inline constexpr T *end() noexcept { return v + SIZE; }
+  inline constexpr const T *cbegin() const noexcept { return v; }
+  inline constexpr const T *cend() const noexcept { return v + SIZE; }
 
   // Compound assignment operators (Vector)
   inline constexpr vec4<T> &operator+=(const vec4<T> o) {
@@ -541,7 +589,34 @@ template <typename T = vec_t> union vec4 {
            std::pow(w - b.w, 2) <= epsilon_sq;
   }
 
-  inline std::string serialize() const noexcept {
+  inline constexpr void set(const T xVal, const T yVal, const T zVal,
+                            const T wVal) {
+    x = xVal;
+    y = yVal;
+    z = zVal;
+    w = wVal;
+  }
+
+  inline constexpr vec4<float> to_rgba_float() const noexcept
+    requires(std::is_same_v<T, uint8_t>)
+  {
+    return {.r = math::to_rgba_float(r),
+            .g = math::to_rgba_float(g),
+            .b = math::to_rgba_float(b),
+            .a = math::to_rgba_float(a)};
+  }
+
+  inline constexpr vec4<uint8_t> to_rgba_bytes() const noexcept
+    requires(std::is_same_v<T, float>)
+  {
+
+    return {.r = math::to_rgba_byte(r),
+            .g = math::to_rgba_byte(g),
+            .b = math::to_rgba_byte(b),
+            .a = math::to_rgba_byte(a)};
+  }
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
     if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
       return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {}, \"w\": {} }}", x,
                          y, z, w);

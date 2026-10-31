@@ -1,4 +1,5 @@
 #pragma once
 
-#include "core.hpp" // IWYU pragma: export
-#include "he.hpp"   // IWYU pragma: export
+#include "core.hpp"      // IWYU pragma: export
+#include "draw/draw.hpp" // IWYU pragma: export
+#include "he.hpp"        // IWYU pragma: export

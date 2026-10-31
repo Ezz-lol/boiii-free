@@ -124,8 +124,9 @@ inline std::optional<hks::HksObjectType> lua_gettype(hks::lua_State *s,
   return std::nullopt;
 }
 
-alwaysinline void lua_rawgeti(hks::lua_State *s, int32_t index, int32_t n) {
-  return hks::hksi_lua_rawgeti(s, index, n);
+alwaysinline void lua_rawgeti(hks::lua_State *s, const hks::hksInt32 index,
+                              const hks::hksInt32 key) {
+  return hks::hksi_lua_rawgeti(s, index, key);
 }
 
 inline hks::HksNumber lua_tonumber(hks::lua_State *s, int32_t index) {
@@ -201,7 +202,8 @@ alwaysinline hks::HashTable *lua_totable(hks::lua_State *s, int32_t index) {
 alwaysinline hks::LightUserData lua_touserdata(hks::lua_State *s,
                                                int32_t index) {
   hks::HksObject *const object = hks::getObjectForIndex(s, index);
-  return object ? object->lightUserData() : hks::LightUserData{.ptr = nullptr};
+  return object && object->isUserData() ? object->lightUserData()
+                                        : hks::LightUserData{.ptr = nullptr};
 }
 
 alwaysinline void lua_pop(hks::lua_State *s, int n) { hks::hksi_lua_pop(s, n); }

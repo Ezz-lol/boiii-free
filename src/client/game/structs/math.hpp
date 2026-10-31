@@ -119,7 +119,7 @@ struct Mat43 {
     return from_euler(euler.xyz);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"x\": {}, \"y\": {}, \"z\": {}, \"w\": {} }}",
                        x.serialize(), y.serialize(), z.serialize(),
                        w.serialize());

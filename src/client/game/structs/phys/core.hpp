@@ -32,7 +32,7 @@ struct hitinfo_t {
   int32_t entnum;
   float intensity;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"hittime\": {}, \"hitp\": {}, \"hitn\": {}, "
                        "\"stype\": {}, \"entnum\": {}, \"intensity\": {} }}",
                        hittime, hitp.serialize(), hitn.serialize(), stype,
@@ -79,7 +79,7 @@ public:
   int32_t m_max_num_sap_active_pairs;
   int32_t m_max_num_surface_types;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_max_num_gjk_ci\": {}, \"m_max_num_sap_active_pairs\": {}, "
         "\"m_max_num_surface_types\": {} }}",
@@ -100,7 +100,7 @@ struct broad_phase_base {
   uint32_t m_env_collision_flags;
   uint32_t m_my_collision_type_flags;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_trace_aabb_min_whace\": {}, \"m_trace_aabb_max_whace\": {}, "
         "\"m_trace_translation\": {}, "
@@ -122,7 +122,7 @@ template <typename Node> class phys_link_list_base {
 public:
   Node *m_next_link;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_next_link\": {} }}", ::serialize(m_next_link));
   }
 };
@@ -174,7 +174,7 @@ struct pulse_sum_cache {
 public:
   float m_pulse_sum;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_pulse_sum\": {} }}", m_pulse_sum);
   }
 };
@@ -193,7 +193,7 @@ struct rigid_body_constraint_point {
   bool m_spring_enabled;
   uint8_t _padding59[7];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_b1_r_loc\": {}, \"m_b2_r_loc\": {}, "
         "\"m_ps_cache_list\": {}, \"m_stress\": {}, \"m_spring_k\": {}, "
@@ -273,7 +273,7 @@ public:
   rb_inplace_partition_node m_partition_node;
   uint8_t _padding1A8[8];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_last_position\": {}, \"m_moved_vec\": {}, "
         "\"m_smallest_lambda\": {}, "
@@ -308,7 +308,7 @@ struct rigid_body_pair_key {
   rigid_body *m_b1;
   rigid_body *m_b2;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_b1\": {}, \"m_b2\": {} }}", ::serialize(m_b1),
                        ::serialize(m_b2));
   }
@@ -320,7 +320,7 @@ public:
   // int32_t (**_vptr$phys_gjk_geom)(void);
   void *vtablePtr;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"vtablePtr\": {:p} }}", vtablePtr);
   }
 };
@@ -336,7 +336,7 @@ struct gjk_unique_id_database_t {
 public:
   unique_id m_counter;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_counter\": 0x{:08X} }}", m_counter);
   }
 };
@@ -359,7 +359,7 @@ struct gjk_base_t {
   gjk_contents_t m_contents;
   uint8_t _padding54[12];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_aabb_mn_loc\": {}, \"m_aabb_mx_loc\": {}, "
         "\"m_gjk_geom_id\": 0x{:08X}, \"m_xform_\": {}, \"m_next_geom\": {}, "
@@ -377,7 +377,7 @@ public:
   int32_t m_geom_count;
   uint8_t _padding0C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_first_geom\": {}, \"m_geom_count\": {} }}",
                        ::serialize(m_first_geom), m_geom_count);
   }
@@ -441,7 +441,7 @@ struct ZBarrierBoard {
   scr::ScrString_t zombieBoardTearSubStateName;
   uint32_t numRepsToPullProBoard;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"pBoardModel\": {}, \"pAlternateBoardModel\": {}, "
         "\"pUpgradedBoardModel\": {}, "
@@ -490,7 +490,7 @@ struct ZBarrierDef {
   db::xasset::xmodel::XModel *pCollisionModel;
   ZBarrierBoard boards[6];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"generalRepairSound1\": 0x{:08X}, "
         "\"generalRepairSound2\": 0x{:08X}, "
@@ -525,7 +525,7 @@ ASSERT_SIZE(ZBarrierDef, 0x300);
 struct ZBarrierPieceAnims {
   anim::XAnimTree *pAnimTree;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"pAnimTree\": {} }}", ::serialize(pAnimTree));
   }
 };
@@ -541,7 +541,7 @@ struct ZBarrierType {
   int32_t upgradedBoardModelIndex[6];
   int32_t alternateBoardModelIndex[6];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"serverIndex\": {}, \"clientIndex\": {}, \"zbarrierDef\": {}, "
         "\"clientAnims\": {}, \"serverAnims\": {}, \"boardModelIndex\": {}, "
@@ -560,7 +560,7 @@ struct cached_tag_mat_t {
   scr::ScrString_t name;
   vec3_t tagMat[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"time\": {}, \"entnum\": {}, \"name\": 0x{:08X}, "
                        "\"tagMat\": {} }}",
                        time, entnum, name, ::serialize(tagMat));
@@ -574,7 +574,7 @@ struct trigger_info_t {
   int32_t useCount;
   int32_t otherUseCount;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"entnum\": {}, \"otherEntnum\": {}, \"useCount\": "
                        "{}, \"otherUseCount\": {} }}",
                        entnum, otherEntnum, useCount, otherUseCount);
@@ -608,7 +608,7 @@ struct actor_prone_info_t {
     float fBodyRoll;
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"bCorpseOrientation\": {}, \"orientPitch\": {}, \"prone\": {}, "
         "\"iProneTime\": {}, \"iProneTrans\": {}, \"fBodyHeight\": {}, "
@@ -627,7 +627,7 @@ struct actorAntilagFrame_t {
   uint8_t inUse[64];
   int32_t time;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"position\": {}, \"angles\": {}, \"useCount\": {}, "
                        "\"inUse\": {}, \"time\": {} }}",
                        ::serialize(position), ::serialize(angles),
@@ -663,7 +663,7 @@ struct LocalClientFxUniqueHandle {
   LocalClientNum_t localClient;
   FxUniqueHandle fxHandle;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"localClient\": {}, \"fxHandle\": {} }}",
                        game::serialize(localClient), fxHandle);
   }
@@ -674,7 +674,7 @@ struct DestructibleBurnData {
   FxUniqueHandle fx;
   snd::SndPlaybackId sndId;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"burnTime\": {}, \"fx\": {}, \"sndId\": 0x{:08X} }}", burnTime, fx,
         sndId);
@@ -688,7 +688,7 @@ struct DESTRUCTIBLE_PIECE_INFO {
   FxUniqueHandle fx;
   DestructibleBurnData burnData;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"health\": {}, \"xdollHandle\": {}, \"fx\": 0x{:08X}, "
         "\"burnData\": {} }}",
@@ -699,7 +699,7 @@ struct DESTRUCTIBLE_PIECE_INFO {
 struct LerpEntityStateDestructibleHit {
   uint32_t modelState[6];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"modelState\": {} }}", ::serialize(modelState));
   }
 };
@@ -708,7 +708,7 @@ struct DestructibleState {
   LerpEntityStateDestructibleHit state;
   int32_t time;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"state\": {}, \"time\": {} }}", state.serialize(),
                        time);
   }
@@ -730,7 +730,7 @@ PACKED(struct Destructible {
   bool bHasBeenHit;
   uint8_t _paddingB9[7];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"entNum\": {}, \"pieceArray\": {}, \"oldestBurnTime\": {}, "
         "\"entDestroyed\": {}, \"entDestroyedRespondedTo\": {}, "
@@ -751,7 +751,7 @@ PACKED(union CollisionAabbTreeIndex {
   int32_t firstChildIndex;
   int32_t partitionIndex;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"firstChildIndex\": {} }}", firstChildIndex);
   }
 });
@@ -764,7 +764,7 @@ PACKED(struct CollisionAabbTree {
   vec3_t halfSize;
   CollisionAabbTreeIndex u;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"origin\": {}, \"materialIndex\": {}, "
                        "\"childCount\": {}, \"halfSize\": {}, \"u\": {} }}",
                        origin.serialize(), materialIndex, childCount,
@@ -780,7 +780,7 @@ PACKED(struct CollisionPartition {
   int32_t nuinds;
   int32_t fuind;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"triCount\": {}, \"firstTri\": {}, \"nuinds\": {}, "
                        "\"fuind\": {} }}",
                        triCount, firstTri, nuinds, fuind);
@@ -798,7 +798,7 @@ PACKED(struct col_prim_t {
     const cbrush_t *brush;
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"type\": {}, \"tree\": {:p} }}", type,
                        reinterpret_cast<const void *>(tree));
   }
@@ -811,7 +811,7 @@ PACKED(struct hybrid_vector {
 public:
   float4 vec;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"vec\": {} }}", vec.serialize());
   }
 });
@@ -821,7 +821,7 @@ PACKED(struct visitor_base_t {
 public:
   int32_t (**_vptr$visitor_base_t)(void);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"vtable\": {:p} }}",
                        reinterpret_cast<const void *>(_vptr$visitor_base_t));
   }
@@ -844,7 +844,7 @@ PACKED(struct colgeom_visitor_t {
   contents_t m_mask;
   TraceThreadInfo *m_threadInfo;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_radius\": {}, \"m_mask\": 0x{:08X}, "
         "\"m_threadInfo\": {:p} }}",
@@ -873,7 +873,7 @@ struct IgnoreEntParams {
   bool ignoreSiblings;
   bool ignoreChildren;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"baseEntity\": {}, \"parentEntity\": {}, \"ignoreEntType\": {}, "
         "\"ignoreSelf\": {}, \"ignoreParent\": {}, \"ignoreSiblings\": {}, "
@@ -897,7 +897,7 @@ struct col_context_t {
   uint8_t *priorityMap;
   collide_entity_func_ptr collide_entity_func;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"mask\": 0x{:08X}, \"prims\": {}, \"nprims\": {}, "
         "\"ignoreEntParams\": {}, "
@@ -934,7 +934,7 @@ struct __attribute__((aligned(4))) SelfCollisionPair {
   scr::ScrString_t boneNames[2];
   uint8_t bonePair[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"boneNames\": {}, \"bonePair\": {} }}",
                        ::serialize(boneNames), ::serialize(bonePair));
   }
@@ -960,7 +960,7 @@ struct __attribute__((aligned(4))) RagdollBoneDef {
   bool mirror;
   uint8_t parentIndex;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"ragdollBone\": 0x{:08X}, \"childBone\": 0x{:08X}, \"radius\": "
         "{}, "
@@ -986,7 +986,7 @@ struct RagdollDef {
   SelfCollisionPair selfCollisionPairs[33];
   const char *name;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"numBoneDefs\": {}, \"numSelfCollisionPairs\": {}, "
         "\"boneDefs\": {}, "
@@ -1010,7 +1010,7 @@ PACKED(struct objcamCameraPoint {
   float ocMaxHorizAngle;
   float ocMaxVertAngle;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"ocState\": {}, \"ocName\": 0x{:08X}, \"ocIndex\": "
                        "{}, \"ocEntNum\": {}, "
                        "\"ocEntTag\": 0x{:08X}, \"ocTeam\": {}, \"ocPos\": {}, "
@@ -1027,7 +1027,7 @@ ASSERT_SIZE(objcamCameraPoint, 0x38);
 PACKED(struct objcamCameraTable {
   objcamCameraPoint cameraPoints[256];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"cameraPoints\": {} }}", ::serialize(cameraPoints));
   }
 });
@@ -1038,7 +1038,7 @@ struct objcamCameraState {
   int32_t ocsLastCamera;
   vec3_t ocsViewAngles;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"ocsLastCameraBase\": {}, \"ocsLastCamera\": {}, "
                        "\"ocsViewAngles\": {} }}",
                        ocsLastCameraBase, ocsLastCamera,
@@ -1050,7 +1050,7 @@ template <typename T> class phys_simple_link_list {
 public:
   T *m_first;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_first\": {:p} }}",
                        reinterpret_cast<const void *>(m_first));
   }
@@ -1062,7 +1062,7 @@ template <typename T> struct phys_inplace_avl_tree_node {
   int32_t m_balance;
   uint8_t _padding14[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_left\": {:p}, \"m_right\": {:p}, \"m_balance\": {} }}",
         reinterpret_cast<const void *>(m_left),
@@ -1095,7 +1095,7 @@ struct broad_phase_info {
   phys_gjk_geom_id m_gjk_geom_id;
   int32_t m_surface_type;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_rb\": {}, \"m_rb_to_world_xform\": {}, "
         "\"m_cg_to_world_xform\": {}, \"m_cg_to_rb_xform\": {}, "
@@ -1110,7 +1110,7 @@ struct broad_phase_info {
 struct cached_simplex_info {
   math::Dir3 m_indices[3];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_indices\": {} }}", ::serialize(m_indices));
   }
 };
@@ -1120,7 +1120,7 @@ public:
   phys_gjk_geom_id m_id1;
   phys_gjk_geom_id m_id2;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_id1\": 0x{:08X}, \"m_id2\": 0x{:08X} }}", m_id1,
                        m_id2);
   }
@@ -1134,7 +1134,7 @@ struct phys_gjk_cache_info {
   phys_gjk_geom_id_pair_key m_key;
   uint32_t m_flags;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_support_dir\": {}, \"m_support_a\": {}, \"m_support_b\": {}, "
         "\"m_support_count\": {}, \"m_key\": {}, \"m_flags\": 0x{:08X} }}",
@@ -1152,7 +1152,7 @@ struct phys_collision_pair {
   float m_hit_time;
   phys_gjk_cache_info *m_gjk_ci;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"base\": {}, \"m_bpi1\": {}, \"m_bpi2\": {}, "
                        "\"m_hit_time\": {}, \"m_gjk_ci\": {} }}",
                        base.serialize(), ::serialize(m_bpi1),
@@ -1164,7 +1164,7 @@ struct __attribute__((aligned(16))) contact_point_info {
   struct pulse_sum_cache_info {
     pulse_sum_cache m_ps_cache_list[3];
 
-    inline std::string serialize() const noexcept {
+    [[nodiscard]] inline std::string serialize() const noexcept {
       return std::format("{{ \"m_ps_cache_list\": {} }}",
                          ::serialize(m_ps_cache_list));
     }
@@ -1198,7 +1198,7 @@ struct rigid_body_constraint_contact {
   phys_inplace_avl_tree_node<rigid_body_constraint_contact> m_avl_tree_node;
   rigid_body_pair_key m_avl_key;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_list_contact_point_info_buffer_1\": {}, "
         "\"m_list_contact_point_info_buffer_2\": {}, "
@@ -1227,7 +1227,7 @@ struct rigid_body_constraint_hinge {
   uint32_t m_flags;
   pulse_sum_cache m_ps_cache[8];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"base\": {}, \"m_b1_r_loc\": {}, \"m_b2_r_loc\": "
                        "{}, \"m_b1_axis_loc\": {}, "
                        "\"m_b2_axis_loc\": {}, \"m_b1_a1_loc\": {}, "
@@ -1258,7 +1258,7 @@ struct rigid_body_constraint_distance {
   uint32_t m_flags;
   pulse_sum_cache m_ps_cache_list[3];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_b1_r_loc\": {}, \"m_b2_r_loc\": {}, "
         "\"m_min_distance\": {}, "
@@ -1278,7 +1278,7 @@ struct __attribute__((aligned(8))) ragdoll_joint_limit_info {
   float m_b1_ud_limit_si_;
   float m_b1_ud_active_limit_co_;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_b1_ud_loc\": {}, \"m_b1_ud_limit_co_\": {}, "
         "\"m_b1_ud_limit_si_\": {}, \"m_b1_ud_active_limit_co_\": {} }}",
@@ -1306,7 +1306,7 @@ struct rigid_body_constraint_ragdoll {
   int32_t m_joint_limits_count;
   float m_damp_k;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_b1_r_loc\": {}, \"m_b2_r_loc\": {}, "
         "\"m_flags\": 0x{:08X}, \"m_ps_cache_list\": {}, \"m_b1_axis_loc\": "
@@ -1347,7 +1347,7 @@ struct pulse_sum_normal {
   pulse_sum_node *m_b2;
   pulse_sum_cache *m_pulse_sum_cache;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_ud\": {}, \"m_b1_r\": {}, \"m_b2_r\": {}, "
         "\"m_b1_ap\": {}, \"m_b2_ap\": {}, \"m_pulse_sum_min\": {}, "
@@ -1443,7 +1443,7 @@ struct __attribute__((aligned(8))) rigid_body_constraint_wheel {
     return syms::calc_penetration_depth(this);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_ps_cache_list\": {}, \"m_ps_suspension\": {}, "
         "\"m_ps_side_fric\": {}, \"m_ps_fwd_fric\": {}, \"m_b1_local_offset\": "
@@ -1498,7 +1498,7 @@ struct rigid_body_constraint_angular_actuator {
   bool m_enabled;
   pulse_sum_cache m_ps_cache_list[3];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_target_mat\": {}, \"m_next_target_mat\": {}, "
         "\"m_a_vel\": {}, \"m_power\": {}, \"m_power_scale\": {}, "
@@ -1530,7 +1530,7 @@ struct rigid_body_constraint_upright {
   bool m_enabled;
   pulse_sum_cache m_ps_cache_list[1];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_b1_forward_axis_loc\": {}, "
         "\"m_b1_right_axis_loc\": {}, "
@@ -1564,7 +1564,7 @@ struct __attribute__((aligned(8))) rigid_body_constraint_custom_orientation {
   float m_upright_strength;
   float m_desired_roll_angle;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_ps_cache_list\": {}, \"m_active\": {}, "
         "\"m_no_orientation_correction\": {}, "
@@ -1587,7 +1587,7 @@ struct user_rigid_body {
   const math::RotTranMat43 *m_dictator;
   math::RotTranMat43 m_dictator_mat;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_dictator\": {}, \"m_dictator_mat\": {} }}",
         base.serialize(), ::serialize(m_dictator), m_dictator_mat.serialize());
@@ -1606,7 +1606,7 @@ PACKED(struct rigid_body_constraint_custom_path {
   float m_spring_scale;
   pulse_sum_cache m_list_psc[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"base\": {}, \"m_path_mat\": {}, \"b1_r_loc\": {}, "
                        "\"m_urb\": {}, \"m_timestamp\": {}, "
                        "\"m_spring_scale\": {}, \"m_list_psc\": {} }}",
@@ -1636,7 +1636,7 @@ struct BodyState {
   int owner;
   PhysicsOwnerType owner_type;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"position\": {}, \"rotation\": {}, \"velocity\": {}, "
         "\"angVelocity\": {}, \"centerOfMassOffset\": {}, \"buoyancyBoxMin\": "
@@ -1706,7 +1706,7 @@ struct TraceExtents {
   hybrid_vector end;
   hybrid_vector invDelta;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"start\": {}, \"end\": {}, \"invDelta\": {} }}",
                        start.serialize(), end.serialize(),
                        invDelta.serialize());
@@ -1724,7 +1724,7 @@ struct moveclip_t {
   contents_t contentmask;
   collide_entity_func_ptr collide_entity_func;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"mins\": {}, \"maxs\": {}, \"outerSize\": {}, \"extents\": {}, "
         "\"passEntityNum\": {}, \"passEntityNum1\": {}, \"passOwnerNum\": {}, "

@@ -147,7 +147,8 @@ WEAK symbol<void(lua_State *s, int32_t n)> hksi_lua_concat{
     0x141D409A0, 0x141D4D430, 0x1403F5F80};
 WEAK symbol<hksInt32(const char *strptr, hksSize len, HksNumber *dd)>
     stringToNumber{0x141D5FF50, 0x141D6C9E0, 0x140414AF0};
-WEAK symbol<HksObject *(const hks::HashTable *, HksObject *value, hksInt32 key)>
+WEAK symbol<HksObject *(const hks::HashTable *table, HksObject *value,
+                        hksInt32 key)>
     hks_obj_rawgeti{0x141D38750, 0x141D451E0, 0x1403EDDF0};
 WEAK symbol<HksClosure *(lua_State *s, Method *method, HashTable *globals)>
     createHksClosure{0x141D327F0, 0x141D3F280, 0x1403E8250};
@@ -376,14 +377,16 @@ inline hks::HksObject *getObjectForIndex(hks::lua_State *s, int32_t index) {
 
 alwaysinline void hksi_lua_push(lua_State *s) { s->m_apistack.top++; }
 
-alwaysinline void hksi_lua_rawgeti(lua_State *s, int32_t index, int32_t n) {
+alwaysinline void hksi_lua_rawgeti(lua_State *s, int32_t index, int32_t key) {
   hks::HksObject *const obj = getObjectForIndex(s, index);
-  hks_obj_rawgeti(obj->v.table, s->m_apistack.top, n);
+  if (obj && obj->t == HksObjectType::TTABLE) {
+    hks_obj_rawgeti(obj->v.table, s->m_apistack.top, key);
+  }
   hksi_lua_push(s);
 }
 
 alwaysinline hksInt32 hksi_lua_gettop(lua_State *s) {
-  return s->m_apistack.top - s->m_apistack.base;
+  return static_cast<hksInt32>(s->m_apistack.top - s->m_apistack.base);
 }
 
 alwaysinline bool hks_obj_isstring(const HksObject *x) {
@@ -402,17 +405,7 @@ alwaysinline bool hksi_lua_isnumber(lua_State *s, int index) {
 
 alwaysinline bool hksi_lua_isuserdata(lua_State *s, int index) {
   const HksObject *obj = getObjectForIndex(s, index);
-  if (obj) {
-    switch (obj->t) {
-    case HksObjectType::TUSERDATA:
-    case HksObjectType::TLIGHTUSERDATA:
-      return true;
-    default:
-      break;
-    }
-  }
-
-  return false;
+  return obj && obj->isUserData();
 }
 
 alwaysinline void hksi_lua_pop(lua_State *s, int n) { s->m_apistack.top -= n; }

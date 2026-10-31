@@ -40,6 +40,7 @@
 #include "r.hpp"           // IWYU pragma: export
 #include "rope.hpp"        // IWYU pragma: export
 #include "scr/scr.hpp"     // IWYU pragma: export
+#include "seh.hpp"         // IWYU pragma: export
 #include "sl.hpp"          // IWYU pragma: export
 #include "snd/snd.hpp"     // IWYU pragma: export
 #include "steam.hpp"       // IWYU pragma: export

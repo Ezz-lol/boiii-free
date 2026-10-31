@@ -58,7 +58,7 @@ PACKED(struct DestructiblePiece {
   XPartBits hideBones;
   uint8_t _padding1CC[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"stages\": {}, \"parentPiece\": {}, \"parentDamagePercent\": {}, "
         "\"bulletDamageScale\": {}, \"explosiveDamageScale\": {}, "

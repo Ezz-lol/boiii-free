@@ -188,7 +188,7 @@ struct RumbleGraph {
   vec2_t knots[16];
   uint8_t _padding8C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"knotCount\": {}, \"knots\": {} }}",
                        ::serialize(name), knotCount, ::serialize(knots));
   }
@@ -211,7 +211,7 @@ struct RumbleInfo {
   float pulseScale;
   scr::ScrString_t pulseBoneTag;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"duration\": {}, \"range\": {}, "
         "\"highRumbleGraph\": {}, "
@@ -239,7 +239,7 @@ struct AliasToAnimsEntry {
   int32_t numAnims;
   uint8_t _padding14[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"aliasName\": 0x{:08X}, \"anims\": {}, \"numAnims\": {} }}",
         aliasName, ::serialize(anims, numAnims), numAnims);
@@ -256,7 +256,7 @@ struct AnimSelectorTableEntry {
     float v;
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": 0x{:08X}, \"integer\": {}, \"v\": {} }}",
                        name, integer, v);
   }
@@ -270,7 +270,7 @@ struct AnimMappingTable {
   int32_t numAnimAlias;
   uint8_t _padding14[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"entries\": {}, \"numAnimAlias\": {} }}",
         ::serialize(name), ::serialize(entries, numAnimAlias), numAnimAlias);
@@ -286,7 +286,7 @@ struct AnimSelectorTableCache {
   AnimSelectorTableEntry searchCriteria[32];
   int32_t searchCriteriaSize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"tableIndex\": {}, \"rowIndex\": {}, "
                        "\"searchCriteria\": {}, \"searchCriteriaSize\": {} }}",
                        tableIndex, rowIndex, ::serialize(searchCriteria),
@@ -303,7 +303,7 @@ struct AnimSelectorOutParamsGroup1 {
   int32_t aimRightAliasColumn;
   int32_t mocompColumn;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"aliasColumn\": {}, \"aimUpAliasColumn\": {}, "
                        "\"aimDownAliasColumn\": {}, "
                        "\"aimLeftAliasColumn\": {}, \"aimRightAliasColumn\": "
@@ -321,7 +321,7 @@ struct AnimSelectorOutParamsGroup2 {
   int32_t shootBurst5AliasColumn;
   int32_t shootBurst6AliasColumn;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"shootSemiAliasColumn\": {}, \"shootSingleAliasColumn\": {}, "
         "\"shootBurst3AliasColumn\": {}, "
@@ -342,7 +342,7 @@ struct AnimSelectorOutParamsGroup3 {
   int32_t paramTurnRightAliasColumn;
   int32_t paramIdleBlendDropoffColumn;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"paramForwardAliasColumn\": {}, \"paramBackwardAliasColumn\": {}, "
         "\"paramLeftAliasColumn\": {}, "
@@ -402,7 +402,7 @@ struct AnimSelectorTableColumn {
   scr::ScrVarCanonicalName_t nameCanonicalStringIndexCache;
   scr::ScrVarCanonicalName_t parentNameCanonicalStringIndexCache;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"parentName\": {}, \"desired\": {}, "
         "\"outputColumn\": {}, "
@@ -422,7 +422,7 @@ struct AnimSelectorTableRow {
   int32_t numEntries;
   uint8_t _padding0C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"entries\": {}, \"numEntries\": {} }}",
                        ::serialize(entries, numEntries), numEntries);
   }
@@ -446,7 +446,7 @@ struct AnimSelectorTable {
   int32_t blendOutColumn;
   int32_t aimTableColumn;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": 0x{:08X}, \"columns\": {}, \"numColumns\": {}, \"rows\": "
         "{:p}, "
@@ -466,7 +466,7 @@ struct AnimSelectorTableSet {
   int32_t numTables;
   uint8_t _padding14[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"tables\": {}, \"numTables\": {} }}",
                        ::serialize(name), ::serialize(tables, numTables),
                        numTables);
@@ -485,7 +485,7 @@ struct AimTableEntry {
   int32_t down;
   uint8_t _padding1C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"entryName\": {}, \"right\": {}, "
                        "\"left\": {}, \"up\": {}, \"down\": {} }}",
                        ::serialize(name), entryName, right, left, up, down);
@@ -498,7 +498,7 @@ struct PrimaryDeltaFootstep_t {
   float time;
   scr::ScrString_t notetrackName;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"time\": {}, \"notetrackName\": {} }}", time,
                        notetrackName);
   }
@@ -522,7 +522,7 @@ struct aimAnimations_t {
     aimAnimationsArray_t aimArray;
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"xanimUpAimIndex\": {}, \"xanimDownAimIndex\": {}, "
         "\"xanimLeftAimIndex\": {}, \"xanimRightAimIndex\": {} }}",
@@ -554,7 +554,7 @@ struct AimLayer {
   uint8_t _padding8C[4];
   const AimTableEntry *aimTableEntry;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"active\": {}, \"tableName\": {}, \"searchedAimTableName\": {}, "
         "\"tableIndex\": {}, \"rowIndex\": {}, \"lastValidEnemyTime\": {}, "
@@ -604,7 +604,7 @@ struct PrimaryDeltaLayer_t {
   uint8_t toggleCounter;
   uint8_t _padding209[3];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"deltaAnimSource\": {}, \"currDeltaTableName\": {}, "
         "\"currDeltaTableEvalFunc\": {}, "
@@ -633,7 +633,7 @@ struct shootAnimations_t {
   int32_t xanimSingleShotIndex;
   int32_t xanimBurstIndexes[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"xanimSemiIndex\": {}, \"xanimSingleShotIndex\": "
                        "{}, \"xanimBurstIndexes\": {} }}",
                        xanimSemiIndex, xanimSingleShotIndex,
@@ -659,7 +659,7 @@ struct ShootLayer {
   int32_t nextShootLayerStartTime;
   int32_t currentBurstCount;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"active\": {}, \"tableName\": {}, \"tableIndex\": {}, "
         "\"rowIndex\": {}, "
@@ -687,7 +687,7 @@ struct TransDecLayer {
   int32_t rowIndex;
   int32_t animIndex;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"active\": {}, \"tableName\": {}, "
                        "\"tableEvalFunc\": {}, \"tableIndex\": {}, "
                        "\"rowIndex\": {}, \"animIndex\": {} }}",
@@ -702,7 +702,7 @@ struct MocompLayer {
   uint8_t _padding1[3];
   scr::ScrString_t mocompName;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"active\": {}, \"mocompName\": 0x{:08X} }}",
                        ::serialize(active), mocompName);
   }
@@ -716,7 +716,7 @@ struct AimTable {
   uint8_t _padding0C[4];
   AimTableEntry atEntries[20];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"tableName\": 0x{:08X}, \"atEntries\": {} }}",
         ::serialize(name), tableName, ::serialize(atEntries));
@@ -747,7 +747,7 @@ struct AnimSubState {
   int32_t numSubStateTransitions;
   uint8_t _padding3C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": 0x{:08X}, \"fullname\": 0x{:08X}, \"validationFlags\": "
         "0x{:08X}, "
@@ -778,7 +778,7 @@ struct AnimState {
   int32_t numSubStates;
   uint8_t _padding14[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": 0x{:08X}, \"validationFlags\": 0x{:08X}, "
                        "\"subStatesIndices\": {}, \"numSubStates\": {} }}",
                        name, validationFlags,
@@ -802,7 +802,7 @@ struct AnimTransition {
   scr::ScrString_t shootSelector;
   scr::ScrString_t deltaSelectorEvaluator;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": 0x{:08X}, \"fullname\": 0x{:08X}, \"validationFlags\": "
         "{:08X}, "
@@ -832,7 +832,7 @@ struct AnimStateMachine {
   int32_t numTransitions;
   uint8_t _padding34[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"asmStates\": {}, \"numStates\": "
         "{}, \"asmSubStates\": {}, "
@@ -863,7 +863,7 @@ struct AnimStateMachineRuntime {
   MocompLayer_t mocompLayer;
   uint8_t _padding32C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"status\": {}, \"endReason\": {}, "
         "\"animStateMachine\": {}, \"currSubStateIndex\": {}, "
@@ -887,7 +887,7 @@ struct XAnimParam {
   char strName[16];
   float fValue;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"strName\": \"{}\", \"fValue\": {} }}",
                        ::serialize(strName), fValue);
   }
@@ -900,7 +900,7 @@ struct XAnimSearchEntry {
   uint16_t animIndex;
   uint8_t _padding06[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": 0x{:08X}, \"animIndex\": {} }}", name,
                        animIndex);
   }
@@ -911,7 +911,7 @@ struct XAnimParent {
   uint16_t flags;
   uint16_t children;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"flags\": 0x{:04X}, \"children\": {} }}", flags,
                        children);
   }
@@ -932,7 +932,7 @@ struct XAnimEntry {
     XAnimParent animParent;
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"bCreated\": {}, \"numAnims\": {}, \"firstParamIxPlusOne\": {}, "
         "\"paramCount\": {}, \"parent\": {}, \"animParent\": {} }}",
@@ -951,7 +951,7 @@ struct XAnim {
   XAnimSearchEntry *sortedSearchList;
   XAnimEntry entries[1];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": 0x{:08X}, \"size\": {}, \"paramSize\": {}, \"params\": "
         "{:p}, "
@@ -968,7 +968,7 @@ struct XAnimTree {
   uint32_t children;
   LocalClientNum_t localClientNum;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"anims\": {:p}, \"children\": {}, \"localClientNum\": {} }}",
         reinterpret_cast<const void *>(anims), children,
@@ -985,7 +985,7 @@ PACKED(struct PlayerAnimBodyPartState {
   animationNumber_t animNum;
   uint8_t _padding0A[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"animStartTime\": {}, \"animDuration\": {}, \"animNum\": {} }}",
         animStartTime, animDuration, animNum.serialize());
@@ -1001,7 +1001,7 @@ PACKED(struct AnimScriptedState {
   animationNumber_t anim;
   uint8_t _padding12[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"time\": {}, \"rate\": {}, \"lerp\": {}, "
                        "\"goalTime\": {}, \"anim\": {} }}",
                        time, rate, lerp, goalTime, anim.serialize());
@@ -1015,7 +1015,7 @@ PACKED(struct motionMatchingInfo_t {
   int32_t kf_index;
   qboolean transitionState;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"active\": {}, \"legOffsetAngle\": {}, "
                        "\"kf_index\": {}, \"transitionState\": {} }}",
                        active.serialize(), legOffsetAngle, kf_index,
@@ -1036,7 +1036,7 @@ PACKED(struct locBlendInfo_t {
   float stopBlendLerpTime;
   int32_t lastLocBlendAnimNum;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"bPlayedBlendLastFrame\": {}, \"bStraightenLegs\": "
                        "{}, \"lastBlendCount\": {}, "
                        "\"lastBlendAnims\": {}, \"lastStrideType\": {}, "
@@ -1069,7 +1069,7 @@ PACKED(struct animation_t {
   uint16_t localOverrideAnim;
   uint8_t _padding7A[6];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": \"{}\", \"initialLerp\": {}, "
                        "\"finalLerp\": {}, \"forceAnimRate\": {}, "
                        "\"moveSpeed\": {}, \"rotSpeed\": {}, \"duration\": {}, "
@@ -1096,7 +1096,7 @@ PACKED(struct LerpFrameAnimation {
   qboolean scriptAnimFinished;
   int32_t syncAnimTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"animationNumber\": {}, \"animation\": {}, "
                        "\"animationTime\": {}, "
                        "\"oldFramePos\": {}, \"animSpeedScale\": {}, "
@@ -1113,7 +1113,7 @@ struct BGModelAttachmentName {
   char model[64];
   char tag[64];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"model\": \"{}\", \"tag\": \"{}\" }}",
                        ::serialize(model), ::serialize(tag));
   }
@@ -1126,7 +1126,7 @@ PACKED(struct LerpFrameAngles {
   float pitchAngle;
   qboolean pitching;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"yawAngle\": {}, \"yawAngleOld\": {}, \"yawing\": {}, "
         "\"pitchAngle\": {}, \"pitching\": {} }}",
@@ -1140,7 +1140,7 @@ PACKED(struct ModelAttachmentIndex {
   uint8_t tag;
   uint8_t _padding03[1];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"model\": {}, \"tag\": {} }}", model, tag);
   }
 });
@@ -1160,7 +1160,7 @@ PACKED(struct animState_t {
   float traversalYaw;
   int32_t traversalAnimIndex;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"deltaRequestTime\": {}, \"deltaSource\": {}, "
         "\"deltaRowLowBits\": {}, \"deltaRowHighBits\": {}, \"aimRow\": {}, "
@@ -1193,7 +1193,7 @@ PACKED(struct animscripted_t {
   float fEndRoll;
   float fOrientLerp;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"axis\": {}, \"originError\": {}, \"originErrorReduction\": {}, "
         "\"anglesError\": {}, \"anglesErrorReduction\": {}, \"anim\": {}, "
@@ -1213,7 +1213,7 @@ struct TraversalAnim {
   vec3_t origin;
   float yaw;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"animIndex\": {}, \"origin\": {}, \"yaw\": {} }}",
                        animIndex, origin.serialize(), yaw);
   }
@@ -1226,7 +1226,7 @@ struct TraversalState {
   vec3_t outroOrigin;
   vec3_t outroAngles;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"active\": {}, \"anims\": {}, \"outroTimeLeft\": {}, "
         "\"outroOrigin\": {}, \"outroAngles\": {} }}",
@@ -1239,7 +1239,7 @@ struct ObjectiveAnimData {
   bool obscuredLastCheck;
   bool hiddenByGroupCulling;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"obscuredLastCheck\": {}, \"hiddenByGroupCulling\": {} }}",
         ::serialize(obscuredLastCheck), ::serialize(hiddenByGroupCulling));
@@ -1251,7 +1251,7 @@ struct DObjAnimMat {
   vec3_t trans;
   float transWeight;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"quat\": {}, \"trans\": {}, \"transWeight\": {} }}",
                        quat.serialize(), trans.serialize(), transWeight);
   }
@@ -1263,7 +1263,7 @@ struct BaseAnimBoneMat {
   vec4_t baseQuat;
   vec3_t baseTrans;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"boneIndex\": 0x{:04X}, \"ignoreParentRelativeData\": {}, "
         "\"primaryBone\": {}, "
@@ -1279,7 +1279,7 @@ struct DSkelPartBits {
   int worldQuat[12];
   int constrained[12];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"anim\": {}, \"control\": {}, \"skel\": {}, "
                        "\"worldQuat\": {}, \"constrained\": {} }}",
                        ::serialize(anim), ::serialize(control),
@@ -1296,7 +1296,7 @@ struct __attribute__((aligned(4))) DSkel {
   int timeStamp;
   bool dirty;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"mat\": {}, \"baseAnimMat\": {}, "
                        "\"blendTargetWeights\": {}, "
                        "\"partBits\": {}, \"timeStamp\": {}, \"dirty\": {} }}",
@@ -1332,7 +1332,7 @@ struct __attribute__((aligned(8))) DObj {
   char localClientIndex;
   uint8_t numRootAdjustMats;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     const int64_t locked_copy = locked;
     return std::format(
         "{{ \"tree\": {:p}, \"ikState\": {:p}, \"siegeAnimations\": {:p}, "
@@ -1368,7 +1368,7 @@ struct DObjModel {
   vec3_t trans;
   vec3_t rot;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"model\": {}, \"boneName\": 0x{:08X}, \"parentModel\": {}, "
         "\"ignoreCollision\": {}, \"trans\": {}, \"rot\": {} }}",
@@ -1409,7 +1409,7 @@ struct locBlendPairAnim_t {
   int32_t animIndex;
   float extent;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"animIndex\": {}, \"extent\": {} }}", animIndex,
                        extent);
   }
@@ -1419,7 +1419,7 @@ struct __attribute__((aligned(8))) locBlendPair_t {
   locBlendPairAnim_t *end;
   int32_t strideType;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"start\": {:p}, \"end\": {:p}, \"strideType\": {} }}",
         reinterpret_cast<const void *>(start),
@@ -1432,7 +1432,7 @@ struct locBlendSet_t {
   int32_t startIndex;
   int32_t count;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": \"{}\", \"startIndex\": {}, \"count\": {} }}", name,
         startIndex, count);
@@ -1462,7 +1462,7 @@ struct __attribute__((aligned(8))) locBlend_t {
   locBlendSet_t *sets[4];
   int32_t numSets;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": \"{}\", \"type\": {}, \"sets\": {:p}, \"numSets\": {} }}",
         name, game::anim::serialize(type), reinterpret_cast<const void *>(sets),
@@ -1475,7 +1475,7 @@ struct XAnimBlendTargetWeights {
   uint16_t *frames;
   float *values;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"numKeys\": {}, \"frames\": {:p}, \"values\": {:p} }}", numKeys,
         reinterpret_cast<const void *>(frames),
@@ -1490,7 +1490,7 @@ union XAnimDynamicFrames {
   ByteVec *_1;
   uint16_tVec *_2;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"_1\": {:p} }}",
                        reinterpret_cast<const void *>(_1));
   }
@@ -1499,7 +1499,7 @@ union XAnimDynamicIndices {
   uint8_t _1[1];
   uint16_t _2[1];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"_1\": 0x{:02X} }}", _1[0]);
   }
 };
@@ -1510,7 +1510,7 @@ struct __attribute__((aligned(8))) XAnimPartTransFrames {
   XAnimDynamicFrames frames;
   XAnimDynamicIndices indices;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"mins\": {}, \"size\": {}, \"frames\": {}, \"indices\": {} }}",
         mins.serialize(), size.serialize(), frames.serialize(),
@@ -1522,7 +1522,7 @@ union XAnimPartTransData {
   XAnimPartTransFrames frames;
   vec3_t frame0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"frame0\": {} }}", frame0.serialize());
   }
 };
@@ -1532,7 +1532,7 @@ struct XAnimPartTrans {
   uint8_t smallTrans;
   XAnimPartTransData u;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"size\": {}, \"smallTrans\": {}, \"u\": {} }}",
                        size, smallTrans, u.serialize());
   }
@@ -1544,7 +1544,7 @@ struct __attribute__((aligned(8))) XAnimDeltaPartQuatDataFrames2 {
   XQuat2 *frames;
   XAnimDynamicIndices indices;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"frames\": {:p}, \"indices\": {} }}",
                        reinterpret_cast<const void *>(frames),
                        indices.serialize());
@@ -1555,7 +1555,7 @@ union XAnimDeltaPartQuatData2 {
   XAnimDeltaPartQuatDataFrames2 frames;
   XQuat2 frame0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"frames\": {} }}", frames.serialize());
   }
 };
@@ -1564,7 +1564,7 @@ struct XAnimDeltaPartQuat2 {
   uint16_t size;
   XAnimDeltaPartQuatData2 u;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"size\": {}, \"u\": {} }}", size, u.serialize());
   }
 };
@@ -1575,7 +1575,7 @@ struct __attribute__((aligned(8))) XAnimDeltaPartQuatDataFrames {
   XQuat *frames;
   XAnimDynamicIndices indices;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"frames\": {:p}, \"indices\": {} }}",
                        reinterpret_cast<const void *>(frames),
                        indices.serialize());
@@ -1586,7 +1586,7 @@ union XAnimDeltaPartQuatData {
   XAnimDeltaPartQuatDataFrames frames;
   XQuat frame0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"frames\": {} }}", frames.serialize());
   }
 };
@@ -1595,7 +1595,7 @@ struct XAnimDeltaPartQuat {
   uint16_t size;
   XAnimDeltaPartQuatData u;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"size\": {}, \"u\": {} }}", size, u.serialize());
   }
 };
@@ -1605,7 +1605,7 @@ struct XAnimDeltaPart {
   XAnimDeltaPartQuat2 *quat2;
   XAnimDeltaPartQuat *quat;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"trans\": {:p}, \"quat2\": {:p}, \"quat\": {:p} }}",
                        reinterpret_cast<const void *>(trans),
                        reinterpret_cast<const void *>(quat2),
@@ -1618,7 +1618,7 @@ struct XAnimIKPitchBone {
   vec3_t rotation;
   vec3_t translation;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"index\": {}, \"rotation\": {}, \"translation\": {} }}", index,
         rotation.serialize(), translation.serialize());
@@ -1630,7 +1630,7 @@ struct XAnimIKPitchLayer {
   uint16_t numBones;
   uint16_t bonesStart;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"angle\": {}, \"numBones\": {}, \"bonesStart\": {} }}", angle,
         numBones, bonesStart);
@@ -1645,7 +1645,7 @@ struct XAnimMarkup {
   scr::ScrString_t param1;
   scr::ScrString_t param2;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"type\": 0x{:08X}, \"startTime\": {}, \"endTime\": "
                        "{}, \"persistent\": {}, "
                        "\"param1\": 0x{:08X}, \"param2\": 0x{:08X} }}",
@@ -1660,7 +1660,7 @@ struct XAnimNotifyInfo {
   scr::ScrString_t param2;
   scr::ScrString_t param3;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"type\": 0x{:08X}, \"time\": {}, \"param1\": 0x{:08X}, "
         "\"param2\": 0x{:08X}, \"param3\": 0x{:08X} }}",
@@ -1672,7 +1672,7 @@ struct __attribute__((aligned(4))) BlendTargetRemap {
   scr::ScrString_t name;
   uint16_t index;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": 0x{:08X}, \"index\": {} }}", name, index);
   }
 };
@@ -1682,7 +1682,7 @@ union XAnimIndices {
   uint16_t *_2;
   void *data;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"data\": {:p} }}", data);
   }
 };
@@ -1743,7 +1743,7 @@ struct XAnimParts {
   uint8_t startupNotifyCount;
   bool pad;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"blendTargetRemap\": {:p}, \"blendTargetNames\": {:p}, \"names\": "
         "{:p}, "
@@ -1810,7 +1810,7 @@ struct XAnimParts {
 struct scr_animtree_t {
   XAnim *anims;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"anims\": {:p} }}",
                        reinterpret_cast<const void *>(anims));
   }
@@ -1820,7 +1820,7 @@ struct animScriptCondition_t {
   int32_t index;
   uint32_t value;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"index\": {}, \"value\": 0x{:08X} }}", index,
                        value);
   }
@@ -1882,7 +1882,7 @@ struct animScriptItem_t {
   int32_t numCommands;
   animScriptCommand_t commands[8];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"numConditions\": {}, \"conditions\": {}, "
                        "\"numCommands\": {}, \"commands\": {} }}",
                        numConditions, ::serialize(conditions), numCommands,
@@ -1894,7 +1894,7 @@ struct animScript_t {
   int32_t numItems;
   animScriptItem_t *items[192];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"numItems\": {}, \"items\": {:p} }}", numItems,
                        reinterpret_cast<const void *>(items));
   }
@@ -1926,7 +1926,7 @@ struct animScriptData_t {
   fastcallPtr_t<snd::SndAliasList *(const char *)> soundAlias;
   fastcallPtr_t<void(ClientNum_t, snd::SndAliasList *)> playSoundAlias;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"animations\": {}, \"numAnimations\": {}, \"scriptAnims\": {}, "
         "\"scriptCannedAnims\": {}, \"scriptStateChange\": {}, "
@@ -1957,7 +1957,7 @@ struct __attribute__((aligned(4))) ViewModelHand {
   int32_t iHandAnimIndex;
   animationNumber_t iPrevAnim;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"iHandAnimIndex\": {}, \"iPrevAnim\": {} }}",
                        iHandAnimIndex, iPrevAnim.serialize());
   }
@@ -1975,7 +1975,7 @@ struct __attribute__((aligned(8))) ViewModelInfo {
   db::xasset::xmodel::XModelPtr altModels[4];
   uint32_t numAltModels;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"viewModelDObj\": {:p}, \"viewModelDObjLegs\": {:p}, "
         "\"weaponDobjInfo\": {}, "

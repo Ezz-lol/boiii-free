@@ -2,8 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-#include <cstdint>
-
 namespace game {
 
 // SND

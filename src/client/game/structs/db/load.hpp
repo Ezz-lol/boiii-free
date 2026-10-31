@@ -26,7 +26,7 @@ struct alignas(128) DB_LOAD_STREAM {
   int32_t decompressedDataOffset;
   bool busy;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"checksum\": {}, \"compressedData\": {:p}, "
         "\"expectedDataAvail\": {}, "
@@ -48,7 +48,7 @@ PACKED(struct DBDecompressCmd_t {
   uint8_t *ioBuffer;
   int64_t numBytesDecrypted;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"which\": {}, \"isEncrypted\": {}, \"compression\": {}, "
         "\"stream\": {}, \"ioBuffer\": {:p}, \"numBytesDecrypted\": {} }}",
@@ -65,7 +65,7 @@ struct BDiffState {
   bool eof;
   uint32_t features;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"headerRead\": {}, \"error\": {}, \"eof\": {}, "
                        "\"features\": {:08X} }}",
                        ::serialize(headerRead), ::serialize(error),
@@ -83,7 +83,7 @@ struct BDiffHeader {
   size_t maxSourceWindowSize;
   size_t maxDiffWindowSize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"newXFileHeader\": {}, \"baseXFileHdr\": {}, \"size\": {}, "
         "\"version\": {}, \"flags\": {:08X}, \"maxDestWindowSize\": {}, "
@@ -130,7 +130,7 @@ typedef fastcallPtr_t<voidpf(voidpf, uInt, uInt)> alloc_func;
 struct internal_state {
   int32_t dummy;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"dummy\": {} }}", dummy);
   }
 };
@@ -151,7 +151,7 @@ struct z_stream_s {
   uLong adler;
   uLong reserved;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"next_in\": {:p}, \"avail_in\": {}, \"total_in\": {}, "
         "\"next_out\": {:p}, \"avail_out\": {}, \"total_out\": {}, "
@@ -175,7 +175,7 @@ struct _CLzmaProps {
   uint32_t pb;
   UInt32 dicSize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"lc\": {}, \"lp\": {}, \"pb\": {}, \"dicSize\": {} }}", lc, lp, pb,
         dicSize);
@@ -204,7 +204,7 @@ struct __declspec(align(8)) CLzmaDec {
   uint32_t tempBufSize;
   Byte tempBuf[20];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"prop\": {}, \"probs\": {:p}, \"dic\": {:p}, \"buf\": {:p}, "
         "\"range\": {:08X}, \"code\": {:08X}, \"dicPos\": {}, \"dicBufSize\": "
@@ -226,7 +226,7 @@ struct ISzAlloc {
   fastcallPtr_t<void(void *, size_t)> Alloc;
   fastcallPtr_t<void(void *, void *)> Free;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"Alloc\": {:p}, \"Free\": {:p} }}",
                        reinterpret_cast<const void *>(Alloc),
                        reinterpret_cast<const void *>(Free));
@@ -238,7 +238,7 @@ struct SHA1_CTX {
   uint32_t count[2];
   uint8_t buffer[64];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"state\": {}, \"count\": {}, \"buffer\": {} }}",
                        ::serialize(state), ::serialize(count),
                        ::serialize(buffer));
@@ -280,7 +280,7 @@ struct __declspec(align(8)) DB_PATCH_STREAM {
   size_t lzmaDataInBuffer;
   SHA1_CTX shaCtx;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"active\": {}, \"diffState\": {}, \"archiveChecksum\": {}, "
         "\"header\": {}, "
@@ -346,7 +346,7 @@ struct DB_LoadData {
   int32_t startTime;
   DB_PATCH_STREAM patchStream;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"f\": {}, \"fileBuffer\": {:p}, \"fileBufferSize\": {}, "
         "\"filename\": {}, "

@@ -12,7 +12,7 @@ public:
   void *m_fileData;
   bdUInt m_fileSize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_fileData\": {:p}, \"m_fileSize\": {} }}",
                        reinterpret_cast<const void *>(m_fileData), m_fileSize);
   }
@@ -48,7 +48,7 @@ public:
   bdNChar8 m_fileName[128];
   bdUInt32 m_fileSize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{  \"m_fileID\": {}, \"m_createTime\": {}, \"m_modifedTime\": {}, "
         "\"m_visibility\": {}, \"m_ownerID\": {:016X}, \"m_fileName\": {}, "
@@ -67,7 +67,7 @@ public:
   bdNChar8 m_fileName[128];
   bdUInt32 m_fileSize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_createTime\": {}, \"m_modifedTime\": {}, "
         "\"m_visibility\": {}, "
@@ -93,7 +93,7 @@ public:
   bool m_lsgOnly;
   bool m_lpcFile;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_filename\": \"{}\", \"m_fileData\": {}, \"m_error\": {}, "
         "\"m_fileID\": {}, "
@@ -112,7 +112,7 @@ struct fileRetryInfo {
   int32_t lastAttemptInterval;
   int32_t retryCount;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lastAttemptTime\": {}, \"lastAttemptInterval\": "
                        "{}, \"retryCount\": {} }}",
                        lastAttemptTime, lastAttemptInterval, retryCount);
@@ -162,7 +162,7 @@ struct dwFileOperationInfo {
   uint8_t *parityBits;
   void *userData;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"fileTask\": {}, \"retryInfo\": {}, \"taskType\": "
                        "{:08X}, \"fetchCompleted\": {}, "
                        "\"writeCompleted\": {}, \"isUserFile\": {}, "

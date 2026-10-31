@@ -61,7 +61,7 @@ struct GfxLodModelParams {
     float manualDistances[8];
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"numLods\": {}, \"areaScale\": {}, \"cullOutRadius\": {}, "
         "\"areaScaleBias\": {}, \"cullOutRadiusScale\": {}, "
@@ -117,7 +117,7 @@ PACKED(struct XModelMeshMaterials {
   Material **materials;
   vec_t *himipInvSqRadii;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"numMaterials\": {}, \"materials\": {:p}, "
                        "\"himipInvSqRadii\": {} }}",
                        numMaterials, reinterpret_cast<const void *>(materials),
@@ -130,7 +130,7 @@ struct XModelCollTri_s {
   vec4_t svec;
   vec4_t tvec;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"plane\": {}, \"svec\": {}, \"tvec\": {} }}",
                        plane.serialize(), svec.serialize(), tvec.serialize());
   }
@@ -148,7 +148,7 @@ struct XModelCollSurf_s {
   contents_t contents;
   int32_t surfFlags;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"collTris\": {}, \"numCollTris\": {}, \"mins\": {}, "
         "\"maxs\": {}, \"boneIdx\": 0x{:04X}, \"contents\": 0x{:08X}, "

@@ -15,7 +15,7 @@ struct DynEntityPose {
   float radius;
   gfx::GfxEntityPreFrame prevFrame;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"pose\": {}, \"radius\": {}, \"prevFrame\": {} }}",
                        pose.serialize(), radius, prevFrame.serialize());
   }
@@ -26,7 +26,7 @@ PACKED(struct DynEntityServer {
   uint8_t _padding02[2];
   int health;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"flags\": 0x{:04X}, \"health\": {} }}", flags,
                        health);
   }
@@ -39,7 +39,7 @@ struct DynEntityColl {
   vec3_t linkMaxs;
   contents_t contents;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"sector\": {}, \"nextEntInSector\": {}, \"linkMins\": {}, "
         "\"linkMaxs\": {}, \"contents\": 0x{:08X} }}",
@@ -60,7 +60,7 @@ PACKED(struct DynEntityClient {
   int32_t numFxHandles;
   uint8_t _padding6C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"physObjId\": {:p}, \"flags\": 0x{:04X}, \"health\": {}, "
         "\"burnTime\": {}, \"fadeTime\": {}, \"physicsStartTime\": {}, "
@@ -94,7 +94,7 @@ PACKED(struct DynEntityDef {
   scr::ScrString_t target;
   uint8_t _padding94[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"pose\": {}, \"xModel\": {:p}, \"destroyedxModel\": {:p}, "
         "\"brushModel\": {}, \"physicsBrushModel\": {}, \"destroyFx\": {}, "

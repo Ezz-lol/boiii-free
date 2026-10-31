@@ -137,7 +137,7 @@ IMPL_ENUM_OPERATORS(CriticalSection);
 
 class ScopedCriticalSection {
 public:
-  enum ScopedCriticalSectionType : uint32_t {
+  enum class ScopedCriticalSectionType : uint32_t {
     NORMAL = 0x0,
     DISABLED = 0x1,
     RELEASE = 0x2,

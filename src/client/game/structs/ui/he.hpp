@@ -176,7 +176,7 @@ union hudelem_color_t {
   };
   int32_t rgba;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"r\": {}, \"g\": {}, \"b\": {}, \"a\": {} }}", r, g,
                        b, a);
   }
@@ -325,7 +325,7 @@ PACKED(struct hudelem_s {
     text = 0;
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"x\": {}, \"y\": {}, \"z\": {}, \"fontScale\": {}, "
         "\"fromFontScale\": {}, "
@@ -374,7 +374,7 @@ struct game_hudelem_s {
 
   inline constexpr void reset_value() volatile noexcept { elem.reset_value(); }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"elem\": {}, \"clientNum\": {}, \"team\": {}, \"archived\": {} }}",
         elem.serialize(), game::serialize(clientNum), game::serialize(team),
@@ -392,7 +392,7 @@ struct serverHudMenu_t {
   bool persistent;
   uint8_t _padding145[11];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"modelData\": {}, \"menuNameIndex\": {}, "
                        "\"modelNames\": {}, \"persistent\": {} }}",
                        ::serialize(modelData), menuNameIndex,
@@ -405,7 +405,7 @@ ASSERT_SIZE(serverHudMenu_t, 0x150);
 struct hudElemSoundInfo_t {
   int lastPlayedTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lastPlayedTime\": {} }}", lastPlayedTime);
   }
 };

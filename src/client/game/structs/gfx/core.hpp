@@ -117,7 +117,7 @@ struct GfxDrawSurfFields {
   uint64_t decalSurfSort : 6;
   uint64_t earlyDepthSort : 7;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"useSiegeTextures\": {}, \"objectId\": {}, \"lateDepthSort\": {}, "
         "\"materialSortedIndex\": {}, \"techniqueIndexPlusOne\": {}, "
@@ -132,7 +132,7 @@ union GfxSortKey {
   GfxDrawSurfFields fields;
   uint64_t packed;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"fields\": {}, \"packed\": 0x{:016X} }}",
                        fields.serialize(), packed);
   }
@@ -153,7 +153,7 @@ struct XPakEntryInfo {
   uint64_t adjacentRight : 18;
   uint64_t padding : 15;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": "
         "{}, "
@@ -178,7 +178,7 @@ struct GfxStreamedPartInfo {
   uint16_t height;
   XPakEntryInfo xpakEntry;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"levelCountAndSize\": 0x{:08X}, \"width\": {}, "
                        "\"height\": {}, \"xpakEntry\": {} }}",
                        levelCountAndSize, width, height, xpakEntry.serialize());
@@ -193,7 +193,7 @@ struct _GUID {
   uint16_t Data3;
   uint8_t Data4[8];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"Data1\": 0x{:08X}, \"Data2\": 0x{:04X}, \"Data3\": "
         "{:04X}, \"Data4\": {} }}",
@@ -212,7 +212,7 @@ struct IUnknownVtbl {
   stdcallPtr_t<uint32_t, IUnknown *> AddRef;
   stdcallPtr_t<uint32_t, IUnknown *> Release;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"QueryInterface\": {:p}, \"AddRef\": {:p}, \"Release\": {:p} }}",
         reinterpret_cast<const void *>(QueryInterface),
@@ -227,7 +227,7 @@ ASSERT_SIZE(IUnknownVtbl, 0x18);
 struct IUnknown {
   IUnknownVtbl *lpVtbl;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lpVtbl\": {:p} }}",
                        reinterpret_cast<const void *>(lpVtbl));
   }
@@ -252,7 +252,7 @@ struct GfxImageLoadDef {
   char data[1];
   uint8_t _padding011[3];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"levelCount\": {}, \"numElements\": {}, \"pad\": {}, \"flags\": "
         "{:08X}, "
@@ -268,7 +268,7 @@ union GfxTexture {
   ID3D11ShaderResourceView *basemap;
   GfxImageLoadDef *loadDef;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"basemap\": {:p} }}",
                        reinterpret_cast<const void *>(basemap));
   }
@@ -533,7 +533,7 @@ struct GfxImage {
   uint32_t hash;
   uint8_t _paddingFC[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"streamedParts\": {}, \"streamedPartCount\": {}, \"semantic\": "
         "{}, \"mapType\": {}, "
@@ -567,21 +567,7 @@ typedef GfxImage *GfxImagePtr;
 
 typedef uint8_t GfxImageCategory;
 
-union GfxColor {
-  uint32_t packed;
-  struct {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
-  } rgba;
-  uint8_t array[4];
-
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"r\": {}, \"g\": {}, \"b\": {}, \"a\": {} }}",
-                       rgba.r, rgba.g, rgba.b, rgba.a);
-  }
-};
+typedef vec4<uint8_t> GfxColor;
 
 // TODO
 struct GfxLightDescription;
@@ -595,7 +581,7 @@ struct GfxLightDef {
   HLSL::float2 scroll;
   GfxImage *gfxImage;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"angle\": {}, \"rotation\": {}, "
                        "\"offset\": {}, \"scroll\": {}, \"gfxImage\": {} }}",
                        ::serialize(name), angle, rotation, offset.serialize(),
@@ -610,7 +596,7 @@ struct GfxSkinCacheEntry {
   uint16_t numSkinnedVerts;
   uint16_t ageCount;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"frameCount\": {}, \"skinnedCachedOffset\": {}, "
                        "\"numSkinnedVerts\": {}, \"ageCount\": {} }}",
                        frameCount, skinnedCachedOffset, numSkinnedVerts,
@@ -644,7 +630,7 @@ struct GpuShaderConstantSet {
   vec4_t characterParam6;
   vec4_t characterParam7;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"scriptVector0\": {}, \"scriptVector1\": {}, "
                        "\"scriptVector2\": {}, \"scriptVector3\": {}, "
                        "\"scriptVector4\": {}, \"scriptVector5\": {}, "
@@ -677,7 +663,7 @@ ASSERT_SIZE(GpuShaderConstantSet, 0x180);
 struct ShaderConstantSet {
   GpuShaderConstantSet values;
   uint32_t used;
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"values\": {}, \"used\": 0x{:08X} }}",
                        values.serialize(), used);
   }
@@ -691,7 +677,7 @@ union GfxSimpleBuffer {
   };
   uint64_t m_packed;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_data\": 0x{:010X}, \"m_size\": 0x{:06X} }}",
                        m_data, m_size);
   }
@@ -708,7 +694,7 @@ struct GfxBuffer {
   ID3D11Buffer ro;
   ID3D11Buffer rw;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"ro\": {}, \"rw\": {} }}", ro.serialize(),
                        rw.serialize());
   }
@@ -720,7 +706,7 @@ struct BlendTargetRemap {
   uint16_t index;
   uint8_t _padding06[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": 0x{:08X}, \"index\": {} }}", name, index);
   }
 };
@@ -731,7 +717,7 @@ struct GfxExtraCamActiveState {
   bool active[4];
   const GfxImage *renderTarget[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"anyActive\": {}, \"active\": {}, \"renderTarget\": {} }}",
         ::serialize(anyActive), ::serialize(active), ::serialize(renderTarget));
@@ -853,7 +839,7 @@ struct PostfxConstant {
   PostfxAngle angle[4];
   const char *scriptVectorName[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"anm\": {}, \"channels\": 0x{:08X}, \"delay\": {}, \"end_clr\": "
         "{}, "
@@ -877,7 +863,7 @@ struct PostfxStage {
   int32_t thermal;
   PostfxConstant *constant;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"length\": {}, \"material\": {:p}, \"method\": {}, \"cull\": {}, "
         "\"numConsts\": {}, \"screenCaptureStage\": {}, \"spriteFilter\": {}, "
@@ -898,7 +884,7 @@ struct PostfxHeader {
   int32_t screenCapture;
   PostfxStage *stage;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"enterStage\": {}, \"exitStage\": {}, "
                        "\"finishLoopOnExit\": {}, \"firstPersonOnly\": {}, "
                        "\"looping\": {}, \"numStages\": {}, \"screenCapture\": "
@@ -918,7 +904,7 @@ struct GfxDuplicateRenderOption {
     eRenderMethod renderMethod;
     eRenderCulling renderCulling;
 
-    inline std::string serialize() const noexcept {
+    [[nodiscard]] inline std::string serialize() const noexcept {
       return std::format("{{ \"header\": {}, \"time\": {}, \"stage\": {}, "
                          "\"customMaterial\": {:p}, "
                          "\"renderMethod\": {}, \"renderCulling\": {} }}",
@@ -956,7 +942,7 @@ struct GfxDuplicateRenderOption {
   scr::ScrString_t submodelBoneName;
   GfxDuplicateRenderOption *nextDupOpt;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     const int32_t inUseCopy = inUse;
     return std::format(
         "{{ \"targets\": {}, \"inUse\": {}, \"type\": {}, \"priority\": {}, "
@@ -997,7 +983,7 @@ public:
   float atmospherepbramount;
   float worldfogskysize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"_fogcolor\": {}, \"fogopacity\": {}, \"fogintensity\": {}, "
         "\"basedist\": {}, "
@@ -1047,7 +1033,7 @@ struct GfxVBLOOMGPU {
   vec4_t vMXB;
   char nLVI[32];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"vRGB1\": {}, \"vLUM1\": {}, \"vRGB2\": {}, \"vLUM2\": {}, "
         "\"vRGB3\": {}, \"vLUM3\": {}, \"vRGB4\": {}, \"vLUM4\": {}, "
@@ -1068,7 +1054,7 @@ struct GfxProbeVolumeTextures {
   GfxImagePtr Z;
   db::xpak::StreamWrappedBuffer *pixelData;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"X\": {}, \"Y\": {}, \"Z\": {}, \"pixelData\": {} }}",
         ::serialize(X), ::serialize(Y), ::serialize(Z), ::serialize(pixelData));
@@ -1079,7 +1065,7 @@ struct GfxSkyBoxImage {
   GfxImagePtr image;
   db::xpak::StreamWrappedBuffer pixelData;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"image\": {}, \"pixelData\": {} }}",
                        ::serialize(image), pixelData.serialize());
   }
@@ -2067,7 +2053,7 @@ struct GfxPlacement {
   vec4_t quat;
   vec3_t origin;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"quat\": {}, \"origin\": {} }}", quat.serialize(),
                        origin.serialize());
   }
@@ -2087,7 +2073,7 @@ PACKED(struct GfxEntityPreFrame {
   uint8_t _padding54[4];
   xsurface::XSurfaceShared *blendShapeVertOffsetLastShared;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"activePartBits\": {}, \"modelCount\": {}, \"numBones\": {}, "
         "\"numCosmeticBones\": {}, \"boneArrayOffset\": {}, \"sanimIndex\": "

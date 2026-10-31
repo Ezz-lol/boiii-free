@@ -14,7 +14,7 @@ union half {
     uint16_t Sign : 1;
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"u\": 0x{:04X}, \"Sign\": 0x{:01X}, \"Exponent\": "
                        "{:01X}, \"Mantissa\": 0x{:02X} }}",
                        u, Sign, Exponent, Mantissa);

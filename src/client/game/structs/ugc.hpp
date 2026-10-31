@@ -36,7 +36,7 @@ struct UGCItem {
   inline void clear() { memset(static_cast<void *>(this), 0, sizeof(UGCItem)); }
 
 #ifndef NDEBUG
-  inline std::string serialize() {
+  [[nodiscard]] inline std::string serialize() {
     return std::format(
         "{{ \"title\": \"{}\", \"internalName\": \"{}\", \"publisherId\": "
         "\"{}\", \"description\": \"{}\", \"contentPathToZoneFiles\": \"{}\", "
@@ -76,7 +76,7 @@ struct ActiveMod : UGCItem {
   ModLoadState loadState;
   uint8_t _padding4CC[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"title\": \"{}\", \"internalName\": \"{}\", \"publisherId\": "
         "\"{}\", \"description\": \"{}\", \"contentPathToZoneFiles\": \"{}\", "
@@ -101,8 +101,8 @@ template <const uint32_t POOL_SIZE> struct UGCPool {
   uint8_t _padding04[4];
   UGCItem data[POOL_SIZE];
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"count\": {}, \"data\": {} }}", count,
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "count": {}, "data": {} }})", count,
                        ::serialize(data, count));
   }
 
@@ -193,7 +193,7 @@ template <const uint32_t POOL_SIZE> struct UGCPool {
     return Iterable{Iterator(data), Iterator(&data[count])};
   }
 
-  ConstIterable iter() const noexcept {
+  [[nodiscard]] ConstIterable iter() const noexcept {
     return ConstIterable{ConstIterator(data), ConstIterator(&data[count])};
   }
 
@@ -219,8 +219,8 @@ struct ClientUGCPool : public UGCPool<POOL_SIZE> {
   LocalClientPool<ui::UIModelIndex> listModels;
   uint8_t _padding[4];
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"count\": {}, \"data\": {}, \"listModels\": {} }}",
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "count": {}, "data": {}, "listModels": {} }})",
                        this->count, ::serialize(this->data),
                        ::serialize(listModels));
   }

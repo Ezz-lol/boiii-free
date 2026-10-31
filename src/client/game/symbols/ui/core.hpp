@@ -42,6 +42,11 @@ WEAK symbol<bool(const UIModelIndex nodeIndex, const char *newValue)>
     UI_Model_SetString{0x14200D630, 0x142019DB0, 0x0};
 WEAK symbol<bool(const UIModelIndex nodeIndex, uint64_t newValue)>
     UI_Model_SetUInt64{0x14200D730, 0x142019EB0, 0x0};
+WEAK symbol<UIModelIndex(const UIModelIndex ancestorIndex, const char *key,
+                         bool persistent)>
+    UI_Model_AllocateNode{0x14200C640, 0x0, 0x0};
+WEAK symbol<void(UIModelIndex model)> UI_Model_FreeModel{0x14200C9E0, 0x0, 0x0};
+
 WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CloseAllMenus{
     0x14222E5C0, 0x14228B0E0, 0x0};
 WEAK symbol<void()> UI_Shutdown{0x142694C90, 0x14270DE00, 0x0};
@@ -61,5 +66,23 @@ WEAK symbol<float(LocalClientNum_t localClientNum, const char *text,
                   db::xasset::ttf::TTFDef *font, float textHeight,
                   float letterSpacing)>
     UI_Interface_GetTextWidth{0x141C9F0A0, 0x0, 0x0};
+
+WEAK symbol<void(float *x, float *y, float *z)> UI_ApplyTransformsToPoint{
+    0x1427A3EA0, 0x0, 0x0};
+
+WEAK symbol<bool()> UI_IsRenderingImmediately{0x14268C5A0, 0x0, 0x0};
+
+WEAK symbol<bool(const LocalClientNum_t localClientNum, const char **textPtr,
+                 uint32_t *letter, const vec4_t *originalColor,
+                 gfx::GfxColor *color, char **buttonName,
+                 gfx::GfxImage **iconImage, uint32_t *cursor)>
+    UI_CoD_ReadCharFromString{0x141F216A0, 0x0, 0x0};
+WEAK symbol<void(bool renderImmediately)> UI_SetRenderImmediately{0x142694C80,
+                                                                  0x0, 0x0};
+
+WEAK symbol<int32_t> s_currentStencilValue{0x156262E28, 0x0, 0x0};
+WEAK symbol<UIModelIndex> s_firstFreeModelNode{0x156293150, 0x0, 0x0};
+WEAK symbol<UIModelNodePool<UIModelNode>> s_modelNodePool{0x156293160, 0x0,
+                                                          0x0};
 } // namespace ui
 } // namespace game

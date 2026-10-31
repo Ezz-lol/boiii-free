@@ -35,7 +35,7 @@ struct par_t {
   vec3_t p_prev;
   int32_t flags;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"p\": {}, \"p0\": {}, \"p_prev\": {}, \"flags\": 0x{:08X} }}",
         p.serialize(), p0.serialize(), p_prev.serialize(), flags);
@@ -52,7 +52,7 @@ public:
   uint8_t pi2;
   uint8_t _padding1A[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"p\": {}, \"type\": {}, \"entity_index\": {}, "
         "\"bone_name_hash\": 0x{:08X}, \"pi1\": {}, \"pi2\": {} }}",
@@ -65,7 +65,7 @@ struct rope_frame_verts_t {
   int num_verts;
   vec3_t v[60];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"num_verts\": {}, \"v\": {} }}", num_verts,
                        ::serialize(&v[0], num_verts));
   }
@@ -75,7 +75,7 @@ struct rope_client_verts_t {
   rope_frame_verts_t frame_verts[2];
   uint32_t frame_index;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"frame_verts\": {}, \"frame_index\": {} }}",
                        ::serialize(frame_verts), frame_index);
   }
@@ -113,7 +113,7 @@ PACKED(struct rope_t {
   int32_t m_slice_count;
   uint8_t _paddingECC[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_particles\": {}, \"m_constraints\": {}, \"m_entity_anchors\": "
         "{}, "

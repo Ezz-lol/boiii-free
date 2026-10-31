@@ -163,7 +163,7 @@ struct netadr_t {
     return std::format("{}:{}", ipv4.toString(), port);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{}:{}", ipv4.toString(), port);
   }
 

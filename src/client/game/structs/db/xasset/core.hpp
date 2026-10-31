@@ -1,9 +1,11 @@
 #pragma once
 
+#include <game/ptr.hpp>
+
+#include <game/structs/gfx/gfx.hpp>
+
 #include <cstdint>
 #include <format>
-#include <game/ptr.hpp>
-#include <game/structs/gfx/gfx.hpp>
 #include <string>
 
 namespace game {
@@ -459,7 +461,7 @@ inline constexpr bool valid_xassettype(Value val_arg) {
 PACKED(struct NamedXAsset {
   const char *name;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {} }}", ::serialize(name));
   }
 });
@@ -491,7 +493,7 @@ struct TagFxSetHandles {
   int32_t count;
   SetPtr tagFX;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"handle\": {}, \"count\": {}, \"tagFX\": {:p} }}",
                        ::serialize(handle), count,
                        reinterpret_cast<const void *>(tagFX));
@@ -502,7 +504,7 @@ template <typename T> struct FxRange {
   T base;
   T amplitude;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"base\": {}, \"amplitude\": {} }}", base,
                        amplitude);
   }
@@ -520,7 +522,7 @@ struct FxSpawnDefLooping {
   int32_t count;
   FxIntRange spawnCount;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"intervalMsec\": {}, \"count\": {}, \"spawnCount\": {} }}",
         intervalMsec, count, spawnCount.serialize());
@@ -532,7 +534,7 @@ ASSERT_SIZE(FxSpawnDefLooping, 0x10);
 struct FxSpawnDefOneShot {
   FxIntRange count;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"count\": {} }}", count.serialize());
   }
 };
@@ -543,7 +545,7 @@ union FxSpawnDef {
   FxSpawnDefLooping looping;
   FxSpawnDefOneShot oneShot;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"looping\": {} }}", looping.serialize());
   }
 };
@@ -563,7 +565,7 @@ struct __attribute__((aligned(8))) MaterialInfo : NamedXAsset {
   int32_t surfaceFlags;
   contents_t contents;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"namehash\": 0x{:08X}, \"gameFlags\": 0x{:08X}, "
         "\"layerSortDecal\": {}, \"pad2\": {}, \"textureAtlasRowCount\": {}, "
@@ -606,7 +608,7 @@ struct FxElemAtlas {
   uint8_t rowIndexBits;
   uint8_t indexRange;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"behavior\": {}, \"index\": {}, \"fps\": {}, \"loopCount\": {}, "
         "\"colIndexBits\": {}, \"rowIndexBits\": {}, \"indexRange\": {} }}",
@@ -633,7 +635,7 @@ union FxEffectDefRef {
   const char *name;
   FxEffectDefHandleRaw handle;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {} }}", ::serialize(name));
   }
 };
@@ -645,7 +647,7 @@ struct FxElemSound {
   snd::SndAliasId soundAlias;
   uint8_t _padding0C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"sound\": {}, \"soundAlias\": 0x{:08X} }}",
                        ::serialize(sound), soundAlias);
   }
@@ -661,7 +663,7 @@ struct FxLensFlareVisualDef {
   vec3_t sourceDir;
   float sourceSize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"uuidData1\": 0x{:08X}, \"uuidData2\": 0x{:04X}, \"uuidData3\": "
         "{:04X}, "
@@ -683,7 +685,7 @@ union FxElemVisuals {
   FxLensFlareVisualDef lensFlareVisualDef;
   char editorEffectName[64];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"anonymous\": {:p} }}", anonymous);
   }
 };
@@ -694,7 +696,7 @@ union FxElemDefVisuals {
   FxElemVisuals *array;
   FxElemVisuals instance;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"instance\": {} }}", instance.serialize());
   }
 };
@@ -710,7 +712,7 @@ union FxElemExtendedDefPtr {
   const FxLensFlareRootDef *lensFlareDef;
   void *unknownDef; // verbatim name of title in engine
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"unknownDef\": {:p} }}", unknownDef);
   }
 };
@@ -719,7 +721,7 @@ ASSERT_SIZE(FxElemExtendedDefPtr, 0x8);
 union FxElemDefUnion {
   FxIntRange cloudDensityRange;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"cloudDensityRange\": {} }}",
                        cloudDensityRange.serialize());
   }
@@ -807,7 +809,7 @@ struct FxElemDef {
   uint16_t libVisualIndex;
   uint8_t _padding25E[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"flags\": 0x{:08X}, \"extraFlags\": 0x{:08X}, \"spawn\": {}, "
         "\"spawnRange\": {}, "
@@ -904,7 +906,7 @@ struct FxEffectDef : NamedXAsset {
   uint16_t libDefIndex;
   uint8_t _padding8A[6];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"flags\": 0x{:08X}, \"efPriority\": {}, "
         "\"elemDefCountLooping\": {}, "
@@ -935,7 +937,7 @@ struct FxElemDef;
 struct EntityImpactPositionsFx {
   FxEffectDefHandle entityImpactPositions[6];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"entityImpactPositions\": {} }}",
                        ::serialize(entityImpactPositions));
   }
@@ -946,7 +948,7 @@ ASSERT_SIZE(EntityImpactPositionsFx, 0x30);
 struct EntityFxImpacts : public NamedXAsset {
   EntityImpactPositionsFx entityImpacts[11];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"entityImpacts\": {} }}",
                        ::serialize(name), ::serialize(entityImpacts));
   }
@@ -964,7 +966,7 @@ struct FxImpactTable : public NamedXAsset {
   SurfaceFXTableDefPtr surfaceFX;
   EntityFxImpactsPtr entityFXImpacts;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"surfaceFX\": {:p}, \"entityFXImpacts\": {} }}",
         ::serialize(name), reinterpret_cast<const void *>(surfaceFX),
@@ -975,7 +977,7 @@ struct FxImpactTable : public NamedXAsset {
 struct FxElemMarkVisuals {
   FxMaterialHandle materials[3];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"materials\": {:p} }}",
                        reinterpret_cast<const void *>(materials));
   }
@@ -1177,7 +1179,7 @@ struct XPakEntryInfo {
   uint64_t adjacentRight : 18;
   uint64_t padding : 15;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": "
         "{}, "
@@ -1197,7 +1199,7 @@ struct GfxStreamedPartInfo {
   uint16_t width;
   uint16_t height;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"xpakEntry\": {}, \"levelCountAndSize\": 0x{:08X}, "
                        "\"width\": {}, \"height\": {} }}",
                        xpakEntry.serialize(), levelCountAndSize, width, height);
@@ -1276,7 +1278,7 @@ PACKED(struct PlayerRoleLevels {
   uint32_t numLevels;
   PlayerRoleTemplatePtr *levels;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"enabled\": {}, \"numLevels\": {}, \"levels\": {:p} }}",
         ::serialize(enabled), numLevels,
@@ -1297,7 +1299,7 @@ PACKED(struct CustomizationTable : NamedXAsset {
   uint8_t _padding1C[4];
   CharacterHead *heads;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"numPlayerRoles\": {}, \"playerRoles\": {}, "
         "\"numHeads\": {}, \"heads\": {:p} }}",
@@ -1312,7 +1314,7 @@ struct CamoBaseMaterial {
   MaterialHandle material;
   gfx::GfxImage *mask;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"material\": {:p}, \"mask\": {:p} }}",
                        reinterpret_cast<const void *>(material),
                        reinterpret_cast<const void *>(mask));
@@ -1336,7 +1338,7 @@ struct CamoMaterial {
   vec_t specColor;
   vec_t specOffset;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"replaceFlags\": 0x{:04X}, \"numBaseMaterials\": {}, "
         "\"baseMaterials\": {:p}, "
@@ -1369,7 +1371,7 @@ struct CharacterBodyType_FrontendImages {
   gfx::GfxImageHandle abilityCardBackIcon;
   gfx::GfxImageHandle abilityCardBackSubIcon;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"background\": {}, \"backgroundWithCharacter\": {}, "
         "\"lockedImage\": {}, "
@@ -1395,7 +1397,7 @@ struct CustomizationTable_FEImages : NamedXAsset {
   uint32_t numBodyTypes;
   CharacterBodyType_FrontendImages *bodyTypes;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"numBodyTypes\": {}, \"bodyTypes\": {} }}",
         ::serialize(name), numBodyTypes, ::serialize(bodyTypes, numBodyTypes),
@@ -1414,7 +1416,7 @@ struct CustomizationColorInfo : NamedXAsset {
 
   IMPL_SLICE_METHODS(camoMaterials, numCamoMaterials, CamoMaterials);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"displayName\": {}, \"uiColor\": {}, \"icon\": {}, "
         "\"numCamoMaterials\": {}, \"camoMaterials\": {} }}",
@@ -1429,7 +1431,7 @@ struct KeyValuePair {
   int32_t keyHash;
   const char *value;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"keyHash\": 0x{:08X}, \"value\": {} }}", keyHash,
                        ::serialize(value));
   }
@@ -1440,7 +1442,7 @@ struct KeyValuePairs : NamedXAsset {
   int32_t numVariables;
   KeyValuePair *keyValuePairs;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"numVariables\": {}, \"keyValuePairs\": {} }}",
         ::serialize(name), numVariables,
@@ -1554,7 +1556,7 @@ union XAssetHeader {
   // StreamerHint *streamerHint;
   void *data;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"named\": {} }}", ::serialize(named));
   }
 };
@@ -1568,7 +1570,7 @@ struct XAsset {
   XAssetHeader header;
 
   // TODO: serialize corresponding header union member for given type
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"type\": {}, \"header\": {} }}",
                        game::db::xasset::serialize(type), header.serialize());
   }
@@ -1585,7 +1587,7 @@ PACKED(struct ScriptStringList {
   uint8_t _padding04[4];
   const char **strings;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"count\": {}, \"strings\": {} }}", count,
                        ::serialize(strings, count));
   }
@@ -1598,9 +1600,9 @@ struct XAssetList {
   uint8_t _padding14[4];
   XAsset *assets;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"stringList\": {}, \"assetCount\": {}, \"assets\": {} }}",
+        R"({{ "stringList": {}, "assetCount": {}, "assets": {} }})",
         stringList.serialize(), assetCount, ::serialize(assets, assetCount));
   }
 };
@@ -1616,7 +1618,7 @@ PACKED(struct XAssetEntry {
   uint32_t nextType;
   uint32_t nextOverride;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"asset\": {}, \"zoneIndex\": {}, \"inuse\": {}, "
                        "\"nextHash\": 0x{:08X}, \"nextType\": 0x{:08X}, "
                        "\"nextOverride\": 0x{:08X} }}",
@@ -1637,7 +1639,7 @@ struct ManagedNotetrack_t {
     snd::SndAliasId alias;
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"elemType\": 0x{:08X}, \"param1\": 0x{:08X}, "
                        "\"param2\": 0x{:08X}, "
                        "\"startTime\": {} }}",
@@ -1649,8 +1651,8 @@ struct ManagedNoteTrackList {
   ManagedNotetrack_t notetracks[10];
   db::xasset::TagFxSetHandles effectSetHandles;
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"notetracks\": {}, \"effectSetHandles\": {} }}",
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "notetracks": {}, "effectSetHandles": {} }})",
                        ::serialize(notetracks), effectSetHandles.serialize());
   }
 };
@@ -1659,7 +1661,7 @@ PACKED(struct LocalizeEntry {
   const char *value;
   const char *name;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"value\": {}, \"name\": {} }}", ::serialize(value),
                        ::serialize(name));
   }
@@ -1669,7 +1671,7 @@ ASSERT_SIZE(LocalizeEntry, 0x10);
 struct accoladeCache {
   uint8_t accoladeIndex;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"accoladeIndex\": {} }}", accoladeIndex);
   }
 };
@@ -1680,7 +1682,7 @@ PACKED(struct mapTableEntryCache {
   uint8_t numAccoladesWithUnlocks;
   uint8_t _padding29[7];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"accoladesWithUnlocks\": {}, \"rootMapName\": {}, "
         "\"numAccoladesWithUnlocks\": {} }}",
@@ -1695,7 +1697,7 @@ PACKED(struct mapTableCache {
   uint8_t numMissionsWithAccolades;
   uint8_t _padding1801[7];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"missionsWithAccolades\": {}, \"numMissionsWithAccolades\": {} }}",
         ::serialize(missionsWithAccolades, numMissionsWithAccolades),
@@ -1708,8 +1710,8 @@ struct __declspec(align(8)) Collmap {
   phys::PhysGeomList *geomList;
   BoneIndex boneIndex;
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"geomList\": {:p}, \"boneIndex\": 0x{:04X} }}",
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "geomList": {:p}, "boneIndex": 0x{:04X} }})",
                        reinterpret_cast<const void *>(geomList), boneIndex);
   }
 };
@@ -1816,7 +1818,7 @@ struct CharacterBodyType : NamedXAsset {
   IMPL_SLICE_METHODS(bodyInfo, numBodyInfos, BodyInfo);
   IMPL_SLICE_METHODS(helmetInfo, numHelmetInfos, HelmetInfo);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"displayName\": {}, \"description\": {}, "
         "\"heroWeapon\": {}, "

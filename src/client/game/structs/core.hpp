@@ -61,7 +61,7 @@ inline constexpr const char CRLF[2] = {'\r', '\n'};
 
 inline constexpr size_t iw_asset_magic_len(const size_t ext_len) {
   return sizeof(IW_ASSET_SHEBANG) + ext_len + sizeof(CRLF) +
-         sizeof(char(NULL)) + sizeof(char) /* latest version */;
+         sizeof(static_cast<char>(NULL)) + sizeof(char) /* latest version */;
 }
 
 template <const size_t ExtensionLen>
@@ -127,7 +127,8 @@ union ContentFlags {
 
   inline constexpr void set(ContentFlagBits bits) noexcept { mask |= +bits; }
 
-  inline constexpr ContentFlags set(ContentFlagBits bits) const noexcept {
+  [[nodiscard]] inline constexpr ContentFlags
+  set(ContentFlagBits bits) const noexcept {
     return ContentFlags{mask | +bits};
   }
 
@@ -135,13 +136,14 @@ union ContentFlags {
     mask &= ~+bits;
   }
 
-  inline constexpr ContentFlags remove(ContentFlagBits bits) const noexcept {
+  [[nodiscard]] inline constexpr ContentFlags
+  remove(ContentFlagBits bits) const noexcept {
     return ContentFlags{mask & ~+bits};
   }
 
   inline constexpr void clear() noexcept { mask = 0; }
 
-  inline constexpr ContentFlags remove() const noexcept {
+  [[nodiscard]] inline constexpr ContentFlags remove() const noexcept {
     return ContentFlags{0};
   }
 
@@ -210,11 +212,11 @@ enum class dlcIndex_t : int32_t {
   USERMAP_INDEX = 15,
 };
 
-enum clientplatform_t : int32_t {
-  CLIENT_PLATFORM_PC = 0x0,      // PC
-  CLIENT_PLATFORM_ORBIS = 0x1,   // PS4
-  CLIENT_PLATFORM_DURANGO = 0x2, // Xbox One
-  MAX_CLIENT_PLATFORMS = 0x3,
+enum class clientplatform_t : int32_t {
+  PC = 0x0,      // PC
+  ORBIS = 0x1,   // PS4
+  DURANGO = 0x2, // Xbox One
+  COUNT = 0x3,
 };
 IMPL_ENUM_OPERATORS(clientplatform_t);
 
@@ -1878,8 +1880,8 @@ struct orientation_t {
   vec3_t origin;
   vec3<vec3_t> axis;
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"origin\": {}, \"axis\": {} }}", origin.serialize(),
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "origin": {}, "axis": {} }})", origin.serialize(),
                        axis.serialize());
   }
 };
@@ -1897,7 +1899,7 @@ struct CmdArgs {
   int32_t totalUsedArgvPool;
   int32_t totalUsedTextPool;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"nesting\": {}, \"localClientNum\": {}, \"controllerIndex\": {}, "
         "\"argshift\": {}, \"argc\": {}, \"argv\": {:p}, \"textPool\": \"{}\", "
@@ -2019,11 +2021,11 @@ template <const IntegralLike<size_t> auto B> struct bitarray {
     return get(static_cast<size_t>(index));
   }
 
-  inline constexpr const BitArrayChunk &begin() const noexcept {
+  [[nodiscard]] inline constexpr const BitArrayChunk &begin() const noexcept {
     return data[0];
   }
 
-  inline constexpr const BitArrayChunk &end() const noexcept {
+  [[nodiscard]] inline constexpr const BitArrayChunk &end() const noexcept {
     return data[std::size(data) - 1];
   }
 
@@ -2043,9 +2045,13 @@ template <const IntegralLike<size_t> auto B> struct bitarray {
   // Function name used by engine
   inline constexpr void resetAllBits() noexcept { reset(); }
 
-  inline constexpr auto chunks() const noexcept { return std::size(data); }
+  [[nodiscard]] inline constexpr auto chunks() const noexcept {
+    return std::size(data);
+  }
 
-  inline std::string serialize() const noexcept { return ::serialize(data); }
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return ::serialize(data);
+  }
 };
 #pragma pack(pop)
 ASSERT_SIZE(bitarray<32>, 0x4);
@@ -2146,7 +2152,7 @@ struct UIModelData {
     int32_t functionRef;
   };
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     std::string valueStr;
     switch (dataType) {
     case UIModelDataType::BOOL:
@@ -2171,7 +2177,7 @@ struct UIModelData {
       valueStr = "null";
       break;
     }
-    return std::format("{{ \"dataType\": {}, \"value\": {} }}",
+    return std::format(R"({{ "dataType": {}, "value": {} }})",
                        game::serialize(dataType), valueStr);
   }
 };
@@ -2182,8 +2188,8 @@ struct objectiveUIModel_t {
   int32_t modelName;
   uint8_t _padding14[12];
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"modelData\": {}, \"modelName\": {} }}",
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "modelData": {}, "modelName": {} }})",
                        modelData.serialize(), modelName);
   }
 };
@@ -2207,7 +2213,7 @@ PACKED(struct objective_t {
   uint8_t _padding38[8];
   objectiveUIModel_t uiModels[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"objState\": {}, \"origin\": {}, \"entNum\": {}, \"color\": "
         "{:08X}, "
@@ -2224,44 +2230,44 @@ PACKED(struct objective_t {
 });
 ASSERT_SIZE(objective_t, 0xC0);
 
-enum scoreboardColumnType_t : int32_t {
-  SB_TYPE_INVALID = 0x0,
-  SB_TYPE_NONE = 0x1,
-  SB_TYPE_SCORE = 0x2,
-  SB_TYPE_KILLS = 0x3,
-  SB_TYPE_DEATHS = 0x4,
-  SB_TYPE_ASSISTS = 0x5,
-  SB_TYPE_DEFENDS = 0x6,
-  SB_TYPE_PLANTS = 0x7,
-  SB_TYPE_DEFUSES = 0x8,
-  SB_TYPE_RETURNS = 0x9,
-  SB_TYPE_CAPTURES = 0xA,
-  SB_TYPE_DESTRUCTIONS = 0xB,
-  SB_TYPE_DISABLES = 0xC,
-  SB_TYPE_ESCORTS = 0xD,
-  SB_TYPE_CARRIES = 0xE,
-  SB_TYPE_THROWS = 0xF,
-  SB_TYPE_KDRATIO = 0x10,
-  SB_TYPE_SURVIVED = 0x11,
-  SB_TYPE_STABS = 0x12,
-  SB_TYPE_TOMAHAWKS = 0x13,
-  SB_TYPE_HUMILIATED = 0x14,
-  SB_TYPE_X2SCORE = 0x15,
-  SB_TYPE_HEADSHOTS = 0x16,
-  SB_TYPE_DOWNS = 0x17,
-  SB_TYPE_REVIVES = 0x18,
-  SB_TYPE_AGRKILLS = 0x19,
-  SB_TYPE_HACKS = 0x1A,
-  SB_TYPE_POINTS_TO_WIN = 0x1B,
-  SB_TYPE_KILLS_CONFIRMED = 0x1C,
-  SB_TYPE_KILLS_DENIED = 0x1D,
-  SB_TYPE_SHOTS_MISSED = 0x1E,
-  SB_TYPE_SHOTS_HIT = 0x1F,
-  SB_TYPE_TIME_PLAYED = 0x20,
-  SB_TYPE_VICTORY = 0x21,
-  SB_TYPE_INCAPS = 0x22,
-  SB_TYPE_GEMS = 0x23,
-  NUM_SB_TYPES = 0x24,
+enum class scoreboardColumnType_t : int32_t {
+  INVALID = 0x0,
+  NONE = 0x1,
+  SCORE = 0x2,
+  KILLS = 0x3,
+  DEATHS = 0x4,
+  ASSISTS = 0x5,
+  DEFENDS = 0x6,
+  PLANTS = 0x7,
+  DEFUSES = 0x8,
+  RETURNS = 0x9,
+  CAPTURES = 0xA,
+  DESTRUCTIONS = 0xB,
+  DISABLES = 0xC,
+  ESCORTS = 0xD,
+  CARRIES = 0xE,
+  THROWS = 0xF,
+  KDRATIO = 0x10,
+  SURVIVED = 0x11,
+  STABS = 0x12,
+  TOMAHAWKS = 0x13,
+  HUMILIATED = 0x14,
+  X2SCORE = 0x15,
+  HEADSHOTS = 0x16,
+  DOWNS = 0x17,
+  REVIVES = 0x18,
+  AGRKILLS = 0x19,
+  HACKS = 0x1A,
+  POINTS_TO_WIN = 0x1B,
+  KILLS_CONFIRMED = 0x1C,
+  KILLS_DENIED = 0x1D,
+  SHOTS_MISSED = 0x1E,
+  SHOTS_HIT = 0x1F,
+  TIME_PLAYED = 0x20,
+  VICTORY = 0x21,
+  INCAPS = 0x22,
+  GEMS = 0x23,
+  COUNT = 0x24,
 };
 IMPL_ENUM_OPERATORS(scoreboardColumnType_t);
 
@@ -2317,7 +2323,9 @@ struct renderOptions_t {
   };
 
   // TODO: how do we determine which union member to serialize?
-  inline std::string serialize() const noexcept { return "TODO"; }
+  [[nodiscard]] inline std::string_view serialize() const noexcept {
+    return "TODO";
+  }
 };
 ASSERT_SIZE(renderOptions_t, 0x10);
 
@@ -2328,8 +2336,8 @@ public:
   uint16_t number;
   uint16_t infoIndex;
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"number\": {}, \"infoIndex\": {} }}", number,
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "number": {}, "infoIndex": {} }})", number,
                        infoIndex);
   }
 };
@@ -2348,8 +2356,8 @@ struct animationNumber_t {
     uint16_t packed;
   };
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"index\": 0x{:04X}, \"toggle\": {} }}", index,
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "index": 0x{:04X}, "toggle": {} }})", index,
                        ::serialize(static_cast<bool>(toggle)));
   }
 };

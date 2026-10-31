@@ -26,6 +26,26 @@ PACKED(struct TTFDef : NamedXAsset {
   TTFKerningEntry kerningCache[16384];
 });
 ASSERT_SIZE(TTFDef, 0x20020);
+
+typedef uint16_t glyphIndex_t;
+struct __declspec(align(4)) CachedGlyph {
+  void *font;
+  float s0;
+  float t0;
+  float s1;
+  float t1;
+  glyphIndex_t next;
+  uint16_t letter;
+  int32_t glyphIndex;
+  uint16_t fontHeight;
+  uint8_t fxFlags;
+  int16_t x0;
+  int16_t y0;
+  uint16_t pixelWidth;
+  uint16_t pixelHeight;
+  int16_t dx;
+};
+
 } // namespace ttf
 } // namespace xasset
 } // namespace db

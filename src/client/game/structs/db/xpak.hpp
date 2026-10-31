@@ -12,7 +12,7 @@ struct XPakLoadedPackFileRef {
   int32_t refCount;         // offset 9
   stream::stream_fileid fh; // offset 13
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"size\": {}, \"refCount\": {}, \"fh\": 0x{:08X} }}",
                        size, refCount, fh);
   }
@@ -32,7 +32,7 @@ struct XPakEntryInfo {
   uint64_t adjacentRight : 18;
   uint64_t padding : 15;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"key\": 0x{:016X}, \"offset\": {}, \"size\": {}, \"xpakIndex\": "
         "{}, "
@@ -98,7 +98,7 @@ struct StreamWrappedBuffer {
   uint32_t dataSize;
   uint8_t *data;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"handle\": {}, \"xpakEntry\": {}, \"name\": {}, \"type\": {}, "
         "\"mode\": {}, \"dataSize\": {}, \"data\": {:p} }}",

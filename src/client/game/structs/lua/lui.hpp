@@ -14,15 +14,16 @@ struct TTFDef;
 } // namespace db
 namespace gfx {
 struct GfxImage;
-union GfxColor;
+typedef vec4<uint8_t> GfxColor;
 } // namespace gfx
 
 namespace lua {
 namespace lui {
+typedef vec4<vec3_t> QuadVert;
 
 struct UIQuadCache {
-  vec3_t *xyz;
-  vec2_t *st;
+  QuadVert *xyz;
+  vec4<vec2_t> *st;
   gfx::GfxColor *color;
   hks::LUA_MATERIAL_DATATYPE material;
   const gfx::GfxImage *image;
@@ -30,6 +31,8 @@ struct UIQuadCache {
   bool dirty;
   uint8_t fontCacheVersion;
   int32_t next;
+
+  IMPL_SLICE_METHODS(xyz, numQuads, Xyz)
 };
 
 enum class LUIAlignment : uint32_t {

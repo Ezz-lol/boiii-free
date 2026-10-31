@@ -23,7 +23,7 @@ class hybrid_vector {
 public:
   math::float4 vec;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"vec\": {} }}", vec.serialize());
   }
 };
@@ -33,7 +33,7 @@ struct TraceExtents {
   hybrid_vector end;
   hybrid_vector invDelta;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"start\": {}, \"end\": {}, \"invDelta\": {} }}",
                        start.serialize(), end.serialize(),
                        invDelta.serialize());
@@ -44,7 +44,7 @@ struct TraceCheckCount {
   uint16_t *partitions;
   uint16_t *brushes;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"global\": {}, \"partitions\": {:p}, \"brushes\": {:p} }}", global,
         reinterpret_cast<const void *>(partitions),
@@ -57,7 +57,7 @@ struct ClipMaterial {
   int32_t surfaceFlags;
   contents_t contentFlags;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"surfaceFlags\": 0x{:08X}, "
                        "\"contentFlags\": 0x{:08X} }}",
                        ::serialize(name), surfaceFlags, contentFlags);
@@ -69,7 +69,7 @@ typedef uint32_t LeafBrush;
 struct cLeafBrushNodeLeaf_t {
   LeafBrush *brushes;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"brushes\": {:p} }}",
                        reinterpret_cast<const void *>(brushes));
   }
@@ -80,7 +80,7 @@ struct cLeafBrushNodeChildren_t {
   float range;
   uint16_t childOffset[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"dist\": {}, \"range\": {}, \"childOffset\": {} }}",
                        dist, range, ::serialize(childOffset));
   }
@@ -90,7 +90,7 @@ union __attribute__((aligned(8))) cLeafBrushNodeData_t {
   cLeafBrushNodeLeaf_t leaf;
   cLeafBrushNodeChildren_t children;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"leaf\": {}, \"children\": {} }}", leaf.serialize(),
                        children.serialize());
   }
@@ -102,7 +102,7 @@ struct cLeafBrushNode_t {
   contents_t contents;
   cLeafBrushNodeData_t data;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"axis\": {}, \"leafBrushCount\": {}, \"contents\": "
                        "{:08X}, \"data\": {} }}",
                        axis, leafBrushCount, contents, data.serialize());
@@ -113,7 +113,7 @@ struct Bounds {
   vec3_t midPoint;
   vec3_t halfSize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"midPoint\": {}, \"halfSize\": {} }}",
                        midPoint.serialize(), halfSize.serialize());
   }
@@ -139,7 +139,7 @@ struct ClipInfo {
   Bounds *brushBounds;
   contents_t *brushContents;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"planeCount\": {}, \"planes\": {}, \"numMaterials\": {}, "
         "\"materials\": {}, \"numBrushSides\": {}, \"brushsides\": {}, "
@@ -171,7 +171,7 @@ struct __attribute__((aligned(8))) cLeaf_t {
   intptr_t leafBrushNode;
   int32_t cluster;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"firstCollAabbIndex\": {}, \"collAabbCount\": {}, "
                        "\"brushContents\": 0x{:08X}, "
                        "\"terrainContents\": 0x{:08X}, \"mins\": {}, \"maxs\": "
@@ -190,7 +190,7 @@ struct cmodel_t {
   ClipInfo *info;
   cLeaf_t leaf;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"mins\": {}, \"maxs\": {}, \"radius\": {}, "
                        "\"info\": {}, \"leaf\": {} }}",
                        mins.serialize(), maxs.serialize(), radius,
@@ -204,7 +204,7 @@ struct TraceThreadInfo {
   cmodel_t *box_model;
   db::xasset::phys::PhysGeomList **geoms;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"checkcount\": {}, \"box_brush\": {}, "
                        "\"box_model\": {}, \"geoms\": {:p} }}",
                        checkcount.serialize(), ::serialize(box_brush),
@@ -232,7 +232,7 @@ struct traceWork_t {
   float boundingRadius;
   TraceThreadInfo threadInfo;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"delta\": {}, \"midpoint\": {}, \"halfDelta\": {}, "
         "\"halfDeltaAbs\": {}, "
@@ -256,7 +256,7 @@ struct TriggerHull {
   uint16_t slabCount;
   uint16_t firstSlab;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"bounds\": {}, \"contents\": 0x{:08X}, "
                        "\"slabCount\": {}, \"firstSlab\": {} }}",
                        bounds.serialize(), contents, slabCount, firstSlab);
@@ -268,7 +268,7 @@ struct TriggerSlab {
   float midPoint;
   float halfSize;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"dir\": {}, \"midPoint\": {}, \"halfSize\": {} }}",
                        dir.serialize(), midPoint, halfSize);
   }
@@ -279,7 +279,7 @@ struct TriggerModel {
   uint16_t hullCount;
   uint16_t firstHull;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"contents\": 0x{:08X}, \"hullCount\": {}, \"firstHull\": {} }}",
         contents, hullCount, firstHull);
@@ -297,7 +297,7 @@ PACKED(struct MapTriggers {
   uint8_t _padding24[4];
   TriggerSlab *slabs;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"count\": {}, \"models\": {}, \"hullCount\": {}, "
                        "\"hulls\": {}, "
                        "\"slabCount\": {}, \"slabs\": {} }}",
@@ -314,7 +314,7 @@ PACKED(struct MapEnts {
   uint8_t _padding14[4];
   MapTriggers trigger;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"entityString\": {}, "
                        "\"numEntityChars\": {}, \"trigger\": {} }}",
                        ::serialize(name), ::serialize(entityString),
@@ -325,7 +325,7 @@ PACKED(struct MapEnts {
 struct cStaticModelWritable {
   uint16_t nextModelInWorldSector;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"nextModelInWorldSector\": {} }}",
                        nextModelInWorldSector);
   }
@@ -345,7 +345,7 @@ PACKED(struct cStaticModel_s {
   int32_t numBoneMtxs;
   scr::ScrString_t targetname;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"writable\": {}, \"xmodel\": {:p}, \"contents\": 0x{:08X}, "
         "\"origin\": {}, \"invScaledAxis\": {}, \"absmin\": {}, \"absmax\": "
@@ -364,7 +364,7 @@ struct cNode_t {
   db::xasset::phys::cplane_t *plane;
   int32_t children[2];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"plane\": {}, \"children\": {} }}",
                        ::serialize(plane), ::serialize(children));
   }
@@ -427,7 +427,7 @@ PACKED(struct clipMap_t {
   uint32_t checksum;
   uint8_t _padding2CC[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"isInUse\": {}, \"info\": {}, \"pInfo\": {:p}, "
         "\"numStaticModels\": {}, \"staticModelList\": {}, \"numNodes\": {}, "
@@ -496,7 +496,7 @@ PACKED(struct trace_t {
   int32_t hitPartition;
   uint8_t _padding4C[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"normal\": {}, \"fraction\": {}, \"sflags\": 0x{:08X}, "
         "\"cflags\": "
@@ -527,7 +527,7 @@ struct BulletFireParams {
   vec3_t dir;
   vec3_t origDir;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"weaponEntIndex\": {}, \"ignoreEntIndex\": {}, "
         "\"damageMultiplier\": {}, "
@@ -579,7 +579,7 @@ PACKED(struct GroundTrace {
   int32_t validGroundNormal;
   uint8_t _padding68[8];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"trace\": {}, \"location\": {}, \"onGround\": {}, "
                        "\"hasGround\": {}, "
                        "\"validGroundNormal\": {} }}",

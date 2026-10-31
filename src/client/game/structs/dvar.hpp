@@ -55,32 +55,36 @@ enum class dvarType_t : uint32_t {
   SESSIONMODE_BASE_DVAR = 0xF,
   COUNT = 0x10,
 };
+IMPL_ENUM_OPERATORS(dvarType_t);
 
-enum dvarFlags_e : uint32_t {
-  DVAR_NONE = 0,
-  DVAR_ARCHIVE = 1 << 0,
-  DVAR_USERINFO = 1 << 1,
-  DVAR_SERVERINFO = 1 << 2,
-  DVAR_SYSTEMINFO = 1 << 3,
-  DVAR_LATCH = 1 << 4,
-  DVAR_ROM = 1 << 5,
-  DVAR_SAVED = 1 << 6,
-  DVAR_INIT = 1 << 7,
-  DVAR_CHEAT = 1 << 8,
-  // DVAR_UNKNOWN = 1 << 9,
-  DVAR_EXTERNAL = 1 << 10,
-  // DVAR_UNKNOWN2x = 1<< 11-12
+enum class dvarFlags_e : uint32_t {
+  NONE = 0,
+  ARCHIVE = 1 << 0,
+  USERINFO = 1 << 1,
+  SERVERINFO = 1 << 2,
+  SYSTEMINFO = 1 << 3,
+  LATCH = 1 << 4,
+  ROM = 1 << 5,
+  SAVED = 1 << 6,
+  INIT = 1 << 7,
+  CHEAT = 1 << 8,
+  // UNKNOWN = 1 << 9,
+  EXTERNAL = 1 << 10,
+  // UNKNOWN2x = 1<< 11-12
   // Sets `findCallBackForDvar(dvar)->needsCallback = true;` on change
-  DVAR_MODIFIED_CALLBACK = 1 << 13,
-  // DVAR_UNKNOWN1x = 1 << 14,
-  DVAR_SESSIONMODE = 1 << 15,
-  // Modvars have flags |= DVAR_MODVAR|DVAR_SESSIONMODE -
+  MODIFIED_CALLBACK = 1 << 13,
+  // UNKNOWN1x = 1 << 14,
+  SESSIONMODE = 1 << 15,
+  // Modvars have flags |= MODVAR|SESSIONMODE -
   // dvars specific to mod session
-  DVAR_MODVAR = 1 << 17
+  MODVAR = 1 << 17
 };
+IMPL_ENUM_OPERATORS(dvarFlags_e);
 
 template <typename T>
-concept DvarFlagLike = IntegralLike<T, uint32_t>;
+concept DvarFlagLike =
+    IntegralLike<T, uint32_t> ||
+    std::is_same_v<std::remove_cvref_t<std::remove_cv_t<T>>, dvarFlags_e>;
 
 #pragma pack(push, 1)
 union DvarFlags {
@@ -136,7 +140,9 @@ union DvarFlags {
     return DvarFlags{_raw & static_cast<uint32_t>(~flags)};
   }
 
-  inline constexpr DvarFlags clear() const noexcept { return DvarFlags{0}; }
+  [[nodiscard]] inline constexpr DvarFlags clear() const noexcept {
+    return DvarFlags{0};
+  }
 
   template <DvarFlagLike T>
   inline constexpr DvarFlags set(T flags) const noexcept {
@@ -172,9 +178,10 @@ inline constexpr DvarFlags operator|(DvarFlags lhs, T rhs) noexcept {
   return DvarFlags{lhs._raw | static_cast<uint32_t>(rhs)};
 }
 
-template <DvarFlagLike T, typename = std::enable_if_t<
-                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-inline constexpr DvarFlags operator|(T lhs, DvarFlags rhs) noexcept {
+template <DvarFlagLike T>
+inline constexpr DvarFlags operator|(T lhs, DvarFlags rhs) noexcept
+  requires(!std::is_same_v<std::decay_t<T>, DvarFlags>)
+{
   return DvarFlags{static_cast<uint32_t>(lhs) | rhs._raw};
 }
 
@@ -183,9 +190,10 @@ inline constexpr DvarFlags operator&(DvarFlags lhs, T rhs) noexcept {
   return DvarFlags{lhs._raw & static_cast<uint32_t>(rhs)};
 }
 
-template <DvarFlagLike T, typename = std::enable_if_t<
-                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-inline constexpr DvarFlags operator&(T lhs, DvarFlags rhs) noexcept {
+template <DvarFlagLike T>
+inline constexpr DvarFlags operator&(T lhs, DvarFlags rhs) noexcept
+  requires(!std::is_same_v<std::decay_t<T>, DvarFlags>)
+{
   return DvarFlags{static_cast<uint32_t>(lhs) & rhs._raw};
 }
 
@@ -193,9 +201,10 @@ template <DvarFlagLike T>
 inline constexpr DvarFlags operator^(DvarFlags lhs, T rhs) noexcept {
   return DvarFlags{lhs._raw ^ static_cast<uint32_t>(rhs)};
 }
-template <DvarFlagLike T, typename = std::enable_if_t<
-                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-inline constexpr DvarFlags operator^(T lhs, DvarFlags rhs) noexcept {
+template <DvarFlagLike T>
+inline constexpr DvarFlags operator^(T lhs, DvarFlags rhs) noexcept
+  requires(!std::is_same_v<std::decay_t<T>, DvarFlags>)
+{
   return DvarFlags{static_cast<uint32_t>(lhs) ^ rhs._raw};
 }
 
@@ -204,9 +213,10 @@ inline constexpr bool operator==(DvarFlags lhs, T rhs) noexcept {
   return lhs._raw == static_cast<uint32_t>(rhs);
 }
 
-template <DvarFlagLike T, typename = std::enable_if_t<
-                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-inline constexpr bool operator==(T lhs, DvarFlags rhs) noexcept {
+template <DvarFlagLike T>
+inline constexpr bool operator==(T lhs, DvarFlags rhs) noexcept
+  requires(!std::is_same_v<std::decay_t<T>, DvarFlags>)
+{
   return static_cast<uint32_t>(lhs) == rhs._raw;
 }
 
@@ -215,9 +225,10 @@ inline constexpr bool operator!=(DvarFlags lhs, T rhs) noexcept {
   return lhs._raw != static_cast<uint32_t>(rhs);
 }
 
-template <DvarFlagLike T, typename = std::enable_if_t<
-                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-inline constexpr bool operator!=(T lhs, DvarFlags rhs) noexcept {
+template <DvarFlagLike T>
+inline constexpr bool operator!=(T lhs, DvarFlags rhs) noexcept
+  requires(!std::is_same_v<std::decay_t<T>, DvarFlags>)
+{
   return static_cast<uint32_t>(lhs) != rhs._raw;
 };
 ASSERT_SIZE(DvarFlags, sizeof(uint32_t));
@@ -1240,28 +1251,28 @@ union EngineDependentDvarMut {
         set(val, execModifiedCallback));
   }
 
-  inline int32_t get_int() const {
+  [[nodiscard]] inline int32_t get_int() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_int());
   }
-  inline uint32_t get_uint() const {
+  [[nodiscard]] inline uint32_t get_uint() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_uint());
   }
-  inline int64_t get_int64() const {
+  [[nodiscard]] inline int64_t get_int64() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_int64());
   }
-  inline uint64_t get_uint64() const {
+  [[nodiscard]] inline uint64_t get_uint64() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_uint64());
   }
-  inline bool get_bool() const {
+  [[nodiscard]] inline bool get_bool() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_bool());
   }
-  inline float get_float() const {
+  [[nodiscard]] inline float get_float() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_float());
   }
-  inline std::optional<std::string_view> get_string() const {
+  [[nodiscard]] inline std::optional<std::string_view> get_string() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_string());
   }
-  inline const char *get_cstring() const noexcept {
+  [[nodiscard]] inline const char *get_cstring() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_cstring());
   }
   template <typename T> inline T get() const {
@@ -1274,35 +1285,35 @@ union EngineDependentDvarMut {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(map_string(func));
   }
 
-  inline uint64_t encryptedValue() const noexcept {
+  [[nodiscard]] inline uint64_t encryptedValue() const noexcept {
     return is_server() ? 0 : cl->encryptedValue();
   }
 
   inline dvarStrHash_t &name() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(name());
   }
-  inline dvarStrHash_t name() const noexcept {
+  [[nodiscard]] inline dvarStrHash_t name() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(name());
   }
 
   inline ConstCharPtr &debugName() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(debugName());
   }
-  inline const char *debugName() const noexcept {
+  [[nodiscard]] inline const char *debugName() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(debugName());
   }
 
   inline ConstCharPtr &description() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(description());
   }
-  inline const char *description() const noexcept {
+  [[nodiscard]] inline const char *description() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(description());
   }
   inline DvarFlags &flags() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(flags());
   }
 
-  inline DvarFlags flags() const noexcept {
+  [[nodiscard]] inline DvarFlags flags() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(flags());
   }
 
@@ -1465,32 +1476,33 @@ union EngineDependentDvar {
   const dvar_t *sv;
   const encryptedDvar_t *cl;
 
-  inline uint64_t encryptedValue() const noexcept {
+  [[nodiscard]] inline uint64_t encryptedValue() const noexcept {
     return is_server() ? 0 : cl->encryptedValue();
   }
 
-  inline int32_t get_int() const noexcept {
+  [[nodiscard]] inline int32_t get_int() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_int());
   }
-  inline uint32_t get_uint() const noexcept {
+  [[nodiscard]] inline uint32_t get_uint() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_uint());
   }
-  inline int64_t get_int64() const noexcept {
+  [[nodiscard]] inline int64_t get_int64() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_int64());
   }
-  inline uint64_t get_uint64() const noexcept {
+  [[nodiscard]] inline uint64_t get_uint64() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_uint64());
   }
-  inline bool get_bool() const noexcept {
+  [[nodiscard]] inline bool get_bool() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_bool());
   }
-  inline float get_float() const noexcept {
+  [[nodiscard]] inline float get_float() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_float());
   }
-  inline std::optional<std::string_view> get_string() const noexcept {
+  [[nodiscard]] inline std::optional<std::string_view>
+  get_string() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_string());
   }
-  inline const char *get_cstring() const noexcept {
+  [[nodiscard]] inline const char *get_cstring() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_cstring());
   }
   template <typename T> inline T get() const noexcept {
@@ -1503,24 +1515,25 @@ union EngineDependentDvar {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(map_string(func));
   }
 
-  inline dvarStrHash_t name() const noexcept {
+  [[nodiscard]] inline dvarStrHash_t name() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(name());
   }
 
-  inline const char *debugName() const noexcept {
+  [[nodiscard]] inline const char *debugName() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(debugName());
   }
-  inline const char *description() const noexcept {
+  [[nodiscard]] inline const char *description() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(description());
   }
-  inline DvarFlags flags() const noexcept {
+  [[nodiscard]] inline DvarFlags flags() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(flags());
   }
-  inline dvarType_t type() const noexcept {
+  [[nodiscard]] inline dvarType_t type() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(type());
   }
 
-  inline const SessionModePool<EngineDependentDvar> &indirect() const noexcept {
+  [[nodiscard]] inline const SessionModePool<EngineDependentDvar> &
+  indirect() const noexcept {
     if (is_server()) {
       return reinterpret_cast<const SessionModePool<EngineDependentDvar> &>(
           sv->indirect());
@@ -1529,7 +1542,8 @@ union EngineDependentDvar {
         cl->indirect());
   }
 
-  inline EngineDependentDvar sessionModeSpecific() const noexcept {
+  [[nodiscard]] inline EngineDependentDvar
+  sessionModeSpecific() const noexcept {
     EngineDependentDvar result{nullptr};
     if (is_server()) {
       result.sv = reinterpret_cast<const dvar_t *>(sv->sessionModeSpecific());
@@ -1540,7 +1554,8 @@ union EngineDependentDvar {
     return result;
   }
 
-  inline EngineDependentDvar sessionModeSpecific(eModes mode) const noexcept {
+  [[nodiscard]] inline EngineDependentDvar
+  sessionModeSpecific(eModes mode) const noexcept {
     EngineDependentDvar result{nullptr};
     if (is_server()) {
       result.sv =
@@ -1552,7 +1567,7 @@ union EngineDependentDvar {
     return result;
   }
 
-  inline EngineDependentDvar resolve() const noexcept {
+  [[nodiscard]] inline EngineDependentDvar resolve() const noexcept {
     EngineDependentDvar result{};
     if (is_server()) {
       result.sv = reinterpret_cast<const dvar_t *>(sv->resolve());
@@ -1562,13 +1577,13 @@ union EngineDependentDvar {
     return result;
   }
 
-  inline bool modified() const noexcept {
+  [[nodiscard]] inline bool modified() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(modified());
   }
-  inline DvarLimits domain() const noexcept {
+  [[nodiscard]] inline DvarLimits domain() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(domain());
   }
-  inline EngineDependentDvar hashNext() const noexcept {
+  [[nodiscard]] inline EngineDependentDvar hashNext() const noexcept {
     EngineDependentDvar result{};
     if (is_server()) {
       result.sv = const_cast<const dvar_t *>(
@@ -1580,8 +1595,8 @@ union EngineDependentDvar {
     return result;
   }
 
-  inline constexpr bool nonnull() const { return sv != nullptr; }
-  inline constexpr bool null() const { return sv == nullptr; }
+  [[nodiscard]] inline constexpr bool nonnull() const { return sv != nullptr; }
+  [[nodiscard]] inline constexpr bool null() const { return sv == nullptr; }
 
   inline constexpr bool operator!() const noexcept { return null(); }
   inline constexpr bool
@@ -1665,8 +1680,10 @@ template <typename T_DvarValue> struct TemplateDvarPool {
   }
   inline constexpr T_DvarValue &operator[](size_t index) { return pool[index]; }
 
-  inline constexpr const T_DvarValue *base() const { return &pool[0]; }
-  inline constexpr const T_DvarValue *end() const {
+  [[nodiscard]] inline constexpr const T_DvarValue *base() const {
+    return &pool[0];
+  }
+  [[nodiscard]] inline constexpr const T_DvarValue *end() const {
     return &pool[DVAR_POOL_LEN];
   }
   inline bool contains(const T_DvarValue *dvar) const {
@@ -1702,7 +1719,7 @@ union EngineDependentDvarPool {
     return result;
   }
 
-  inline EngineDependentDvar base() const {
+  [[nodiscard]] inline EngineDependentDvar base() const {
     EngineDependentDvar result{};
     if (is_server()) {
       result.sv = sv->base();
@@ -1711,7 +1728,7 @@ union EngineDependentDvarPool {
     }
     return result;
   }
-  inline EngineDependentDvar end() const {
+  [[nodiscard]] inline EngineDependentDvar end() const {
     EngineDependentDvar result{};
     if (is_server()) {
       result.sv = sv->end();
@@ -1721,15 +1738,19 @@ union EngineDependentDvarPool {
     return result;
   }
 
-  inline bool contains(EngineDependentDvar dvar) const noexcept {
+  [[nodiscard]] inline bool contains(EngineDependentDvar dvar) const noexcept {
     if (is_server()) {
       return sv->contains(dvar.sv);
     }
     return cl->contains(dvar.cl);
   }
 
-  inline constexpr bool null() const noexcept { return sv == nullptr; }
-  inline constexpr bool nonnull() const noexcept { return sv != nullptr; }
+  [[nodiscard]] inline constexpr bool null() const noexcept {
+    return sv == nullptr;
+  }
+  [[nodiscard]] inline constexpr bool nonnull() const noexcept {
+    return sv != nullptr;
+  }
 
   inline constexpr EngineDependentDvarPool() noexcept = default;
   inline constexpr EngineDependentDvarPool(DvarPool *pool) noexcept
@@ -1784,7 +1805,7 @@ constexpr dvarStrHash_t DVAR_HASH_MASK = DVAR_HASH_TABLE_LEN - 1;
 struct DvarHashTable {
   EngineDependentDvarMut table[0x800];
 
-  inline EngineDependentDvarMut get(dvarStrHash_t hash) const {
+  [[nodiscard]] inline EngineDependentDvarMut get(dvarStrHash_t hash) const {
     EngineDependentDvarMut entry = table[hash & DVAR_HASH_MASK];
     while (entry && entry.name() != hash) {
       entry = entry.hashNext();
@@ -1792,7 +1813,7 @@ struct DvarHashTable {
     return entry;
   }
 
-  inline bool contains(dvarStrHash_t hash) const {
+  [[nodiscard]] inline bool contains(dvarStrHash_t hash) const {
     EngineDependentDvarMut entry = get(hash);
     return entry;
   }

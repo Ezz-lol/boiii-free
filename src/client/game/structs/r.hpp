@@ -48,7 +48,7 @@ struct vidConfig_t {
   uint32_t maxTextureSize;
 
 #ifndef NDEBUG
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"sceneWidth\": {}, \"sceneHeight\": {}, \"sceneAspectRatio\": "
         "{}, \"displayWidth\": {}, \"displayHeight\": {}, "
@@ -67,6 +67,15 @@ struct vidConfig_t {
 #endif
 };
 ASSERT_SIZE(vidConfig_t, 0x38);
+
+struct R_TextBounds {
+  int lineNumber;
+  int colorIndex;
+  float start_x;
+  float end_x;
+  const char *startPtr;
+  const char *endPtr;
+};
 
 } // namespace r
 } // namespace game

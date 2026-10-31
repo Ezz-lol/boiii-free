@@ -38,7 +38,7 @@ struct viewClamp {
   vec2_t current;
   vec2_t goal;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"start\": {}, \"current\": {}, \"goal\": {} }}",
                        start.serialize(), current.serialize(),
                        goal.serialize());
@@ -53,7 +53,7 @@ struct viewClampState {
   float totalTime;
   float startTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"min\": {}, \"max\": {}, \"accelTime\": {}, \"decelTime\": {}, "
         "\"totalTime\": {}, \"startTime\": {} }}",
@@ -106,7 +106,7 @@ inline constexpr const char *serialize(const clientConnected_t conn) {
 struct playerTeamState_t {
   int32_t location;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"location\": {} }}", location);
   }
 };
@@ -155,7 +155,7 @@ PACKED(struct clientSession_t {
   */
   int32_t scoreboardColumnCache[51];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"sessionState\": {}, \"forceSpectatorClient\": {}, "
         "\"isInKillcam\": {}, "
@@ -266,7 +266,7 @@ PACKED(struct gclient_s {
   qboolean lastStand;
   int32_t lastStandTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"ps\": {}, \"lastPlayerPS\": {}, \"sess\": {}, "
         "\"spectatorClient\": {}, \"flags\": 0x{:08X}, \"lastCmdTime\": {}, "
@@ -336,7 +336,7 @@ PACKED(struct SpawnVar {
   char spawnVarChars[2048];
   char spawnVarTypes[100];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"spawnVarsValid\": {}, \"numSpawnVars\": {}, \"spawnVars\": {}, "
         "\"numSpawnVarChars\": {}, \"spawnVarChars\": \"{}\", "
@@ -357,7 +357,7 @@ struct gentity_snd_wait {
   int32_t basetime;
   int32_t duration;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"notifyString\": 0x{:08X}, \"index\": {}, \"stoppable\": {}, "
         "\"basetime\": {}, \"duration\": {} }}",
@@ -391,7 +391,7 @@ struct item_ent_t {
   uint32_t clipAmmoCount;
   weapon::Weapon weapon;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"ammoCount\": {}, \"clipAmmoCount\": {}, \"weapon\": {} }}",
         ammoCount, clipAmmoCount, weapon.serialize());
@@ -415,7 +415,7 @@ PACKED(struct trigger_ent_t {
   bool requireAllPlayers;
   uint8_t _padding33[1];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"threshold\": {}, \"accumulate\": {}, \"timestamp\": {}, "
         "\"singleUserEntIndex\": {}, \"perk\": {}, \"exposureIndex\": {}, "
@@ -435,7 +435,7 @@ struct mover_slidedata_t {
   vec3_t maxs;
   vec3_t velocity;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"mins\": {}, \"maxs\": {}, \"velocity\": {} }}",
                        mins.serialize(), maxs.serialize(),
                        velocity.serialize());
@@ -450,7 +450,7 @@ struct mover_positions_t {
   vec3_t pos2;
   vec3_t pos3;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"decelTime\": {}, \"speed\": {}, \"midTime\": {}, "
                        "\"pos1\": {}, \"pos2\": {}, \"pos3\": {} }}",
                        decelTime, speed, midTime, pos1.serialize(),
@@ -466,7 +466,7 @@ struct mover_ent_t {
   };
   mover_positions_t angle;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"pos\": {}, \"angle\": {} }}", pos.serialize(),
                        angle.serialize());
   }
@@ -475,7 +475,7 @@ struct mover_ent_t {
 struct corpse_ent_t {
   int32_t deathAnimStartTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"deathAnimStartTime\": {} }}", deathAnimStartTime);
   }
 };
@@ -522,7 +522,7 @@ PACKED(struct missile_ent_t {
   float grenadeCurve;
   int32_t destructibleBounceCount;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"predictLandPos\": {}, \"predictLandTime\": {}, "
         "\"timestamp\": {}, "
@@ -557,7 +557,7 @@ struct blend_ent_t {
   float posTotalTime;
   float angleTotalTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"pos\": {}, \"vel\": {}, \"viewQuat\": {}, \"changed\": {}, "
         "\"posAccelTime\": {}, \"posDecelTime\": {}, \"angleAccelTime\": {}, "
@@ -572,7 +572,7 @@ struct blend_ent_t {
 struct actor_ent_t {
   int32_t spawnTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"spawnTime\": {} }}", spawnTime);
   }
 };
@@ -580,7 +580,7 @@ struct actor_ent_t {
 struct spawner_ent_t {
   int32_t timestamp;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"timestamp\": {} }}", timestamp);
   }
 };
@@ -592,7 +592,7 @@ PACKED(struct zbarrier_piece_t {
   uint8_t _padding03[1];
   int32_t startTime;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"state\": {}, \"scalar\": {}, \"nextState\": {}, "
                        "\"startTime\": {} }}",
                        state, scalar, nextState, startTime);
@@ -603,7 +603,7 @@ ASSERT_SIZE(zbarrier_piece_t, 0x8);
 struct zbarrier_ent_t {
   zbarrier_piece_t pieces[6];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"pieces\": {} }}", ::serialize(pieces));
   }
 };
@@ -630,7 +630,7 @@ PACKED(struct EntityModelAttachment {
   uint8_t _padding02[2];
   scr::ScrString_t tag;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"model\": 0x{:04X}, \"tag\": 0x{:08X} }}", model,
                        tag);
   }

@@ -2,8 +2,9 @@
 
 #include <structs/primitive.hpp>
 
-#include <game/ptr.hpp>
 #include <game/structs/core.hpp>
+
+#include <game/ptr.hpp>
 #include <game/structs/quake/core.hpp>
 
 #include <structs/func.hpp>
@@ -470,6 +471,16 @@ PACKED(struct HksObject {
     }
   }
 
+  inline constexpr bool isUserData() const noexcept {
+    switch (t) {
+    case HksObjectType::TUSERDATA:
+    case HksObjectType::TLIGHTUSERDATA:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   inline constexpr LightUserData lightUserData() const {
     switch (t) {
     case HksObjectType::TUSERDATA: {
@@ -489,7 +500,7 @@ PACKED(struct HksObject {
     return {.ptr = nullptr};
   }
 
-  constexpr HksObject() noexcept = default;
+  constexpr HksObject() noexcept : t(HksObjectType::TNIL), v({.raw = 0}) {}
   constexpr HksObject(const HksObject &) noexcept = default;
   constexpr HksObject &operator=(const HksObject &) = default;
 

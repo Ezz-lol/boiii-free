@@ -480,7 +480,7 @@ struct ClientActives {
   Add enumerations as they are discovered.
 */
 struct clientAllocFlag_t {
-  enum clientAllocFlag : uint32_t {
+  enum class clientAllocFlag : uint32_t {
     DRY_RUN = 0b00000000000000000000000000000001,
     UNKNOWN_B1 = 0b00000000000000000000000000000010,
     UNKNOWN_B2 = 0b00000000000000000000000000000100,

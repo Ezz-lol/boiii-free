@@ -159,7 +159,7 @@ struct XFile {
   uint8_t signature[256];
   uint8_t aesIV[16];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"magic\": {}, \"version\": {:08X}, \"server\": {}, "
         "\"compression\": {}, "
