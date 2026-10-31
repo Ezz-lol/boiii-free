@@ -1,6 +1,7 @@
 #pragma once
 
 #include <game/structs/dw/core.hpp>
+#include <game/structs/dw/task/fs.hpp>
 
 #include <cstdint>
 
@@ -23,7 +24,7 @@ struct onlinePubData {
   int bufferSize;
   bool isFileCompressed;
   const dw::TaskDefinition *taskDef;
-  dw::dwFileOperationInfo *fileOps;
+  dw::task::fs::dwFileOperationInfo *fileOps;
   bool dataFetchCompleted;
   bool multipleLanguages;
   fastcallPtr_t<void(const ControllerIndex_t controllerIndex, void *)>

@@ -40,6 +40,18 @@ template <SerializablePtr T> inline std::string serialize(const T &ptr) {
   return ::readable_ptr(ptr) ? ptr->serialize() : "NULL";
 }
 
+inline std::string serialize(const void *ptr) {
+  return std::format("{:p}", ptr);
+}
+
+inline std::string serialize(const uintptr_t ptr) {
+  return serialize(reinterpret_cast<const void *>(ptr));
+}
+
+inline std::string serialize(const intptr_t ptr) {
+  return serialize(reinterpret_cast<const void *>(ptr));
+}
+
 template <Serializable T> inline std::string serialize(const T &ptr) {
   return ptr.serialize();
 }

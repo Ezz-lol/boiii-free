@@ -38,6 +38,12 @@ WEAK symbol<bool> s_liveStorageInitialized{0x1515C0D18, 0x15163FC88, 0x0};
 WEAK symbol<OnlinePubDataPool> s_onlinePubData{0x14338FC50, 0x14340EC40, 0x0};
 WEAK symbol<void(const ControllerIndex_t)> Storage_Pump{0x14221A680,
                                                         0x1422771B0, 0x0};
+WEAK symbol<dw::TaskRecord *(const ControllerIndex_t controllerIndex,
+                             dw::task::fs::dwFileOperationInfo *fileInfo)>
+    LiveStorage_ReadDWFile{0x141EB3210, 0x0, 0x0};
+WEAK symbol<dw::TaskRecord *(const ControllerIndex_t controllerIndex,
+                             dw::task::fs::dwFileOperationInfo *fileInfo)>
+    LiveStorage_WriteDWUserFile{0x141EB4A50, 0x0, 0x0};
 
 } // namespace storage
 

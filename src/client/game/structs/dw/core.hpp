@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 
 #include "../core.hpp"
 #include <structs/func.hpp>
@@ -22,10 +21,19 @@ public:
   Node *m_head;
   Node *m_tail;
   bdUInt m_size;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"m_head\": {}, \"m_tail\": {}, \"m_size\": {} }}",
+                       ::serialize(m_head), ::serialize(m_tail), m_size);
+  }
 };
 
 template <typename T> struct bdQueue {
   bdLinkedList<T> m_list;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"m_list\": {} }}", m_list.serialize());
+  }
 };
 
 class bdSerializable {
@@ -35,6 +43,11 @@ public:
 
   VTbl *vtbl;
   uint8_t gap8[16];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"vtbl\": {:p} }}",
+                       reinterpret_cast<const void *>(vtbl));
+  }
 };
 ASSERT_SIZE(bdSerializable, 0x18);
 
@@ -43,6 +56,11 @@ typedef void *bdMutexHandle;
 class bdMutex {
 public:
   bdMutexHandle m_handle;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"m_handle\": {:p} }}",
+                       reinterpret_cast<const void *>(m_handle));
+  }
 };
 
 typedef void *bdSemaphoreHandle;
@@ -53,11 +71,21 @@ public:
   struct VTbl {};
   VTbl *vtbl;
   bdSemaphoreHandle m_handle;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"vtbl\": {:p}, \"m_handle\": {:p} }}",
+                       reinterpret_cast<const void *>(vtbl),
+                       reinterpret_cast<const void *>(m_handle));
+  }
 };
 
 class bdString {
 public:
   bdNChar8 *m_string;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"m_string\": {} }}", ::serialize(m_string));
+  }
 };
 
 // Unverified. Probably still correct.
@@ -66,6 +94,19 @@ enum class taskCompleteResults : uint32_t {
   TASK_COMPLETE = 0x1,
   TASK_ERROR = 0x2,
 };
+
+inline constexpr const char *serialize(const taskCompleteResults res) {
+  switch (res) {
+  case taskCompleteResults::TASK_NOTCOMPLETE:
+    return "TASK_NOTCOMPLETE";
+  case taskCompleteResults::TASK_COMPLETE:
+    return "TASK_COMPLETE";
+  case taskCompleteResults::TASK_ERROR:
+    return "TASK_ERROR";
+  default:
+    return "TASK_RESULT_INVALID";
+  }
+}
 
 // Very likely out of date
 enum class RecordEventType : uint32_t {
@@ -138,15 +179,165 @@ enum class RecordEventType : uint32_t {
   COUNT = 0x274D,
 };
 
+inline constexpr const char *serialize(const RecordEventType event) {
+  switch (event) {
+  case RecordEventType::EVENT_UNKNOWN:
+    return "EVENT_UNKNOWN";
+  case RecordEventType::EVENT_AVI:
+    return "EVENT_AVI";
+  case RecordEventType::EVENT_SCREENSHOT:
+    return "EVENT_SCREENSHOT";
+  case RecordEventType::EVENT_MATCH_RECORD_POINTS_SPENT:
+    return "EVENT_MATCH_RECORD_POINTS_SPENT";
+  case RecordEventType::EVENT_EMAIL:
+    return "EVENT_EMAIL";
+  case RecordEventType::EVENT_MATCH_RECORD_FINISHED:
+    return "EVENT_MATCH_RECORD_FINISHED";
+  case RecordEventType::EVENT_INVALID_GAMERTAG:
+    return "EVENT_INVALID_GAMERTAG";
+  case RecordEventType::EVENT_CRASH_DUMP:
+    return "EVENT_CRASH_DUMP";
+  case RecordEventType::EVENT_EMPTY_STATS:
+    return "EVENT_EMPTY_STATS";
+  case RecordEventType::EVENT_UPLOAD_FAILURE:
+    return "EVENT_UPLOAD_FAILURE";
+  case RecordEventType::EVENT_DB_READ_ERROR:
+    return "EVENT_DB_READ_ERROR";
+  case RecordEventType::EVENT_NO_HELI_MESH:
+    return "EVENT_NO_HELI_MESH";
+  case RecordEventType::EVENT_INVALID_EMBLEM:
+    return "EVENT_INVALID_EMBLEM";
+  case RecordEventType::EVENT_UPLOAD_SP_SESSION:
+    return "EVENT_UPLOAD_SP_SESSION";
+  case RecordEventType::EVENT_VALID_EMBLEM:
+    return "EVENT_VALID_EMBLEM";
+  case RecordEventType::EVENT_POSTMATCH_EVENTS:
+    return "EVENT_POSTMATCH_EVENTS";
+  case RecordEventType::EVENT_MATCH_RECORD_FINISHED_AND_UPLOADED:
+    return "EVENT_MATCH_RECORD_FINISHED_AND_UPLOADED";
+  case RecordEventType::EVENT_LOG_MATCHMAKING_DATA:
+    return "EVENT_LOG_MATCHMAKING_DATA";
+  case RecordEventType::EVENT_LOG_XSESSION_NON_SERIALIZED_CALLS:
+    return "EVENT_LOG_XSESSION_NON_SERIALIZED_CALLS";
+  case RecordEventType::EVENT_SYS_ERROR:
+    return "EVENT_SYS_ERROR";
+  case RecordEventType::EVENT_UI_ERROR:
+    return "EVENT_UI_ERROR";
+  case RecordEventType::EVENT_SEASON_PASS_PURCHASED:
+    return "EVENT_SEASON_PASS_PURCHASED";
+  case RecordEventType::EVENT_THEATER_CLIP_UPLOADED:
+    return "EVENT_THEATER_CLIP_UPLOADED";
+  case RecordEventType::UCD_ERROR:
+    return "UCD_ERROR";
+  case RecordEventType::EREG_ENTRY_ERROR:
+    return "EREG_ENTRY_ERROR";
+  case RecordEventType::EREG_YOUTUBE_ERROR:
+    return "EREG_YOUTUBE_ERROR";
+  case RecordEventType::EVENT_UI_MP_ERROR:
+    return "EVENT_UI_MP_ERROR";
+  case RecordEventType::EVENT_UI_ZM_ERROR:
+    return "EVENT_UI_ZM_ERROR";
+  case RecordEventType::EVENT_UI_CP_ERROR:
+    return "EVENT_UI_CP_ERROR";
+  case RecordEventType::EVENT_DEDI_NOGEOINFO:
+    return "EVENT_DEDI_NOGEOINFO";
+  case RecordEventType::EVENT_CONNECTION_LOG:
+    return "EVENT_CONNECTION_LOG";
+  case RecordEventType::EVENT_SESSION_MODIFY_FAILURE:
+    return "EVENT_SESSION_MODIFY_FAILURE";
+  case RecordEventType::EVENT_DEDICATED_PING_LOG:
+    return "EVENT_DEDICATED_PING_LOG";
+  case RecordEventType::EVENT_STATS_ACCESS_ERROR:
+    return "EVENT_STATS_ACCESS_ERROR";
+  case RecordEventType::EVENT_ZERO_FLAG_ERROR:
+    return "EVENT_ZERO_FLAG_ERROR";
+  case RecordEventType::EVENT_SESSION_LOG:
+    return "EVENT_SESSION_LOG";
+  case RecordEventType::EVENT_DOUBLE_XP_FLAG_CHANGED:
+    return "EVENT_DOUBLE_XP_FLAG_CHANGED";
+  case RecordEventType::EVENT_DLC_FLAG_CHANGED:
+    return "EVENT_DLC_FLAG_CHANGED";
+  case RecordEventType::EVENT_DEMO_UPLOAD_FAILURE:
+    return "EVENT_DEMO_UPLOAD_FAILURE";
+  case RecordEventType::EVENT_LEAGUE:
+    return "EVENT_LEAGUE";
+  case RecordEventType::EVENT_REMOTE_CONSOLE:
+    return "EVENT_REMOTE_CONSOLE";
+  case RecordEventType::EVENT_WATCHDOG:
+    return "EVENT_WATCHDOG";
+  case RecordEventType::EVENT_IGS:
+    return "EVENT_IGS";
+  case RecordEventType::EVENT_DLC_MENUS_VIEWED:
+    return "EVENT_DLC_MENUS_VIEWED";
+  case RecordEventType::EVENT_CUSTOMCLASS_ERRORLOG:
+    return "EVENT_CUSTOMCLASS_ERRORLOG";
+  case RecordEventType::EVENT_IW6_PROMO_PURCHASED:
+    return "EVENT_IW6_PROMO_PURCHASED";
+  case RecordEventType::EVENT_IW6_PROMO_ACCESSED:
+    return "EVENT_IW6_PROMO_ACCESSED";
+  case RecordEventType::EVENT_RATE_MATCH:
+    return "EVENT_RATE_MATCH";
+  case RecordEventType::EVENT_VOTE_MTX:
+    return "EVENT_VOTE_MTX";
+  case RecordEventType::EVENT_SP_REMINDER_ACTION:
+    return "EVENT_SP_REMINDER_ACTION";
+  case RecordEventType::EVENT_DSP_PROMOTION_ACTION:
+    return "EVENT_DSP_PROMOTION_ACTION";
+  case RecordEventType::EVENT_CONTENT_AVAILABLE:
+    return "EVENT_CONTENT_AVAILABLE";
+  case RecordEventType::EVENT_REPORT_OFFENSIVE_EMBLEM:
+    return "EVENT_REPORT_OFFENSIVE_EMBLEM";
+  case RecordEventType::EVENT_ANTICHEAT_DEBUG:
+    return "EVENT_ANTICHEAT_DEBUG";
+  case RecordEventType::EVENT_MATCH_RECORD_MP_PUBLIC:
+    return "EVENT_MATCH_RECORD_MP_PUBLIC";
+  case RecordEventType::EVENT_MATCH_RECORD_CP_PUBLIC:
+    return "EVENT_MATCH_RECORD_CP_PUBLIC";
+  case RecordEventType::EVENT_MATCH_RECORD_ZM_PUBLIC:
+    return "EVENT_MATCH_RECORD_ZM_PUBLIC";
+  case RecordEventType::EVENT_MATCH_RECORD_MP_PRIVATE:
+    return "EVENT_MATCH_RECORD_MP_PRIVATE";
+  case RecordEventType::EVENT_MATCH_RECORD_CP_PRIVATE:
+    return "EVENT_MATCH_RECORD_CP_PRIVATE";
+  case RecordEventType::EVENT_MATCH_RECORD_ZM_PRIVATE:
+    return "EVENT_MATCH_RECORD_ZM_PRIVATE";
+  case RecordEventType::EVENT_BLACKBOX:
+    return "EVENT_BLACKBOX";
+  case RecordEventType::EVENT_STREAM_READ_LOG:
+    return "EVENT_STREAM_READ_LOG";
+  case RecordEventType::EVENT_KVS_FIRST:
+    return "EVENT_KVS_FIRST";
+  case RecordEventType::EVENT_KVS_LAST:
+    return "EVENT_KVS_LAST";
+  case RecordEventType::EVENT_COMSCORE_FIRST:
+    return "EVENT_COMSCORE_FIRST";
+  case RecordEventType::EVENT_COMSCORE_LAST:
+    return "EVENT_COMSCORE_LAST";
+  case RecordEventType::COUNT:
+    return "EVENT_COUNT";
+  default:
+    return "EVENT_INVALID";
+  }
+}
+
 template <typename T> class bdReference {
 public:
   T *m_ptr;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"m_ptr\": {} }}", ::serialize(m_ptr));
+  }
 };
 
 class bdReferencable;
 class bdReferencableVTbl {
 public:
   thiscallPtr_t<void(bdReferencable *_this, int64_t)> releaseFunc;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"releaseFunc\": {:p} }}",
+                       reinterpret_cast<const void *>(releaseFunc));
+  }
 };
 
 #pragma pack(push, 1)
@@ -155,8 +346,19 @@ public:
   VTbl *vtbl;
   volatile bdInt m_refCount;
   uint8_t _padding[4];
+
+  inline std::string serialize() const noexcept {
+    const bdInt m_refCountCopy = m_refCount;
+    return std::format("{{ \"vtbl\": {:p}, \"m_refCount\": {} }}",
+                       reinterpret_cast<const void *>(vtbl), m_refCountCopy);
+  }
 };
-class bdReferencable : public _bdReferencable<bdReferencableVTbl> {};
+class bdReferencable : public _bdReferencable<bdReferencableVTbl> {
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"base\": {} }}",
+                       _bdReferencable<bdReferencableVTbl>::serialize());
+  }
+};
 ASSERT_SIZE(bdReferencable, 0x10);
 #pragma pack(pop)
 
@@ -171,6 +373,18 @@ public:
   bdBool m_typeCheckedCopy;
   bdBool m_allocatedData;
   uint8_t _padding33[5];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"m_size\": {}, \"m_data\": {:p}, "
+        "\"m_readPtr\": {:p}, "
+        "\"m_writePtr\": {:p}, \"m_typeChecked\": {}, "
+        "\"m_typeCheckedCopy\": {}, \"m_allocatedData\": {} }}",
+        m_size, reinterpret_cast<const void *>(m_data),
+        reinterpret_cast<const void *>(m_readPtr),
+        reinterpret_cast<const void *>(m_writePtr), ::serialize(m_typeChecked),
+        ::serialize(m_typeCheckedCopy), ::serialize(m_allocatedData));
+  }
 });
 ASSERT_SIZE(bdByteBuffer, 0x38);
 typedef bdReference<bdByteBuffer> bdByteBufferRef;
@@ -178,6 +392,10 @@ typedef bdReference<bdByteBuffer> bdByteBufferRef;
 class bdStopwatch {
 public:
   bdUInt64 m_start;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"m_start\": {} }}", m_start);
+  }
 };
 
 PACKED(class bdTaskResult {
@@ -187,6 +405,11 @@ public:
 
   VTbl *vtable;
   uint8_t _padding[16];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"vtable\": {:p} }}",
+                       reinterpret_cast<const void *>(vtable));
+  }
 });
 
 PACKED(class bdTaskResultProcessor {
@@ -195,6 +418,11 @@ public:
   struct VTbl {};
 
   VTbl *vtable;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"vtable\": {:p} }}",
+                       reinterpret_cast<const void *>(vtable));
+  }
 });
 
 template <typename VTbl = bdReferencableVTbl>
@@ -209,6 +437,33 @@ public:
     CANCELLED = 0x5,
     MAX_STATUS = 0x6,
   };
+
+  static inline constexpr const char *serialize(const bdStatus status) {
+    switch (status) {
+    case bdStatus::EMPTY:
+      return "STATUS_EMPTY";
+    case bdStatus::PENDING:
+      return "STATUS_PENDING";
+    case bdStatus::DONE:
+      return "STATUS_DONE";
+    case bdStatus::FAILED:
+      return "STATUS_FAILED";
+    case bdStatus::TIMED_OUT:
+      return "STATUS_TIMED_OUT";
+    case bdStatus::CANCELLED:
+      return "STATUS_CANCELLED";
+    case bdStatus::MAX_STATUS:
+      return "STATUS_MAX";
+    default:
+      return "STATUS_INVALID";
+    }
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"base\": {} }}",
+        reinterpret_cast<const _bdReferencable<VTbl> *>(this)->serialize());
+  }
 };
 
 enum class bdLobbyErrorCode : uint32_t {
@@ -550,6 +805,679 @@ enum class bdLobbyErrorCode : uint32_t {
   MAX_ERROR_CODE = 0x27E2,
 };
 
+inline constexpr const char *serialize(const bdLobbyErrorCode code) {
+  switch (code) {
+  case bdLobbyErrorCode::BD_NO_ERROR:
+    return "BD_NO_ERROR";
+  case bdLobbyErrorCode::TOO_MANY_TASKS:
+    return "TOO_MANY_TASKS";
+  case bdLobbyErrorCode::NOT_CONNECTED:
+    return "NOT_CONNECTED";
+  case bdLobbyErrorCode::SEND_FAILED:
+    return "SEND_FAILED";
+  case bdLobbyErrorCode::HANDLE_TASK_FAILED:
+    return "HANDLE_TASK_FAILED";
+  case bdLobbyErrorCode::START_TASK_FAILED:
+    return "START_TASK_FAILED";
+  case bdLobbyErrorCode::RESULT_EXCEEDS_BUFFER_SIZE:
+    return "RESULT_EXCEEDS_BUFFER_SIZE";
+  case bdLobbyErrorCode::ACCESS_DENIED:
+    return "ACCESS_DENIED";
+  case bdLobbyErrorCode::EXCEPTION_IN_DB:
+    return "EXCEPTION_IN_DB";
+  case bdLobbyErrorCode::MALFORMED_TASK_HEADER:
+    return "MALFORMED_TASK_HEADER";
+  case bdLobbyErrorCode::INVALID_ROW:
+    return "INVALID_ROW";
+  case bdLobbyErrorCode::EMPTY_ARG_LIST:
+    return "EMPTY_ARG_LIST";
+  case bdLobbyErrorCode::PARAM_PARSE_ERROR:
+    return "PARAM_PARSE_ERROR";
+  case bdLobbyErrorCode::PARAM_MISMATCHED_TYPE:
+    return "PARAM_MISMATCHED_TYPE";
+  case bdLobbyErrorCode::SERVICE_NOT_AVAILABLE:
+    return "SERVICE_NOT_AVAILABLE";
+  case bdLobbyErrorCode::CONNECTION_RESET:
+    return "CONNECTION_RESET";
+  case bdLobbyErrorCode::INVALID_USER_ID:
+    return "INVALID_USER_ID";
+  case bdLobbyErrorCode::LOBBY_PROTOCOL_VERSION_FAILURE:
+    return "LOBBY_PROTOCOL_VERSION_FAILURE";
+  case bdLobbyErrorCode::LOBBY_INTERNAL_FAILURE:
+    return "LOBBY_INTERNAL_FAILURE";
+  case bdLobbyErrorCode::LOBBY_PROTOCOL_ERROR:
+    return "LOBBY_PROTOCOL_ERROR";
+  case bdLobbyErrorCode::LOBBY_FAILED_TO_DECODE_UTF8:
+    return "LOBBY_FAILED_TO_DECODE_UTF8";
+  case bdLobbyErrorCode::LOBBY_ASCII_EXPECTED:
+    return "LOBBY_ASCII_EXPECTED";
+  case bdLobbyErrorCode::ASYNCHRONOUS_ERROR:
+    return "ASYNCHRONOUS_ERROR";
+  case bdLobbyErrorCode::STREAMING_COMPLETE:
+    return "STREAMING_COMPLETE";
+  case bdLobbyErrorCode::MEMBER_NO_PROPOSAL:
+    return "MEMBER_NO_PROPOSAL";
+  case bdLobbyErrorCode::TEAMNAME_ALREADY_EXISTS:
+    return "TEAMNAME_ALREADY_EXISTS";
+  case bdLobbyErrorCode::MAX_TEAM_MEMBERSHIPS_LIMITED:
+    return "MAX_TEAM_MEMBERSHIPS_LIMITED";
+  case bdLobbyErrorCode::MAX_TEAM_OWNERSHIPS_LIMITED:
+    return "MAX_TEAM_OWNERSHIPS_LIMITED";
+  case bdLobbyErrorCode::NOT_A_TEAM_MEMBER:
+    return "NOT_A_TEAM_MEMBER";
+  case bdLobbyErrorCode::INVALID_TEAM_ID:
+    return "INVALID_TEAM_ID";
+  case bdLobbyErrorCode::INVALID_TEAM_NAME:
+    return "INVALID_TEAM_NAME";
+  case bdLobbyErrorCode::NOT_A_TEAM_OWNER:
+    return "NOT_A_TEAM_OWNER";
+  case bdLobbyErrorCode::NOT_AN_ADMIN_OR_OWNER:
+    return "NOT_AN_ADMIN_OR_OWNER";
+  case bdLobbyErrorCode::MEMBER_PROPOSAL_EXISTS:
+    return "MEMBER_PROPOSAL_EXISTS";
+  case bdLobbyErrorCode::MEMBER_EXISTS:
+    return "MEMBER_EXISTS";
+  case bdLobbyErrorCode::TEAM_FULL:
+    return "TEAM_FULL";
+  case bdLobbyErrorCode::VULGAR_TEAM_NAME:
+    return "VULGAR_TEAM_NAME";
+  case bdLobbyErrorCode::TEAM_USERID_BANNED:
+    return "TEAM_USERID_BANNED";
+  case bdLobbyErrorCode::TEAM_EMPTY:
+    return "TEAM_EMPTY";
+  case bdLobbyErrorCode::INVALID_TEAM_PROFILE_QUERY_ID:
+    return "INVALID_TEAM_PROFILE_QUERY_ID";
+  case bdLobbyErrorCode::TEAMNAME_TOO_SHORT:
+    return "TEAMNAME_TOO_SHORT";
+  case bdLobbyErrorCode::UNIQUE_PROFILE_DATA_EXISTS_ALREADY:
+    return "UNIQUE_PROFILE_DATA_EXISTS_ALREADY";
+  case bdLobbyErrorCode::INVALID_LEADERBOARD_ID:
+    return "INVALID_LEADERBOARD_ID";
+  case bdLobbyErrorCode::INVALID_STATS_SET:
+    return "INVALID_STATS_SET";
+  case bdLobbyErrorCode::EMPTY_STATS_SET_IGNORED:
+    return "EMPTY_STATS_SET_IGNORED";
+  case bdLobbyErrorCode::NO_DIRECT_ACCESS_TO_ARBITRATED_LBS:
+    return "NO_DIRECT_ACCESS_TO_ARBITRATED_LBS";
+  case bdLobbyErrorCode::STATS_WRITE_PERMISSION_DENIED:
+    return "STATS_WRITE_PERMISSION_DENIED";
+  case bdLobbyErrorCode::STATS_WRITE_TYPE_DATA_TYPE_MISMATCH:
+    return "STATS_WRITE_TYPE_DATA_TYPE_MISMATCH";
+  case bdLobbyErrorCode::NO_STATS_FOR_USER:
+    return "NO_STATS_FOR_USER";
+  case bdLobbyErrorCode::INVALID_ACCESS_TO_UNRANKED_LB:
+    return "INVALID_ACCESS_TO_UNRANKED_LB";
+  case bdLobbyErrorCode::INVALID_EXTERNAL_TITLE_ID:
+    return "INVALID_EXTERNAL_TITLE_ID";
+  case bdLobbyErrorCode::DIFFERENT_LEADERBOARD_SCHEMAS:
+    return "DIFFERENT_LEADERBOARD_SCHEMAS";
+  case bdLobbyErrorCode::TOO_MANY_LEADERBOARDS_REQUESTED:
+    return "TOO_MANY_LEADERBOARDS_REQUESTED";
+  case bdLobbyErrorCode::ENTITLEMENTS_ERROR:
+    return "ENTITLEMENTS_ERROR";
+  case bdLobbyErrorCode::ENTITLEMENTS_INVALID_TITLEID:
+    return "ENTITLEMENTS_INVALID_TITLEID";
+  case bdLobbyErrorCode::ENTITLEMENTS_INVALID_LEADERBOARDID:
+    return "ENTITLEMENTS_INVALID_LEADERBOARDID";
+  case bdLobbyErrorCode::ENTITLEMENTS_INVALID_GET_MODE_FOR_TITLE:
+    return "ENTITLEMENTS_INVALID_GET_MODE_FOR_TITLE";
+  case bdLobbyErrorCode::ENTITLEMENTS_URL_CONNECTION_ERROR:
+    return "ENTITLEMENTS_URL_CONNECTION_ERROR";
+  case bdLobbyErrorCode::ENTITLEMENTS_CONFIG_ERROR:
+    return "ENTITLEMENTS_CONFIG_ERROR";
+  case bdLobbyErrorCode::ENTITLEMENTS_NAMED_PARENT_ERROR:
+    return "ENTITLEMENTS_NAMED_PARENT_ERROR";
+  case bdLobbyErrorCode::ENTITLEMENTS_NAMED_KEY_ERROR:
+    return "ENTITLEMENTS_NAMED_KEY_ERROR";
+  case bdLobbyErrorCode::TOO_MANY_ENTITY_IDS_REQUESTED:
+    return "TOO_MANY_ENTITY_IDS_REQUESTED";
+  case bdLobbyErrorCode::STATS_READ_FAILED:
+    return "STATS_READ_FAILED";
+  case bdLobbyErrorCode::INVALID_TITLE_ID:
+    return "INVALID_TITLE_ID";
+  case bdLobbyErrorCode::MESSAGING_INVALID_MAIL_ID:
+    return "MESSAGING_INVALID_MAIL_ID";
+  case bdLobbyErrorCode::SELF_BLOCK_NOT_ALLOWED:
+    return "SELF_BLOCK_NOT_ALLOWED";
+  case bdLobbyErrorCode::GLOBAL_MESSAGE_ACCESS_DENIED:
+    return "GLOBAL_MESSAGE_ACCESS_DENIED";
+  case bdLobbyErrorCode::GLOBAL_MESSAGES_USER_LIMIT_EXCEEDED:
+    return "GLOBAL_MESSAGES_USER_LIMIT_EXCEEDED";
+  case bdLobbyErrorCode::MESSAGING_SENDER_DOES_NOT_EXIST:
+    return "MESSAGING_SENDER_DOES_NOT_EXIST";
+  case bdLobbyErrorCode::AUTH_NO_ERROR:
+    return "AUTH_NO_ERROR";
+  case bdLobbyErrorCode::AUTH_BAD_REQUEST:
+    return "AUTH_BAD_REQUEST";
+  case bdLobbyErrorCode::AUTH_SERVER_CONFIG_ERROR:
+    return "AUTH_SERVER_CONFIG_ERROR";
+  case bdLobbyErrorCode::AUTH_BAD_TITLE_ID:
+    return "AUTH_BAD_TITLE_ID";
+  case bdLobbyErrorCode::AUTH_BAD_ACCOUNT:
+    return "AUTH_BAD_ACCOUNT";
+  case bdLobbyErrorCode::AUTH_ILLEGAL_OPERATION:
+    return "AUTH_ILLEGAL_OPERATION";
+  case bdLobbyErrorCode::AUTH_INCORRECT_LICENSE_CODE:
+    return "AUTH_INCORRECT_LICENSE_CODE";
+  case bdLobbyErrorCode::AUTH_CREATE_USERNAME_EXISTS:
+    return "AUTH_CREATE_USERNAME_EXISTS";
+  case bdLobbyErrorCode::AUTH_CREATE_USERNAME_ILLEGAL:
+    return "AUTH_CREATE_USERNAME_ILLEGAL";
+  case bdLobbyErrorCode::AUTH_CREATE_USERNAME_VULGAR:
+    return "AUTH_CREATE_USERNAME_VULGAR";
+  case bdLobbyErrorCode::AUTH_CREATE_MAX_ACC_EXCEEDED:
+    return "AUTH_CREATE_MAX_ACC_EXCEEDED";
+  case bdLobbyErrorCode::AUTH_MIGRATE_NOT_SUPPORTED:
+    return "AUTH_MIGRATE_NOT_SUPPORTED";
+  case bdLobbyErrorCode::AUTH_TITLE_DISABLED:
+    return "AUTH_TITLE_DISABLED";
+  case bdLobbyErrorCode::AUTH_ACCOUNT_EXPIRED:
+    return "AUTH_ACCOUNT_EXPIRED";
+  case bdLobbyErrorCode::AUTH_ACCOUNT_LOCKED:
+    return "AUTH_ACCOUNT_LOCKED";
+  case bdLobbyErrorCode::AUTH_UNKNOWN_ERROR:
+    return "AUTH_UNKNOWN_ERROR";
+  case bdLobbyErrorCode::AUTH_INCORRECT_PASSWORD:
+    return "AUTH_INCORRECT_PASSWORD";
+  case bdLobbyErrorCode::AUTH_IP_NOT_IN_ALLOWED_RANGE:
+    return "AUTH_IP_NOT_IN_ALLOWED_RANGE";
+  case bdLobbyErrorCode::AUTH_WII_TOKEN_VERIFICATION_FAILED:
+    return "AUTH_WII_TOKEN_VERIFICATION_FAILED";
+  case bdLobbyErrorCode::AUTH_WII_AUTHENTICATION_FAILED:
+    return "AUTH_WII_AUTHENTICATION_FAILED";
+  case bdLobbyErrorCode::AUTH_IP_KEY_LIMIT_REACHED:
+    return "AUTH_IP_KEY_LIMIT_REACHED";
+  case bdLobbyErrorCode::AUTH_INVALID_GSPID:
+    return "AUTH_INVALID_GSPID";
+  case bdLobbyErrorCode::AUTH_INVALID_IP_RANGE_ID:
+    return "AUTH_INVALID_IP_RANGE_ID";
+  case bdLobbyErrorCode::AUTH_STEAM_APP_ID_MISMATCH:
+    return "AUTH_STEAM_APP_ID_MISMATCH";
+  case bdLobbyErrorCode::AUTH_ABACCOUNTS_APP_ID_MISMATCH:
+    return "AUTH_ABACCOUNTS_APP_ID_MISMATCH";
+  case bdLobbyErrorCode::AUTH_CODO_USERNAME_NOT_SET:
+    return "AUTH_CODO_USERNAME_NOT_SET";
+  case bdLobbyErrorCode::AUTH_WIIU_TOKEN_VERIFICATION_FAILED:
+    return "AUTH_WIIU_TOKEN_VERIFICATION_FAILED";
+  case bdLobbyErrorCode::AUTH_WIIU_AUTHENTICATION_FAILED:
+    return "AUTH_WIIU_AUTHENTICATION_FAILED";
+  case bdLobbyErrorCode::AUTH_CODO_USERNAME_NOT_BASE64:
+    return "AUTH_CODO_USERNAME_NOT_BASE64";
+  case bdLobbyErrorCode::AUTH_CODO_USERNAME_NOT_UTF8:
+    return "AUTH_CODO_USERNAME_NOT_UTF8";
+  case bdLobbyErrorCode::AUTH_TENCENT_TICKET_EXPIRED:
+    return "AUTH_TENCENT_TICKET_EXPIRED";
+  case bdLobbyErrorCode::AUTH_PS3_SERVICE_ID_MISMATCH:
+    return "AUTH_PS3_SERVICE_ID_MISMATCH";
+  case bdLobbyErrorCode::AUTH_CODOID_NOT_WHITELISTED:
+    return "AUTH_CODOID_NOT_WHITELISTED";
+  case bdLobbyErrorCode::AUTH_PLATFORM_TOKEN_ERROR:
+    return "AUTH_PLATFORM_TOKEN_ERROR";
+  case bdLobbyErrorCode::AUTH_JSON_FORMAT_ERROR:
+    return "AUTH_JSON_FORMAT_ERROR";
+  case bdLobbyErrorCode::AUTH_REPLY_CONTENT_ERROR:
+    return "AUTH_REPLY_CONTENT_ERROR";
+  case bdLobbyErrorCode::AUTH_THIRD_PARTY_TOKEN_EXPIRED:
+    return "AUTH_THIRD_PARTY_TOKEN_EXPIRED";
+  case bdLobbyErrorCode::AUTH_CONTINUING:
+    return "AUTH_CONTINUING";
+  case bdLobbyErrorCode::AUTH_PLATFORM_DEVICE_ID_ERROR:
+    return "AUTH_PLATFORM_DEVICE_ID_ERROR";
+  case bdLobbyErrorCode::NO_PROFILE_INFO_EXISTS:
+    return "NO_PROFILE_INFO_EXISTS";
+  case bdLobbyErrorCode::FRIENDSHIP_NOT_REQUSTED:
+    return "FRIENDSHIP_NOT_REQUSTED";
+  case bdLobbyErrorCode::NOT_A_FRIEND:
+    return "NOT_A_FRIEND";
+  case bdLobbyErrorCode::SELF_FRIENDSHIP_NOT_ALLOWED:
+    return "SELF_FRIENDSHIP_NOT_ALLOWED";
+  case bdLobbyErrorCode::FRIENDSHIP_EXISTS:
+    return "FRIENDSHIP_EXISTS";
+  case bdLobbyErrorCode::PENDING_FRIENDSHIP_EXISTS:
+    return "PENDING_FRIENDSHIP_EXISTS";
+  case bdLobbyErrorCode::USERID_BANNED:
+    return "USERID_BANNED";
+  case bdLobbyErrorCode::FRIENDS_FULL:
+    return "FRIENDS_FULL";
+  case bdLobbyErrorCode::FRIENDS_NO_RICH_PRESENCE:
+    return "FRIENDS_NO_RICH_PRESENCE";
+  case bdLobbyErrorCode::RICH_PRESENCE_TOO_LARGE:
+    return "RICH_PRESENCE_TOO_LARGE";
+  case bdLobbyErrorCode::NO_FILE:
+    return "NO_FILE";
+  case bdLobbyErrorCode::PERMISSION_DENIED:
+    return "PERMISSION_DENIED";
+  case bdLobbyErrorCode::FILESIZE_LIMIT_EXCEEDED:
+    return "FILESIZE_LIMIT_EXCEEDED";
+  case bdLobbyErrorCode::FILENAME_MAX_LENGTH_EXCEEDED:
+    return "FILENAME_MAX_LENGTH_EXCEEDED";
+  case bdLobbyErrorCode::EXTERNAL_STORAGE_SERVICE_ERROR:
+    return "EXTERNAL_STORAGE_SERVICE_ERROR";
+  case bdLobbyErrorCode::CHANNEL_DOES_NOT_EXIST:
+    return "CHANNEL_DOES_NOT_EXIST";
+  case bdLobbyErrorCode::CHANNEL_ALREADY_SUBSCRIBED:
+    return "CHANNEL_ALREADY_SUBSCRIBED";
+  case bdLobbyErrorCode::CHANNEL_NOT_SUBSCRIBED:
+    return "CHANNEL_NOT_SUBSCRIBED";
+  case bdLobbyErrorCode::CHANNEL_FULL:
+    return "CHANNEL_FULL";
+  case bdLobbyErrorCode::CHANNEL_SUBSCRIPTIONS_FULL:
+    return "CHANNEL_SUBSCRIPTIONS_FULL";
+  case bdLobbyErrorCode::CHANNEL_NO_SELF_WHISPERING:
+    return "CHANNEL_NO_SELF_WHISPERING";
+  case bdLobbyErrorCode::CHANNEL_ADMIN_REQUIRED:
+    return "CHANNEL_ADMIN_REQUIRED";
+  case bdLobbyErrorCode::CHANNEL_TARGET_NOT_SUBSCRIBED:
+    return "CHANNEL_TARGET_NOT_SUBSCRIBED";
+  case bdLobbyErrorCode::CHANNEL_REQUIRES_PASSWORD:
+    return "CHANNEL_REQUIRES_PASSWORD";
+  case bdLobbyErrorCode::CHANNEL_TARGET_IS_SELF:
+    return "CHANNEL_TARGET_IS_SELF";
+  case bdLobbyErrorCode::CHANNEL_PUBLIC_BAN_NOT_ALLOWED:
+    return "CHANNEL_PUBLIC_BAN_NOT_ALLOWED";
+  case bdLobbyErrorCode::CHANNEL_USER_BANNED:
+    return "CHANNEL_USER_BANNED";
+  case bdLobbyErrorCode::CHANNEL_PUBLIC_PASSWORD_NOT_ALLOWED:
+    return "CHANNEL_PUBLIC_PASSWORD_NOT_ALLOWED";
+  case bdLobbyErrorCode::CHANNEL_PUBLIC_KICK_NOT_ALLOWED:
+    return "CHANNEL_PUBLIC_KICK_NOT_ALLOWED";
+  case bdLobbyErrorCode::CHANNEL_MUTED:
+    return "CHANNEL_MUTED";
+  case bdLobbyErrorCode::EVENT_DESC_TRUNCATED:
+    return "EVENT_DESC_TRUNCATED";
+  case bdLobbyErrorCode::CONTENT_UNLOCK_UNKNOWN_ERROR:
+    return "CONTENT_UNLOCK_UNKNOWN_ERROR";
+  case bdLobbyErrorCode::UNLOCK_KEY_INVALID:
+    return "UNLOCK_KEY_INVALID";
+  case bdLobbyErrorCode::UNLOCK_KEY_ALREADY_USED_UP:
+    return "UNLOCK_KEY_ALREADY_USED_UP";
+  case bdLobbyErrorCode::SHARED_UNLOCK_LIMIT_REACHED:
+    return "SHARED_UNLOCK_LIMIT_REACHED";
+  case bdLobbyErrorCode::DIFFERENT_HARDWARE_ID:
+    return "DIFFERENT_HARDWARE_ID";
+  case bdLobbyErrorCode::INVALID_CONTENT_OWNER:
+    return "INVALID_CONTENT_OWNER";
+  case bdLobbyErrorCode::CONTENT_UNLOCK_INVALID_USER:
+    return "CONTENT_UNLOCK_INVALID_USER";
+  case bdLobbyErrorCode::CONTENT_UNLOCK_INVALID_CATEGORY:
+    return "CONTENT_UNLOCK_INVALID_CATEGORY";
+  case bdLobbyErrorCode::KEY_ARCHIVE_INVALID_WRITE_TYPE:
+    return "KEY_ARCHIVE_INVALID_WRITE_TYPE";
+  case bdLobbyErrorCode::KEY_ARCHIVE_EXCEEDED_MAX_IDS_PER_REQUEST:
+    return "KEY_ARCHIVE_EXCEEDED_MAX_IDS_PER_REQUEST";
+  case bdLobbyErrorCode::BANDWIDTH_TEST_TRY_AGAIN:
+    return "BANDWIDTH_TEST_TRY_AGAIN";
+  case bdLobbyErrorCode::BANDWIDTH_TEST_STILL_IN_PROGRESS:
+    return "BANDWIDTH_TEST_STILL_IN_PROGRESS";
+  case bdLobbyErrorCode::BANDWIDTH_TEST_NOT_PROGRESS:
+    return "BANDWIDTH_TEST_NOT_PROGRESS";
+  case bdLobbyErrorCode::BANDWIDTH_TEST_SOCKET_ERROR:
+    return "BANDWIDTH_TEST_SOCKET_ERROR";
+  case bdLobbyErrorCode::INVALID_SESSION_NONCE:
+    return "INVALID_SESSION_NONCE";
+  case bdLobbyErrorCode::ARBITRATION_FAILURE:
+    return "ARBITRATION_FAILURE";
+  case bdLobbyErrorCode::ARBITRATION_USER_NOT_REGISTERED:
+    return "ARBITRATION_USER_NOT_REGISTERED";
+  case bdLobbyErrorCode::ARBITRATION_NOT_CONFIGURED:
+    return "ARBITRATION_NOT_CONFIGURED";
+  case bdLobbyErrorCode::CONTENTSTREAMING_FILE_NOT_AVAILABLE:
+    return "CONTENTSTREAMING_FILE_NOT_AVAILABLE";
+  case bdLobbyErrorCode::CONTENTSTREAMING_STORAGE_SPACE_EXCEEDED:
+    return "CONTENTSTREAMING_STORAGE_SPACE_EXCEEDED";
+  case bdLobbyErrorCode::CONTENTSTREAMING_NUM_FILES_EXCEEDED:
+    return "CONTENTSTREAMING_NUM_FILES_EXCEEDED";
+  case bdLobbyErrorCode::CONTENTSTREAMING_UPLOAD_BANDWIDTH_EXCEEDED:
+    return "CONTENTSTREAMING_UPLOAD_BANDWIDTH_EXCEEDED";
+  case bdLobbyErrorCode::CONTENTSTREAMING_FILENAME_MAX_LENGTH_EXCEEDED:
+    return "CONTENTSTREAMING_FILENAME_MAX_LENGTH_EXCEEDED";
+  case bdLobbyErrorCode::CONTENTSTREAMING_MAX_THUMB_DATA_SIZE_EXCEEDED:
+    return "CONTENTSTREAMING_MAX_THUMB_DATA_SIZE_EXCEEDED";
+  case bdLobbyErrorCode::CONTENTSTREAMING_DOWNLOAD_BANDWIDTH_EXCEEDED:
+    return "CONTENTSTREAMING_DOWNLOAD_BANDWIDTH_EXCEEDED";
+  case bdLobbyErrorCode::CONTENTSTREAMING_NOT_ENOUGH_DOWNLOAD_BUFFER_SPACE:
+    return "CONTENTSTREAMING_NOT_ENOUGH_DOWNLOAD_BUFFER_SPACE";
+  case bdLobbyErrorCode::CONTENTSTREAMING_SERVER_NOT_CONFIGURED:
+    return "CONTENTSTREAMING_SERVER_NOT_CONFIGURED";
+  case bdLobbyErrorCode::CONTENTSTREAMING_INVALID_APPLE_RECEIPT:
+    return "CONTENTSTREAMING_INVALID_APPLE_RECEIPT";
+  case bdLobbyErrorCode::CONTENTSTREAMING_APPLE_STORE_NOT_AVAILABLE:
+    return "CONTENTSTREAMING_APPLE_STORE_NOT_AVAILABLE";
+  case bdLobbyErrorCode::CONTENTSTREAMING_APPLE_RECEIPT_FILENAME_MISMATCH:
+    return "CONTENTSTREAMING_APPLE_RECEIPT_FILENAME_MISMATCH";
+  case bdLobbyErrorCode::CONTENTSTREAMING_HTTP_ERROR:
+    return "CONTENTSTREAMING_HTTP_ERROR";
+  case bdLobbyErrorCode::CONTENTSTREAMING_FAILED_TO_START_HTTP:
+    return "CONTENTSTREAMING_FAILED_TO_START_HTTP";
+  case bdLobbyErrorCode::CONTENTSTREAMING_LOCALE_INVALID:
+    return "CONTENTSTREAMING_LOCALE_INVALID";
+  case bdLobbyErrorCode::CONTENTSTREAMING_LOCALE_MISSING:
+    return "CONTENTSTREAMING_LOCALE_MISSING";
+  case bdLobbyErrorCode::VOTERANK_ERROR_EMPTY_RATING_SUBMISSION:
+    return "VOTERANK_ERROR_EMPTY_RATING_SUBMISSION";
+  case bdLobbyErrorCode::VOTERANK_ERROR_MAX_VOTES_EXCEEDED:
+    return "VOTERANK_ERROR_MAX_VOTES_EXCEEDED";
+  case bdLobbyErrorCode::VOTERANK_ERROR_INVALID_RATING:
+    return "VOTERANK_ERROR_INVALID_RATING";
+  case bdLobbyErrorCode::MAX_NUM_TAGS_EXCEEDED:
+    return "MAX_NUM_TAGS_EXCEEDED";
+  case bdLobbyErrorCode::TAGGED_COLLECTION_DOES_NOT_EXIST:
+    return "TAGGED_COLLECTION_DOES_NOT_EXIST";
+  case bdLobbyErrorCode::EMPTY_TAG_ARRAY:
+    return "EMPTY_TAG_ARRAY";
+  case bdLobbyErrorCode::INVALID_QUERY_ID:
+    return "INVALID_QUERY_ID";
+  case bdLobbyErrorCode::NO_ENTRY_TO_UPDATE:
+    return "NO_ENTRY_TO_UPDATE";
+  case bdLobbyErrorCode::SESSION_INVITE_EXISTS:
+    return "SESSION_INVITE_EXISTS";
+  case bdLobbyErrorCode::INVALID_SESSION_ID:
+    return "INVALID_SESSION_ID";
+  case bdLobbyErrorCode::ATTACHMENT_TOO_LARGE:
+    return "ATTACHMENT_TOO_LARGE";
+  case bdLobbyErrorCode::INVALID_GROUP_ID:
+    return "INVALID_GROUP_ID";
+  case bdLobbyErrorCode::MAIL_INVALID_MAIL_ID_ERROR:
+    return "MAIL_INVALID_MAIL_ID_ERROR";
+  case bdLobbyErrorCode::UCD_SERVICE_ERROR:
+    return "UCD_SERVICE_ERROR";
+  case bdLobbyErrorCode::UCD_SERVICE_DISABLED:
+    return "UCD_SERVICE_DISABLED";
+  case bdLobbyErrorCode::UCD_UNINTIALIZED_ERROR:
+    return "UCD_UNINTIALIZED_ERROR";
+  case bdLobbyErrorCode::UCD_ACCOUNT_ALREADY_REGISTERED:
+    return "UCD_ACCOUNT_ALREADY_REGISTERED";
+  case bdLobbyErrorCode::UCD_ACCOUNT_NOT_REGISTERED:
+    return "UCD_ACCOUNT_NOT_REGISTERED";
+  case bdLobbyErrorCode::UCD_AUTH_ATTEMPT_FAILED:
+    return "UCD_AUTH_ATTEMPT_FAILED";
+  case bdLobbyErrorCode::UCD_ACCOUNT_LINKING_ERROR:
+    return "UCD_ACCOUNT_LINKING_ERROR";
+  case bdLobbyErrorCode::UCD_ENCRYPTION_ERROR:
+    return "UCD_ENCRYPTION_ERROR";
+  case bdLobbyErrorCode::UCD_ACCOUNT_DATA_INVALID:
+    return "UCD_ACCOUNT_DATA_INVALID";
+  case bdLobbyErrorCode::UCD_ACCOUNT_DATA_INVALID_FIRSTNAME:
+    return "UCD_ACCOUNT_DATA_INVALID_FIRSTNAME";
+  case bdLobbyErrorCode::UCD_ACCOUNT_DATA_INVALID_LASTNAME:
+    return "UCD_ACCOUNT_DATA_INVALID_LASTNAME";
+  case bdLobbyErrorCode::UCD_ACCOUNT_DATA_INVALID_DOB:
+    return "UCD_ACCOUNT_DATA_INVALID_DOB";
+  case bdLobbyErrorCode::UCD_ACCOUNT_DATA_INVALID_EMAIL:
+    return "UCD_ACCOUNT_DATA_INVALID_EMAIL";
+  case bdLobbyErrorCode::UCD_ACCOUNT_DATA_INVALID_COUNTRY:
+    return "UCD_ACCOUNT_DATA_INVALID_COUNTRY";
+  case bdLobbyErrorCode::UCD_ACCOUNT_DATA_INVALID_POSTCODE:
+    return "UCD_ACCOUNT_DATA_INVALID_POSTCODE";
+  case bdLobbyErrorCode::UCD_ACCOUNT_DATA_INVALID_PASSWORD:
+    return "UCD_ACCOUNT_DATA_INVALID_PASSWORD";
+  case bdLobbyErrorCode::UCD_ACCOUNT_NAME_ALREADY_RESISTERED:
+    return "UCD_ACCOUNT_NAME_ALREADY_RESISTERED";
+  case bdLobbyErrorCode::UCD_ACCOUNT_EMAIL_ALREADY_RESISTERED:
+    return "UCD_ACCOUNT_EMAIL_ALREADY_RESISTERED";
+  case bdLobbyErrorCode::UCD_GUEST_ACCOUNT_AUTH_CONFLICT:
+    return "UCD_GUEST_ACCOUNT_AUTH_CONFLICT";
+  case bdLobbyErrorCode::TWITCH_SERVICE_ERROR:
+    return "TWITCH_SERVICE_ERROR";
+  case bdLobbyErrorCode::TWITCH_ACCOUNT_ALREADY_LINKED:
+    return "TWITCH_ACCOUNT_ALREADY_LINKED";
+  case bdLobbyErrorCode::TWITCH_NO_LINKED_ACCOUNT:
+    return "TWITCH_NO_LINKED_ACCOUNT";
+  case bdLobbyErrorCode::YOUTUBE_SERVICE_ERROR:
+    return "YOUTUBE_SERVICE_ERROR";
+  case bdLobbyErrorCode::YOUTUBE_SERVICE_COMMUNICATION_ERROR:
+    return "YOUTUBE_SERVICE_COMMUNICATION_ERROR";
+  case bdLobbyErrorCode::YOUTUBE_USER_DENIED_AUTHORIZATION:
+    return "YOUTUBE_USER_DENIED_AUTHORIZATION";
+  case bdLobbyErrorCode::YOUTUBE_AUTH_MAX_TIME_EXCEEDED:
+    return "YOUTUBE_AUTH_MAX_TIME_EXCEEDED";
+  case bdLobbyErrorCode::YOUTUBE_USER_UNAUTHORIZED:
+    return "YOUTUBE_USER_UNAUTHORIZED";
+  case bdLobbyErrorCode::YOUTUBE_UPLOAD_MAX_TIME_EXCEEDED:
+    return "YOUTUBE_UPLOAD_MAX_TIME_EXCEEDED";
+  case bdLobbyErrorCode::YOUTUBE_DUPLICATE_UPLOAD:
+    return "YOUTUBE_DUPLICATE_UPLOAD";
+  case bdLobbyErrorCode::YOUTUBE_FAILED_UPLOAD:
+    return "YOUTUBE_FAILED_UPLOAD";
+  case bdLobbyErrorCode::YOUTUBE_ACCOUNT_ALREADY_REGISTERED:
+    return "YOUTUBE_ACCOUNT_ALREADY_REGISTERED";
+  case bdLobbyErrorCode::YOUTUBE_ACCOUNT_NOT_REGISTERED:
+    return "YOUTUBE_ACCOUNT_NOT_REGISTERED";
+  case bdLobbyErrorCode::YOUTUBE_CONTENT_SERVER_ERROR:
+    return "YOUTUBE_CONTENT_SERVER_ERROR";
+  case bdLobbyErrorCode::YOUTUBE_UPLOAD_DOES_NOT_EXIST:
+    return "YOUTUBE_UPLOAD_DOES_NOT_EXIST";
+  case bdLobbyErrorCode::YOUTUBE_NO_LINKED_ACCOUNT:
+    return "YOUTUBE_NO_LINKED_ACCOUNT";
+  case bdLobbyErrorCode::YOUTUBE_DEVELOPER_TAGS_INVALID:
+    return "YOUTUBE_DEVELOPER_TAGS_INVALID";
+  case bdLobbyErrorCode::TWITTER_AUTH_ATTEMPT_FAILED:
+    return "TWITTER_AUTH_ATTEMPT_FAILED";
+  case bdLobbyErrorCode::TWITTER_AUTH_TOKEN_INVALID:
+    return "TWITTER_AUTH_TOKEN_INVALID";
+  case bdLobbyErrorCode::TWITTER_UPDATE_LIMIT_REACHED:
+    return "TWITTER_UPDATE_LIMIT_REACHED";
+  case bdLobbyErrorCode::TWITTER_UNAVAILABLE:
+    return "TWITTER_UNAVAILABLE";
+  case bdLobbyErrorCode::TWITTER_ERROR:
+    return "TWITTER_ERROR";
+  case bdLobbyErrorCode::TWITTER_TIMED_OUT:
+    return "TWITTER_TIMED_OUT";
+  case bdLobbyErrorCode::TWITTER_DISABLED_FOR_USER:
+    return "TWITTER_DISABLED_FOR_USER";
+  case bdLobbyErrorCode::TWITTER_ACCOUNT_AMBIGUOUS:
+    return "TWITTER_ACCOUNT_AMBIGUOUS";
+  case bdLobbyErrorCode::TWITTER_MAXIMUM_ACCOUNTS_REACHED:
+    return "TWITTER_MAXIMUM_ACCOUNTS_REACHED";
+  case bdLobbyErrorCode::TWITTER_ACCOUNT_NOT_REGISTERED:
+    return "TWITTER_ACCOUNT_NOT_REGISTERED";
+  case bdLobbyErrorCode::TWITTER_DUPLICATE_STATUS:
+    return "TWITTER_DUPLICATE_STATUS";
+  case bdLobbyErrorCode::TWITTER_ACCOUNT_ALREADY_REGISTERED:
+    return "TWITTER_ACCOUNT_ALREADY_REGISTERED";
+  case bdLobbyErrorCode::FACEBOOK_AUTH_ATTEMPT_FAILED:
+    return "FACEBOOK_AUTH_ATTEMPT_FAILED";
+  case bdLobbyErrorCode::FACEBOOK_AUTH_TOKEN_INVALID:
+    return "FACEBOOK_AUTH_TOKEN_INVALID";
+  case bdLobbyErrorCode::FACEBOOK_PHOTO_DOES_NOT_EXIST:
+    return "FACEBOOK_PHOTO_DOES_NOT_EXIST";
+  case bdLobbyErrorCode::FACEBOOK_PHOTO_INVALID:
+    return "FACEBOOK_PHOTO_INVALID";
+  case bdLobbyErrorCode::FACEBOOK_PHOTO_ALBUM_FULL:
+    return "FACEBOOK_PHOTO_ALBUM_FULL";
+  case bdLobbyErrorCode::FACEBOOK_UNAVAILABLE:
+    return "FACEBOOK_UNAVAILABLE";
+  case bdLobbyErrorCode::FACEBOOK_ERROR:
+    return "FACEBOOK_ERROR";
+  case bdLobbyErrorCode::FACEBOOK_TIMED_OUT:
+    return "FACEBOOK_TIMED_OUT";
+  case bdLobbyErrorCode::FACEBOOK_DISABLED_FOR_USER:
+    return "FACEBOOK_DISABLED_FOR_USER";
+  case bdLobbyErrorCode::FACEBOOK_ACCOUNT_AMBIGUOUS:
+    return "FACEBOOK_ACCOUNT_AMBIGUOUS";
+  case bdLobbyErrorCode::FACEBOOK_MAXIMUM_ACCOUNTS_REACHED:
+    return "FACEBOOK_MAXIMUM_ACCOUNTS_REACHED";
+  case bdLobbyErrorCode::FACEBOOK_VIDEO_DOES_NOT_EXIST:
+    return "FACEBOOK_VIDEO_DOES_NOT_EXIST";
+  case bdLobbyErrorCode::FACEBOOK_ACCOUNT_ALREADY_REGISTERED:
+    return "FACEBOOK_ACCOUNT_ALREADY_REGISTERED";
+  case bdLobbyErrorCode::APNS_INVALID_PAYLOAD:
+    return "APNS_INVALID_PAYLOAD";
+  case bdLobbyErrorCode::APNS_INVALID_TOKEN_LENGTH_ERROR:
+    return "APNS_INVALID_TOKEN_LENGTH_ERROR";
+  case bdLobbyErrorCode::MAX_CONSOLEID_LENGTH_EXCEEDED:
+    return "MAX_CONSOLEID_LENGTH_EXCEEDED";
+  case bdLobbyErrorCode::MAX_WHITELIST_LENGTH_EXCEEDED:
+    return "MAX_WHITELIST_LENGTH_EXCEEDED";
+  case bdLobbyErrorCode::USERGROUP_NAME_ALREADY_EXISTS:
+    return "USERGROUP_NAME_ALREADY_EXISTS";
+  case bdLobbyErrorCode::INVALID_USERGROUP_ID:
+    return "INVALID_USERGROUP_ID";
+  case bdLobbyErrorCode::USER_ALREADY_IN_USERGROUP:
+    return "USER_ALREADY_IN_USERGROUP";
+  case bdLobbyErrorCode::USER_NOT_IN_USERGROUP:
+    return "USER_NOT_IN_USERGROUP";
+  case bdLobbyErrorCode::INVALID_USERGROUP_MEMBER_TYPE:
+    return "INVALID_USERGROUP_MEMBER_TYPE";
+  case bdLobbyErrorCode::TOO_MANY_MEMBERS_REQUESTED:
+    return "TOO_MANY_MEMBERS_REQUESTED";
+  case bdLobbyErrorCode::USERGROUP_NAME_TOO_SHORT:
+    return "USERGROUP_NAME_TOO_SHORT";
+  case bdLobbyErrorCode::RICH_PRESENCE_DATA_TOO_LARGE:
+    return "RICH_PRESENCE_DATA_TOO_LARGE";
+  case bdLobbyErrorCode::RICH_PRESENCE_TOO_MANY_USERS:
+    return "RICH_PRESENCE_TOO_MANY_USERS";
+  case bdLobbyErrorCode::PRESENCE_DATA_TOO_LARGE:
+    return "PRESENCE_DATA_TOO_LARGE";
+  case bdLobbyErrorCode::PRESENCE_TOO_MANY_USERS:
+    return "PRESENCE_TOO_MANY_USERS";
+  case bdLobbyErrorCode::USER_LOGGED_IN_OTHER_TITLE:
+    return "USER_LOGGED_IN_OTHER_TITLE";
+  case bdLobbyErrorCode::USER_NOT_LOGGED_IN:
+    return "USER_NOT_LOGGED_IN";
+  case bdLobbyErrorCode::SUBSCRIPTION_TOO_MANY_USERS:
+    return "SUBSCRIPTION_TOO_MANY_USERS";
+  case bdLobbyErrorCode::SUBSCRIPTION_TICKET_PARSE_ERROR:
+    return "SUBSCRIPTION_TICKET_PARSE_ERROR";
+  case bdLobbyErrorCode::CODO_ID_INVALID_DATA:
+    return "CODO_ID_INVALID_DATA";
+  case bdLobbyErrorCode::INVALID_MESSAGE_FORMAT:
+    return "INVALID_MESSAGE_FORMAT";
+  case bdLobbyErrorCode::TLOG_TOO_MANY_MESSAGES:
+    return "TLOG_TOO_MANY_MESSAGES";
+  case bdLobbyErrorCode::CODO_ID_NOT_IN_WHITELIST:
+    return "CODO_ID_NOT_IN_WHITELIST";
+  case bdLobbyErrorCode::TLOG_MESSAGE_TRANSFORMATION_ERROR:
+    return "TLOG_MESSAGE_TRANSFORMATION_ERROR";
+  case bdLobbyErrorCode::REWARDS_NOT_ENABLED:
+    return "REWARDS_NOT_ENABLED";
+  case bdLobbyErrorCode::MARKETPLACE_ERROR:
+    return "MARKETPLACE_ERROR";
+  case bdLobbyErrorCode::MARKETPLACE_RESOURCE_NOT_FOUND:
+    return "MARKETPLACE_RESOURCE_NOT_FOUND";
+  case bdLobbyErrorCode::MARKETPLACE_INVALID_CURRENCY:
+    return "MARKETPLACE_INVALID_CURRENCY";
+  case bdLobbyErrorCode::MARKETPLACE_INVALID_PARAMETER:
+    return "MARKETPLACE_INVALID_PARAMETER";
+  case bdLobbyErrorCode::MARKETPLACE_RESOURCE_CONFLICT:
+    return "MARKETPLACE_RESOURCE_CONFLICT";
+  case bdLobbyErrorCode::MARKETPLACE_STORAGE_ERROR:
+    return "MARKETPLACE_STORAGE_ERROR";
+  case bdLobbyErrorCode::MARKETPLACE_INTEGRITY_ERROR:
+    return "MARKETPLACE_INTEGRITY_ERROR";
+  case bdLobbyErrorCode::MARKETPLACE_INSUFFICIENT_FUNDS_ERROR:
+    return "MARKETPLACE_INSUFFICIENT_FUNDS_ERROR";
+  case bdLobbyErrorCode::MARKETPLACE_MMP_SERVICE_ERROR:
+    return "MARKETPLACE_MMP_SERVICE_ERROR";
+  case bdLobbyErrorCode::MARKETPLACE_PRECONDITION_REQUIRED:
+    return "MARKETPLACE_PRECONDITION_REQUIRED";
+  case bdLobbyErrorCode::MARKETPLACE_ITEM_MULTIPLE_PURCHASE_ERROR:
+    return "MARKETPLACE_ITEM_MULTIPLE_PURCHASE_ERROR";
+  case bdLobbyErrorCode::MARKETPLACE_MISSING_REQUIRED_ENTITLEMENT:
+    return "MARKETPLACE_MISSING_REQUIRED_ENTITLEMENT";
+  case bdLobbyErrorCode::MARKETPLACE_VALIDATION_ERROR:
+    return "MARKETPLACE_VALIDATION_ERROR";
+  case bdLobbyErrorCode::MARKETPLACE_TENCENT_PAYMENT_ERROR:
+    return "MARKETPLACE_TENCENT_PAYMENT_ERROR";
+  case bdLobbyErrorCode::MARKETPLACE_SKU_NOT_COUPON_ENABLED_ERROR:
+    return "MARKETPLACE_SKU_NOT_COUPON_ENABLED_ERROR";
+  case bdLobbyErrorCode::LEAGUE_INVALID_TEAM_SIZE:
+    return "LEAGUE_INVALID_TEAM_SIZE";
+  case bdLobbyErrorCode::LEAGUE_INVALID_TEAM:
+    return "LEAGUE_INVALID_TEAM";
+  case bdLobbyErrorCode::LEAGUE_INVALID_SUBDIVISION:
+    return "LEAGUE_INVALID_SUBDIVISION";
+  case bdLobbyErrorCode::LEAGUE_INVALID_LEAGUE:
+    return "LEAGUE_INVALID_LEAGUE";
+  case bdLobbyErrorCode::LEAGUE_TOO_MANY_RESULTS_REQUESTED:
+    return "LEAGUE_TOO_MANY_RESULTS_REQUESTED";
+  case bdLobbyErrorCode::LEAGUE_METADATA_TOO_LARGE:
+    return "LEAGUE_METADATA_TOO_LARGE";
+  case bdLobbyErrorCode::LEAGUE_TEAM_ICON_TOO_LARGE:
+    return "LEAGUE_TEAM_ICON_TOO_LARGE";
+  case bdLobbyErrorCode::LEAGUE_TEAM_NAME_TOO_LONG:
+    return "LEAGUE_TEAM_NAME_TOO_LONG";
+  case bdLobbyErrorCode::LEAGUE_ARRAY_SIZE_MISMATCH:
+    return "LEAGUE_ARRAY_SIZE_MISMATCH";
+  case bdLobbyErrorCode::LEAGUE_SUBDIVISION_MISMATCH:
+    return "LEAGUE_SUBDIVISION_MISMATCH";
+  case bdLobbyErrorCode::LEAGUE_INVALID_WRITE_TYPE:
+    return "LEAGUE_INVALID_WRITE_TYPE";
+  case bdLobbyErrorCode::LEAGUE_INVALID_STATS_DATA:
+    return "LEAGUE_INVALID_STATS_DATA";
+  case bdLobbyErrorCode::LEAGUE_SUBDIVISION_UNRANKED:
+    return "LEAGUE_SUBDIVISION_UNRANKED";
+  case bdLobbyErrorCode::LEAGUE_CROSS_TEAM_STATS_WRITE_PREVENTED:
+    return "LEAGUE_CROSS_TEAM_STATS_WRITE_PREVENTED";
+  case bdLobbyErrorCode::LEAGUE_INVALID_STATS_SEASON:
+    return "LEAGUE_INVALID_STATS_SEASON";
+  case bdLobbyErrorCode::COMMERCE_ERROR:
+    return "COMMERCE_ERROR";
+  case bdLobbyErrorCode::COMMERCE_RESOURCE_NOT_FOUND:
+    return "COMMERCE_RESOURCE_NOT_FOUND";
+  case bdLobbyErrorCode::COMMERCE_STORAGE_INVALID_PARAMETER:
+    return "COMMERCE_STORAGE_INVALID_PARAMETER";
+  case bdLobbyErrorCode::COMMERCE_APPLICATION_INVALID_PARAMETER:
+    return "COMMERCE_APPLICATION_INVALID_PARAMETER";
+  case bdLobbyErrorCode::COMMERCE_RESOURCE_CONFLICT:
+    return "COMMERCE_RESOURCE_CONFLICT";
+  case bdLobbyErrorCode::COMMERCE_STORAGE_ERROR:
+    return "COMMERCE_STORAGE_ERROR";
+  case bdLobbyErrorCode::COMMERCE_INTEGRITY_ERROR:
+    return "COMMERCE_INTEGRITY_ERROR";
+  case bdLobbyErrorCode::COMMERCE_MMP_SERVICE_ERROR:
+    return "COMMERCE_MMP_SERVICE_ERROR";
+  case bdLobbyErrorCode::COMMERCE_PERMISSION_DENIED:
+    return "COMMERCE_PERMISSION_DENIED";
+  case bdLobbyErrorCode::COMMERCE_INSUFFICIENT_FUNDS_ERROR:
+    return "COMMERCE_INSUFFICIENT_FUNDS_ERROR";
+  case bdLobbyErrorCode::COMMERCE_UNKNOWN_CURRENCY:
+    return "COMMERCE_UNKNOWN_CURRENCY";
+  case bdLobbyErrorCode::COMMERCE_INVALID_RECEIPT:
+    return "COMMERCE_INVALID_RECEIPT";
+  case bdLobbyErrorCode::COMMERCE_RECEIPT_USED:
+    return "COMMERCE_RECEIPT_USED";
+  case bdLobbyErrorCode::COMMERCE_TRANSACTION_ALREADY_APPLIED:
+    return "COMMERCE_TRANSACTION_ALREADY_APPLIED";
+  case bdLobbyErrorCode::COMMERCE_INVALID_CURRENCY_TYPE:
+    return "COMMERCE_INVALID_CURRENCY_TYPE";
+  case bdLobbyErrorCode::CONNECTION_COUNTER_ERROR:
+    return "CONNECTION_COUNTER_ERROR";
+  case bdLobbyErrorCode::LINKED_ACCOUNTS_INVALID_CONTEXT:
+    return "LINKED_ACCOUNTS_INVALID_CONTEXT";
+  case bdLobbyErrorCode::LINKED_ACCOUNTS_INVALID_PLATFORM:
+    return "LINKED_ACCOUNTS_INVALID_PLATFORM";
+  case bdLobbyErrorCode::LINKED_ACCOUNTS_LINKED_ACCOUNTS_FETCH_ERROR:
+    return "LINKED_ACCOUNTS_LINKED_ACCOUNTS_FETCH_ERROR";
+  case bdLobbyErrorCode::LINKED_ACCOUNTS_INVALID_ACCOUNT:
+    return "LINKED_ACCOUNTS_INVALID_ACCOUNT";
+  case bdLobbyErrorCode::GMSG_INVALID_CATEGORY_ID:
+    return "GMSG_INVALID_CATEGORY_ID";
+  case bdLobbyErrorCode::GMSG_CATEGORY_MEMBERSHIPS_LIMIT:
+    return "GMSG_CATEGORY_MEMBERSHIPS_LIMIT";
+  case bdLobbyErrorCode::GMSG_NONMEMBER_POST_DISALLOWED:
+    return "GMSG_NONMEMBER_POST_DISALLOWED";
+  case bdLobbyErrorCode::GMSG_CATEGORY_DISALLOWS_CLIENT_TYPE:
+    return "GMSG_CATEGORY_DISALLOWS_CLIENT_TYPE";
+  case bdLobbyErrorCode::GMSG_PAYLOAD_TOO_BIG:
+    return "GMSG_PAYLOAD_TOO_BIG";
+  case bdLobbyErrorCode::GMSG_MEMBER_POST_DISALLOWED:
+    return "GMSG_MEMBER_POST_DISALLOWED";
+  case bdLobbyErrorCode::GMSG_OVERLOADED:
+    return "GMSG_OVERLOADED";
+  case bdLobbyErrorCode::GMSG_USER_PERCATEGORY_POST_RATE_EXCEEDED:
+    return "GMSG_USER_PERCATEGORY_POST_RATE_EXCEEDED";
+  case bdLobbyErrorCode::GMSG_USER_GLOBAL_POST_RATE_EXCEEDED:
+    return "GMSG_USER_GLOBAL_POST_RATE_EXCEEDED";
+  case bdLobbyErrorCode::GMSG_GROUP_POST_RATE_EXCEEDED:
+    return "GMSG_GROUP_POST_RATE_EXCEEDED";
+  case bdLobbyErrorCode::MAX_ERROR_CODE:
+    return "MAX_ERROR_CODE";
+  default:
+    return "LOBBY_ERROR_UNKNOWN";
+  }
+}
+
 class bdRemoteTask;
 class bdRemoteTaskVTbl : public bdReferencableVTbl {
 public:
@@ -564,6 +1492,17 @@ public:
                      const bdNChar8 *file, const bdNChar8 *function,
                      const bdNChar8 *line)>
       deserialize;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"base\": {}, \"checkTimeout\": {:p}, \"deserializeResult\": {:p}, "
+        "\"start\": {:p}, \"deserialize\": {:p} }}",
+        reinterpret_cast<const bdReferencableVTbl *>(this)->serialize(),
+        reinterpret_cast<const void *>(checkTimeout),
+        reinterpret_cast<const void *>(deserializeResult),
+        reinterpret_cast<const void *>(start),
+        reinterpret_cast<const void *>(deserialize));
+  }
 };
 
 PACKED(class bdRemoteTask : public bdTask<bdRemoteTaskVTbl> {
@@ -585,6 +1524,28 @@ public:
   bdUByte8 m_serviceId;
   bdUByte8 m_taskId;
   uint8_t _padding62[6];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"base\": {}, \"m_timer\": {}, \"m_timeout\": {}, \"m_status\": "
+        "{}, "
+        "\"m_byteResults\": {}, \"m_taskResult\": {}, \"m_taskResultList\": "
+        "{}, \"m_numResults\": {}, "
+        "\"m_maxNumResults\": {}, \"m_totalNumResults\": {}, "
+        "\"m_transactionID\": {}, \"m_errorCode\": {}, "
+        "\"m_taskResultProcessor\": {}, \"m_serviceId\": {}, \"m_taskId\": "
+        "{} }}",
+        reinterpret_cast<const bdTask<bdRemoteTaskVTbl> *>(this)->serialize(),
+        m_timer.serialize(), m_timeout,
+        bdTask<bdRemoteTaskVTbl>::serialize(m_status),
+        m_byteResults.serialize(), ::serialize(m_taskResult),
+        ::serialize(m_taskResultList, m_numResults), m_numResults,
+        m_maxNumResults, m_totalNumResults, m_transactionID,
+        static_cast<unsigned int>(m_errorCode),
+        ::serialize(m_taskResultProcessor),
+        static_cast<unsigned int>(m_serviceId),
+        static_cast<unsigned int>(m_taskId));
+  }
 });
 ASSERT_SIZE(bdRemoteTask, 0x68);
 typedef bdReference<bdRemoteTask> bdRemoteTaskRef;
@@ -594,6 +1555,12 @@ public:
   T *m_data;
   bdUInt m_capacity;
   bdUInt m_size;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"m_data\": {}, \"m_capacity\": {}, \"m_size\": {} }}",
+        ::serialize(m_data, m_size), m_capacity, m_size);
+  }
 };
 
 enum class TaskState : uint32_t {
@@ -608,10 +1575,46 @@ enum class TaskState : uint32_t {
   CANCELLED = 0x8,
 };
 
+inline constexpr const char *serialize(const TaskState state) {
+  switch (state) {
+  case TaskState::INVALID:
+    return "TASK_STATE_INVALID";
+  case TaskState::INIT:
+    return "TASK_STATE_INIT";
+  case TaskState::INPROGRESS:
+    return "TASK_STATE_INPROGRESS";
+  case TaskState::INCALLBACK:
+    return "TASK_STATE_INCALLBACK";
+  case TaskState::CHILDCOMPLETE:
+    return "TASK_STATE_CHILDCOMPLETE";
+  case TaskState::CHILDFAILED:
+    return "TASK_STATE_CHILDFAILED";
+  case TaskState::COMPLETED:
+    return "TASK_STATE_COMPLETED";
+  case TaskState::FAILED:
+    return "TASK_STATE_FAILED";
+  case TaskState::CANCELLED:
+    return "TASK_STATE_CANCELLED";
+  default:
+    return "TASK_STATE_UNKNOWN";
+  }
+}
+
 enum class TaskGroup : uint32_t {
   TASK_GROUP_UNKNOWN = 0x0,
   TASK_GROUP_XSESSION = 0x1,
 };
+
+inline constexpr const char *serialize(const TaskGroup group) {
+  switch (group) {
+  case TaskGroup::TASK_GROUP_UNKNOWN:
+    return "GROUP_UNKNOWN";
+  case TaskGroup::TASK_GROUP_XSESSION:
+    return "GROUP_XSESSION";
+  default:
+    return "GROUP_INVALID";
+  }
+}
 
 enum class UserEvent : int32_t {
   unknown = -1,
@@ -809,6 +1812,27 @@ enum class UserEvent : int32_t {
   libraryTerminated = 0xBF,
 };
 
+inline constexpr const char *serialize(const UserEvent event) {
+  switch (event) {
+  case UserEvent::unknown:
+    return "USER_EVENT_UNKNOWN";
+  case UserEvent::enetDown:
+    return "USER_EVENT_ENET_DOWN";
+  case UserEvent::enetUp:
+    return "USER_EVENT_ENET_UP";
+  case UserEvent::loggedIn:
+    return "USER_EVENT_LOGGED_IN";
+  case UserEvent::loggedOut:
+    return "USER_EVENT_LOGGED_OUT";
+  case UserEvent::serviceTerminate:
+    return "USER_EVENT_SERVICE_TERMINATE";
+  case UserEvent::libraryTerminated:
+    return "USER_EVENT_LIBRARY_TERMINATED";
+  default:
+    return "USER_EVENT_CUSTOM_OR_OTHER";
+  }
+}
+
 enum class ServiceType : uint32_t {
   core = 0x0,
   netInfo = 0x1,
@@ -834,11 +1858,75 @@ enum class ServiceType : uint32_t {
   size = 0x15,
 };
 
+inline constexpr const char *serialize(const ServiceType service) {
+  switch (service) {
+  case ServiceType::core:
+    return "SERVICE_CORE";
+  case ServiceType::netInfo:
+    return "SERVICE_NETINFO";
+  case ServiceType::matching:
+    return "SERVICE_MATCHING";
+  case ServiceType::ranking:
+    return "SERVICE_RANKING";
+  case ServiceType::tus:
+    return "SERVICE_TUS";
+  case ServiceType::tss:
+    return "SERVICE_TSS";
+  case ServiceType::auth:
+    return "SERVICE_AUTH";
+  case ServiceType::friends:
+    return "SERVICE_FRIENDS";
+  case ServiceType::webApi:
+    return "SERVICE_WEBAPI";
+  case ServiceType::commerce:
+    return "SERVICE_COMMERCE";
+  case ServiceType::profile:
+    return "SERVICE_PROFILE";
+  case ServiceType::presence:
+    return "SERVICE_PRESENCE";
+  case ServiceType::trophy:
+    return "SERVICE_TROPHY";
+  case ServiceType::messaging:
+    return "SERVICE_MESSAGING";
+  case ServiceType::inGameMessage:
+    return "SERVICE_INGAMEMESSAGE";
+  case ServiceType::sessions:
+    return "SERVICE_SESSIONS";
+  case ServiceType::wordFilter:
+    return "SERVICE_WORDFILTER";
+  case ServiceType::gameCustomData:
+    return "SERVICE_GAMECUSTOMDATA";
+  case ServiceType::activityFeed:
+    return "SERVICE_ACTIVITYFEED";
+  case ServiceType::sns:
+    return "SERVICE_SNS";
+  case ServiceType::challenges:
+    return "SERVICE_CHALLENGES";
+  case ServiceType::size:
+    return "SERVICE_SIZE";
+  default:
+    return "SERVICE_INVALID";
+  }
+}
+
 enum class LocalTaskState : uint32_t {
   LOCAL_TASK_STATE_INPROGRESS = 0x0,
   LOCAL_TASK_STATE_COMPLETED = 0x1,
   LOCAL_TASK_STATE_FAILED = 0x2,
 };
+
+inline constexpr const char *serialize(const LocalTaskState state) {
+  switch (state) {
+  case LocalTaskState::LOCAL_TASK_STATE_INPROGRESS:
+    return "LOCAL_STATE_INPROGRESS";
+  case LocalTaskState::LOCAL_TASK_STATE_COMPLETED:
+    return "LOCAL_STATE_COMPLETED";
+  case LocalTaskState::LOCAL_TASK_STATE_FAILED:
+    return "LOCAL_STATE_FAILED";
+  default:
+    return "LOCAL_STATE_INVALID";
+  }
+}
 
 struct TaskRecord;
 typedef fastcallPtr_t<LocalTaskState(TaskRecord *task)> localTaskFunc;
@@ -847,8 +1935,7 @@ typedef fastcallPtr_t<bool(TaskRecord *task)> task_callback;
 
 typedef uint64_t TaskCategory;
 
-#pragma pack(push, 1)
-struct TaskDefinition {
+PACKED(struct TaskDefinition {
   TaskCategory category;
   const char *name;
   int32_t payloadSize;
@@ -859,13 +1946,32 @@ struct TaskDefinition {
   ServiceType serviceType;
   int32_t numUserEvents;
   UserEvent userEvents[2];
-};
-#pragma pack(pop)
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"category\": {}, \"name\": {}, \"payloadSize\": {}, "
+        "\"completed_callback\": {:p}, "
+        "\"failure_callback\": {:p}, \"localTask\": {:p}, \"serviceType\": {}, "
+        "\"numUserEvents\": {}, \"userEvents\": {} }}",
+        category, ::serialize(name), payloadSize,
+        reinterpret_cast<const void *>(completed_callback),
+        reinterpret_cast<const void *>(failure_callback),
+        reinterpret_cast<const void *>(localTask),
+        game::dw::serialize(serviceType), numUserEvents,
+        ::serialize(userEvents));
+  }
+});
 
 struct Event {
   ServiceType service;
   UserEvent event;
   int32_t returnCode;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"service\": {}, \"event\": {}, \"returnCode\": {} }}",
+        game::dw::serialize(service), game::dw::serialize(event), returnCode);
+  }
 };
 
 #pragma pack(push, 1)
@@ -898,32 +2004,19 @@ template <typename T> struct _TaskRecord {
   bool cancelImmediately;
   bool skipAllCallbacksAfterComplete;
   uint8_t _padding63[5];
+
+  std::string serialize() const noexcept;
 };
-struct TaskRecord : public _TaskRecord<void *> {};
+
+struct TaskRecord : public _TaskRecord<void *> {
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"base\": {} }}",
+        reinterpret_cast<const _TaskRecord<void *> *>(this)->serialize());
+  }
+};
 ASSERT_SIZE(TaskRecord, 0x68);
 #pragma pack(pop)
-
-class bdFileData : bdTaskResult {
-public:
-  void *m_fileData;
-  bdUInt m_fileSize;
-};
-
-class bdFileInfo : bdTaskResult {
-public:
-  enum class bdVisibility : uint32_t {
-    PUBLIC = 0x0,
-    PRIVATE = 0x1,
-    COUNT = 0x2,
-  };
-  bdUInt64 m_fileID;
-  bdUInt32 m_createTime;
-  bdUInt32 m_modifedTime;
-  bdFileInfo::bdVisibility m_visibility;
-  bdOnlineUserID m_ownerID;
-  bdNChar8 m_fileName[128];
-  bdUInt32 m_fileSize;
-};
 
 class bdUserAccountID {
 public:
@@ -933,73 +2026,16 @@ public:
   VTbl *vtbl;
   bdNChar8 m_accountType[10];
   bdOnlineUserID m_userID;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"vtbl\": {:p}, \"m_accountType\": {}, \"m_userID\": {:016X} }}",
+        reinterpret_cast<const void *>(vtbl), ::serialize(m_accountType),
+        m_userID);
+  }
 };
 
 typedef bdUserAccountID bdUserID;
-
-class bdContextUserStorageFileInfo : bdTaskResult {
-public:
-  bdUInt32 m_createTime;
-  bdUInt32 m_modifedTime;
-  bdFileInfo::bdVisibility m_visibility;
-  bdUserID m_ownerID;
-  bdNChar8 m_fileName[128];
-  bdUInt32 m_fileSize;
-};
-
-typedef bdContextUserStorageFileInfo bdUserStorageFileInfo;
-
-class __declspec(align(8)) dwFileTask {
-public:
-  std::string m_filename;
-  bdFileData m_fileData;
-  bdLobbyErrorCode m_error;
-  bdUInt64 m_fileID;
-  bdUInt m_fileSize;
-  bdUInt m_bufferSize;
-  bdUserStorageFileInfo m_fileInfo;
-  void *m_buffer;
-  bool m_optional;
-  bool m_lsgOnly;
-  bool m_lpcFile;
-};
-
-struct fileRetryInfo {
-  int32_t lastAttemptTime;
-  int32_t lastAttemptInterval;
-  int32_t retryCount;
-};
-
-enum class dwFileOpResult : __int32 {
-  SUCCESS = 0x0,
-  NOT_FOUND = 0x1,
-  FAILURE = 0x2,
-};
-
-struct dwFileOperationInfo {
-  dwFileTask fileTask;
-  fileRetryInfo retryInfo;
-  int32_t taskType;
-  bool fetchCompleted;
-  bool writeCompleted;
-  bool isUserFile;
-  bool isCompressedFile;
-  uint8_t *fileBuffer;
-  int32_t bufferSize;
-  int32_t decompressedSize;
-  dwFileOpResult result;
-  fastcallPtr_t<void(const ControllerIndex_t controllerIndex, void *)>
-      fnCallbackSuccess;
-  fastcallPtr_t<taskCompleteResults(const ControllerIndex_t controllerIndex,
-                                    void *)>
-      fnCallbackNotFound;
-  fastcallPtr_t<taskCompleteResults(const ControllerIndex_t controllerIndex,
-                                    void *)>
-      fnCallbackFailure;
-  bool *alreadyUploaded;
-  uint8_t *parityBits;
-  void *userData;
-};
 
 } // namespace dw
 } // namespace game

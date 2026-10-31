@@ -482,6 +482,14 @@ void register_config_string_print_stub(const game::consoleChannel_e channel,
   }
 }
 
+inline void disable_dw_userfile_writes() {
+    utils::hook::jump(game::dw::task::fs::dwWriteAndValidateFile,
+                      reinterpret_cast<void*>(return_const<nullptr>));
+    utils::hook::jump(
+        game::live::storage::LiveStorage_WriteDWUserFile,
+        reinterpret_cast<void*>(return_const<nullptr>));
+}
+
 } // namespace
 
 class component final : public client_component {
@@ -492,6 +500,8 @@ public:
 
     store_tac_protected_allocs();
     replace_sd_allocator();
+    disable_dw_userfile_writes();
+
     if (!game::is_legacy_client()) {
       snd_queue_add_hook.create(game::snd::SND_QueueAdd.get(),
                                 snd_queue_add_stub);
