@@ -163,25 +163,18 @@ void replace_sd_allocator() {
   sd_free_hook.create(game::snd::sd::SD_Free.get(), game::snd::sd::SD_HeapFree);
 }
 
-constexpr size_t SND_QUEUE_FREE_LIST = 0x100418;
-constexpr size_t SND_QUEUE_BUFFER_SIZE = 0x8020;
-constexpr size_t SND_QUEUE_BUFFER_POOL = 0x18;
-
 utils::hook::detour snd_queue_add_hook;
 void snd_queue_add_stub(game::snd::SndQueue *queue,
                         game::snd::cmd::SndCommandType cmd, uint32_t size,
                         game::snd::cmd::SndCommand *data) {
-  auto *const pool = reinterpret_cast<uint8_t *>(queue->buffers);
-  if (pool &&
-      !*reinterpret_cast<void *volatile *>(pool + SND_QUEUE_FREE_LIST)) {
-    auto *const buffer =
-        static_cast<uint8_t *>(_aligned_malloc(SND_QUEUE_BUFFER_SIZE, 64));
+  auto *const buffers = queue->buffers;
+  if (buffers && !buffers->freeList) {
+    auto *const buffer = static_cast<game::snd::cmd::SndCommandBuffer *>(
+        _aligned_malloc(sizeof(game::snd::cmd::SndCommandBuffer), 64));
     if (buffer) {
-      std::memset(buffer, 0, SND_QUEUE_BUFFER_SIZE);
-      *reinterpret_cast<uint8_t **>(buffer + SND_QUEUE_BUFFER_POOL) = pool;
-      game::snd::SND_QueueBufferFree(
-          queue->buffers,
-          reinterpret_cast<game::snd::cmd::SndCommandBuffer *>(buffer));
+      std::memset(buffer, 0, sizeof(*buffer));
+      buffer->buffers = buffers;
+      game::snd::SND_QueueBufferFree(buffers, buffer);
     }
   }
   snd_queue_add_hook.invoke(queue, cmd, size, data);

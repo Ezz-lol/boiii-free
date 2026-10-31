@@ -308,10 +308,10 @@ ASSERT_SIZE(SndCommandBuffer, 0x8020);
 
 PACKED(struct SndQueueBuffers {
   tlAtomicMutex mutex;
-  SndCommandBuffer buffers[16];
+  SndCommandBuffer buffers[32];
   SndCommandBuffer *freeList;
 });
-ASSERT_SIZE(SndQueueBuffers, 0x80220);
+ASSERT_SIZE(SndQueueBuffers, 0x100420);
 
 enum class SndCommandType : uint32_t {
   SND_COMMAND_NOP = 0x0,
