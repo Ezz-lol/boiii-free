@@ -23,6 +23,7 @@ namespace currency {
 namespace {
 using game::ControllerIndex_t;
 using game::StorageFileType;
+using game::live::inventory::bdMarketplaceItemToPawn;
 using game::live::inventory::InventoryItem;
 using game::live::inventory::LiveInventory_IsValid;
 using game::live::inventory::LiveInventory_UpdateItemQuantity;
@@ -35,11 +36,16 @@ game::EngineDependentDvarMut local_currency;
 game::EngineDependentDvarMut points_per_minute, points_per_match_cap;
 game::EngineDependentDvarMut divinium_per_match, last_divinium_award;
 game::EngineDependentDvarMut free_distills, paid_distills, free_distill_expiry;
+game::EngineDependentDvarMut loot_duplicates;
 utils::hook::detour currency_hook, spend_hook, increment_hook, consume_hook;
 utils::hook::detour inventory_update_hook, buy_crate_hook, purchase_hook,
-    get_item_hook;
+    get_item_hook, burn_duplicates_hook;
 
 inline bool enabled() { return local_currency && local_currency.get_bool(); }
+
+inline bool duplicates_allowed() {
+  return loot_duplicates && loot_duplicates.get_bool();
+}
 
 // Engine dvars without a symbol for every supported build, looked up once
 game::EngineDependentDvarMut engine_dvar(const char *name) {
@@ -345,6 +351,19 @@ LootRarityType rarity_type(std::string_view rarity) {
   return LootRarityType::EPIC;
 }
 
+loot_dvar &burn_refund(LootRarityType rarity) {
+  switch (rarity) {
+  case LootRarityType::COMMON:
+    return game::loot_burnCommonRefund;
+  case LootRarityType::RARE:
+    return game::loot_burnRareRefund;
+  case LootRarityType::LEGENDARY:
+    return game::loot_burnLegendaryRefund;
+  default:
+    return game::loot_burnEpicRefund;
+  }
+}
+
 // Rebuilt when the string tables are reloaded, like the gum pool.
 const std::vector<loot_item> &mp_loot_pool() {
   thread_local std::vector<loot_item> pool;
@@ -386,6 +405,14 @@ const std::vector<loot_item> &mp_loot_pool() {
     }
   }
   return pool;
+}
+
+// The game counts and burns duplicates from its own inventory, so items owned
+// more than once are kept there too.
+bool mirror_duplicate(ControllerIndex_t controller, uint32_t item_id) {
+  const uint32_t quantity = item_count(item_id);
+  return quantity < 2 || LiveInventory_UpdateItemQuantity(controller, item_id,
+                                                          quantity, 0, 0, 0);
 }
 
 bool buy_crate(ControllerIndex_t controller, int32_t crate, int32_t currency) {
@@ -457,16 +484,16 @@ bool buy_crate(ControllerIndex_t controller, int32_t crate, int32_t currency) {
       return false;
     }
 
-    std::array<std::vector<const loot_item *>, mp_rarities> unowned;
+    std::array<std::vector<const loot_item *>, mp_rarities> candidates;
     for (const loot_item &item : pool) {
-      if (!item_count(item.id)) {
-        unowned[static_cast<size_t>(item.rarity)].push_back(&item);
+      if (duplicates_allowed() || !item_count(item.id)) {
+        candidates[static_cast<size_t>(item.rarity)].push_back(&item);
       }
     }
     const auto roll = [&](LootRarityType min_rarity) -> const loot_item * {
       uint32_t total = 0;
       for (size_t r = static_cast<size_t>(min_rarity); r < odds.size(); ++r) {
-        total += unowned[r].empty() ? 0 : odds[r];
+        total += candidates[r].empty() ? 0 : odds[r];
       }
       if (!total) {
         return nullptr;
@@ -474,14 +501,14 @@ bool buy_crate(ControllerIndex_t controller, int32_t crate, int32_t currency) {
       uint32_t pick =
           std::uniform_int_distribution<uint32_t>(0, total - 1)(random);
       for (size_t r = static_cast<size_t>(min_rarity); r < odds.size(); ++r) {
-        if (unowned[r].empty()) {
+        if (candidates[r].empty()) {
           continue;
         }
         if (pick >= odds[r]) {
           pick -= odds[r];
           continue;
         }
-        std::vector<const loot_item *> &bucket = unowned[r];
+        std::vector<const loot_item *> &bucket = candidates[r];
         const size_t index =
             std::uniform_int_distribution<size_t>(0, bucket.size() - 1)(random);
         const loot_item *item = bucket[index];
@@ -504,7 +531,9 @@ bool buy_crate(ControllerIndex_t controller, int32_t crate, int32_t currency) {
         ++duplicates;
       }
       rolled.push_back(item);
-      if (!local_db::set_item(item->id, 1, 0, now)) {
+      const uint32_t quantity =
+          duplicates_allowed() ? item_count(item->id) + 1 : 1;
+      if (!local_db::set_item(item->id, quantity, 0, now)) {
         return false;
       }
     }
@@ -534,6 +563,9 @@ bool buy_crate(ControllerIndex_t controller, int32_t crate, int32_t currency) {
   game::loot::s_lastResult->result = LootResultType::SUCCESS;
   game::loot::s_lastResult->isValid = true;
   update_cryptokey_balances(controller);
+  for (const loot_item *item : rolled) {
+    mirror_duplicate(controller, item->id);
+  }
   // The crate screen has no way to mark a duplicate
   if (duplicates == crate_items) {
     toast::reward("ALL DUPLICATES", "Collection complete",
@@ -663,6 +695,57 @@ void *purchase_skus(ControllerIndex_t controller, uint32_t *skus, int32_t count,
   // The menu only checks that the purchase started.
   static bool started;
   return &started;
+}
+
+// DW burned the duplicates, credited their refund as Loot XP and then reported
+// success.
+bool burn_duplicates(ControllerIndex_t controller,
+                     const bdMarketplaceItemToPawn *items, int32_t count,
+                     void (*on_success)(ControllerIndex_t),
+                     void (*on_failure)(ControllerIndex_t)) {
+  const std::vector<loot_item> &pool = mp_loot_pool();
+  const auto find = [&pool](uint32_t id) {
+    return std::ranges::find(pool, id, &loot_item::id);
+  };
+  if (!enabled() || !valid_controller_index(controller) || !items ||
+      count <= 0 ||
+      !std::all_of(items, items + count,
+                   [&](const bdMarketplaceItemToPawn &item) {
+                     return find(item.itemId) != pool.end();
+                   })) {
+    return burn_duplicates_hook.invoke<bool>(controller, items, count,
+                                             on_success, on_failure);
+  }
+  const uint32_t loot_xp_per_key = dvar_value(game::loot_cryptokeyCost);
+  uint32_t loot_xp = 0;
+  const bool burned = local_db::transaction([&] {
+    for (int32_t i = 0; i < count; ++i) {
+      const bdMarketplaceItemToPawn &burn = items[i];
+      const std::optional<local_db::item> owned =
+          local_db::get_item(burn.itemId);
+      if (!owned || owned->quantity <= burn.quantity ||
+          !local_db::set_item(burn.itemId, owned->quantity - burn.quantity,
+                              owned->expire_time, owned->obtained_time)) {
+        return false;
+      }
+      loot_xp += dvar_value(burn_refund(find(burn.itemId)->rarity)) *
+                 loot_xp_per_key * burn.quantity;
+    }
+    return true;
+  });
+  if (!burned) {
+    return false;
+  }
+  for (int32_t i = 0; i < count; ++i) {
+    LiveInventory_UpdateItemQuantity(controller, items[i].itemId,
+                                     item_count(items[i].itemId), 0, 0, 0);
+  }
+  add_loot_xp(loot_xp);
+  update_cryptokey_balances(controller);
+  // The game only waits for the result once this returns
+  scheduler::once([controller, on_success] { on_success(controller); },
+                  scheduler::main);
+  return true;
 }
 
 // The menu reads the once a day cooldown from the expiry of the bundle's
@@ -900,10 +983,22 @@ void inventory_update(ControllerIndex_t controller) {
   }
   inventory_update_hook.invoke<void>(controller);
   static game::LocalClientPool<bool> keys_restored{};
+  static game::LocalClientPool<bool> duplicates_restored{};
   if (!enabled() || !LiveInventory_IsValid(controller)) {
     keys_restored[controller] = false;
-  } else if (!keys_restored[controller]) {
-    keys_restored[controller] = update_cryptokey_balances(controller);
+    duplicates_restored[controller] = false;
+  } else {
+    if (!keys_restored[controller]) {
+      keys_restored[controller] = update_cryptokey_balances(controller);
+    }
+    if (!duplicates_restored[controller]) {
+      const std::vector<loot_item> &pool = mp_loot_pool();
+      duplicates_restored[controller] =
+          !pool.empty() &&
+          std::ranges::all_of(pool, [controller](const loot_item &item) {
+            return mirror_duplicate(controller, item.id);
+          });
+    }
   }
   static game::LocalClientPool<bool> restored{};
   static game::LocalClientPool<bool> points_restored{};
@@ -1573,13 +1668,20 @@ bool reset_black_market(ControllerIndex_t controller) {
       game::com::Com_IsInGame()) {
     return false;
   }
-  // The game reads owned loot from the database, so unlike the GobbleGum reset
-  // there's no engine inventory to update
+  // The game reads owned loot from the database, so only duplicates are in the
+  // engine inventory
   const std::vector<loot_item> &pool = mp_loot_pool();
   return !pool.empty() && local_db::transaction([&] {
     for (const loot_item &item : pool) {
-      if (item_count(item.id) && !local_db::set_item(item.id, 0)) {
+      const uint32_t quantity = item_count(item.id);
+      if (!quantity) {
+        continue;
+      }
+      if (!local_db::set_item(item.id, 0)) {
         return false;
+      }
+      if (quantity > 1) {
+        LiveInventory_UpdateItemQuantity(controller, item.id, 0, 0, 0, 0);
       }
     }
     return true;
@@ -1699,6 +1801,10 @@ struct component final : client_component {
     paid_distills = game::register_dvar_int(
         "cg_paid_distills", 0, 0, accounting::max_balance,
         game::DvarFlags{.archive = 1}, "Saved paid Newton's Cookbook Distills");
+    loot_duplicates = game::register_dvar_bool(
+        "cg_loot_duplicates", true, game::DvarFlags{.archive = 1},
+        "Black Market supply drops can give items you already own, which can "
+        "be burned for Cryptokeys");
     free_distill_expiry = game::register_dvar_int(
         "cg_free_distill_expiry", 0, 0, std::numeric_limits<int32_t>::max(),
         game::DvarFlags{.archive = 1}, "Next free Distill claim time");
@@ -1722,6 +1828,9 @@ struct component final : client_component {
         game::live::inventory::LiveInventory_PurchaseSkus.get(), purchase_skus);
     get_item_hook.create(game::live::inventory::LiveInventory_GetItem.get(),
                          get_inventory_item);
+    burn_duplicates_hook.create(
+        game::live::inventory::LiveInventory_BurnDuplicates.get(),
+        burn_duplicates);
     // `Com_SessionMode_IsOnlineArenaGame` call before `Loot_IncCurrency` in
     // the Loot XP server command.
     utils::hook::call(game::select(0x140F7B2E3, 0x140F7B2E3, 0x0),
