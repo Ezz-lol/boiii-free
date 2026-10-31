@@ -150,9 +150,12 @@ void refresh_missed_profiles() {
           PCacheComponent *profile = game::pcache::PCache_GetComponent(
               game::CONTROLLER_INDEX_FIRST, xuid,
               PCACHE_COMPONENT_PUBLIC_PROFILE);
+          // The game never clears NO_DATA, even after a later fetch finds the
+          // profile, so leaving it would refetch them after every fetch
           if (profile && (profile->state & PCACHE_STATE_NO_DATA) &&
               !(profile->state & PCACHE_STATE_STALE)) {
-            profile->state |= PCACHE_STATE_STALE;
+            profile->state =
+                (profile->state & ~PCACHE_STATE_NO_DATA) | PCACHE_STATE_STALE;
             game::pcache::PCache_InvalidatePlayerEmblem(
                 game::CONTROLLER_INDEX_FIRST, xuid);
           }
@@ -173,6 +176,15 @@ bool PCache_GetPublicProfilesFailure_stub(game::dw::TaskRecord *task) {
   const bool result = PCache_GetPublicProfilesFailure_hook.invoke<bool>(task);
   refresh_missed_profiles();
   return result;
+}
+
+// In a match the game only fetches public profiles while a menu locks input, so
+// a player who joins mid-match would have no emblem or calling card until the
+// map changed
+utils::hook::detour PCache_Update_hook;
+void PCache_Update_stub(const game::ControllerIndex_t controllerIndex,
+                        [[maybe_unused]] const bool inMatch) {
+  PCache_Update_hook.invoke<void>(controllerIndex, false);
 }
 
 bool is_connected_client(const game::net::netadr_t &address) {
@@ -331,6 +343,8 @@ struct component final : generic_component {
       PCache_GetPublicProfilesFailure_hook.create(
           game::pcache::PCache_GetPublicProfilesFailure.get(),
           PCache_GetPublicProfilesFailure_stub);
+      PCache_Update_hook.create(game::pcache::PCache_Update.get(),
+                                PCache_Update_stub);
     }
 
     network::on("profileInfoRequest", [](const game::net::netadr_t &address,
