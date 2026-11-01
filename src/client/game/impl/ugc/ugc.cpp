@@ -22,8 +22,34 @@
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 
+#include <cerrno>
+#include <cstdlib>
+
 namespace game {
 namespace ugc {
+
+namespace {
+
+bool is_positive_workshop_id(const char *id) {
+  if (!id || !*id) {
+    return false;
+  }
+
+  for (const char *p = id; *p; ++p) {
+    if (*p < '0' || *p > '9') {
+      return false;
+    }
+  }
+
+  errno = 0;
+
+  char *end = nullptr;
+  const unsigned long long parsed = std::strtoull(id, &end, 10);
+
+  return errno != ERANGE && end != id && *end == '\0' && parsed > 0;
+}
+
+} // namespace
 
 OptionalUGCItemRef UGC_GetModByPublisherId(const char *publisherId) {
   return publisherId ? modsPool.find([publisherId](UGCItem &mod) {
@@ -294,7 +320,9 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
   UGCItem *mod =
       UGC_UnwrapOptionalUGCItem(UGC_GetModByPublisherId(publisherId));
   if (mod == nullptr) {
-    if (UGC_DownloadModByPublisherId(publisherId)) {
+    const bool valid_workshop_id = is_positive_workshop_id(publisherId);
+
+    if (valid_workshop_id && UGC_DownloadModByPublisherId(publisherId)) {
       return;
     }
 

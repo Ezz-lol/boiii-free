@@ -19,6 +19,9 @@
 #include <frozen/unordered_set.h>
 #include <fstream>
 
+#include <cctype>
+#include <unordered_set>
+
 namespace fastdl {
 namespace {
 std::atomic_bool download_active{false};
@@ -107,30 +110,80 @@ void show_ingame_error(const std::string &error) {
       scheduler::main);
 }
 
+bool is_safe_manifest_path(const std::string &name) {
+  if (name.empty()) {
+    return false;
+  }
+
+  const std::filesystem::path path(name);
+
+  if (path.is_absolute() || path.has_root_name() || path.has_root_directory()) {
+    return false;
+  }
+
+  for (const auto &part : path) {
+    if (part == ".." || part == "." || part.empty()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool is_valid_sha1(const std::string &hash) {
+  return hash.size() == 40 &&
+         std::all_of(hash.begin(), hash.end(), [](const unsigned char c) {
+           return std::isxdigit(c) != 0;
+         });
+}
+
 std::vector<updater::file_info> parse_manifest(const std::string &json) {
   rapidjson::Document doc{};
   doc.Parse(json.data(), json.size());
 
-  if (!doc.IsArray()) {
+  if (doc.HasParseError() || !doc.IsArray() || doc.Empty()) {
     return {};
   }
 
   std::vector<updater::file_info> files{};
+  std::unordered_set<std::string> seen_files;
 
-  for (const rapidjson::Document::ValueType &element : doc.GetArray()) {
-    if (!element.IsArray()) {
-      continue;
+  for (const auto &element : doc.GetArray()) {
+    if (!element.IsArray() || element.Size() != 3) {
+      return {};
     }
 
-    rapidjson::Document::ConstArray array = element.GetArray();
-    if (array.Size() < 3) {
-      continue;
+    const auto entry = element.GetArray();
+
+    if (!entry[0].IsString() || !entry[1].IsInt64() || !entry[2].IsString()) {
+      return {};
     }
 
     updater::file_info info{};
-    info.name.assign(array[0].GetString(), array[0].GetStringLength());
-    info.size = static_cast<std::size_t>(array[1].GetInt64());
-    info.hash.assign(array[2].GetString(), array[2].GetStringLength());
+
+    info.name.assign(entry[0].GetString(), entry[0].GetStringLength());
+
+    const int64_t file_size = entry[1].GetInt64();
+
+    if (file_size < 0 ||
+        static_cast<uint64_t>(file_size) > std::numeric_limits<size_t>::max()) {
+      return {};
+    }
+
+    info.size = static_cast<size_t>(file_size);
+
+    info.hash.assign(entry[2].GetString(), entry[2].GetStringLength());
+
+    if (!is_safe_manifest_path(info.name) || !is_valid_sha1(info.hash)) {
+      return {};
+    }
+
+    // Windows uses case-insensitive paths by default.
+    const std::string normalized_name = utils::string::to_lower(info.name);
+
+    if (!seen_files.emplace(normalized_name).second) {
+      return {};
+    }
 
     files.emplace_back(std::move(info));
   }
@@ -138,36 +191,19 @@ std::vector<updater::file_info> parse_manifest(const std::string &json) {
   return files;
 }
 
-std::pair<std::vector<updater::file_info>, updater::file_info>
+std::vector<updater::file_info>
 get_manifest_files(const std::shared_ptr<download_context> &context) {
   const std::string manifest_json_uri =
       context->content_tree_uri + "/manifest.json";
 
   const std::optional<std::string> json =
       utils::http::get_data(manifest_json_uri);
+
   if (!json) {
     return {};
   }
 
-  std::vector<updater::file_info> all_files = parse_manifest(*json);
-  std::vector<updater::file_info> other_files;
-  updater::file_info workshop_json;
-  bool found_workshop_json = false;
-
-  for (const updater::file_info &file : all_files) {
-    if (file.name == "workshop.json") {
-      workshop_json = file;
-      found_workshop_json = true;
-    } else if (file.name == "zone/workshop.json") {
-      workshop_json = file;
-      found_workshop_json = true;
-    } else {
-      other_files.push_back(file);
-    }
-  }
-
-  return {other_files,
-          found_workshop_json ? workshop_json : updater::file_info{}};
+  return parse_manifest(*json);
 }
 
 void download_file(const updater::file_info &file,
@@ -178,8 +214,6 @@ void download_file(const updater::file_info &file,
   }
 
   const std::string file_url = context->content_tree_uri + "/" + file.name;
-  const std::string out_relative =
-      file.name.starts_with("zone/") ? file.name : ("zone/" + file.name);
   const std::filesystem::path local_path =
       std::filesystem::path(context->item_path) / file.name;
   bool completed = false;
@@ -264,32 +298,6 @@ void download_file(const updater::file_info &file,
   }
 }
 
-void download_workshop_file(const updater::file_info &file,
-                            const std::shared_ptr<download_context> &context) {
-  if (download_cancelled.load()) {
-    throw download_is_cancelled();
-  }
-
-  const std::string file_url = context->content_tree_uri + "/" + file.name;
-  const std::optional<std::string> data = utils::http::get_data(file_url);
-
-  if (!data ||
-      (data->size() != file.size || utils::string::to_lower(get_hash(*data)) !=
-                                        utils::string::to_lower(file.hash))) {
-    throw std::runtime_error(
-        utils::string::va("Failed to download: %s", file_url.data()));
-  }
-
-  const std::string out_relative =
-      file.name.starts_with("zone/") ? file.name : ("zone/" + file.name);
-  const std::filesystem::path local_path =
-      std::filesystem::path(context->item_path) / file.name;
-  if (!utils::io::write_file(local_path, *data, false)) {
-    throw std::runtime_error(
-        utils::string::va("Failed to write: %s", local_path.c_str()));
-  }
-}
-
 void download_files(const std::vector<updater::file_info> &files,
                     const std::shared_ptr<download_context> &context,
                     fastdl_ui &ui) {
@@ -351,42 +359,53 @@ get_outdated_files(const std::vector<updater::file_info> &files,
 }
 
 void perform_download(const std::shared_ptr<download_context> &context) {
-  try {
-    download_active = true;
-    download_cancelled.store(false);
+  const auto resolve_requires_download =
+      [&context](const bool requires_download) {
+        if (!context->set_requires_download) {
+          context->requires_download.set_value(requires_download);
+          context->set_requires_download = true;
+        }
+      };
 
-    const auto [files, workshop_json] = get_manifest_files(context);
-    if (files.empty() || workshop_json.name.empty()) {
-      download_active = false;
-      show_ingame_error(
-          "Failed to download content manifest file or manifest is empty.");
-      return;
+  // download_active se activa antes de programar esta función en
+  // start_download(). Garantizamos que siempre se libere al terminar.
+  const auto cleanup = utils::finally([] { download_active.store(false); });
+
+  try {
+    const std::vector<updater::file_info> files = get_manifest_files(context);
+
+    if (files.empty()) {
+      throw std::runtime_error(
+          "Failed to download content manifest file or manifest is empty "
+          "or invalid.");
     }
 
     const std::vector<updater::file_info> outdated_files =
         get_outdated_files(files, context->item_path);
-    if (outdated_files.empty()) {
-      download_workshop_file(workshop_json, context);
-      download_active = false;
-      context->requires_download.set_value(false);
-      context->set_requires_download = true;
 
+    // No hay nada que descargar. Permitir que continúe la conexión.
+    if (outdated_files.empty()) {
+      resolve_requires_download(false);
       return;
     }
 
-    context->requires_download.set_value(true);
-    context->set_requires_download = true;
+    // Informar inmediatamente al hilo que espera en future.get().
+    // La conexión debe detenerse mientras falte contenido.
+    resolve_requires_download(true);
 
     size_t total_download_size = 0;
     for (const updater::file_info &file : outdated_files) {
       total_download_size += file.size;
     }
+
     const double size_gb =
         static_cast<double>(total_download_size) / (1024.0 * 1024.0 * 1024.0);
 
     const std::shared_ptr<std::promise<bool>> answer =
         std::make_shared<std::promise<bool>>();
+
     std::future<bool> accepted = answer->get_future();
+
     download_overlay::show_confirmation(
         std::format("FastDL - {} Download", game::toString(context->type)),
         utils::string::va(
@@ -406,30 +425,34 @@ void perform_download(const std::shared_ptr<download_context> &context) {
 
     fastdl_ui ui{};
     ui.update_files(outdated_files);
+
     download_files(outdated_files, context, ui);
-    download_workshop_file(workshop_json, context);
 
     ui.done_update();
-
-    download_active = false;
 
     if (context->success_callback) {
       context->success_callback();
     }
   } catch (const download_is_cancelled &) {
-    if (context->set_requires_download) {
-      context->requires_download.set_value(true);
-      context->set_requires_download = true;
-    }
-    download_active = false;
+    // La promesa ya se habrá resuelto como true si llegamos a mostrar
+    // la confirmación. Esta llamada también cubre cancelaciones previas.
+    resolve_requires_download(true);
+
     show_ingame_error("Download was cancelled.");
   } catch (const std::exception &e) {
-    if (context->set_requires_download) {
-      context->requires_download.set_value(true);
-      context->set_requires_download = true;
-    }
-    download_active = false;
+    // Evita dejar bloqueado future.get() ante cualquier error.
+    resolve_requires_download(true);
+
     show_ingame_error(e.what());
+
+    if (context->failure_callback) {
+      context->failure_callback();
+    }
+  } catch (...) {
+    resolve_requires_download(true);
+
+    show_ingame_error("An unknown error occurred during FastDL.");
+
     if (context->failure_callback) {
       context->failure_callback();
     }
@@ -439,12 +462,16 @@ void perform_download(const std::shared_ptr<download_context> &context) {
 
 bool start_download(const std::shared_ptr<download_context> context) {
   bool expected = false;
+
   std::future<bool> requires_download_fut =
       context->requires_download.get_future();
 
   if (download_active.compare_exchange_strong(expected, true)) {
+    download_cancelled.store(false);
+
     scheduler::once([context]() { perform_download(context); },
                     scheduler::async);
+
     return requires_download_fut.get();
   }
 

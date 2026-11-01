@@ -21,6 +21,7 @@ bool are_xzones_loading();
 int get_workshop_retry_attempts();
 
 std::string get_mod_publisher_id();
+std::string get_mod_workshop_id();
 std::string get_mod_resized_name();
 bool check_valid_usermap_id(const std::string_view &mapname,
                             const std::string_view &pub_id,

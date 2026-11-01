@@ -32,6 +32,9 @@
 #include <frozen/unordered_map.h>
 #include <frozen/unordered_set.h>
 
+#include <cerrno>
+#include <cstdlib>
+
 using namespace game::db;
 using XZoneName = xzone::XZoneName;
 
@@ -113,11 +116,33 @@ bool has_mod(const std::string_view &pub_id) {
   return false;
 }
 
+bool is_positive_workshop_id(const std::string_view id) {
+  if (id.empty()) {
+    return false;
+  }
+
+  for (const unsigned char c : id) {
+    if (c < '0' || c > '9') {
+      return false;
+    }
+  }
+
+  const std::string value(id);
+
+  errno = 0;
+  char *end = nullptr;
+
+  const unsigned long long parsed = std::strtoull(value.c_str(), &end, 10);
+
+  return errno != ERANGE && end != value.c_str() && *end == '\0' && parsed > 0;
+}
+
 bool has_usermap(const std::string_view &internal_id) {
-  for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
-    const game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[i];
-    if (mod_data->publisherId == internal_id ||
-        mod_data->internalName == internal_id) {
+  for (uint32_t i = 0; i < game::ugc::usermapsPool.count; ++i) {
+    const game::ugc::UGCItem *map_data = &game::ugc::usermapsPool.data[i];
+
+    if (map_data->publisherId == internal_id ||
+        map_data->internalName == internal_id) {
       return true;
     }
   }
@@ -129,7 +154,7 @@ std::string resolve_mod_workshop_id(const std::string_view &mod_name) {
   for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
     const game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[i];
     if (mod_data->internalName == mod_name &&
-        utils::string::is_numeric(mod_data->publisherId)) {
+        is_positive_workshop_id(mod_data->publisherId)) {
       return mod_data->publisherId;
     }
   }
@@ -162,14 +187,14 @@ std::string resolve_mod_workshop_id(const std::string_view &mod_name) {
               doc.FindMember("PublishedFileId");
           if (pub_it != doc.MemberEnd() && pub_it->value.IsString()) {
             std::string pfid = pub_it->value.GetString();
-            if (utils::string::is_numeric(pfid.data()))
+            if (is_positive_workshop_id(pfid))
               return pfid;
           }
           rapidjson::Document::MemberIterator pubid_it =
               doc.FindMember("PublisherID");
           if (pubid_it != doc.MemberEnd() && pubid_it->value.IsString()) {
             std::string pid = pubid_it->value.GetString();
-            if (utils::string::is_numeric(pid.data()))
+            if (is_positive_workshop_id(pid))
               return pid;
           }
         }
@@ -421,57 +446,154 @@ std::string clean_description(const std::string_view &text) {
 }
 
 void load_workshop_data(game::ugc::UGCItem *item) {
+  if (!item) {
+    return;
+  }
+
+  const std::string original_folder_name = item->internalName;
+
   const char *base_path = item->absolutePathZoneFiles;
   const char *path = utils::string::va("%s/workshop.json", base_path);
   const std::string json_str = utils::io::read_file(path);
 
+  // workshop.json is optional for local mods.
   if (json_str.empty()) {
     return;
   }
 
   rapidjson::Document doc;
-  const rapidjson::ParseResult parse_result = doc.Parse(json_str.data());
 
-  if (parse_result.IsError() || !doc.IsObject()) {
-    printf("[ Workshop ] Unable to parse workshop.json from folder:\n%s\n",
-           path);
+  if (doc.Parse(json_str.c_str()).HasParseError() || !doc.IsObject()) {
+    printf("[ Workshop ] Unable to parse workshop.json:\n%s\n", path);
     return;
   }
 
-  if (!doc.HasMember("Title") || !doc.HasMember("Description") ||
-      !doc.HasMember("FolderName") || !doc.HasMember("PublisherID")) {
+  const auto get_string = [&doc](const char *key) -> std::string {
+    const auto it = doc.FindMember(key);
+
+    if (it == doc.MemberEnd() || !it->value.IsString()) {
+      return {};
+    }
+
+    return it->value.GetString();
+  };
+
+  // MODS
+  if (item->type == game::ZoneType::MOD) {
+    const std::string json_folder_name = get_string("FolderName");
+
+    // The installed folder is the actual local identity.
+    std::string folder_name = original_folder_name;
+
+    if (folder_name.empty()) {
+      folder_name = json_folder_name;
+    }
+
+    if (!folder_name.empty()) {
+      if (!json_folder_name.empty() && json_folder_name != folder_name) {
+        printf("[ Workshop ] WARNING: FolderName '%s' does not match "
+               "installed folder '%s'. Using installed folder.\n",
+               json_folder_name.c_str(), folder_name.c_str());
+      }
+
+      utils::string::copy(item->internalName, folder_name.c_str());
+    }
+
+    const std::string title = get_string("Title");
+    const std::string description = get_string("Description");
+
+    if (!title.empty()) {
+      utils::string::copy(item->title, title.c_str());
+    }
+
+    if (!description.empty()) {
+      utils::string::copy(item->description,
+                          clean_description(description).c_str());
+    }
+
+    const std::string publisher_id = get_string("PublisherID");
+
+    if (is_positive_workshop_id(publisher_id)) {
+      // Legit Steam Workshop mod.
+      utils::string::copy(item->publisherId, publisher_id.c_str());
+
+      item->publisherIdInteger =
+          std::strtoull(publisher_id.c_str(), nullptr, 10);
+    } else {
+      // Local mod: always use the folder name.
+      utils::string::copy(item->publisherId, folder_name.c_str());
+
+      item->publisherIdInteger = 0;
+
+      if (!publisher_id.empty() && publisher_id != folder_name) {
+        printf("[ Workshop ] Invalid local PublisherID '%s'. "
+               "Using folder name '%s'.\n",
+               publisher_id.c_str(), folder_name.c_str());
+      }
+    }
+
+    item->publisherIdHash = game::ugc::UGC_Hash(item->publisherId);
+
+    return;
+  }
+
+  // USERMAPS: retain its metadata validation.
+  if (!doc.HasMember("Title") || !doc["Title"].IsString() ||
+      !doc.HasMember("Description") || !doc["Description"].IsString() ||
+      !doc.HasMember("FolderName") || !doc["FolderName"].IsString() ||
+      !doc.HasMember("PublisherID") || !doc["PublisherID"].IsString()) {
     printf("[ Workshop ] workshop.json is invalid:\n%s\n", path);
     return;
   }
 
   utils::string::copy(item->title, doc["Title"].GetString());
+
   utils::string::copy(
       item->description,
       clean_description(doc["Description"].GetString()).c_str());
+
   utils::string::copy(item->internalName, doc["FolderName"].GetString());
+
   utils::string::copy(item->publisherId, doc["PublisherID"].GetString());
-  item->publisherIdInteger = std::strtoull(item->publisherId, nullptr, 10);
+
+  item->publisherIdInteger = is_positive_workshop_id(item->publisherId)
+                                 ? std::strtoull(item->publisherId, nullptr, 10)
+                                 : 0;
+
   item->publisherIdHash = game::ugc::UGC_Hash(item->publisherId);
 }
 
 void populate_workshop_paths(game::ugc::UGCItem *item,
                              const std::filesystem::path &content_folder,
                              const game::ZoneType type) {
+
   item->clear();
 
+  const std::string folder_name = content_folder.filename().string();
+
   const std::filesystem::path zone_path = content_folder / "zone";
+
   const std::filesystem::path relative_zone_path =
       std::filesystem::path(type == game::ZoneType::MOD ? "mods" : "usermaps") /
       content_folder.filename() / "zone";
 
+  utils::string::copy(item->title, folder_name.c_str());
+  utils::string::copy(item->internalName, folder_name.c_str());
+  utils::string::copy(item->publisherId, folder_name.c_str());
+
   utils::string::copy(item->contentPathToZoneFiles,
                       relative_zone_path.generic_string().c_str());
+
   utils::string::copy(item->absolutePathContentDirectory,
                       content_folder.generic_string().c_str());
+
   utils::string::copy(item->absolutePathZoneFiles,
                       zone_path.generic_string().c_str());
+
+  item->publisherIdInteger = 0;
+  item->publisherIdHash = game::ugc::UGC_Hash(folder_name.c_str());
+
   item->version = 1;
-  item->publisherIdHash = 0;
   item->type = type;
 }
 
@@ -490,14 +612,20 @@ void supplement_mods_from_disk() {
   uint32_t count = 0;
   for (const std::filesystem::directory_entry &entry :
        std::filesystem::directory_iterator(mods_dir, ec)) {
+    // Safety check to ensure the pool's maximum capacity is not exceeded
+    if (count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
+      break;
+    }
+
     if (ec || !entry.is_directory(ec)) {
       continue;
     }
 
     const std::filesystem::path zone_dir = entry.path() / "zone";
-    const std::filesystem::path workshop_json = zone_dir / "workshop.json";
+
+    // New check: Requires 'zone' to exist and to be a directory
     if (!std::filesystem::exists(zone_dir, ec) ||
-        !std::filesystem::exists(workshop_json, ec)) {
+        !std::filesystem::is_directory(zone_dir, ec)) {
       continue;
     }
 
@@ -551,11 +679,6 @@ void supplement_usermaps_from_disk() {
 }
 
 void supplement_ugc_from_workshop(game::ZoneType zoneType) {
-  if (game::ugc::usermapsPool.count >=
-      game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
-    return;
-  }
-
   std::error_code ec;
   const std::filesystem::path current_dir = std::filesystem::current_path();
   const std::filesystem::path steamapps =
@@ -582,6 +705,11 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
     pool = &game::ugc::modsPool;
     break;
   default:
+    return;
+  }
+
+  // Capacity check corrected to use the appropriate dynamic pool
+  if (pool->count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
     return;
   }
 
@@ -643,7 +771,9 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
       utils::string::copy(ugc_data->publisherId,
                           doc["PublisherID"].GetString());
       ugc_data->publisherIdInteger =
-          std::strtoull(ugc_data->publisherId, nullptr, 10);
+          is_positive_workshop_id(ugc_data->publisherId)
+              ? std::strtoull(ugc_data->publisherId, nullptr, 10)
+              : 0;
       ugc_data->publisherIdHash = game::ugc::UGC_Hash(ugc_data->publisherId);
     }
     ++count;
@@ -763,6 +893,25 @@ int get_workshop_retry_attempts() {
 std::string get_mod_publisher_id() {
   return game::ugc::UGC_ActiveMod_PublisherId();
 }
+std::string get_mod_workshop_id() {
+  const std::string loaded_mod_id = get_mod_publisher_id();
+
+  if (loaded_mod_id.empty() || loaded_mod_id == "usermaps") {
+    return {};
+  }
+
+  for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
+    const game::ugc::UGCItem &mod_data = game::ugc::modsPool.data[i];
+
+    if (mod_data.publisherId == loaded_mod_id &&
+        mod_data.publisherIdInteger > 0) {
+      return std::to_string(mod_data.publisherIdInteger);
+    }
+  }
+
+  return {};
+}
+
 inline constexpr frozen::string ZM_MAP_ARRAY[] = {
     "zm_asylum", "zm_castle",  "zm_cosmodrome", "zm_factory",    "zm_genesis",
     "zm_island", "zm_moon",    "zm_prototype",  "zm_stalingrad", "zm_sumpf",
@@ -1113,7 +1262,9 @@ bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
       std::make_shared<fastdl::download_context>();
 
   context->item_name = name;
-  context->pub_id = workshop_id.empty() ? name : workshop_id;
+  context->pub_id = is_positive_workshop_id(workshop_id)
+                        ? std::string(workshop_id)
+                        : std::string(name);
   context->item_path = folder;
   context->content_tree_uri = std::format("{}/{}", base, folder);
   context->type = zoneType;
@@ -1169,7 +1320,7 @@ void report_version_mismatch(game::ZoneType zoneType,
   const std::string what =
       std::format("{} '{}'", game::toString(zoneType), name);
   if (local_built && server_built > local_built &&
-      utils::string::is_numeric(workshop_id.data())) {
+      is_positive_workshop_id(workshop_id)) {
     const std::string id(workshop_id);
     download_overlay::show_confirmation(
         std::format("{} update needed", game::toString(zoneType)),
@@ -1214,6 +1365,10 @@ bool check_valid_usermap_id(const std::string_view &mapname,
       return false;
     }
   } else {
+
+    if (has_usermap(mapname)) {
+      return true;
+    }
 
     if (downloading_workshop_item.load() || launcher_downloading.load() ||
         fastdl::is_downloading()) {
@@ -1273,12 +1428,11 @@ bool check_valid_usermap_id(const std::string_view &mapname,
 
 void offer_mod_from_workshop(const std::string &mod,
                              const std::string &workshop_id) {
-  const std::string resolved_id =
-      utils::string::is_numeric(mod.data())
-          ? mod
-          : (!workshop_id.empty() && utils::string::is_numeric(workshop_id)
-                 ? workshop_id
-                 : resolve_mod_workshop_id(mod));
+  const std::string resolved_id = is_positive_workshop_id(mod)
+                                      ? mod
+                                      : (is_positive_workshop_id(workshop_id)
+                                             ? workshop_id
+                                             : resolve_mod_workshop_id(mod));
   if (resolved_id.empty()) {
     scheduler::once(
         [mod] {
@@ -1298,25 +1452,41 @@ void offer_mod_from_workshop(const std::string &mod,
 bool check_valid_mod_id(const std::string_view &mod,
                         const std::string_view &workshop_id,
                         const std::string_view &base_uri) {
-  if (!mod.empty() && mod != "usermaps") {
-    if (!is_busy_downloading()) {
-      const std::string mod_copy(mod);
-      const std::string id_copy(workshop_id);
-      if (base_uri.empty()) {
-        if (!has_mod(workshop_id)) {
-          offer_mod_from_workshop(mod_copy, id_copy);
-          return false;
-        }
-      } else {
-        return !start_fastdl(game::ZoneType::MOD, mod, workshop_id, base_uri,
-                             [id_copy, mod_copy]() {
-                               offer_mod_from_workshop(mod_copy, id_copy);
-                             }) &&
-               has_mod(workshop_id);
-      }
-    }
+  if (mod.empty() || mod == "usermaps") {
+    return true;
   }
-  return true;
+
+  // It is already installed: do not download it again.
+  if (has_mod(mod) || (!workshop_id.empty() && has_mod(workshop_id))) {
+    return true;
+  }
+
+  // Do not allow continuation while another download is in progress.
+  if (is_busy_downloading()) {
+    return false;
+  }
+
+  const std::string mod_copy(mod);
+  const std::string id_copy(workshop_id);
+
+  if (base_uri.empty()) {
+    offer_mod_from_workshop(mod_copy, id_copy);
+    return false;
+  }
+
+  const bool requires_download = start_fastdl(
+      game::ZoneType::MOD, mod, workshop_id, base_uri,
+      [id_copy, mod_copy]() { offer_mod_from_workshop(mod_copy, id_copy); });
+
+  if (requires_download) {
+    return false;
+  }
+
+  // FastDL found no pending files. Reloading UGC in case the
+  // content was already installed but not yet registered.
+  game::ugc::UGC_LoadPools_Impl();
+
+  return has_mod(mod) || (!workshop_id.empty() && has_mod(workshop_id));
 }
 
 bool mod_load_requires_fs_reinitialization(const std::string_view &mod_name) {

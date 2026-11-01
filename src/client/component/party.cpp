@@ -526,9 +526,11 @@ void handle_connect_query_response(const bool success,
 
   const std::string mod_id = info.get("modId");
 
-  const std::string workshop_id = info.get("workshop_id").empty()
-                                      ? info.get("usermapId")
-                                      : info.get("workshop_id");
+  const std::string usermap_workshop_id = info.get("workshop_id").empty()
+                                              ? info.get("usermapId")
+                                              : info.get("workshop_id");
+
+  const std::string mod_workshop_id = info.get("mod_workshop_id");
   const std::string base_uri = info.get("sv_wwwBaseURL").empty()
                                    ? info.get("sv_wwwBaseUrl")
                                    : info.get("sv_wwwBaseURL");
@@ -550,9 +552,9 @@ void handle_connect_query_response(const bool success,
         // Always save latest address for mod reconnect (mod unload/reload)
         workshop::set_pending_mod_reconnect(addr_str);
 
-        if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
-                                             base_uri) &&
-            workshop::check_valid_mod_id(mod_id, workshop_id, base_uri)) {
+        if (workshop::check_valid_usermap_id(mapname, usermap_id,
+                                             usermap_workshop_id, base_uri) &&
+            workshop::check_valid_mod_id(mod_id, mod_workshop_id, base_uri)) {
           connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
                           lobby);
         } else {
