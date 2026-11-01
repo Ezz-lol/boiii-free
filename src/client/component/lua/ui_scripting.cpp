@@ -2589,13 +2589,6 @@ UI_Model_AllocateNode_EnsureFreeModelNode(const UIModelIndex ancestorIndex,
 }
 
 inline void apply_quadcache_ptr_handling_patches() {
-  utils::hook::jump(api::ui::quad::UI_CoD_LuaCall_QuadCache_GC,
-                    quad::UI_CoD_LuaCall_QuadCache_GC_Safe);
-  utils::hook::jump(api::ui::quad::UI_CoD_GetNextQuadCache,
-                    quad::UI_CoD_GetNextQuadCache_Safe);
-  utils::hook::jump(api::ui::quad::UI_CoD_UnrefQuadCacheChain,
-                    quad::UI_CoD_UnrefQuadCacheChain_Safe);
-
   UI_Interface_GetTextWidth_hook.create(UI_Interface_GetTextWidth,
                                         UI_Interface_GetTextWidth_Safe);
   UI_Model_AllocateNode_hook.create(game::ui::UI_Model_AllocateNode,
