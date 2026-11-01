@@ -12,6 +12,10 @@ using namespace game::scr;
 namespace gsc {
 namespace func {
 namespace date {
+constexpr const char *WEEKDAYS[] = {"sunday",    "monday",   "tuesday",
+                                    "wednesday", "thursday", "friday",
+                                    "saturday"};
+
 constexpr std::string_view ALLOWED_SPECIFIERS =
     "aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ%";
 
@@ -42,6 +46,11 @@ void gscr_getdate(scriptInstance_t inst) {
   }
 
   const std::string name = utils::string::to_lower(field);
+  if (name == "weekday") {
+    push_string(inst, WEEKDAYS[tm.tm_wday]);
+    return;
+  }
+
   int32_t value = -1;
   if (name == "year")
     value = tm.tm_year + 1900;
@@ -55,8 +64,6 @@ void gscr_getdate(scriptInstance_t inst) {
     value = tm.tm_min;
   else if (name == "second")
     value = tm.tm_sec;
-  else if (name == "weekday")
-    value = tm.tm_wday;
   else if (name == "yearday")
     value = tm.tm_yday + 1;
   else if (name == "week")

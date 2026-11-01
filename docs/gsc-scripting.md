@@ -371,7 +371,8 @@ Available helpers:
 - `getdate(field, [time], [utc])`
 - `strftime(format, [time], [utc])`
 
-`getdate` returns one part of the date as an int:
+`getdate` returns one part of the date as an int, except `weekday` which is a
+string:
 
 | Field     | Value                       |
 | --------- | --------------------------- |
@@ -381,7 +382,7 @@ Available helpers:
 | `hour`    | `0` - `23`                  |
 | `minute`  | `0` - `59`                  |
 | `second`  | `0` - `59`                  |
-| `weekday` | `0` - `6`, `0` is Sunday    |
+| `weekday` | `sunday` - `saturday`       |
 | `yearday` | `1` - `366`                 |
 | `week`    | ISO week number, `1` - `53` |
 
@@ -397,7 +398,7 @@ if (getdate("month") == 12 && getdate("day") >= 24 && getdate("day") <= 26)
     level.xp_multiplier = 2;
 }
 
-if (getdate("weekday") == 0 || getdate("weekday") == 6)
+if (getdate("weekday") == "saturday" || getdate("weekday") == "sunday")
 {
     println("weekend event is on");
 }
