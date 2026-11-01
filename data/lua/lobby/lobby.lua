@@ -1434,7 +1434,11 @@ LobbyVM.LobbySettings = function(params)
   end
   LobbyVM.SetMaxLocalPlayers(target)
   Engine.SetLobbyMode(target.lobbyType, target.lobbyMode)
-  Engine.TEMPGameModeSetMode(target.eGameModes)
+  if target.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME and Engine.DvarBool(nil, "cl_connected_to_dedi") then
+    Engine.TEMPGameModeSetMode(Enum.eGameModes.MODE_GAME_MATCHMAKING_PLAYLIST)
+  else
+    Engine.TEMPGameModeSetMode(target.eGameModes)
+  end
 end
 
 LobbyVM.UpdateUI = function(params)
