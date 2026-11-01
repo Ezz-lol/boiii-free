@@ -2283,11 +2283,15 @@ luaReturnCount_e Lua_CoD_LuaCall_Mods_SetMod_LoadImmediately(lua_State *luaVM) {
     game::trace("[Lua] Mods_SetMod called with publisherId: \"{}\"",
                 publisherId);
 #endif
-    if (publisherId) {
+    static bool pending = false;
+    if (publisherId && !pending &&
+        game::ugc::active_mod->loadState != game::ugc::ModLoadState::LOADING) {
+      pending = true;
       scheduler::once(
-          [publisherId]() {
+          [id = std::string(publisherId)]() {
+            pending = false;
             UGC_LoadModByPublisherId_Impl(
-                game::LocalClientNum_t::LOCAL_CLIENT_0, publisherId, true);
+                game::LocalClientNum_t::LOCAL_CLIENT_0, id.data(), true);
           },
           scheduler::pipeline::main);
     }

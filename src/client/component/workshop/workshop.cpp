@@ -22,6 +22,7 @@
 #include <game/impl/db/xzone/xzone.hpp>
 #include <game/impl/lua/lua.hpp>
 #include <game/impl/ugc/ugc.hpp>
+#include <game/ui_scripting/execution.hpp>
 
 #include <condition_variable>
 #include <mutex>
@@ -1066,6 +1067,61 @@ std::vector<item_details> get_details(const std::vector<std::string> &ids) {
   return result;
 }
 
+std::uint64_t newest_write_time(const std::filesystem::path &folder) {
+  std::uint64_t newest = 0;
+  std::error_code ec;
+  for (std::filesystem::recursive_directory_iterator it(folder, ec), end;
+       !ec && it != end; it.increment(ec)) {
+    if (it->is_regular_file(ec)) {
+      const std::filesystem::file_time_type time = it->last_write_time(ec);
+      if (!ec) {
+        newest = std::max<std::uint64_t>(
+            newest,
+            std::chrono::system_clock::to_time_t(
+                std::chrono::clock_cast<std::chrono::system_clock>(time)));
+      }
+    }
+  }
+  return newest;
+}
+
+void warn_if_outdated(const std::string &id, const std::string &title,
+                      const std::filesystem::path &folder) {
+  if (!utils::string::is_numeric(id)) {
+    return;
+  }
+  std::thread([=] {
+    const std::vector<item_details> details = get_details({id});
+    const std::uint64_t local = newest_write_time(folder);
+    if (!details.empty() && local && local < details[0].time_updated) {
+      printf("[ Workshop ] WARNING: '%s' (%s) is older than the version on "
+             "the Steam Workshop. Players who download it can't join until "
+             "the server is updated. Use fastdl if you want players to use "
+             "this version.\n",
+             title.c_str(), id.c_str());
+    }
+  }).detach();
+}
+
+void watch_server_content() {
+  scheduler::loop(
+      [] {
+        static std::string usermap;
+        static std::string mod;
+        if (usermap != game::ugc::active_usermap->publisherId) {
+          usermap = game::ugc::active_usermap->publisherId;
+          warn_if_outdated(usermap, game::ugc::active_usermap->title,
+                           game::ugc::active_usermap->absolutePathZoneFiles);
+        }
+        if (mod != game::ugc::active_mod->publisherId) {
+          mod = game::ugc::active_mod->publisherId;
+          warn_if_outdated(mod, game::ugc::active_mod->title,
+                           game::ugc::active_mod->absolutePathZoneFiles);
+        }
+      },
+      scheduler::main, 5s);
+}
+
 workshop_info get_steam_workshop_info(const std::string_view &workshop_id) {
   workshop_info info{};
   if (workshop_id.empty())
@@ -1517,21 +1573,23 @@ public:
       });
       command::add("loadmod", [](const command::params &params) {
         if (params.size() > 0) {
-          const std::string mod = params.get(1);
-
-          if (mod.empty() || mod == "usermaps") {
-            game::ugc::UGC_LoadModByPublisherId_Impl(game::LOCAL_CLIENT_0,
-                                                     mod.c_str(), true);
-          } else {
-            for (size_t i = 0; i < game::ugc::modsPool.count; ++i) {
-              const game::ugc::UGCItem *data = &game::ugc::modsPool.data[i];
-              if (std::string_view(data->internalName) == mod ||
-                  std::string_view(data->publisherId) == mod) {
-                return game::ugc::UGC_LoadModByPublisherId_Impl(
-                    game::LOCAL_CLIENT_0, data->publisherId, true);
-              }
+          std::string mod = params.get(1);
+          for (size_t i = 0; i < game::ugc::modsPool.count; ++i) {
+            const game::ugc::UGCItem *data = &game::ugc::modsPool.data[i];
+            if (!mod.empty() && (std::string_view(data->internalName) == mod ||
+                                 std::string_view(data->publisherId) == mod)) {
+              mod = data->publisherId;
+              break;
             }
           }
+
+          const ui_scripting::table info{};
+          info.set("ugcName", mod);
+          info.set("ugcType", "mods");
+          info.set("ugcVersion", 1);
+          const ui_scripting::table globals{
+              (*game::lua::hks::primary_luaVM)->globals.v.table};
+          globals["Engine"]["LobbyVM_CallFunc"]("LoadMod", info);
         }
       });
 
@@ -1570,6 +1628,8 @@ public:
 
       utils::hook::call(game::cl::CL_SetupForNewServerMap.offset(0x81),
                         com_error_missing_map_stub);
+    } else {
+      watch_server_content();
     }
   }
 
