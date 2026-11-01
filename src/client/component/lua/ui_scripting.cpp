@@ -2582,7 +2582,6 @@ UI_Model_AllocateNode_EnsureFreeModelNode(const UIModelIndex ancestorIndex,
   ensure_free_model_node();
   const UIModelIndex result = UI_Model_AllocateNode_hook.invoke<UIModelIndex>(
       ancestorIndex, key, persistent);
-
   ensure_free_model_node();
 
   return result;
