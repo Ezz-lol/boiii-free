@@ -115,10 +115,10 @@ bool has_mod(const std::string_view &pub_id) {
 }
 
 bool has_usermap(const std::string_view &internal_id) {
-  for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
-    const game::ugc::UGCItem *mod_data = &game::ugc::modsPool.data[i];
-    if (mod_data->publisherId == internal_id ||
-        mod_data->internalName == internal_id) {
+  for (uint32_t i = 0; i < game::ugc::usermapsPool.count; ++i) {
+    const game::ugc::UGCItem *usermap = &game::ugc::usermapsPool.data[i];
+    if (usermap->publisherId == internal_id ||
+        usermap->internalName == internal_id) {
       return true;
     }
   }
@@ -1151,7 +1151,9 @@ void offer_download(game::ZoneType zoneType, const std::string_view &name,
   message += "\nDo you want to download it from the Steam Workshop?";
   download_overlay::show_confirmation(
       std::format("Download {}?", game::toString(zoneType)), message,
-      [workshop_id, zoneType] { start_download(workshop_id, zoneType); });
+      [id = std::string(workshop_id), zoneType] {
+        start_download(id, zoneType);
+      });
 }
 
 bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
@@ -1359,7 +1361,7 @@ bool check_valid_mod_id(const std::string_view &mod,
       const std::string mod_copy(mod);
       const std::string id_copy(workshop_id);
       if (base_uri.empty()) {
-        if (!has_mod(workshop_id)) {
+        if (!has_mod(mod)) {
           offer_mod_from_workshop(mod_copy, id_copy);
           return false;
         }
@@ -1368,7 +1370,7 @@ bool check_valid_mod_id(const std::string_view &mod,
                              [id_copy, mod_copy]() {
                                offer_mod_from_workshop(mod_copy, id_copy);
                              }) &&
-               has_mod(workshop_id);
+               has_mod(mod);
       }
     }
   }
