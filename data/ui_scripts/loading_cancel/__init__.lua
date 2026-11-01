@@ -10,6 +10,9 @@ end
 
 local BUTTON_LEFT = 64
 local BUTTON_BOTTOM_OFFSET = 82 -- clears the loading bar and hint text
+local ZM_BAR_LEFT = 216
+local ZM_BAR_BOTTOM_OFFSET = 121
+local CINEMATIC_BOTTOM_OFFSET = 24
 local BUTTON_WIDTH_MAX = 280
 local BUTTON_HEIGHT = 32
 local TEXT_LEFT = 12
@@ -128,11 +131,21 @@ local function createImage(image, material)
   return element
 end
 
+local function placement()
+  if not CoD.isZombie then
+    return BUTTON_LEFT, BUTTON_BOTTOM_OFFSET
+  elseif Engine.IsCinematicPlaying() then
+    return BUTTON_LEFT, CINEMATIC_BOTTOM_OFFSET
+  end
+  return ZM_BAR_LEFT, ZM_BAR_BOTTOM_OFFSET
+end
+
 -- Rebuilt from the stock FE_List1ButtonLarge_PH, which is not available in-game
 local function createButton(menu, controller)
+  local left, bottomOffset = placement()
   local button = LUI.UIElement.new()
-  button:setLeftRight(true, false, BUTTON_LEFT, BUTTON_LEFT + BUTTON_WIDTH_MAX)
-  button:setTopBottom(false, true, -(BUTTON_BOTTOM_OFFSET + BUTTON_HEIGHT), -BUTTON_BOTTOM_OFFSET)
+  button:setLeftRight(true, false, left, left + BUTTON_WIDTH_MAX)
+  button:setTopBottom(false, true, -(bottomOffset + BUTTON_HEIGHT), -bottomOffset)
   button:setPriority(1000)
   button:setHandleMouse(true)
   if button.setHandleMouseMove then
@@ -205,7 +218,7 @@ local function createButton(menu, controller)
       return
     end
     local fitted = math.min(width + TEXT_LEFT * 2, BUTTON_WIDTH_MAX)
-    button:setLeftRight(true, false, BUTTON_LEFT, BUTTON_LEFT + fitted)
+    button:setLeftRight(true, false, left, left + fitted)
   end
   fitToLabel()
 
