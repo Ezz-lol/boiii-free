@@ -21,14 +21,12 @@ void dvar_bool_modification_force(EngineDependentDvarMut dvar) {
   }
 }
 
-#ifndef NDEBUG
 template <const int32_t Value>
 inline void dvar_int_modification_force(EngineDependentDvarMut dvar) {
   if (dvar.get_int() != Value) {
     dvar.set(Value);
   }
 }
-#endif
 
 #ifndef NDEBUG
 template <const int32_t Value>
@@ -203,6 +201,21 @@ EngineDependentDvarMut Dvar_RegisterBool_Inlined_Force(
   return dvar;
 }
 
+template <const IntegralLike<int32_t> auto Value>
+EngineDependentDvarMut
+Dvar_RegisterInt_Force(dvarStrHash_t hash, const char *dvarName,
+                       [[maybe_unused]] int32_t value, int32_t min, int32_t max,
+                       DvarFlags flags, const char *description) {
+  constexpr int32_t ValueInt = static_cast<int32_t>(Value);
+  flags.archive = false;
+  const EngineDependentDvarMut dvar =
+      Dvar_RegisterInt(hash, dvarName, ValueInt, min, max, flags, description);
+
+  Dvar_SetModifiedCallback(dvar, dvar_int_modification_force<ValueInt>);
+
+  return dvar;
+}
+
 template <const bool Value> inline void sv_cheats_force() {
   /*
      1. sv_cheats used to enable/disable cheat commands - both in console
@@ -355,6 +368,9 @@ public:
     // toggle ADS dof based on r_dof_enable
     utils::hook::jump(game::select(0x141116edb, 0x141116EBB, 0x0),
                       utils::hook::assemble(dof_enabled_stub));
+
+    // Disable `lui_oom`
+    utils::hook::call(0x142231BF0_g, Dvar_RegisterInt_Force<0>);
 
     scheduler::schedule(
         []() {

@@ -2550,6 +2550,44 @@ float UI_Interface_GetTextWidth_Safe(game::LocalClientNum_t localClientNum,
              : 0.0f;
 }
 
+inline void ensure_free_model_node() {
+  if (*game::ui::s_firstFreeModelNode == 0) {
+    for (UIModelIndex i = 1; i < s_modelNodePool->size(); ++i) {
+      const volatile UIModelNode &node = s_modelNodePool->get(i);
+      if (node.isFree()) {
+        *game::ui::s_firstFreeModelNode = i;
+        break;
+      }
+    }
+  }
+}
+
+static std::recursive_mutex UI_Model_Alloc_Mutex;
+
+utils::hook::detour UI_Model_FreeModel_hook;
+void UI_Model_FreeModel_EnsureFreeModelNode(UIModelIndex model) {
+  std::scoped_lock alloc_lck(UI_Model_Alloc_Mutex);
+
+  ensure_free_model_node();
+  UI_Model_FreeModel_hook.invoke(model);
+  ensure_free_model_node();
+}
+
+utils::hook::detour UI_Model_AllocateNode_hook;
+UIModelIndex
+UI_Model_AllocateNode_EnsureFreeModelNode(const UIModelIndex ancestorIndex,
+                                          const char *key, bool persistent) {
+  std::scoped_lock alloc_lck(UI_Model_Alloc_Mutex);
+
+  ensure_free_model_node();
+  const UIModelIndex result = UI_Model_AllocateNode_hook.invoke<UIModelIndex>(
+      ancestorIndex, key, persistent);
+
+  ensure_free_model_node();
+
+  return result;
+}
+
 inline void apply_quadcache_ptr_handling_patches() {
   utils::hook::jump(api::ui::quad::UI_CoD_LuaCall_QuadCache_GC,
                     quad::UI_CoD_LuaCall_QuadCache_GC_Safe);
@@ -2560,6 +2598,10 @@ inline void apply_quadcache_ptr_handling_patches() {
 
   UI_Interface_GetTextWidth_hook.create(UI_Interface_GetTextWidth,
                                         UI_Interface_GetTextWidth_Safe);
+  UI_Model_AllocateNode_hook.create(game::ui::UI_Model_AllocateNode,
+                                    UI_Model_AllocateNode_EnsureFreeModelNode);
+  UI_Model_FreeModel_hook.create(game::ui::UI_Model_FreeModel,
+                                 UI_Model_FreeModel_EnsureFreeModelNode);
 }
 
 class component final : public generic_component {
