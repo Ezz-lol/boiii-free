@@ -5,6 +5,7 @@
 #include <game/utils.hpp>
 
 #include <game/impl/com/com.hpp>
+#include <game/impl/lua/lui/quad.hpp>
 #include <game/impl/ugc/ugc.hpp>
 
 #include <game/ui_scripting/execution.hpp>
@@ -2539,51 +2540,6 @@ luaReturnCount_e Lua_CoD_LuaCall_GetHeroName_Safe(lua_State *luaVM) {
   return Lua_CoD_LuaCall_GetHeroName_hook.invoke<luaReturnCount_e>(luaVM);
 }
 
-UIQuadCache *UI_CoD_GetNextQuadCache_Safe(lua_State *luaVM,
-                                          UIQuadCache *quadCache) {
-  if (nonnull(quadCache) && quadCache->next != -2) {
-    lua_rawgeti(luaVM, -10000, quadCache->next);
-    UIQuadCache *const nextCache = lua_touserdata(luaVM, -1).uiQuadCache;
-    lua_pop(luaVM, 1);
-
-    if (nonnull(nextCache)) {
-      return nextCache;
-    }
-  }
-
-  return nullptr;
-}
-
-void UI_CoD_UnrefQuadCacheChain_Safe(lua_State *luaVM, UIQuadCache *quadCache) {
-  for (UIQuadCache *nextCache = UI_CoD_GetNextQuadCache_Safe(luaVM, quadCache);
-       nonnull(nextCache);
-       nextCache = UI_CoD_GetNextQuadCache_Safe(luaVM, nextCache)) {
-    luaL_unref(luaVM, -10000, quadCache->next);
-    quadCache->next = -2;
-    quadCache = nextCache;
-  }
-}
-
-alwaysinline int32_t GetSizeForQuadCache(const int16_t numQuads) {
-  return 0x4 * numQuads + 0x50 * numQuads + sizeof(UIQuadCache);
-}
-
-luaReturnCount_e UI_CoD_LuaCall_QuadCache_GC_Safe(lua_State *luaVM) {
-  if (UI_IsInitialized()) {
-    --*quad::g_LUIAllocatedQuadCaches;
-    const HksObject *top = luaVM->m_apistack.top;
-    if (nonnull(top)) {
-      UIQuadCache *const cache = top->lightUserData().uiQuadCache;
-      if (nonnull(cache)) {
-        *quad::g_LUIAllocatedQuadCachesMemory -=
-            GetSizeForQuadCache(cache->numQuads);
-        UI_CoD_UnrefQuadCacheChain_Safe(luaVM, cache);
-      }
-    }
-  }
-  return luaReturnCount_e::NONE;
-}
-
 utils::hook::detour UI_Interface_GetTextWidth_hook;
 float UI_Interface_GetTextWidth_Safe(game::LocalClientNum_t localClientNum,
                                      const char *text, ttf::TTFDef *font,
@@ -2592,6 +2548,18 @@ float UI_Interface_GetTextWidth_Safe(game::LocalClientNum_t localClientNum,
              ? UI_Interface_GetTextWidth_hook.invoke<float>(
                    localClientNum, text, font, textHeight, letterSpacing)
              : 0.0f;
+}
+
+inline void apply_quadcache_ptr_handling_patches() {
+  utils::hook::jump(api::ui::quad::UI_CoD_LuaCall_QuadCache_GC,
+                    quad::UI_CoD_LuaCall_QuadCache_GC_Safe);
+  utils::hook::jump(api::ui::quad::UI_CoD_GetNextQuadCache,
+                    quad::UI_CoD_GetNextQuadCache_Safe);
+  utils::hook::jump(api::ui::quad::UI_CoD_UnrefQuadCacheChain,
+                    quad::UI_CoD_UnrefQuadCacheChain_Safe);
+
+  UI_Interface_GetTextWidth_hook.create(UI_Interface_GetTextWidth,
+                                        UI_Interface_GetTextWidth_Safe);
 }
 
 class component final : public generic_component {
@@ -2655,26 +2623,7 @@ public:
                                    hksi_lua_getinfo_stub);
 
     if (game::is_client()) {
-      utils::hook::jump(api::ui::quad::UI_CoD_LuaCall_QuadCache_GC,
-                        UI_CoD_LuaCall_QuadCache_GC_Safe);
-      if (!game::is_legacy_client()) {
-        const uintptr_t inlined_next_quad_cache = game::relocate(0x141F2720C);
-        constexpr uint8_t pass_args[] = {0x48, 0x8B, 0xD0, 0x49, 0x8B, 0xCD};
-        constexpr uint8_t skip_inlined[] = {0xEB, 0x50};
-        utils::hook::copy(inlined_next_quad_cache, pass_args,
-                          sizeof(pass_args));
-        utils::hook::call(inlined_next_quad_cache + 6,
-                          UI_CoD_GetNextQuadCache_Safe);
-        utils::hook::copy(inlined_next_quad_cache + 11, skip_inlined,
-                          sizeof(skip_inlined));
-      }
-      utils::hook::jump(api::ui::quad::UI_CoD_GetNextQuadCache,
-                        UI_CoD_GetNextQuadCache_Safe);
-      utils::hook::jump(api::ui::quad::UI_CoD_UnrefQuadCacheChain,
-                        UI_CoD_UnrefQuadCacheChain_Safe);
-      UI_Interface_GetTextWidth_hook.create(UI_Interface_GetTextWidth,
-                                            UI_Interface_GetTextWidth_Safe);
-
+      apply_quadcache_ptr_handling_patches();
       hks_traceback_hook.create(hksi_hks_traceback.get(), hks_traceback_stub);
       hks_where_hook.create(hksi_luaL_where.get(), hks_where_stub);
       ui_init_hook.create(UI_Init.get(), ui_init_stub);
