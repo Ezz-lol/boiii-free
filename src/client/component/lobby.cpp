@@ -3,6 +3,7 @@
 #include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 
+#include "network.hpp"
 #include "party.hpp"
 
 #include <utils/hook.hpp>
@@ -97,6 +98,23 @@ void server_status_not_running_stub(session::LobbyGameData *gameData) {
     server_status_not_running_hook.invoke<void>(gameData);
   }
 }
+
+utils::hook::detour connect_from_lobby_hook;
+void connect_from_lobby_stub(ControllerIndex_t controllerIndex,
+                             net::XSESSION_INFO *hostInfo,
+                             const net::netadr_t *addr, int numPublicSlots,
+                             int numPrivateSlots, const char *mapname,
+                             const char *gametype, const char *usermap) {
+  if (party::cl_connected_to_dedi.get_bool() &&
+      cg::clientUIActives->actives[0].connectionState !=
+          connstate_t::DISCONNECTED &&
+      network::are_addresses_equal(party::get_connected_server(), *addr)) {
+    return;
+  }
+  connect_from_lobby_hook.invoke<void>(controllerIndex, hostInfo, addr,
+                                       numPublicSlots, numPrivateSlots, mapname,
+                                       gametype, usermap);
+}
 } // namespace
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lobby");
@@ -130,6 +148,8 @@ public:
           build_route_list_stub);
       server_status_not_running_hook.create(
           client::ServerStatusNotRunning.get(), server_status_not_running_stub);
+      connect_from_lobby_hook.create(cl::CL_ConnectFromLobby.get(),
+                                     connect_from_lobby_stub);
       utils::hook::set<uint32_t>(
           game::lobby::voice::TransmitQueuedVoiceData.offset(0x58), 40);
       utils::hook::set<uint8_t>(

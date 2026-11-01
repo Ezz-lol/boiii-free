@@ -359,11 +359,11 @@ void update_server_lobby() {
   static bool requested = false;
   const game::connstate_t state =
       game::cg::clientUIActives->actives[0].connectionState;
-  if (state == game::connstate_t::DISCONNECTED) {
+  if (state != game::connstate_t::ACTIVE || !game::com::Com_IsInGame()) {
     requested = false;
-  } else if (state == game::connstate_t::ACTIVE && !requested &&
-             cl_connected_to_dedi.get_bool() && !game::server_running() &&
-             nat::has_party_lobby()) {
+    nat::leave_server_lobby();
+  } else if (!requested && cl_connected_to_dedi.get_bool() &&
+             !game::server_running() && nat::has_party_lobby()) {
     requested = true;
     nat::join_server_lobby(get_connected_server(game::LOCAL_CLIENT_0));
   }

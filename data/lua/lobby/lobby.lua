@@ -36,6 +36,26 @@ Lobby.TeamSelection.AutoSplitTeam = function(requireBalanced, ...)
   return autoSplitTeam(requireBalanced, ...)
 end
 
+local lobbyClientEnd = Lobby.Actions.LobbyClientEnd
+Lobby.Actions.LobbyClientEnd = function(lobbyType)
+  local action = lobbyClientEnd(lobbyType)
+  local start = action.startFuncPtr
+  action.startFuncPtr = function(self)
+    if Engine.IsLobbyActive(self.lobbyType) then
+      start(self)
+    else
+      LobbyVM.ProcessCompleteSuccess({ actionId = self.actionId })
+    end
+  end
+  return action
+end
+
+local function RecoverTarget()
+  if Engine.DvarBool(nil, "cl_connected_to_dedi") then
+    return LobbyData.UITargets.UI_MODESELECT.id
+  end
+end
+
 Util = {
   IsNil = function(value)
     if value == nil then
@@ -640,12 +660,17 @@ LobbyVM.OnComErrorCleanup = function(comErrorData)
   end
   if errorCode == Enum.errorCode.ERROR_FATAL then
     LuaUtils.UI_ShowErrorMessageDialog(controller, errorMsg)
-    local recoverProcess = Lobby.Process.Recover(controller)
+    local recoverProcess = Lobby.Process.Recover(controller, RecoverTarget())
     if recoverProcess ~= nil then
       Lobby.ProcessQueue.AddToQueue("ErrorFatal", recoverProcess)
     end
+  elseif errorCode == Enum.errorCode.ERROR_SERVERDISCONNECT and RecoverTarget() then
+    local recoverProcess = Lobby.Process.Recover(controller, RecoverTarget())
+    if recoverProcess then
+      Lobby.ProcessQueue.AddToQueue("ServerDisconnect", recoverProcess)
+    end
   elseif errorCode == Enum.errorCode.ERROR_DROP then
-    local recoverProcess = Lobby.Process.Recover(controller)
+    local recoverProcess = Lobby.Process.Recover(controller, RecoverTarget())
     if recoverProcess then
       local errorPopup = Lobby.Actions.ErrorPopupMsg(errorMsg)
       Lobby.Process.AddActions(recoverProcess.tail, errorPopup, errorPopup, errorPopup)
@@ -1028,7 +1053,7 @@ LobbyVM.LobbyClientLeftEvent = function(event)
   local lobbyMainMode = event.lobbyMainMode
   local lobbyNetworkMode = event.lobbyNetworkMode
   local maxClients = event.maxClients
-  local recoverProcess = Lobby.Process.Recover(controller)
+  local recoverProcess = Lobby.Process.Recover(controller, RecoverTarget())
   if LobbyVM.AutoJoin.data ~= nil then
     local joinProcess = nil
     if LobbyVM.AutoJoin.data.platform == true then

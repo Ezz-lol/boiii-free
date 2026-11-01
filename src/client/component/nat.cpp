@@ -908,6 +908,17 @@ void join_server_lobby(const game::net::netadr_t &server) {
   request_lobby(server, "match", [] {});
 }
 
+void leave_server_lobby() {
+  if (!server_lobby) {
+    return;
+  }
+  std::scoped_lock lock(peers_mutex);
+  std::erase_if(lobby_peers, [](const lobbyPeerMap_t::value_type &peer) {
+    return network::are_addresses_equal(peer.second, *server_lobby);
+  });
+  server_lobby.reset();
+}
+
 bool is_lobby_peer(const game::net::netadr_t &address) {
   std::scoped_lock lock(peers_mutex);
   return std::ranges::any_of(
