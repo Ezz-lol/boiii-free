@@ -147,7 +147,7 @@ PACKED(struct Msg_JoinParty {
   join::JoinType joinType;
   uint8_t _padding0C[4];
   XUID probedXuid;
-  int32_t memberCount;
+  ClientNum_t memberCount;
   uint8_t _padding1C[4];
   LobbyClientPool<join::JoinPartyMember> members;
   int32_t splitscreenClients;

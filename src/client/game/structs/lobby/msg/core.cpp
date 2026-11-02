@@ -158,7 +158,7 @@ bool LobbyMsg::package_element(bool addElement) {
     msg.write_byte(static_cast<uint8_t>(LobbyMsgElementType::ARRAY_ELEMENT));
     return !msg.overflowed;
   case PackageType::READ:
-    if (read_elementType() != LobbyMsgElementType::INT32) {
+    if (read_elementType() == LobbyMsgElementType::ARRAY_END) {
       encodeFlags.clear();
       return false;
     }
