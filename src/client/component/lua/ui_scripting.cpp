@@ -2587,7 +2587,7 @@ UI_Model_AllocateNode_EnsureFreeModelNode(const UIModelIndex ancestorIndex,
   return result;
 }
 
-inline void apply_quadcache_ptr_handling_patches() {
+inline void apply_ui_model_patches() {
   UI_Interface_GetTextWidth_hook.create(UI_Interface_GetTextWidth,
                                         UI_Interface_GetTextWidth_Safe);
   UI_Model_AllocateNode_hook.create(game::ui::UI_Model_AllocateNode,
@@ -2657,7 +2657,7 @@ public:
                                    hksi_lua_getinfo_stub);
 
     if (game::is_client()) {
-      apply_quadcache_ptr_handling_patches();
+      apply_ui_model_patches();
       hks_traceback_hook.create(hksi_hks_traceback.get(), hks_traceback_stub);
       hks_where_hook.create(hksi_luaL_where.get(), hks_where_stub);
       ui_init_hook.create(UI_Init.get(), ui_init_stub);
