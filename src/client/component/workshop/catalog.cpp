@@ -388,6 +388,7 @@ void request_catalog_page(const std::string_view &query, int page,
         (status.loading || !catalog_items.empty() || !status.error.empty()))
       return;
     catalog_query = query;
+    catalog_type = type;
     catalog_items.clear();
     status = {true, false, page, status.generation + 1, {}};
   }
