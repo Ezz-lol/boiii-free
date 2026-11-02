@@ -86,6 +86,13 @@ inline std::vector<std::string_view> split(const std::string_view &s,
   return split(s, std::string_view(&delim, 1));
 }
 
+inline bool iequal(const std::string_view &a, const std::string_view &b) {
+  return a.length() == b.length() &&
+         std::equal(a.begin(), a.end(), b.begin(), [](uint8_t ca, uint8_t cb) {
+           return std::tolower(ca) == std::tolower(cb);
+         });
+}
+
 std::string to_lower(std::string text);
 std::string to_upper(std::string text);
 

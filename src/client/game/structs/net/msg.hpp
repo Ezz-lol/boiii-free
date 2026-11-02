@@ -19,9 +19,46 @@ struct msg_t {
   int32_t lastEntityRef;
   qboolean flush;
   netsrc_t targetLocalNetID;
+
+  uint8_t read_byte();
+  void read_data(void *data, int32_t len);
+  int32_t read_long();
+  float read_float();
+  int64_t read_int64();
+  int16_t read_short();
+  char *read_string(char *string, uint32_t maxChars);
+  char *read_stringLine(char *string, uint32_t maxChars);
+  void write_byte(uint8_t c);
+  void write_data(const void *data, int32_t length);
+  void write_long(int32_t c);
+  void write_int64(int64_t c);
+  void write_short(int16_t c);
+  void write_string(const std::string_view &s);
+  void write_float(float f);
+
+  inline constexpr void init(uint8_t *d, int32_t length) {
+    overflowed = qfalse;
+    readOnly = qfalse;
+    splitData = nullptr;
+    cursize = 0;
+    splitSize = 0;
+    readcount = 0;
+    bit = 0;
+    lastEntityRef = 0;
+    flush = qfalse;
+    targetLocalNetID = netsrc_t::NS_CLIENT1;
+
+    data = d;
+    maxsize = length;
+  }
 };
 ASSERT_SIZE(msg_t, 0x38);
-typedef uint8_t min_msg_buf[2048];
+
+inline constexpr auto MIN_MSG_BUF_LEN = 0x800;
+typedef uint8_t min_msg_buf[MIN_MSG_BUF_LEN];
+
+inline constexpr auto MAX_MSG_STRING_LEN = 0x400;
+typedef char msgStr_t[MAX_MSG_STRING_LEN];
 
 } // namespace msg
 } // namespace net

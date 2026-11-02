@@ -247,6 +247,7 @@ declare -A LIBRARIES_IN_USE=(["advapi32"]=1
 	["d3dcompiler"]=1
 	["dxgi"]=1
 	["dbghelp"]=1
+	["dsound"]=1
 	["dwmapi"]=1
 	["gdi32"]=1
 	["imm32"]=1
@@ -265,6 +266,7 @@ declare -A LIBRARIES_IN_USE=(["advapi32"]=1
 	["ole32"]=1
 	["oleaut32"]=1
 	["psapi"]=1
+	["setupapi"]=1
 	["shell32"]=1
 	["shlwapi"]=1
 	["urlmon"]=1
@@ -589,6 +591,7 @@ SPECIAL_CASE_SENSITIVE_FILES=(
 	"${OUTPUT_SYSROOT_INCLUDE_PATH}/OCIdl.h"
 	"${OUTPUT_SYSROOT_LIB_PATH}/Crypt32.lib"
 	"${OUTPUT_SYSROOT_LIB_PATH}/Crypt32.Lib"
+	"${OUTPUT_SYSROOT_LIB_PATH}/Advapi32.lib"
 )
 
 if [ -n "$REPO_DIR" ]; then

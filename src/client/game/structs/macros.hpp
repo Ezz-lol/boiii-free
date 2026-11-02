@@ -145,8 +145,8 @@ template <typename T> consteval bool is_cpp03_pod() { return CPP03PoD<T>; }
           bool, (std::is_scalar_v<name> || std::is_aggregate_v<name>), true>,  \
       #name " must be an aggregate or scalar type!");
 
-#define BITS_PER_BYTE CHAR_BIT
-template <typename T> inline constexpr size_t bitsizeof() noexcept {
+inline constexpr auto BITS_PER_BYTE = CHAR_BIT;
+template <typename T> inline constexpr auto bitsizeof() noexcept {
   return sizeof(T) * BITS_PER_BYTE;
 }
 
@@ -163,7 +163,7 @@ consteval int32_t min_bits_unsigned(T val_in) {
   }
 
   // Total bits (64) minus leading zeros gives the bits used
-  return bitsizeof<uint64_t>() - std::countl_zero(val);
+  return static_cast<int32_t>(bitsizeof<uint64_t>()) - std::countl_zero(val);
 }
 
 template <IntegralLike<uint64_t> T> consteval uint32_t min_bits_mask(T val_in) {

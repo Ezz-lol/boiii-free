@@ -130,11 +130,3 @@ inline constexpr auto BINARY_PAYLOAD_SIZE = 0x14000000;
 #pragma warning(disable : 4100)
 
 using namespace std::literals;
-
-#pragma comment(lib, "ntdll.lib")
-#pragma comment(lib, "ws2_32.lib")
-#pragma comment(lib, "urlmon.lib")
-#pragma comment(lib, "iphlpapi.lib")
-#pragma comment(lib, "crypt32.lib")
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "dxgi.lib")
