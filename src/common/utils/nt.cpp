@@ -304,7 +304,11 @@ void relaunch_self() {
     std::string arg = string::convert(wide_arg);
 
     if (arg != "norelaunch" && arg != "update") {
-      command_line += " \"" + arg + "\"";
+      // The engine doesn't run +set or +exec when they're quoted, so only
+      // quote what needs it
+      const bool needs_quotes =
+          arg.empty() || arg.find_first_of(" \t\"") != std::string::npos;
+      command_line += needs_quotes ? " \"" + arg + "\"" : " " + arg;
     }
   }
 

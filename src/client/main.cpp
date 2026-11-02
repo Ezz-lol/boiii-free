@@ -894,6 +894,13 @@ inline bool initial_update_required() {
 }
 
 std::wstring quote_process_argument(const std::wstring_view argument) {
+  // The engine doesn't run +set or +exec when they're quoted, so only quote
+  // what needs it
+  if (!argument.empty() &&
+      argument.find_first_of(L" \t\"") == std::wstring_view::npos) {
+    return std::wstring{argument};
+  }
+
   std::wstring result{L"\""};
   size_t backslashes = 0;
 
