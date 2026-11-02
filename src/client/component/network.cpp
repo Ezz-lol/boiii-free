@@ -443,10 +443,11 @@ struct component final : generic_component {
     utils::hook::set<uint8_t>(
         game::select(0x14211A432, 0x142172EF2, 0x140515881), 0xEB);
 
-    // netadrtype_t::IP -> netadrtype_t::RAWIP in NetAdr_ToString
-    utils::hook::set<game::net::netadrtype_t>(
+    // netadrtype_t::IP -> netadrtype_t::RAWIP in NetAdr_ToString. This is the
+    // cmp's 1 byte immediate, so a wider write overwrites the jne after it
+    utils::hook::set<uint8_t>(
         game::select(0x14211A414, 0x142172ED4, 0x140515864),
-        game::net::netadrtype_t::RAWIP);
+        static_cast<uint8_t>(game::net::netadrtype_t::RAWIP));
 
     if (game::is_server()) {
       // Remove restrictions for rcon commands
