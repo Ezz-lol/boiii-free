@@ -31,4 +31,6 @@ int get_server_max_clients();
 void clear_server_info();
 
 game::net::netadr_t get_connect_host();
+bool is_direct_connect();
+bool is_dedi_server(const game::net::netadr_t &addr);
 } // namespace party

@@ -52,6 +52,9 @@ end
 
 local function RecoverTarget()
   if Engine.DvarBool(nil, "cl_connected_to_dedi") then
+    if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
+      return LobbyData.UITargets.UI_MPLOBBYONLINE.id
+    end
     return LobbyData.UITargets.UI_MODESELECT.id
   end
 end
@@ -1434,7 +1437,11 @@ LobbyVM.LobbySettings = function(params)
   end
   LobbyVM.SetMaxLocalPlayers(target)
   Engine.SetLobbyMode(target.lobbyType, target.lobbyMode)
-  if target.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME and Engine.DvarBool(nil, "cl_connected_to_dedi") then
+  if
+    target.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME
+    and Engine.IsInGame()
+    and Engine.DvarBool(nil, "cl_connected_to_dedi")
+  then
     Engine.TEMPGameModeSetMode(Enum.eGameModes.MODE_GAME_MATCHMAKING_PLAYLIST)
   else
     Engine.TEMPGameModeSetMode(target.eGameModes)
@@ -1816,6 +1823,9 @@ LobbyVM.GetNeededDLCBits = function()
 end
 
 LobbyVM.DLCMapCheck = function(params)
+  if Engine.IsInGame() and Engine.DvarBool(nil, "cl_connected_to_dedi") then
+    return true
+  end
   local mapName = Dvar.ui_mapname:get()
   local dlcBits = Engine.GetDLCBits()
   local neededDLCBits = LobbyVM.GetNeededDLCBits()

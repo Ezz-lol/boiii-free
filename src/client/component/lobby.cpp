@@ -105,10 +105,7 @@ void connect_from_lobby_stub(ControllerIndex_t controllerIndex,
                              const net::netadr_t *addr, int numPublicSlots,
                              int numPrivateSlots, const char *mapname,
                              const char *gametype, const char *usermap) {
-  if (party::cl_connected_to_dedi.get_bool() &&
-      cg::clientUIActives->actives[0].connectionState !=
-          connstate_t::DISCONNECTED &&
-      network::are_addresses_equal(party::get_connected_server(), *addr)) {
+  if (!party::is_direct_connect() && party::is_dedi_server(*addr)) {
     return;
   }
   connect_from_lobby_hook.invoke<void>(controllerIndex, hostInfo, addr,

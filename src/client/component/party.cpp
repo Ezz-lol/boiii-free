@@ -57,7 +57,14 @@ std::string normalize_connect_address(std::string address) {
   return address;
 }
 
-void update_dedi_dvar(bool on_dedi) { cl_connected_to_dedi.set(on_dedi); }
+std::optional<game::net::netadr_t> dedi_server;
+
+void update_dedi_dvar(bool on_dedi) {
+  cl_connected_to_dedi.set(on_dedi);
+  dedi_server = on_dedi ? std::optional(connect_host) : std::nullopt;
+}
+
+bool direct_connect = false;
 
 struct server_query {
   bool sent{false};
@@ -98,9 +105,11 @@ void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
 
   // publicSlots is entirely unused within CL_ConnectFromLobby, but just
   // for the sake of completeness, we will pass the correct value.
+  direct_connect = true;
   game::cl::CL_ConnectFromLobby(controllerIndex, &info, &addr, public_slots, 0,
                                 mapname.data(), gamemode.data(),
                                 usermap_id.data());
+  direct_connect = false;
 }
 
 void launch_mode(const game::eModes mode) {
@@ -362,8 +371,14 @@ void update_server_lobby() {
   if (state != game::connstate_t::ACTIVE || !game::com::Com_IsInGame()) {
     requested = false;
     nat::leave_server_lobby();
-  } else if (!requested && cl_connected_to_dedi.get_bool() &&
-             !game::server_running() && nat::has_party_lobby()) {
+    return;
+  }
+  const bool on_dedi = is_dedi_server(get_connected_server());
+  if (cl_connected_to_dedi.get_bool() != on_dedi) {
+    cl_connected_to_dedi.set(on_dedi);
+  }
+  if (!requested && on_dedi && !game::server_running() &&
+      nat::has_party_lobby()) {
     requested = true;
     nat::join_server_lobby(get_connected_server(game::LOCAL_CLIENT_0));
   }
@@ -731,6 +746,12 @@ get_connected_server(game::LocalClientNum_t localClientNum) {
 }
 
 game::net::netadr_t get_connect_host() { return connect_host; }
+
+bool is_direct_connect() { return direct_connect; }
+
+bool is_dedi_server(const game::net::netadr_t &addr) {
+  return dedi_server && network::are_addresses_equal(*dedi_server, addr);
+}
 
 bool is_host(const game::net::netadr_t &addr) {
   return get_connected_server() == addr || connect_host == addr;
