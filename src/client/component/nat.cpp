@@ -56,6 +56,13 @@ struct host_probe {
 join_attempt joining;
 std::vector<host_probe> host_probes;
 
+struct joined_match {
+  std::string token;
+  game::net::netadr_t host{};
+};
+
+std::optional<joined_match> joined;
+
 struct lobby_request {
   bool active{};
   std::string token;
@@ -312,6 +319,14 @@ std::optional<game::net::netadr_t> dedicated_server() {
   return server;
 }
 
+std::optional<std::string> joined_match_token() {
+  if (!joined || hosting_match() || !game::com::Com_IsInGame() ||
+      !network::are_addresses_equal(party::get_connected_server(),
+                                    joined->host))
+    return std::nullopt;
+  return joined->token;
+}
+
 bool can_host() {
   return hosting_match() || lobby_host_info() ||
          lobby_host_info(game::lobby::LobbyType::GAME) || dedicated_server();
@@ -352,6 +367,7 @@ void request_lobby(const game::net::netadr_t &host, const std::string &token,
 void complete_join(const game::net::netadr_t &endpoint) {
   if (joining.active) {
     joining.active = false;
+    joined = joined_match{joining.token, endpoint};
     request_lobby(endpoint, joining.token);
   }
 }
@@ -645,6 +661,11 @@ void receive_lobby_join(const game::net::netadr_t &sender,
     return;
   }
 
+  if (const std::optional<std::string> token = joined_match_token()) {
+    network::send(sender, "lobbyGame", parts[0] + " " + *token);
+    return;
+  }
+
   const game::net::HostInfo *game_lobby =
       lobby_host_info(game::lobby::LobbyType::GAME);
   const game::net::HostInfo *host = game_lobby ? game_lobby : lobby_host_info();
@@ -704,6 +725,11 @@ void receive_lobby_game(const game::net::netadr_t &sender,
     const game::net::netadr_t server = network::address_from_string(parts[1]);
     if (network::is_connectable_address(server)) {
       scheduler::once([server] { connect_to(server); }, scheduler::main);
+      return;
+    }
+    if (valid_token(parts[1])) {
+      scheduler::once([token = parts[1]] { begin_join(token, {}, 0); },
+                      scheduler::main);
       return;
     }
   }
