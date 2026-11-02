@@ -24,7 +24,7 @@ bool get_tm(scriptInstance_t inst, uint32_t index, std::tm &out) {
   const std::time_t time =
       argc > index ? static_cast<std::time_t>(Scr_GetInt(inst, index))
                    : std::time(nullptr);
-  const bool utc = argc > index + 1 && Scr_GetInt(inst, index + 1);
+  const bool utc = argc > index + 1 && Scr_GetInt(inst, index + 1) != 0;
   if (time < 0) {
     return false;
   }
@@ -40,7 +40,7 @@ int32_t iso_week(const std::tm &tm) {
 void gscr_getdate(scriptInstance_t inst) {
   const char *field = Scr_GetString(inst, 0);
   std::tm tm{};
-  if (!field || !get_tm(inst, 1, tm)) {
+  if (field == nullptr || !get_tm(inst, 1, tm)) {
     push_int(inst, -1);
     return;
   }
@@ -52,29 +52,30 @@ void gscr_getdate(scriptInstance_t inst) {
   }
 
   int32_t value = -1;
-  if (name == "year")
+  if (name == "year") {
     value = tm.tm_year + 1900;
-  else if (name == "month")
+  } else if (name == "month") {
     value = tm.tm_mon + 1;
-  else if (name == "day")
+  } else if (name == "day") {
     value = tm.tm_mday;
-  else if (name == "hour")
+  } else if (name == "hour") {
     value = tm.tm_hour;
-  else if (name == "minute")
+  } else if (name == "minute") {
     value = tm.tm_min;
-  else if (name == "second")
+  } else if (name == "second") {
     value = tm.tm_sec;
-  else if (name == "yearday")
+  } else if (name == "yearday") {
     value = tm.tm_yday + 1;
-  else if (name == "week")
+  } else if (name == "week") {
     value = iso_week(tm);
+  }
   push_int(inst, value);
 }
 
 void gscr_strftime(scriptInstance_t inst) {
   const char *format = Scr_GetString(inst, 0);
   std::tm tm{};
-  if (!format || !get_tm(inst, 1, tm)) {
+  if (format == nullptr || !get_tm(inst, 1, tm)) {
     push_string(inst, "");
     return;
   }

@@ -1521,11 +1521,11 @@ struct scr_entref_t {
   EntRefUnion u;
   uint16_t classnum;
   LocalClientNum_t client;
-  inline constexpr bool is_hudelem() const noexcept;
+  [[nodiscard]] constexpr bool is_hudelem() const noexcept;
 
 #ifndef NDEBUG
   template <const size_t N>
-  inline const char *serialize(char (&buf)[N]) const noexcept {
+  const char *serialize(char (&buf)[N]) const noexcept {
     snprintf(buf, N,
              "scr_entref_t { u.val: 0x%016llX, classnum: 0x%04X, client: %s }",
              u.val, classnum, game::serialize(client));
@@ -1700,6 +1700,30 @@ struct GSC_STRINGTABLE_ITEM {
   uint8_t pad[2];
 };
 
+// Import flags (FunctionFlags | CallFlags combined in one byte)
+enum class GSC_IMPORT_FLAGS : uint8_t {
+  NONE = 0x0,
+  FUNC_GETFUNCTION = 0x01,
+  FUNC_CALL = 0x02,
+  FUNC_THREAD = 0x03,
+  FUNC_METHOD = 0x04,
+  FUNC_METHOD_THREAD = 0x05,
+  CALL_EXTERNAL = 0x00,
+  CALL_EXTERNAL_DEV = 0x10,
+  CALL_LOCAL = 0x20,
+  CALL_LOCAL_DEV = 0x30,
+};
+IMPL_ENUM_OPERATORS(GSC_IMPORT_FLAGS);
+
+// Export flags
+enum class GSC_EXPORT_FLAGS : uint8_t {
+  NONE = 0,
+  AUTOEXEC = 2,
+  PRIVATE = 4,
+  VARARG = 0x20,
+};
+IMPL_ENUM_OPERATORS(GSC_EXPORT_FLAGS);
+
 PACKED(struct GSC_EXPORT_ITEM {
   // crc32
   uint32_t checksum;
@@ -1711,7 +1735,7 @@ PACKED(struct GSC_EXPORT_ITEM {
   // Namespace hash
   ScrVarCanonicalName_t name_space;
   uint8_t param_count;
-  uint8_t flags;
+  GSC_EXPORT_FLAGS flags;
   uint8_t _padding12[2];
 });
 ASSERT_SIZE(GSC_EXPORT_ITEM, 0x14);
@@ -1721,20 +1745,18 @@ struct GSC_IMPORT_ITEM {
   ScrVarCanonicalName_t name_space;
   uint16_t num_address;
   uint8_t param_count;
-  uint8_t flags;
+  GSC_IMPORT_FLAGS flags;
 
-  inline std::span<const uint32_t> addresses() const {
-    return std::span(
-        reinterpret_cast<const uint32_t *>(reinterpret_cast<uintptr_t>(this) +
-                                           sizeof(GSC_IMPORT_ITEM)),
-        num_address);
+  [[nodiscard]] std::span<const uint32_t> addresses() const {
+    return {reinterpret_cast<const uint32_t *>(
+                reinterpret_cast<uintptr_t>(this) + sizeof(GSC_IMPORT_ITEM)),
+            num_address};
   }
 
-  inline std::span<uint32_t> addresses() {
-    return std::span(
-        reinterpret_cast<uint32_t *>(reinterpret_cast<uintptr_t>(this) +
-                                     sizeof(GSC_IMPORT_ITEM)),
-        num_address);
+  [[nodiscard]] std::span<uint32_t> addresses() {
+    return {reinterpret_cast<uint32_t *>(reinterpret_cast<uintptr_t>(this) +
+                                         sizeof(GSC_IMPORT_ITEM)),
+            num_address};
   }
 };
 

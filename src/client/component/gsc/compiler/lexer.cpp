@@ -7,12 +7,11 @@ namespace compiler {
 namespace {
 struct lexer_state {
   const std::string &source;
-  size_t pos;
-  int line;
-  int column;
+  size_t pos{};
+  int line{};
+  int column{};
 
-  lexer_state(const std::string &src)
-      : source(src), pos(0), line(1), column(1) {}
+  lexer_state(const std::string &src) : source(src) {}
 
   [[nodiscard]] char peek() const {
     return pos < source.size() ? source[pos] : '\0';
@@ -36,21 +35,24 @@ struct lexer_state {
     return c;
   }
 
-  bool at_end() const { return pos >= source.size(); }
+  [[nodiscard]] bool at_end() const { return pos >= source.size(); }
 };
 
 bool is_ident_start(char c) {
-  return std::isalpha(static_cast<unsigned char>(c)) || c == '_';
+  return std::isalpha(static_cast<unsigned char>(c)) != 0 || c == '_';
 }
 
 bool is_ident_char(char c) {
-  return std::isalnum(static_cast<unsigned char>(c)) || c == '_';
+  return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '_';
 }
 bool is_directive_char(char c) { return is_ident_char(c); }
-bool is_digit(char c) { return std::isdigit(static_cast<unsigned char>(c)); }
+bool is_digit(char c) {
+  return std::isdigit(static_cast<unsigned char>(c)) != 0;
+}
 bool is_hex_digit(char c) {
-  auto cu = static_cast<unsigned char>(c);
-  return std::isdigit(cu) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+  unsigned char cu = static_cast<unsigned char>(c);
+  return (std::isdigit(cu) != 0) || (c >= 'a' && c <= 'f') ||
+         (c >= 'A' && c <= 'F');
 }
 
 void skip_whitespace_and_comments(lexer_state &s) {
@@ -100,8 +102,9 @@ void skip_whitespace_and_comments(lexer_state &s) {
 bool try_read_string(lexer_state &s, token &tok, bool is_istring = false,
                      bool is_hash = false) {
   char quote = s.peek();
-  if (quote != '"')
+  if (quote != '"') {
     return false;
+  }
 
   tok.line = s.line;
   tok.column = s.column;
@@ -137,20 +140,26 @@ bool try_read_string(lexer_state &s, token &tok, bool is_istring = false,
     }
   }
 
-  if (s.at_end())
+  if (s.at_end()) {
     return false;
+  }
   s.advance();
 
   tok.value = std::move(val);
-  tok.type = is_istring
-                 ? token_type::t_istring
-                 : (is_hash ? token_type::t_hash_string : token_type::t_string);
+  if (is_istring) {
+    tok.type = token_type::t_istring;
+  } else if (is_hash) {
+    tok.type = token_type::t_hash_string;
+  } else {
+    tok.type = token_type::t_string;
+  }
   return true;
 }
 
 bool try_read_number(lexer_state &s, token &tok) {
-  if (!is_digit(s.peek()) && !(s.peek() == '.' && is_digit(s.peek_next())))
+  if (!is_digit(s.peek()) && (s.peek() != '.' || !is_digit(s.peek_next()))) {
     return false;
+  }
 
   tok.line = s.line;
   tok.column = s.column;
@@ -161,8 +170,9 @@ bool try_read_number(lexer_state &s, token &tok) {
   if (s.peek() == '0' && (s.peek_next() == 'x' || s.peek_next() == 'X')) {
     val += s.advance();
     val += s.advance();
-    while (!s.at_end() && is_hex_digit(s.peek()))
+    while (!s.at_end() && is_hex_digit(s.peek())) {
       val += s.advance();
+    }
     tok.value = std::move(val);
     tok.type = token_type::t_number_int;
     return true;
@@ -170,8 +180,9 @@ bool try_read_number(lexer_state &s, token &tok) {
 
   while (!s.at_end() && (is_digit(s.peek()) || s.peek() == '.')) {
     if (s.peek() == '.') {
-      if (is_float)
+      if (is_float) {
         break;
+      }
       is_float = true;
     }
     val += s.advance();
@@ -183,74 +194,108 @@ bool try_read_number(lexer_state &s, token &tok) {
 }
 
 token_type keyword_or_identifier(const std::string &word) {
-  if (word == "if")
+  if (word == "if") {
     return token_type::t_if;
-  if (word == "else")
+  }
+  if (word == "else") {
     return token_type::t_else;
-  if (word == "while")
+  }
+  if (word == "while") {
     return token_type::t_while;
-  if (word == "for")
+  }
+  if (word == "for") {
     return token_type::t_for;
-  if (word == "foreach")
+  }
+  if (word == "foreach") {
     return token_type::t_foreach;
-  if (word == "in")
+  }
+  if (word == "in") {
     return token_type::t_in;
-  if (word == "do")
+  }
+  if (word == "do") {
     return token_type::t_do;
-  if (word == "switch")
+  }
+  if (word == "switch") {
     return token_type::t_switch;
-  if (word == "case")
+  }
+  if (word == "case") {
     return token_type::t_case;
-  if (word == "default")
+  }
+  if (word == "default") {
     return token_type::t_default;
-  if (word == "break")
+  }
+  if (word == "break") {
     return token_type::t_break;
-  if (word == "continue")
+  }
+  if (word == "continue") {
     return token_type::t_continue;
-  if (word == "return")
+  }
+  if (word == "return") {
     return token_type::t_return;
-  if (word == "thread")
+  }
+  if (word == "thread") {
     return token_type::t_thread;
-  if (word == "wait")
+  }
+  if (word == "wait") {
     return token_type::t_wait;
-  if (word == "waittillframeend")
+  }
+  if (word == "waittillframeend") {
     return token_type::t_waittillframeend;
-  if (word == "true")
+  }
+  if (word == "true") {
     return token_type::t_true;
-  if (word == "false")
+  }
+  if (word == "false") {
     return token_type::t_false;
-  if (word == "undefined")
+  }
+  if (word == "undefined") {
     return token_type::t_undefined;
-  if (word == "self")
+  }
+  if (word == "self") {
     return token_type::t_self;
-  if (word == "level")
+  }
+  if (word == "level") {
     return token_type::t_level;
-  if (word == "game")
+  }
+  if (word == "game") {
     return token_type::t_game;
-  if (word == "anim")
+  }
+  if (word == "anim") {
     return token_type::t_anim;
-  if (word == "autoexec")
+  }
+  if (word == "autoexec") {
     return token_type::t_autoexec;
-  if (word == "function")
+  }
+  if (word == "function") {
     return token_type::t_function_kw;
-  if (word == "private")
+  }
+  if (word == "private") {
     return token_type::t_private;
-  if (word == "world")
+  }
+  if (word == "world") {
     return token_type::t_world;
-  if (word == "waitrealtime")
+  }
+  if (word == "waitrealtime") {
     return token_type::t_waitrealtime;
-  if (word == "const")
+  }
+  if (word == "const") {
     return token_type::t_const_kw;
-  if (word == "waittill")
+  }
+  if (word == "waittill") {
     return token_type::t_waittill;
-  if (word == "waittillmatch")
+  }
+  if (word == "waittillmatch") {
     return token_type::t_waittillmatch;
-  if (word == "notify")
+  }
+  if (word == "notify") {
     return token_type::t_notify_kw;
-  if (word == "endon")
+  }
+  if (word == "endon") {
     return token_type::t_endon_kw;
-  if (word == "classes")
+  }
+  if (word == "classes") {
     return token_type::t_classes;
+  }
   if (word == "#animtree") {
     return token_type::t_animtree;
   }
@@ -267,7 +312,10 @@ lexer_result tokenize(const std::string &source) {
   while (true) {
     skip_whitespace_and_comments(s);
     if (s.at_end()) {
-      result.tokens.push_back({token_type::t_eof, "", s.line, s.column});
+      result.tokens.push_back({.type = token_type::t_eof,
+                               .value = "",
+                               .line = s.line,
+                               .column = s.column});
       break;
     }
 
@@ -385,16 +433,24 @@ lexer_result tokenize(const std::string &source) {
       if (!s.at_end() && (s.peek() == ':' || s.peek() == '\\')) {
         // Emit '&' as an ampersand, then the identifier. Let the parser handle
         // namespacing
-        result.tokens.push_back(
-            {token_type::t_ampersand, "&", tok.line, tok.column});
-        result.tokens.push_back(
-            {token_type::t_identifier, word, tok.line, tok.column + 1});
+        result.tokens.push_back({.type = token_type::t_ampersand,
+                                 .value = "&",
+                                 .line = tok.line,
+                                 .column = tok.column});
+        result.tokens.push_back({.type = token_type::t_identifier,
+                                 .value = word,
+                                 .line = tok.line,
+                                 .column = tok.column + 1});
       } else {
         // Simple &func. Emit as '::' followed by the identifier for func_ref
-        result.tokens.push_back(
-            {token_type::t_double_colon, "::", tok.line, tok.column});
-        result.tokens.push_back(
-            {token_type::t_identifier, word, tok.line, tok.column + 1});
+        result.tokens.push_back({.type = token_type::t_double_colon,
+                                 .value = "::",
+                                 .line = tok.line,
+                                 .column = tok.column});
+        result.tokens.push_back({.type = token_type::t_identifier,
+                                 .value = word,
+                                 .line = tok.line,
+                                 .column = tok.column + 1});
       }
       continue;
     }
@@ -420,8 +476,9 @@ lexer_result tokenize(const std::string &source) {
 
     if (is_ident_start(c)) {
       std::string word;
-      while (!s.at_end() && is_ident_char(s.peek()))
+      while (!s.at_end() && is_ident_char(s.peek())) {
         word += s.advance();
+      }
 
       tok.value = word;
       tok.type = keyword_or_identifier(word);

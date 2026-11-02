@@ -21,7 +21,6 @@ using namespace gsc::compiler;
 
 constexpr ScrVarCanonicalName_t EMPTY_NAMESPACE = builtin::fnv1a("");
 constexpr ScrVarCanonicalName_t SYS_NAMESPACE = builtin::SYS_NS_HASH;
-constexpr uint8_t IMPORT_TYPE_MASK = 0xF;
 constexpr int32_t BUILTIN_DEV_ONLY = 1;
 
 thread_local scriptInstance_t active_instance = SCRIPTINSTANCE_SERVER;
@@ -63,7 +62,7 @@ struct builtin_info {
 };
 
 inline bool valid_object(const GSC_OBJ *obj) {
-  return obj && obj->hasMagic(GSC_OBJ::T7_MAGIC);
+  return obj != nullptr && obj->hasMagic(GSC_OBJ::T7_MAGIC);
 }
 
 std::string script_key(const std::string_view name) {
@@ -89,7 +88,7 @@ std::string hash_name(const ScrVarCanonicalName_t hash,
   std::string name = script::resolve_hash(hash);
   if (name.empty()) {
     const char *canonical = sl::SL_LookupCanonicalString(hash);
-    if (canonical && canonical[0] &&
+    if (canonical != nullptr && canonical[0] != NULL &&
         _stricmp(canonical, std::format("{:X}", hash).c_str()) != 0) {
       name = canonical;
     }
@@ -128,7 +127,8 @@ std::vector<known_script> collect_scripts(const scriptInstance_t inst) {
         utils::string::to_lower(std::string(name)).ends_with(extension)) {
       std::string key = script_key(name);
       if (seen.insert(key).second) {
-        scripts.push_back({std::string(name), std::move(key), obj});
+        scripts.push_back(
+            {.name = std::string(name), .key = std::move(key), .obj = obj});
       }
     }
   };
@@ -185,29 +185,30 @@ builtin_info find_builtin(const scriptInstance_t inst,
   return info;
 }
 
-bool is_method_import(const uint8_t type) {
-  return type == IMPORT_FUNC_METHOD || type == IMPORT_FUNC_METHOD_THREAD;
+bool is_method_import(const GSC_IMPORT_FLAGS type) {
+  return type == GSC_IMPORT_FLAGS::FUNC_METHOD ||
+         type == GSC_IMPORT_FLAGS::FUNC_METHOD_THREAD;
 }
 
 std::string describe_call(const GSC_IMPORT_ITEM &import) {
-  const uint8_t type = import.flags & IMPORT_TYPE_MASK;
+  const GSC_IMPORT_FLAGS type = import.flags;
   const std::string ns = namespace_name(import.name_space);
   std::string name = function_name(import.name);
-  if (!(import.flags & IMPORT_CALL_LOCAL) && !ns.empty() &&
-      import.name_space != SYS_NAMESPACE) {
+  if (to_underlying(import.flags & GSC_IMPORT_FLAGS::CALL_LOCAL) == 0 &&
+      !ns.empty() && import.name_space != SYS_NAMESPACE) {
     name = ns + "::" + name;
   }
 
   const std::string args =
       std::format("({})", plural(import.param_count, "arg"));
   switch (type) {
-  case IMPORT_FUNC_GETFUNCTION:
+  case GSC_IMPORT_FLAGS::FUNC_GETFUNCTION:
     return "&" + name;
-  case IMPORT_FUNC_THREAD:
+  case GSC_IMPORT_FLAGS::FUNC_THREAD:
     return "thread " + name + args;
-  case IMPORT_FUNC_METHOD:
+  case GSC_IMPORT_FLAGS::FUNC_METHOD:
     return "<entity> " + name + args;
-  case IMPORT_FUNC_METHOD_THREAD:
+  case GSC_IMPORT_FLAGS::FUNC_METHOD_THREAD:
     return "<entity> thread " + name + args;
   default:
     return name + args;
@@ -217,15 +218,22 @@ std::string describe_call(const GSC_IMPORT_ITEM &import) {
 std::string describe_export(const known_script &script,
                             const GSC_EXPORT_ITEM &item) {
   const std::string ns = namespace_name(item.name_space);
-  return std::format("{}{}{}({}{}) in {}{}", ns,
-                     ns.empty() ? "" : "::", function_name(item.name),
-                     plural(item.param_count, "param"),
-                     item.flags & EXPORT_VARARG ? ", vararg" : "", script.name,
-                     item.flags & EXPORT_PRIVATE ? " [private]" : "");
+  return std::format(
+      "{}{}{}({}{}) in {}{}", ns,
+      ns.empty() ? "" : "::", function_name(item.name),
+      plural(item.param_count, "param"),
+      (item.flags & GSC_EXPORT_FLAGS::VARARG) != GSC_EXPORT_FLAGS::NONE
+          ? ", vararg"
+          : "",
+      script.name,
+      (item.flags & GSC_EXPORT_FLAGS::PRIVATE) != GSC_EXPORT_FLAGS::NONE
+          ? " [private]"
+          : "");
 }
 
 bool accepts_args(const GSC_EXPORT_ITEM &item, const uint8_t args) {
-  return item.param_count >= args || (item.flags & EXPORT_VARARG);
+  return item.param_count >= args ||
+         (item.flags & GSC_EXPORT_FLAGS::VARARG) != GSC_EXPORT_FLAGS::NONE;
 }
 
 std::vector<std::string>
@@ -247,8 +255,9 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
                         const GSC_IMPORT_ITEM &import,
                         const std::vector<known_script> &scripts,
                         link_failure &failure) {
-  const uint8_t type = import.flags & IMPORT_TYPE_MASK;
-  const bool local = import.flags & IMPORT_CALL_LOCAL;
+  const GSC_IMPORT_FLAGS type = import.flags;
+  const bool local =
+      (import.flags & GSC_IMPORT_FLAGS::CALL_LOCAL) != GSC_IMPORT_FLAGS::NONE;
   const bool method = is_method_import(type);
   const std::string name = function_name(import.name);
   const std::string ns = namespace_name(import.name_space);
@@ -275,11 +284,11 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
   std::unordered_set<std::string> included_keys;
   for (const std::string &include : object_includes(obj)) {
     const known_script *script = find_script(scripts, include);
-    if (script) {
+    if (script != nullptr) {
       included_keys.insert(script->key);
       for (const GSC_EXPORT_ITEM &item : script->obj->exports()) {
         if (item.name == import.name && item.name_space == import.name_space) {
-          if (item.flags & EXPORT_PRIVATE) {
+          if (to_underlying(item.flags & GSC_EXPORT_FLAGS::PRIVATE) != 0) {
             private_hits.push_back(describe_export(*script, item));
           } else if (!accepts_args(item, import.param_count)) {
             param_mismatch.push_back(describe_export(*script, item));
@@ -306,8 +315,9 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
   }
 
   const bool consults_builtins =
-      (type == IMPORT_FUNC_GETFUNCTION || type == IMPORT_FUNC_CALL ||
-       type == IMPORT_FUNC_METHOD) &&
+      (type == GSC_IMPORT_FLAGS::FUNC_GETFUNCTION ||
+       type == GSC_IMPORT_FLAGS::FUNC_CALL ||
+       type == GSC_IMPORT_FLAGS::FUNC_METHOD) &&
       (local || import.name_space == EMPTY_NAMESPACE ||
        import.name_space == SYS_NAMESPACE);
   const builtin_info same_kind = find_builtin(inst, import.name, method);
@@ -333,7 +343,7 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
     failure.fix = "remove the 'private' keyword from the definition or call "
                   "a public function instead";
   } else if (consults_builtins && same_kind.exists &&
-             import.param_count < same_kind.min_args) {
+             std::cmp_less(import.param_count, same_kind.min_args)) {
     failure.error = "Too few arguments";
     failure.cause =
         std::format("builtin {} '{}' requires at least {}, this call passes {}",
@@ -342,14 +352,16 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
     failure.fix = "pass the required arguments";
   } else if (consults_builtins && same_kind.exists &&
              same_kind.type == BUILTIN_DEV_ONLY &&
-             !(import.flags & IMPORT_CALL_EXTERNAL_DEV)) {
+             to_underlying(import.flags &
+                           GSC_IMPORT_FLAGS::CALL_EXTERNAL_DEV) == 0) {
     failure.error = "Developer-only builtin";
     failure.cause = std::format(
         "builtin '{}' only exists in developer builds of the game", name);
     failure.fix = "wrap the call in a devblock /# ... #/ or remove it";
   } else if (same_kind.exists && !consults_builtins) {
     failure.cause =
-        type == IMPORT_FUNC_THREAD || type == IMPORT_FUNC_METHOD_THREAD
+        type == GSC_IMPORT_FLAGS::FUNC_THREAD ||
+                type == GSC_IMPORT_FLAGS::FUNC_METHOD_THREAD
             ? std::format("builtin '{}' cannot be started with 'thread'", name)
             : std::format("builtin '{}' cannot be namespace qualified ('{}')",
                           name, qualified);
@@ -464,13 +476,13 @@ std::string resolve_hex_tokens(const std::string &input) {
   while (pos < input.size()) {
     size_t end = pos;
     while (end < input.size() &&
-           std::isxdigit(static_cast<uint8_t>(input[end]))) {
+           std::isxdigit(static_cast<uint8_t>(input[end])) != 0) {
       ++end;
     }
     const bool bounded =
-        (pos == 0 || !std::isalnum(static_cast<uint8_t>(input[pos - 1]))) &&
+        (pos == 0 || std::isalnum(static_cast<uint8_t>(input[pos - 1])) == 0) &&
         (end == input.size() ||
-         !std::isalnum(static_cast<uint8_t>(input[end])));
+         std::isalnum(static_cast<uint8_t>(input[end])) == 0);
     if (end - pos >= 6 && end - pos <= 8 && bounded) {
       const std::string name =
           script::resolve_hash(static_cast<ScrVarCanonicalName_t>(
@@ -488,7 +500,7 @@ std::vector<std::string>
 message_lines(const std::initializer_list<const char *> parts) {
   std::vector<std::string> lines;
   for (const char *part : parts) {
-    std::istringstream stream(resolve_hex_tokens(part ? part : ""));
+    std::istringstream stream(resolve_hex_tokens(part == nullptr ? "" : part));
     std::string line;
     while (std::getline(stream, line)) {
       const size_t start = line.find_first_not_of(" \t\r");
@@ -576,7 +588,9 @@ std::string_view runtime_cause(const char *source_file) {
   };
 
   const std::string stem = utils::string::to_lower(
-      std::filesystem::path(source_file ? source_file : "").stem().string());
+      std::filesystem::path(source_file == nullptr ? "" : source_file)
+          .stem()
+          .string());
   const auto cause = causes.find(stem);
   return cause == causes.end() ? std::string_view{} : cause->second;
 }
@@ -782,7 +796,7 @@ void VM_RuntimeError_Scoped(const scriptInstance_t inst, uint8_t *pos,
 void ReportObjLinkError_Report(scriptInstance_t inst, GSC_OBJ *prime_obj,
                                objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
                                char *errorString, int errorStringLength) {
-  if (!valid_object(prime_obj) || !import || !errorString ||
+  if (!valid_object(prime_obj) || import == nullptr || errorString == nullptr ||
       errorStringLength <= 0) {
     ReportObjLinkError_Impl(inst, prime_obj, fileInfo, import, errorString,
                             errorStringLength);
@@ -802,7 +816,7 @@ void ReportObjLinkError_Report(scriptInstance_t inst, GSC_OBJ *prime_obj,
   failure.call = describe_call(*import);
   analyze_unresolved(inst, prime_obj, *import, scripts, failure);
 
-  std::string text = errorString[0] ? std::string(SEPARATOR) : "";
+  std::string text = errorString[0] == NULL ? "" : std::string(SEPARATOR);
   append_failure(text, failure);
   strncat_s(errorString, errorStringLength, text.c_str(), _TRUNCATE);
 }

@@ -12,7 +12,9 @@ Checks:
   - "cert-*"
   - "-bugprone-easily-swappable-parameters"
   - "-bugprone-empty-catch"
+  - "-bugprone-macro-parentheses"
   - "-bugprone-suspicious-stringview-data-usage"
+  - "-bugprone-tagged-union-member-count"
   - "-bugprone-throwing-static-initialization"
   - "-cppcoreguidelines-pro-type-vararg"
   - "-cppcoreguidelines-avoid-c-arrays"
@@ -39,7 +41,6 @@ Checks:
   - "-modernize-concat-nested-namespaces"
   - "-performance-no-int-to-ptr"
   - "-readability-identifier-length"
-  - "-bugprone-macro-parentheses"
   - "-readability-trailing-comma"
   - "-readability-uppercase-literal-suffix"
 

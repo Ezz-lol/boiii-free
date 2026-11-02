@@ -45,7 +45,7 @@ void gscr_writefile(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
   const char *data = Scr_GetString(inst, 1);
 
-  if (path && data && is_safe_path(path)) {
+  if (path != nullptr && data != nullptr && is_safe_path(path)) {
     const std::filesystem::path full = resolve_path(path);
     const std::filesystem::path parent = full.parent_path();
     if (!parent.empty()) {
@@ -63,7 +63,7 @@ void gscr_writefile(scriptInstance_t inst) {
 
 void gscr_readfile(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (path && is_safe_path(path)) {
+  if (path != nullptr && is_safe_path(path)) {
     const std::filesystem::path full = resolve_path(path);
     std::string data;
     if (utils::io::read_file(full.string(), &data)) {
@@ -79,7 +79,7 @@ void gscr_readfile(scriptInstance_t inst) {
 void gscr_appendfile(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
   const char *data = Scr_GetString(inst, 1);
-  if (path && data && is_safe_path(path)) {
+  if (path != nullptr && data != nullptr && is_safe_path(path)) {
     const std::filesystem::path full = resolve_path(path);
     const std::filesystem::path parent = full.parent_path();
     if (!parent.empty()) {
@@ -93,7 +93,7 @@ void gscr_appendfile(scriptInstance_t inst) {
 
 void gscr_fileexists(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (path && is_safe_path(path)) {
+  if (path != nullptr && is_safe_path(path)) {
     push(inst, utils::io::file_exists(resolve_path(path).string()));
   } else {
     push(inst, 0);
@@ -102,7 +102,7 @@ void gscr_fileexists(scriptInstance_t inst) {
 
 void gscr_removedirectory(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (path && is_safe_path(path)) {
+  if (path != nullptr && is_safe_path(path)) {
     push(inst, utils::io::remove_directory(resolve_path(path), true));
   } else {
     push(inst, 0);
@@ -111,7 +111,7 @@ void gscr_removedirectory(scriptInstance_t inst) {
 
 void gscr_rm(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (path && is_safe_path(path)) {
+  if (path != nullptr && is_safe_path(path)) {
     bool recurse = Scr_GetBoolOptional(inst, 1, false);
 
     if (utils::io::directory_exists(resolve_path(path))) {
@@ -126,7 +126,7 @@ void gscr_rm(scriptInstance_t inst) {
 
 void gscr_filesize(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (path && is_safe_path(path)) {
+  if (path != nullptr && is_safe_path(path)) {
     push(inst,
          static_cast<int>(utils::io::file_size(resolve_path(path).string())));
   } else {
@@ -136,7 +136,7 @@ void gscr_filesize(scriptInstance_t inst) {
 
 void gscr_createdirectory(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (path && is_safe_path(path)) {
+  if (path != nullptr && is_safe_path(path)) {
     bool result = utils::io::create_directory(resolve_path(path));
     push(inst, result);
   } else {
@@ -146,7 +146,7 @@ void gscr_createdirectory(scriptInstance_t inst) {
 
 void gscr_directoryexists(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (path && is_safe_path(path)) {
+  if (path != nullptr && is_safe_path(path)) {
     push(inst, utils::io::directory_exists(resolve_path(path)));
   } else {
     push(inst, 0);
@@ -160,7 +160,7 @@ void gscr_directoryexists(scriptInstance_t inst) {
 */
 void gscr_ls(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  if (path && is_safe_path(path)) {
+  if (path != nullptr && is_safe_path(path)) {
     bool recurse = Scr_GetBoolOptional(inst, 1, false);
     bool include_directories = Scr_GetBoolOptional(inst, 2, false);
 

@@ -84,7 +84,7 @@ using ast_ptr = std::shared_ptr<ast_node>;
 
 inline ast_ptr make_node(node_type t, const std::string &val, int line,
                          int col) {
-  auto n = std::make_shared<ast_node>();
+  std::shared_ptr<ast_node> n = std::make_shared<ast_node>();
   n->type = t;
   n->value = val;
   n->line = line;

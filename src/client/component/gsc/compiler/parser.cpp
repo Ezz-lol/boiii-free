@@ -7,28 +7,33 @@
 namespace gsc {
 namespace compiler {
 namespace {
+using std::move;
+
 struct parser_state {
   const std::vector<token> &tokens;
-  size_t pos;
+  size_t pos{};
 
-  parser_state(const std::vector<token> &toks) : tokens(toks), pos(0) {}
+  parser_state(const std::vector<token> &toks) : tokens(toks) {}
 
-  const token &current() const { return tokens[pos]; }
-  const token &peek(size_t offset = 0) const {
+  [[nodiscard]] const token &current() const { return tokens[pos]; }
+  [[nodiscard]] const token &peek(size_t offset = 0) const {
     size_t idx = pos + offset;
     return idx < tokens.size() ? tokens[idx] : tokens.back();
   }
 
   const token &advance() {
     const token &t = current();
-    if (pos + 1 < tokens.size())
+    if (pos + 1 < tokens.size()) {
       pos++;
+    }
     return t;
   }
 
-  bool at_end() const { return current().type == token_type::t_eof; }
+  [[nodiscard]] bool at_end() const {
+    return current().type == token_type::t_eof;
+  }
 
-  bool check(token_type t) const { return current().type == t; }
+  [[nodiscard]] bool check(token_type t) const { return current().type == t; }
 
   bool match(token_type t) {
     if (check(t)) {
@@ -47,8 +52,9 @@ struct parser_state {
   }
 
   const token &expect(token_type t, const std::string &msg) {
-    if (check(t))
+    if (check(t)) {
       return advance();
+    }
     throw std::runtime_error(
         msg + " at line " + std::to_string(current().line) + ", column " +
         std::to_string(current().column) + " (got '" + current().value + "')");
@@ -114,17 +120,18 @@ ast_ptr parse_primary(parser_state &s) {
           make_node(node_type::n_call_ptr, "", t.line, t.column);
       call->children.push_back(
           make_node(node_type::n_undefined, "undefined", t.line, t.column));
-      call->children.push_back(std::move(ptr_expr));
+      call->children.push_back(ptr_expr);
 
       const ast_ptr args =
           make_node(node_type::n_block, "args", t.line, t.column);
       if (!s.check(token_type::t_rparen)) {
         args->children.push_back(parse_expression(s));
-        while (s.match(token_type::t_comma))
+        while (s.match(token_type::t_comma)) {
           args->children.push_back(parse_expression(s));
+        }
       }
       s.expect(token_type::t_rparen, "Expected ')'");
-      call->children.push_back(std::move(args));
+      call->children.push_back(args);
 
       return call;
     }
@@ -221,10 +228,11 @@ ast_ptr parse_primary(parser_state &s) {
 
     // Support &path\to\namespace::function syntax
     while (s.check(token_type::t_backslash) || s.check(token_type::t_slash)) {
-      ns_name += "\\";
+      ns_name += '\\';
       s.advance();
-      if (s.check(token_type::t_identifier))
+      if (s.check(token_type::t_identifier)) {
         ns_name += s.advance().value;
+      }
     }
 
     if (s.check(token_type::t_double_colon)) {
@@ -249,8 +257,8 @@ ast_ptr parse_primary(parser_state &s) {
 
     bool is_full_ns_func = false;
     bool should_loop = true;
-    for (uint32_t peekOfs = 1; should_loop; ++peekOfs) {
-      switch (s.peek(peekOfs).type) {
+    for (uint32_t peek_ofs = 1; should_loop; ++peek_ofs) {
+      switch (s.peek(peek_ofs).type) {
       case token_type::t_backslash:
       case token_type::t_identifier:
       case token_type::t_slash:
@@ -267,7 +275,7 @@ ast_ptr parse_primary(parser_state &s) {
 
     while ((s.check(token_type::t_backslash) ||
             (is_full_ns_func && s.check(token_type::t_slash)))) {
-      name += "\\";
+      name += '\\';
       s.advance();
       if (s.check(token_type::t_identifier)) {
         name += s.advance().value;
@@ -288,11 +296,12 @@ ast_ptr parse_primary(parser_state &s) {
               make_node(node_type::n_block, "args", tok.line, tok.column);
           if (!s.check(token_type::t_rparen)) {
             args->children.push_back(parse_expression(s));
-            while (s.match(token_type::t_comma))
+            while (s.match(token_type::t_comma)) {
               args->children.push_back(parse_expression(s));
+            }
           }
           s.expect(token_type::t_rparen, "Expected ')'");
-          call->children.push_back(std::move(args));
+          call->children.push_back(args);
           return call;
         }
         // Function reference: ns::func
@@ -314,11 +323,12 @@ ast_ptr parse_primary(parser_state &s) {
           make_node(node_type::n_block, "args", tok.line, tok.column);
       if (!s.check(token_type::t_rparen)) {
         args->children.push_back(parse_expression(s));
-        while (s.match(token_type::t_comma))
+        while (s.match(token_type::t_comma)) {
           args->children.push_back(parse_expression(s));
+        }
       }
       s.expect(token_type::t_rparen, "Expected ')'");
-      call->children.push_back(std::move(args));
+      call->children.push_back(args);
       return call;
     }
 
@@ -330,7 +340,7 @@ ast_ptr parse_primary(parser_state &s) {
     const ast_ptr call_expr = parse_primary(s);
     const ast_ptr thread_node =
         make_node(node_type::n_thread_call, "thread", t.line, t.column);
-    thread_node->children.push_back(std::move(call_expr));
+    thread_node->children.push_back(call_expr);
     return thread_node;
   }
 
@@ -352,13 +362,13 @@ ast_ptr parse_postfix(parser_state &s) {
           const ast_ptr size_node = make_node(node_type::n_size, "size",
                                               field_tok.line, field_tok.column);
           size_node->children.push_back(std::move(expr));
-          expr = std::move(size_node);
+          expr = size_node;
         } else {
           const ast_ptr field =
               make_node(node_type::n_field_access, field_tok.value,
                         field_tok.line, field_tok.column);
           field->children.push_back(std::move(expr));
-          expr = std::move(field);
+          expr = field;
         }
       }
       continue;
@@ -372,8 +382,8 @@ ast_ptr parse_postfix(parser_state &s) {
       const ast_ptr arr =
           make_node(node_type::n_array_access, "", expr->line, expr->column);
       arr->children.push_back(std::move(expr));
-      arr->children.push_back(std::move(key));
-      expr = std::move(arr);
+      arr->children.push_back(key);
+      expr = arr;
       continue;
     }
 
@@ -407,14 +417,15 @@ ast_ptr parse_postfix(parser_state &s) {
           std::string method_name = method_tok.value;
 
           node_type nt = node_type::n_method_call;
-          if (method_name == "waittill")
+          if (method_name == "waittill") {
             nt = node_type::n_waittill;
-          else if (method_name == "waittillmatch")
+          } else if (method_name == "waittillmatch") {
             nt = node_type::n_waittillmatch;
-          else if (method_name == "notify")
+          } else if (method_name == "notify") {
             nt = node_type::n_notify;
-          else if (method_name == "endon")
+          } else if (method_name == "endon") {
             nt = node_type::n_endon;
+          }
 
           s.advance();
           const ast_ptr call =
@@ -424,19 +435,20 @@ ast_ptr parse_postfix(parser_state &s) {
                                          method_tok.line, method_tok.column);
           if (!s.check(token_type::t_rparen)) {
             args->children.push_back(parse_expression(s));
-            while (s.match(token_type::t_comma))
+            while (s.match(token_type::t_comma)) {
               args->children.push_back(parse_expression(s));
+            }
           }
           s.expect(token_type::t_rparen, "Expected ')'");
-          call->children.push_back(std::move(args));
+          call->children.push_back(args);
 
           if (is_thread) {
             const ast_ptr thread_node = make_node(
                 node_type::n_thread_call, "thread", call->line, call->column);
-            thread_node->children.push_back(std::move(call));
-            expr = std::move(thread_node);
+            thread_node->children.push_back(call);
+            expr = thread_node;
           } else {
-            expr = std::move(call);
+            expr = call;
           }
           continue;
         }
@@ -447,7 +459,7 @@ ast_ptr parse_postfix(parser_state &s) {
           std::string ns = first_tok.value;
 
           while (s.check(token_type::t_backslash)) {
-            ns += "\\";
+            ns += '\\';
             s.advance();
             if (s.check(token_type::t_identifier)) {
               ns += s.advance().value;
@@ -473,21 +485,22 @@ ast_ptr parse_postfix(parser_state &s) {
                                              func_tok.line, func_tok.column);
               if (!s.check(token_type::t_rparen)) {
                 args->children.push_back(parse_expression(s));
-                while (s.match(token_type::t_comma))
+                while (s.match(token_type::t_comma)) {
                   args->children.push_back(parse_expression(s));
+                }
               }
               s.expect(token_type::t_rparen, "Expected ')'");
-              call->children.push_back(std::move(args));
-              call->children.push_back(std::move(ns_node));
+              call->children.push_back(args);
+              call->children.push_back(ns_node);
 
               if (is_thread) {
                 const ast_ptr thread_node =
                     make_node(node_type::n_thread_call, "thread", call->line,
                               call->column);
-                thread_node->children.push_back(std::move(call));
-                expr = std::move(thread_node);
+                thread_node->children.push_back(call);
+                expr = thread_node;
               } else {
-                expr = std::move(call);
+                expr = call;
               }
               continue;
             }
@@ -508,25 +521,26 @@ ast_ptr parse_postfix(parser_state &s) {
         const ast_ptr call =
             make_node(node_type::n_call_ptr, "", expr->line, expr->column);
         call->children.push_back(std::move(expr));
-        call->children.push_back(std::move(ptr_expr));
+        call->children.push_back(ptr_expr);
 
         const ast_ptr args =
             make_node(node_type::n_block, "args", call->line, call->column);
         if (!s.check(token_type::t_rparen)) {
           args->children.push_back(parse_expression(s));
-          while (s.match(token_type::t_comma))
+          while (s.match(token_type::t_comma)) {
             args->children.push_back(parse_expression(s));
+          }
         }
         s.expect(token_type::t_rparen, "Expected ')'");
-        call->children.push_back(std::move(args));
+        call->children.push_back(args);
 
         if (is_thread) {
           const ast_ptr thread_node = make_node(
               node_type::n_thread_call, "thread", call->line, call->column);
-          thread_node->children.push_back(std::move(call));
-          expr = std::move(thread_node);
+          thread_node->children.push_back(call);
+          expr = thread_node;
         } else {
-          expr = std::move(call);
+          expr = call;
         }
         continue;
       }
@@ -550,19 +564,20 @@ ast_ptr parse_postfix(parser_state &s) {
       const ast_ptr call =
           make_node(node_type::n_call_ptr, "", expr->line, expr->column);
       call->children.push_back(std::move(expr));
-      call->children.push_back(std::move(ptr_expr));
+      call->children.push_back(ptr_expr);
 
       const ast_ptr args =
           make_node(node_type::n_block, "args", call->line, call->column);
       if (!s.check(token_type::t_rparen)) {
         args->children.push_back(parse_expression(s));
-        while (s.match(token_type::t_comma))
+        while (s.match(token_type::t_comma)) {
           args->children.push_back(parse_expression(s));
+        }
       }
       s.expect(token_type::t_rparen, "Expected ')'");
-      call->children.push_back(std::move(args));
+      call->children.push_back(args);
 
-      expr = std::move(call);
+      expr = call;
       continue;
     }
 
@@ -571,7 +586,7 @@ ast_ptr parse_postfix(parser_state &s) {
       const ast_ptr node =
           make_node(node_type::n_inc_dec, "post++", expr->line, expr->column);
       node->children.push_back(std::move(expr));
-      expr = std::move(node);
+      expr = node;
       continue;
     }
     if (s.check(token_type::t_dec)) {
@@ -579,7 +594,7 @@ ast_ptr parse_postfix(parser_state &s) {
       const ast_ptr node =
           make_node(node_type::n_inc_dec, "post--", expr->line, expr->column);
       node->children.push_back(std::move(expr));
-      expr = std::move(node);
+      expr = node;
       continue;
     }
 
@@ -634,7 +649,7 @@ ast_ptr parse_unary(parser_state &s) {
     const ast_ptr operand = parse_unary(s);
     const ast_ptr node =
         make_node(node_type::n_unary_op, "!", t.line, t.column);
-    node->children.push_back(std::move(operand));
+    node->children.push_back(operand);
     return node;
   }
   if (s.check(token_type::t_minus)) {
@@ -642,7 +657,7 @@ ast_ptr parse_unary(parser_state &s) {
     const ast_ptr operand = parse_unary(s);
     const ast_ptr node =
         make_node(node_type::n_unary_op, "-", t.line, t.column);
-    node->children.push_back(std::move(operand));
+    node->children.push_back(operand);
     return node;
   }
   if (s.check(token_type::t_tilde)) {
@@ -650,7 +665,7 @@ ast_ptr parse_unary(parser_state &s) {
     const ast_ptr operand = parse_unary(s);
     const ast_ptr node =
         make_node(node_type::n_unary_op, "~", t.line, t.column);
-    node->children.push_back(std::move(operand));
+    node->children.push_back(operand);
     return node;
   }
   if (s.check(token_type::t_inc)) {
@@ -658,7 +673,7 @@ ast_ptr parse_unary(parser_state &s) {
     const ast_ptr operand = parse_unary(s);
     const ast_ptr node =
         make_node(node_type::n_inc_dec, "pre++", t.line, t.column);
-    node->children.push_back(std::move(operand));
+    node->children.push_back(operand);
     return node;
   }
   if (s.check(token_type::t_dec)) {
@@ -666,7 +681,7 @@ ast_ptr parse_unary(parser_state &s) {
     const ast_ptr operand = parse_unary(s);
     const ast_ptr node =
         make_node(node_type::n_inc_dec, "pre--", t.line, t.column);
-    node->children.push_back(std::move(operand));
+    node->children.push_back(operand);
     return node;
   }
 
@@ -678,8 +693,9 @@ ast_ptr parse_binary(parser_state &s, int min_prec) {
 
   while (true) {
     int prec = get_precedence(s.current().type);
-    if (prec < min_prec)
+    if (prec < min_prec) {
       break;
+    }
 
     const token &op = s.advance();
     const ast_ptr right = parse_binary(s, prec + 1);
@@ -687,8 +703,8 @@ ast_ptr parse_binary(parser_state &s, int min_prec) {
     const ast_ptr node =
         make_node(node_type::n_binary_op, op.value, op.line, op.column);
     node->children.push_back(std::move(left));
-    node->children.push_back(std::move(right));
-    left = std::move(node);
+    node->children.push_back(right);
+    left = node;
   }
 
   return left;
@@ -705,21 +721,22 @@ ast_ptr parse_expression(parser_state &s) {
 
     const ast_ptr ternary =
         make_node(node_type::n_ternary, "?:", expr->line, expr->column);
-    ternary->children.push_back(std::move(expr));
-    ternary->children.push_back(std::move(true_expr));
-    ternary->children.push_back(std::move(false_expr));
+    ternary->children.push_back(expr);
+    ternary->children.push_back(true_expr);
+    ternary->children.push_back(false_expr);
     return ternary;
-  } else if (s.check(token_type::t_double_colon) ||
-             s.check(token_type::t_ampersand)) {
+  }
+  if (s.check(token_type::t_double_colon) || s.check(token_type::t_ampersand)) {
     s.advance();
     const token &func_tok =
         s.expect(token_type::t_identifier, "Expected function name after '::'");
     const ast_ptr func_ref = make_node(node_type::n_func_ref, func_tok.value,
                                        func_tok.line, func_tok.column);
-    func_ref->children.push_back(std::move(expr));
+    func_ref->children.push_back(expr);
     return func_ref;
   }
 
+  // NOLINTNEXTLINE(performance-no-automatic-move)
   return expr;
 }
 
@@ -750,11 +767,12 @@ ast_ptr parse_assignment_expr(parser_state &s) {
     const ast_ptr right = parse_expression(s);
     const ast_ptr node =
         make_node(node_type::n_assign, op.value, op.line, op.column);
-    node->children.push_back(std::move(left));
-    node->children.push_back(std::move(right));
+    node->children.push_back(left);
+    node->children.push_back(right);
     return node;
   }
 
+  // NOLINTNEXTLINE(performance-no-automatic-move)
   return left;
 }
 
@@ -783,8 +801,8 @@ ast_ptr parse_if(parser_state &s) {
       s.check(token_type::t_lbrace) ? parse_block(s) : parse_statement(s);
 
   const ast_ptr node = make_node(node_type::n_if, "", tok.line, tok.column);
-  node->children.push_back(std::move(cond));
-  node->children.push_back(std::move(body));
+  node->children.push_back(cond);
+  node->children.push_back(body);
 
   if (s.match(token_type::t_else)) {
     if (s.check(token_type::t_if)) {
@@ -792,7 +810,7 @@ ast_ptr parse_if(parser_state &s) {
     } else {
       const ast_ptr else_body =
           s.check(token_type::t_lbrace) ? parse_block(s) : parse_statement(s);
-      node->children.push_back(std::move(else_body));
+      node->children.push_back(else_body);
     }
   }
 
@@ -808,8 +826,8 @@ ast_ptr parse_while(parser_state &s) {
       s.check(token_type::t_lbrace) ? parse_block(s) : parse_statement(s);
 
   const ast_ptr node = make_node(node_type::n_while, "", tok.line, tok.column);
-  node->children.push_back(std::move(cond));
-  node->children.push_back(std::move(body));
+  node->children.push_back(cond);
+  node->children.push_back(body);
   return node;
 }
 
@@ -824,8 +842,8 @@ ast_ptr parse_do_while(parser_state &s) {
 
   const ast_ptr node =
       make_node(node_type::n_do_while, "", tok.line, tok.column);
-  node->children.push_back(std::move(cond));
-  node->children.push_back(std::move(body));
+  node->children.push_back(cond);
+  node->children.push_back(body);
   return node;
 }
 
@@ -834,18 +852,21 @@ ast_ptr parse_for(parser_state &s) {
   s.expect(token_type::t_lparen, "Expected '('");
 
   ast_ptr init = nullptr;
-  if (!s.check(token_type::t_semicolon))
+  if (!s.check(token_type::t_semicolon)) {
     init = parse_assignment_expr(s);
+  }
   s.expect(token_type::t_semicolon, "Expected ';'");
 
   ast_ptr cond = nullptr;
-  if (!s.check(token_type::t_semicolon))
+  if (!s.check(token_type::t_semicolon)) {
     cond = parse_expression(s);
+  }
   s.expect(token_type::t_semicolon, "Expected ';'");
 
   ast_ptr iter = nullptr;
-  if (!s.check(token_type::t_rparen))
+  if (!s.check(token_type::t_rparen)) {
     iter = parse_assignment_expr(s);
+  }
   s.expect(token_type::t_rparen, "Expected ')'");
 
   const ast_ptr body =
@@ -861,7 +882,7 @@ ast_ptr parse_for(parser_state &s) {
   node->children.push_back(
       iter ? std::move(iter)
            : make_node(node_type::n_undefined, "", tok.line, tok.column));
-  node->children.push_back(std::move(body));
+  node->children.push_back(body);
   return node;
 }
 
@@ -894,8 +915,8 @@ ast_ptr parse_foreach(parser_state &s) {
   // children[2] = body
   node->children.push_back(
       make_node(node_type::n_identifier, key_name, tok.line, tok.column));
-  node->children.push_back(std::move(array_expr));
-  node->children.push_back(std::move(body));
+  node->children.push_back(array_expr);
+  node->children.push_back(body);
   return node;
 }
 
@@ -907,7 +928,7 @@ ast_ptr parse_switch(parser_state &s) {
   s.expect(token_type::t_lbrace, "Expected '{'");
 
   const ast_ptr node = make_node(node_type::n_switch, "", tok.line, tok.column);
-  node->children.push_back(std::move(expr));
+  node->children.push_back(expr);
 
   while (!s.check(token_type::t_rbrace) && !s.at_end()) {
     if (s.check(token_type::t_case)) {
@@ -917,7 +938,7 @@ ast_ptr parse_switch(parser_state &s) {
 
       const ast_ptr case_node =
           make_node(node_type::n_case, "", case_tok.line, case_tok.column);
-      case_node->children.push_back(std::move(case_val));
+      case_node->children.push_back(case_val);
 
       const ast_ptr body =
           make_node(node_type::n_block, "", case_tok.line, case_tok.column);
@@ -925,8 +946,8 @@ ast_ptr parse_switch(parser_state &s) {
              !s.check(token_type::t_rbrace) && !s.at_end()) {
         body->children.push_back(parse_statement(s));
       }
-      case_node->children.push_back(std::move(body));
-      node->children.push_back(std::move(case_node));
+      case_node->children.push_back(body);
+      node->children.push_back(case_node);
     } else if (s.check(token_type::t_default)) {
       const token &def_tok = s.advance();
       s.expect(token_type::t_colon, "Expected ':'");
@@ -939,8 +960,8 @@ ast_ptr parse_switch(parser_state &s) {
              !s.check(token_type::t_rbrace) && !s.at_end()) {
         body->children.push_back(parse_statement(s));
       }
-      def_node->children.push_back(std::move(body));
-      node->children.push_back(std::move(def_node));
+      def_node->children.push_back(body);
+      node->children.push_back(def_node);
     } else {
       throw std::runtime_error(
           "Expected 'case' or 'default' in switch at line " +
@@ -953,25 +974,33 @@ ast_ptr parse_switch(parser_state &s) {
 }
 
 ast_ptr parse_statement(parser_state &s) {
-  if (s.match(token_type::t_semicolon))
+  if (s.match(token_type::t_semicolon)) {
     return make_node(node_type::n_block, "", s.current().line,
                      s.current().column);
+  }
 
-  if (s.check(token_type::t_lbrace))
+  if (s.check(token_type::t_lbrace)) {
     return parse_block(s);
+  }
 
-  if (s.check(token_type::t_if))
+  if (s.check(token_type::t_if)) {
     return parse_if(s);
-  if (s.check(token_type::t_while))
+  }
+  if (s.check(token_type::t_while)) {
     return parse_while(s);
-  if (s.check(token_type::t_do))
+  }
+  if (s.check(token_type::t_do)) {
     return parse_do_while(s);
-  if (s.check(token_type::t_for))
+  }
+  if (s.check(token_type::t_for)) {
     return parse_for(s);
-  if (s.check(token_type::t_foreach))
+  }
+  if (s.check(token_type::t_foreach)) {
     return parse_foreach(s);
-  if (s.check(token_type::t_switch))
+  }
+  if (s.check(token_type::t_switch)) {
     return parse_switch(s);
+  }
 
   if (s.check(token_type::t_break)) {
     const token &tok = s.advance();
@@ -988,8 +1017,9 @@ ast_ptr parse_statement(parser_state &s) {
     const token &tok = s.advance();
     const ast_ptr node =
         make_node(node_type::n_return, "", tok.line, tok.column);
-    if (!s.check(token_type::t_semicolon))
+    if (!s.check(token_type::t_semicolon)) {
       node->children.push_back(parse_expression(s));
+    }
     s.expect(token_type::t_semicolon, "Expected ';'");
     return node;
   }
@@ -1028,7 +1058,7 @@ ast_ptr parse_statement(parser_state &s) {
 
   const ast_ptr stmt =
       make_node(node_type::n_expression_stmt, "", expr->line, expr->column);
-  stmt->children.push_back(std::move(expr));
+  stmt->children.push_back(expr);
   return stmt;
 }
 
@@ -1067,10 +1097,10 @@ ast_ptr parse_parameters(parser_state &s) {
     if (ref.has_value()) {
       const ast_ptr ref_node =
           make_node(node_type::n_ref_param, ref->value, ref->line, ref->column);
-      ref_node->children = {std::move(param_node)};
-      params->children.push_back(std::move(ref_node));
+      ref_node->children = {param_node};
+      params->children.push_back(ref_node);
     } else {
-      params->children.push_back(std::move(param_node));
+      params->children.push_back(param_node);
     }
   };
 
@@ -1091,11 +1121,13 @@ ast_ptr parse_function_def(parser_state &s, bool autoexec, bool is_private) {
   const ast_ptr func = make_node(node_type::n_function_def, name_tok.value,
                                  name_tok.line, name_tok.column);
   std::string flags_val;
-  if (autoexec)
+  if (autoexec) {
     flags_val = "autoexec";
+  }
   if (is_private) {
-    if (!flags_val.empty())
-      flags_val += ",";
+    if (!flags_val.empty()) {
+      flags_val += ',';
+    }
     flags_val += "private";
   }
   func->children.push_back(make_node(node_type::n_identifier, flags_val,
@@ -1112,10 +1144,11 @@ ast_ptr parse_detour_function(parser_state &s) {
       s.expect(token_type::t_identifier, "Expected detour target namespace");
   std::string target_ns = ns_tok.value;
   while (s.check(token_type::t_backslash)) {
-    target_ns += "\\";
+    target_ns += '\\';
     s.advance();
-    if (s.check(token_type::t_identifier))
+    if (s.check(token_type::t_identifier)) {
       target_ns += s.advance().value;
+    }
   }
 
   if (s.check(token_type::t_lt)) {
@@ -1125,21 +1158,22 @@ ast_ptr parse_detour_function(parser_state &s) {
       const token &tok = s.current();
       if (tok.type == token_type::t_identifier ||
           tok.type == token_type::t_number_int ||
-          tok.type == token_type::t_number_float)
+          tok.type == token_type::t_number_float) {
         target_path += tok.value;
-      else if (tok.type == token_type::t_backslash)
-        target_path += "\\";
-      else if (tok.type == token_type::t_slash)
-        target_path += "/";
-      else if (tok.type == token_type::t_dot)
-        target_path += ".";
-      else if (tok.type == token_type::t_colon)
-        target_path += ":";
-      else
+      } else if (tok.type == token_type::t_backslash) {
+        target_path += '\\';
+      } else if (tok.type == token_type::t_slash) {
+        target_path += '/';
+      } else if (tok.type == token_type::t_dot) {
+        target_path += '.';
+      } else if (tok.type == token_type::t_colon) {
+        target_path += ':';
+      } else {
         throw std::runtime_error(
             "Unexpected token in detour script path at line " +
             std::to_string(tok.line) + ", column " +
             std::to_string(tok.column));
+      }
       s.advance();
     }
     s.expect(token_type::t_gt, "Expected '>' after detour script path");
@@ -1162,7 +1196,7 @@ ast_ptr parse_detour_function(parser_state &s) {
       make_node(node_type::n_identifier, "", func_tok.line, func_tok.column));
   func->children.push_back(parse_parameters(s));
   func->children.push_back(parse_block(s));
-  func->children.push_back(std::move(target_ref));
+  func->children.push_back(target_ref);
   return func;
 }
 
@@ -1230,12 +1264,12 @@ ast_ptr parse_script(parser_state &s) {
         const ast_ptr type_node =
             make_node(node_type::n_string, type_tok->value, type_tok->line,
                       type_tok->column);
-        precache_node->children.push_back(std::move(type_node));
+        precache_node->children.push_back(type_node);
         if (name_tok.has_value()) {
           const ast_ptr name_node =
               make_node(node_type::n_string, name_tok->value, name_tok->line,
                         name_tok->column);
-          precache_node->children.push_back(std::move(name_node));
+          precache_node->children.push_back(name_node);
         }
       }
       root->children.push_back(std::move(precache_node));
@@ -1279,10 +1313,12 @@ ast_ptr parse_script(parser_state &s) {
 
     if (s.check(token_type::t_insert)) {
       s.advance();
-      while (!s.at_end() && !s.check(token_type::t_semicolon))
+      while (!s.at_end() && !s.check(token_type::t_semicolon)) {
         s.advance();
-      if (s.check(token_type::t_semicolon))
+      }
+      if (s.check(token_type::t_semicolon)) {
         s.advance();
+      }
       continue;
     }
 

@@ -85,7 +85,7 @@ struct import_entry {
   uint32_t function_hash;
   uint32_t namespace_hash;
   uint8_t num_params;
-  import_flags flags;
+  GSC_IMPORT_FLAGS flags;
   std::vector<std::pair<size_t, uint32_t>> references;
 };
 
@@ -110,7 +110,7 @@ struct export_entry {
   uint32_t function_hash;
   uint32_t namespace_hash;
   uint8_t num_params;
-  export_flags flags;
+  GSC_EXPORT_FLAGS flags;
   std::vector<uint8_t> bytecode;
   uint32_t bytecode_offset;
 
@@ -283,7 +283,7 @@ struct emitter_state {
   }
 
   static uint64_t make_import_key(uint32_t func, uint32_t ns, uint8_t params,
-                                  import_flags flags) {
+                                  GSC_IMPORT_FLAGS flags) {
     return (static_cast<uint64_t>(func) << 32) |
            (static_cast<uint64_t>(ns) << 16) |
            (static_cast<uint64_t>(params) << 8) | to_underlying(flags);
@@ -291,7 +291,7 @@ struct emitter_state {
 
   size_t add_import(ScrVarCanonicalName_t func_hash,
                     ScrVarCanonicalName_t ns_hash, uint8_t num_params,
-                    import_flags flags) {
+                    GSC_IMPORT_FLAGS flags) {
     for (size_t i = 0; i < imports.size(); i++) {
       if (imports[i].function_hash == func_hash &&
           imports[i].namespace_hash == ns_hash &&
@@ -327,19 +327,21 @@ struct emitter_state {
       is_thread = false;
     }
 
-    import_flags flags = import_flags::NONE;
+    GSC_IMPORT_FLAGS flags = GSC_IMPORT_FLAGS::NONE;
 
     if (builtin) {
-      flags = is_method ? import_flags::FUNC_METHOD : import_flags::FUNC_CALL;
+      flags = is_method ? GSC_IMPORT_FLAGS::FUNC_METHOD
+                        : GSC_IMPORT_FLAGS::FUNC_CALL;
     } else if (is_method) {
-      flags = is_thread ? import_flags::FUNC_METHOD_THREAD
-                        : import_flags::FUNC_METHOD;
+      flags = is_thread ? GSC_IMPORT_FLAGS::FUNC_METHOD_THREAD
+                        : GSC_IMPORT_FLAGS::FUNC_METHOD;
     } else {
-      flags = is_thread ? import_flags::FUNC_THREAD : import_flags::FUNC_CALL;
+      flags = is_thread ? GSC_IMPORT_FLAGS::FUNC_THREAD
+                        : GSC_IMPORT_FLAGS::FUNC_CALL;
     }
 
     if (builtin || same_namespace) {
-      flags |= import_flags::CALL_LOCAL;
+      flags |= GSC_IMPORT_FLAGS::CALL_LOCAL;
     }
 
     Opcode op = Opcode::UnknownOrInvalid;
@@ -1030,7 +1032,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
     case node_type::n_func_ref: {
       ScrVarCanonicalName_t func_hash = gsc::gsc_hash(node->value);
       ScrVarCanonicalName_t ns_hash = s.script_namespace;
-      import_flags flags = import_flags::FUNC_GETFUNCTION;
+      GSC_IMPORT_FLAGS flags = GSC_IMPORT_FLAGS::FUNC_GETFUNCTION;
       Opcode op = Opcode::GetFunction;
 
       if (!node->children.empty() && !node->children[0]->value.empty()) {
@@ -1051,7 +1053,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
 
       if (ns_hash == s.script_namespace || ns_hash == builtin::SYS_NS_HASH) {
 
-        flags |= import_flags::CALL_LOCAL;
+        flags |= GSC_IMPORT_FLAGS::CALL_LOCAL;
       }
 
       size_t import_idx = s.add_import(func_hash, ns_hash, 0, flags);
@@ -1832,13 +1834,13 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
   exp.function_hash = gsc::gsc_hash(func_name);
   exp.namespace_hash = s.script_namespace;
   exp.num_params = static_cast<uint8_t>(params_node->children.size());
-  exp.flags = export_flags::NONE;
+  exp.flags = GSC_EXPORT_FLAGS::NONE;
   const std::string &flags_str = flags_node->value;
   if (flags_str.find("autoexec") != std::string::npos) {
-    exp.flags |= export_flags::AUTOEXEC;
+    exp.flags |= GSC_EXPORT_FLAGS::AUTOEXEC;
   }
   if (flags_str.find("private") != std::string::npos) {
-    exp.flags |= export_flags::PRIVATE;
+    exp.flags |= GSC_EXPORT_FLAGS::PRIVATE;
   }
 
   s.exports.push_back(std::move(exp));
@@ -2055,7 +2057,7 @@ std::vector<uint8_t> assemble(emitter_state &s) {
     write<uint32_t>(output, exp.function_hash);
     write<uint32_t>(output, exp.namespace_hash);
     write<uint8_t>(output, exp.num_params);
-    write<export_flags>(output, exp.flags);
+    write<GSC_EXPORT_FLAGS>(output, exp.flags);
     write<uint16_t>(output, 0); // Unknown, always 0
   }
 
@@ -2066,7 +2068,7 @@ std::vector<uint8_t> assemble(emitter_state &s) {
     write<uint32_t>(output, imp.namespace_hash);
     write<uint16_t>(output, static_cast<uint16_t>(imp.references.size()));
     write<uint8_t>(output, imp.num_params);
-    write<import_flags>(output, imp.flags);
+    write<GSC_IMPORT_FLAGS>(output, imp.flags);
 
     for (const std::pair<size_t, uint32_t> &ref : imp.references) {
       write<uint32_t>(output, resolve_ref(s, ref));
