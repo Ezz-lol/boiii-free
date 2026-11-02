@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-constexpr uint64_t intact_integrity_check_blocks[] = {
+constexpr uint64_t INTACT_INTEGRITY_CHECK_BLOCKS[] = {
     0x1400A3F04, 0x1412D7E4C, 0x141D0E9B4, 0x1421A20B0, 0x1421A67C7,
     0x1421A7E26, 0x1421AB4B4, 0x1421AF5A5, 0x1421B7E74, 0x1421B8146,
     0x1421D2BF4, 0x1421D2C4E, 0x1421D4DC7, 0x1421D5948, 0x1421D9B03,
@@ -199,7 +199,7 @@ constexpr uint64_t intact_integrity_check_blocks[] = {
     0x15F9D7C72, 0x15F9D8AE1,
 };
 
-constexpr uint64_t split_integrity_check_blocks[] = {
+constexpr uint64_t SPLIT_INTEGRITY_CHECK_BLOCKS[] = {
     0x140133F48, 0x1412CDAE8, 0x142189FC6, 0x14219DBE6, 0x14219F758,
     0x1421A6B2D, 0x1421B73F0, 0x1421CF709, 0x1421D890B, 0x1421DF2F0,
     0x1421FA1AC, 0x1422D7E87, 0x1422DD21B, 0x1422FE0B9, 0x142307E25,
@@ -253,12 +253,12 @@ constexpr uint64_t split_integrity_check_blocks[] = {
     0x15F9AFC47, 0x15F9B7E1A,
 };
 
-constexpr uint64_t intact_integrity_check_blocks_server[] = {
+constexpr uint64_t INTACT_INTEGRITY_CHECK_BLOCKS_SERVER[] = {
     0x140064DC4,
     0x140909BD4,
     0x1410654C1,
 };
 
-constexpr uint64_t split_integrity_check_blocks_server[] = {
+constexpr uint64_t SPLIT_INTEGRITY_CHECK_BLOCKS_SERVER[] = {
     0x1400621A8,
 };

@@ -11,7 +11,7 @@
 #include <loader/component_loader.hpp>
 
 #if __has_include("version.hpp")
-#include "version.hpp"
+#include "version.hpp" // IWYU pragma: keep
 #else
 #ifndef SHORTVERSION
 #define SHORTVERSION "0"

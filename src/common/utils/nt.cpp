@@ -40,8 +40,9 @@ library::operator bool() const { return this->is_valid(); }
 library::operator HMODULE() const { return this->get_handle(); }
 
 PIMAGE_NT_HEADERS library::get_nt_headers() const {
-  if (!this->is_valid())
+  if (!this->is_valid()) {
     return nullptr;
+  }
   return reinterpret_cast<PIMAGE_NT_HEADERS>(this->get_ptr() +
                                              this->get_dos_header()->e_lfanew);
 }
@@ -51,13 +52,14 @@ PIMAGE_DOS_HEADER library::get_dos_header() const {
 }
 
 PIMAGE_OPTIONAL_HEADER library::get_optional_header() const {
-  if (!this->is_valid())
+  if (!this->is_valid()) {
     return nullptr;
+  }
   return &this->get_nt_headers()->OptionalHeader;
 }
 
-void **library::get_iat_entry(const std::string_view &module_name,
-                              std::string proc_name) const {
+void *library::get_iat_entry(const std::string_view &module_name,
+                             std::string proc_name) const {
   return this->get_iat_entry(module_name, proc_name.data());
 }
 
@@ -69,10 +71,11 @@ std::vector<PIMAGE_SECTION_HEADER> library::get_section_headers() const {
 
   for (uint16_t i = 0; i < nt_headers->FileHeader.NumberOfSections;
        ++i, ++section) {
-    if (section)
+    if (section != nullptr) {
       headers.push_back(section);
-    else
+    } else {
       OutputDebugStringA("There was an invalid section :O");
+    }
   }
 
   return headers;
@@ -83,23 +86,26 @@ std::uint8_t *library::get_ptr() const {
 }
 
 void library::unprotect() const {
-  if (!this->is_valid())
+  if (!this->is_valid()) {
     return;
+  }
 
-  DWORD protection;
+  DWORD protection = 0;
   VirtualProtect(this->get_ptr(), this->get_optional_header()->SizeOfImage,
                  PAGE_EXECUTE_READWRITE, &protection);
 }
 
 size_t library::get_relative_entry_point() const {
-  if (!this->is_valid())
+  if (!this->is_valid()) {
     return 0;
+  }
   return this->get_nt_headers()->OptionalHeader.AddressOfEntryPoint;
 }
 
 void *library::get_entry_point() const {
-  if (!this->is_valid())
+  if (!this->is_valid()) {
     return nullptr;
+  }
   return this->get_ptr() + this->get_relative_entry_point();
 }
 
@@ -113,8 +119,9 @@ std::string library::get_name() const {
 }
 
 std::filesystem::path library::get_path() const {
-  if (!this->is_valid())
+  if (!this->is_valid()) {
     return {};
+  }
 
   wchar_t name[MAX_PATH] = {0};
   GetModuleFileNameW(this->module_, name, MAX_PATH);
@@ -123,8 +130,9 @@ std::filesystem::path library::get_path() const {
 }
 
 std::filesystem::path library::get_directory() const {
-  if (!this->is_valid())
+  if (!this->is_valid()) {
     return {};
+  }
 
   const std::filesystem::path path = this->get_path();
   return path.parent_path();
@@ -139,42 +147,46 @@ void library::free() {
 
 HMODULE library::get_handle() const { return this->module_; }
 
-void **library::get_iat_entry(const std::string_view &module_name,
-                              const char *proc_name) const {
-  if (!this->is_valid())
+void *library::get_iat_entry(const std::string_view &module_name,
+                             const char *proc_name) const {
+  if (!this->is_valid()) {
     return nullptr;
+  }
 
   const library other_module(module_name);
-  if (!other_module.is_valid())
+  if (!other_module.is_valid()) {
     return nullptr;
+  }
 
   void *const target_function = other_module.get_proc<void *>(proc_name);
-  if (!target_function)
+  if (target_function == nullptr) {
     return nullptr;
+  }
 
   PIMAGE_OPTIONAL_HEADER header = this->get_optional_header();
-  if (!header)
+  if (header == nullptr) {
     return nullptr;
+  }
 
   PIMAGE_IMPORT_DESCRIPTOR import_descriptor =
       reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(
           this->get_ptr() +
           header->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
 
-  while (import_descriptor->Name) {
-    if (!_stricmp(
+  while (import_descriptor->Name != 0u) {
+    if (_stricmp(
             reinterpret_cast<char *>(this->get_ptr() + import_descriptor->Name),
-            module_name.data())) {
+            module_name.data()) == 0) {
       PIMAGE_THUNK_DATA original_thunk_data =
           reinterpret_cast<PIMAGE_THUNK_DATA>(
               import_descriptor->OriginalFirstThunk + this->get_ptr());
       PIMAGE_THUNK_DATA thunk_data = reinterpret_cast<PIMAGE_THUNK_DATA>(
           import_descriptor->FirstThunk + this->get_ptr());
 
-      while (original_thunk_data->u1.AddressOfData) {
+      while (original_thunk_data->u1.AddressOfData != 0u) {
         if (thunk_data->u1.Function ==
             reinterpret_cast<uint64_t>(target_function)) {
-          return reinterpret_cast<void **>(&thunk_data->u1.Function);
+          return reinterpret_cast<void *>(&thunk_data->u1.Function);
         }
 
         const size_t ordinal_number =
@@ -184,7 +196,7 @@ void **library::get_iat_entry(const std::string_view &module_name,
           FARPROC proc = GetProcAddress(
               other_module.module_, reinterpret_cast<char *>(ordinal_number));
           if (reinterpret_cast<void *>(proc) == target_function) {
-            return reinterpret_cast<void **>(&thunk_data->u1.Function);
+            return reinterpret_cast<void *>(&thunk_data->u1.Function);
           }
         }
 
@@ -242,11 +254,11 @@ bool is_shutdown_in_progress() {
   static const fastcallPtr_t<BOOLEAN()> shutdown_in_progress =
       ntdll().get_proc<fastcallPtr_t<BOOLEAN()>>("RtlDllShutdownInProgress");
 
-  return shutdown_in_progress();
+  return shutdown_in_progress() != 0u;
 }
 
 void raise_hard_exception() {
-  BOOLEAN data = false;
+  BOOLEAN data = static_cast<BOOLEAN>(false);
   ntdll().invoke_pascal<void>("RtlAdjustPrivilege", 19, true, false, &data);
   ntdll().invoke_pascal<void>("NtRaiseHardError", 0xC000007B, 0, nullptr,
                               nullptr, 6, &data);
@@ -256,15 +268,16 @@ void raise_hard_exception() {
 std::string load_resource(const int id) {
   const library lib = library::get_by_address(load_resource);
   const HRSRC res = FindResource(lib, MAKEINTRESOURCE(id), RT_RCDATA);
-  if (!res)
+  if (res == nullptr) {
     return {};
+  }
 
   const HGLOBAL handle = LoadResource(lib, res);
-  if (!handle)
+  if (handle == nullptr) {
     return {};
+  }
 
-  return std::string(static_cast<LPSTR>(LockResource(handle)),
-                     SizeofResource(lib, res));
+  return {static_cast<LPSTR>(LockResource(handle)), SizeofResource(lib, res)};
 }
 
 void relaunch_self() {
@@ -295,13 +308,13 @@ void relaunch_self() {
     }
   }
 
-  LocalFree(argv);
+  LocalFree(reinterpret_cast<void *>(argv));
 
   OutputDebugStringA(("Relaunching: " + command_line + "\n").c_str());
 
-  if (!CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr,
-                      false, CREATE_NEW_CONSOLE, nullptr, current_dir,
-                      &startup_info, &process_info)) {
+  if (CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr,
+                     static_cast<BOOL>(false), CREATE_NEW_CONSOLE, nullptr,
+                     current_dir, &startup_info, &process_info) == 0) {
     const DWORD error = GetLastError();
     OutputDebugStringA(
         ("Failed to relaunch process, error: " + std::to_string(error) + "\n")
@@ -315,21 +328,25 @@ void relaunch_self() {
     OutputDebugStringA("Successfully launched new process\n");
   }
 
-  if (process_info.hThread && process_info.hThread != INVALID_HANDLE_VALUE)
+  if (process_info.hThread != nullptr &&
+      process_info.hThread != INVALID_HANDLE_VALUE) {
     CloseHandle(process_info.hThread);
-  if (process_info.hProcess && process_info.hProcess != INVALID_HANDLE_VALUE)
+  }
+  if (process_info.hProcess != nullptr &&
+      process_info.hProcess != INVALID_HANDLE_VALUE) {
     CloseHandle(process_info.hProcess);
+  }
 }
 
 void terminate(const uint32_t code) {
   TerminateProcess(GetCurrentProcess(), code);
-  _Exit(code);
+  _Exit(static_cast<int32_t>(code));
 }
 
 std::string get_user_name() {
   char username[UNLEN + 1];
   DWORD username_len = UNLEN + 1;
-  if (!GetUserNameA(username, &username_len)) {
+  if (GetUserNameA(username, &username_len) == 0) {
     return {};
   }
 

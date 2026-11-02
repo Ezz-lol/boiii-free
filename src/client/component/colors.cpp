@@ -63,16 +63,21 @@ void patch_color(const uint8_t r, const uint8_t g, const uint8_t b,
       game::select(0x142F36D10, 0x142FB5CF0, 0x0));
 
   color_table[index] = {.r = r, .g = g, .b = b, .a = a};
-  g_color_table[index] = {.r = static_cast<float>(r) / 255.0f,
-                          .g = static_cast<float>(g) / 255.0f,
-                          .b = static_cast<float>(b) / 255.0f,
-                          .a = static_cast<float>(a) / 255.0f};
+  g_color_table[index] = {
+      .r = static_cast<float>(r) /
+           static_cast<float>(std::numeric_limits<uint8_t>::max()),
+      .g = static_cast<float>(g) /
+           static_cast<float>(std::numeric_limits<uint8_t>::max()),
+      .b = static_cast<float>(b) /
+           static_cast<float>(std::numeric_limits<uint8_t>::max()),
+      .a = static_cast<float>(a) /
+           static_cast<float>(std::numeric_limits<uint8_t>::max())};
 }
 
 bool cl_get_client_name_stub(const game::LocalClientNum_t localClientNum,
                              const game::ClientNum_t clientNum, char *buf,
                              const int size, const bool add_clan_name) {
-  if (!buf || size <= 0) {
+  if (buf == nullptr || size <= 0) {
     return cl_get_client_name_hook.invoke<bool>(localClientNum, clientNum, buf,
                                                 size, add_clan_name);
   }
@@ -104,7 +109,7 @@ bool cl_get_client_name_stub(const game::LocalClientNum_t localClientNum,
 
   std::string effective_name = name_part;
   if (!tag_part.empty() && add_clan_name) {
-    effective_name += "|";
+    effective_name += '|';
     effective_name += tag_part;
   }
 

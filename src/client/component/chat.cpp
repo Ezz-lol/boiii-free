@@ -27,7 +27,8 @@ game::lobby::AtomicLobbyClientPool<bool> muted_clients{};
 
 std::optional<game::ClientNum_t> parse_client_num(const char *value) {
   const std::string_view text(value);
-  std::underlying_type_t<game::ClientNum_t> client_num;
+  std::underlying_type_t<game::ClientNum_t> client_num =
+      +game::ClientNum_t::CLIENT_INDEX_0;
   const auto [ptr, error] =
       std::from_chars(text.data(), text.data() + text.size(), client_num);
 
@@ -38,7 +39,7 @@ std::optional<game::ClientNum_t> parse_client_num(const char *value) {
 }
 
 bool is_muted(const game::level::gentity_s *ent) {
-  if (!ent) {
+  if (ent == nullptr) {
     return false;
   }
 
@@ -49,10 +50,10 @@ bool is_muted(const game::level::gentity_s *ent) {
 }
 
 template <const bool Toggle> void toggle_mute(const command::params &params) {
-  constexpr const char *command_name = Toggle ? "muteclient" : "unmuteclient";
-  constexpr const char *status_str = Toggle ? "muted" : "unmuted";
+  constexpr const char *COMMAND_NAME = Toggle ? "muteclient" : "unmuteclient";
+  constexpr const char *STATUS_STR = Toggle ? "muted" : "unmuted";
   if (params.size() != 2) {
-    printf("Usage: %s <client number>\n", command_name);
+    printf("Usage: %s <client number>\n", COMMAND_NAME);
     return;
   }
 
@@ -73,7 +74,7 @@ template <const bool Toggle> void toggle_mute(const command::params &params) {
   }
 
   muted_clients[*client_num].store(Toggle, std::memory_order_relaxed);
-  printf("Client %d is now %s.\n", *client_num, status_str);
+  printf("Client %d is now %s.\n", *client_num, STATUS_STR);
 }
 
 void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
@@ -113,8 +114,9 @@ void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
   }
 }
 
-uint64_t *
-divert_xuid_to_client_num_stub(int, const game::ClientNum_t client_num, int) {
+uint64_t *divert_xuid_to_client_num_stub(int /*unused*/,
+                                         const game::ClientNum_t client_num,
+                                         int /*unused*/) {
   thread_local uint64_t value;
   // zero xuid is invalid, so increase the clientnum to prevent 0 values
   value = static_cast<uint64_t>(client_num) + 1;
@@ -164,7 +166,7 @@ inline const char *sv_sayname_val() {
 const char *get_client_name(const uint64_t xuid) {
   if (xuid == 0 || xuid == 0xFFFFFFFF || xuid == 0xFFFFFFFFFFFFFFFF) {
     const char *val = sv_sayname_val();
-    return val && *val ? val : "Server";
+    return val != nullptr && val[0] != NULL ? val : "Server";
   }
 
   if (xuid > 0 && xuid < 19 && !game::is_server()) {
@@ -173,8 +175,9 @@ const char *get_client_name(const uint64_t xuid) {
                                buffer, sizeof(buffer), true);
     std::string name(buffer);
     const size_t pipe = name.find('|');
-    if (pipe != std::string::npos)
+    if (pipe != std::string::npos) {
       name = name.substr(0, pipe);
+    }
     return utils::string::va("%s", name.c_str());
   }
 

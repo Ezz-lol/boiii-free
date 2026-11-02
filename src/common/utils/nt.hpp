@@ -32,7 +32,7 @@ public:
   explicit library(HMODULE handle);
 
   library &operator=(const library &) = default;
-  library(const library &a) : module_(a.module_) {}
+  library(const library &a) = default;
 
   bool operator!=(const library &obj) const { return !(*this == obj); };
   bool operator==(const library &obj) const;
@@ -48,7 +48,7 @@ public:
   [[nodiscard]] std::string get_name() const;
   [[nodiscard]] std::filesystem::path get_path() const;
   [[nodiscard]] std::filesystem::path get_directory() const;
-  [[nodiscard]] inline std::filesystem::path get_folder() const {
+  [[nodiscard]] std::filesystem::path get_folder() const {
     return get_directory();
   }
   [[nodiscard]] std::uint8_t *get_ptr() const;
@@ -61,7 +61,7 @@ private:
     requires(std::is_pointer_v<Fn>)
   static Fn cast_proc(FARPROC proc) {
 // Clang/GCC warnings with -Weverything
-#if defined(__clang__)
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored                                               \
     "-Wcast-function-type" // warning: cast between incompatible function types
@@ -77,7 +77,7 @@ private:
 
     return reinterpret_cast<Fn>(proc);
 
-#if defined(__clang__)
+#ifdef __clang__
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
@@ -136,8 +136,8 @@ public:
     requires(!std::is_same_v<T, void>)
   T invoke_this(const std::string_view &name, void *this_ptr,
                 Args... args) const {
-    thiscallPtr_t<T(void *__this, Args...)> f =
-        get_proc<thiscallPtr_t<T(void *__this, Args...)>>(name);
+    thiscallPtr_t<T(void *, Args...)> f =
+        get_proc<thiscallPtr_t<T(void *, Args...)>>(name);
     if (f) {
       return f(this_ptr, args...);
     }
@@ -168,8 +168,8 @@ public:
     requires(std::is_same_v<T, void>)
   void invoke_this(const std::string_view &name, void *this_ptr,
                    Args... args) const {
-    thiscallPtr_t<void(void *__this, Args...)> f =
-        get_proc<thiscallPtr_t<void(void *__this, Args...)>>(name);
+    thiscallPtr_t<void(void *, Args...)> f =
+        get_proc<thiscallPtr_t<void(void *, Args...)>>(name);
 
     if (f) {
       return f(this_ptr, args...);
@@ -182,16 +182,16 @@ public:
   [[nodiscard]] PIMAGE_DOS_HEADER get_dos_header() const;
   [[nodiscard]] PIMAGE_OPTIONAL_HEADER get_optional_header() const;
 
-  [[nodiscard]] void **get_iat_entry(const std::string_view &module_name,
-                                     std::string proc_name) const;
-  [[nodiscard]] void **get_iat_entry(const std::string_view &module_name,
-                                     const char *proc_name) const;
+  [[nodiscard]] void *get_iat_entry(const std::string_view &module_name,
+                                    std::string proc_name) const;
+  [[nodiscard]] void *get_iat_entry(const std::string_view &module_name,
+                                    const char *proc_name) const;
 
 private:
   HMODULE module_;
 };
 
-template <auto InvalidHandle = nullptr> class handle {
+template <intptr_t INVALID_HANDLE = 0> class handle {
 public:
   handle() = default;
 
@@ -200,7 +200,7 @@ public:
   ~handle() {
     if (*this) {
       CloseHandle(this->handle_);
-      this->handle_ = (HANDLE)InvalidHandle;
+      this->handle_ = reinterpret_cast<HANDLE>(INVALID_HANDLE);
     }
   }
 
@@ -213,7 +213,7 @@ public:
     if (this != &obj) {
       this->~handle();
       this->handle_ = obj.handle_;
-      obj.handle_ = (HANDLE)InvalidHandle;
+      obj.handle_ = reinterpret_cast<HANDLE>(INVALID_HANDLE);
     }
 
     return *this;
@@ -226,12 +226,14 @@ public:
     return *this;
   }
 
-  operator bool() const { return this->handle_ != (HANDLE)InvalidHandle; }
+  operator bool() const {
+    return this->handle_ != reinterpret_cast<HANDLE>(INVALID_HANDLE);
+  }
 
   operator HANDLE() const { return this->handle_; }
 
 private:
-  HANDLE handle_{(HANDLE)InvalidHandle};
+  HANDLE handle_{reinterpret_cast<HANDLE>(INVALID_HANDLE)};
 };
 
 class registry_key {
@@ -258,7 +260,7 @@ public:
   }
 
   ~registry_key() {
-    if (this->key_) {
+    if (this->key_ != nullptr) {
       RegCloseKey(this->key_);
     }
   }
@@ -271,7 +273,7 @@ public:
 
   registry_key *GetRef() { return this; }
 
-  const registry_key *GetRef() const { return this; }
+  [[nodiscard]] const registry_key *GetRef() const { return this; }
 
 private:
   HKEY key_{};

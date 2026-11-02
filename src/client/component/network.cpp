@@ -103,7 +103,7 @@ bool socket_set_blocking(const SOCKET sock, const bool blocking) {
 
 void create_ip_socket() {
   SOCKET &sock = *game::net::ip_socket;
-  if (static_cast<uintptr_t>(sock) != 0) {
+  if (static_cast<uintptr_t>(sock) == 0) {
     sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock == static_cast<uintptr_t>(INVALID_SOCKET)) {
       throw std::runtime_error("Unable to create socket");

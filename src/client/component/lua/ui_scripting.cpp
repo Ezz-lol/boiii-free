@@ -1672,10 +1672,10 @@ void patch_mod_module(const std::filesystem::path &path) {
   if (!mod) {
     return;
   }
-  if (void **entry = mod.get_iat_entry("kernel32.dll", "GetModuleFileNameW")) {
+  if (void *entry = mod.get_iat_entry("kernel32.dll", "GetModuleFileNameW")) {
     utils::hook::set(entry, mod_get_module_file_name_w);
   }
-  if (void **entry = mod.get_iat_entry("kernel32.dll", "GetModuleFileNameA")) {
+  if (void *entry = mod.get_iat_entry("kernel32.dll", "GetModuleFileNameA")) {
     utils::hook::set(entry, mod_get_module_file_name_a);
   }
 }

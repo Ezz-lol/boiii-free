@@ -24,8 +24,8 @@ public:
   }
 
 private:
-  bool needs_end_{false};
-  int nesting_;
+  bool needs_end{false};
+  int nesting;
 };
 
 class params_sv {
@@ -49,8 +49,8 @@ public:
   }
 
 private:
-  bool needs_end_{false};
-  int nesting_;
+  bool needs_end{false};
+  int nesting;
 };
 
 using command_function = std::function<void()>;

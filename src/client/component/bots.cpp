@@ -31,47 +31,48 @@ struct BotName {
 };
 
 std::vector<BotName> load_bots_names() {
-  constexpr const BotName DEFAULT_BOT_NAMES[] = {{"Skwll", "DEV"},
-                                                 {"amkillam", "DEV"},
-                                                 {"Frozedy", "DEV"},
-                                                 {"Level", "DEV"},
+  constexpr const BotName DEFAULT_BOT_NAMES[] = {
+      {.name = "Skwll", .clan_abbrev = "DEV"},
+      {.name = "amkillam", .clan_abbrev = "DEV"},
+      {.name = "Frozedy", .clan_abbrev = "DEV"},
+      {.name = "Level", .clan_abbrev = "DEV"},
 
-                                                 {"Ava", "WIFE"},
+      {.name = "Ava", .clan_abbrev = "WIFE"},
 
-                                                 {"Solar", "Ezz"},
-                                                 {"Catsby", "Ezz"},
-                                                 {"Hellcat", "Ezz"},
-                                                 {"Zyrow", "Ezz"},
-                                                 {"ZACK", "Ezz"},
-                                                 {"Aranella", "Ezz"},
-                                                 {"Clyde", "Ezz"},
-                                                 {"Misty", "Ezz"},
-                                                 {"TheBot", "Ezz"},
-                                                 {"Alenski", "Ezz"},
-                                                 {"Boiii", "Ezz"},
-                                                 {"Sabino", "Ezz"},
-                                                 {"KST", "Ezz"},
-                                                 {"Faisal", "Ezz"},
+      {.name = "Solar", .clan_abbrev = "Ezz"},
+      {.name = "Catsby", .clan_abbrev = "Ezz"},
+      {.name = "Hellcat", .clan_abbrev = "Ezz"},
+      {.name = "Zyrow", .clan_abbrev = "Ezz"},
+      {.name = "ZACK", .clan_abbrev = "Ezz"},
+      {.name = "Aranella", .clan_abbrev = "Ezz"},
+      {.name = "Clyde", .clan_abbrev = "Ezz"},
+      {.name = "Misty", .clan_abbrev = "Ezz"},
+      {.name = "TheBot", .clan_abbrev = "Ezz"},
+      {.name = "Alenski", .clan_abbrev = "Ezz"},
+      {.name = "Boiii", .clan_abbrev = "Ezz"},
+      {.name = "Sabino", .clan_abbrev = "Ezz"},
+      {.name = "KST", .clan_abbrev = "Ezz"},
+      {.name = "Faisal", .clan_abbrev = "Ezz"},
 
-                                                 {"Richtofen", "ZMB"},
-                                                 {"Dempsy", "ZMB"},
-                                                 {"Samantha", "ZMB"},
-                                                 {"Takeo", "ZMB"},
-                                                 {"ShadowMan", "ZMB"},
+      {.name = "Richtofen", .clan_abbrev = "ZMB"},
+      {.name = "Dempsy", .clan_abbrev = "ZMB"},
+      {.name = "Samantha", .clan_abbrev = "ZMB"},
+      {.name = "Takeo", .clan_abbrev = "ZMB"},
+      {.name = "ShadowMan", .clan_abbrev = "ZMB"},
 
-                                                 {"Aimbot.exe", "EXE"},
-                                                 {"Wallhack.exe", "EXE"},
-                                                 {"NotAScammer.exe", "EXE"},
+      {.name = "Aimbot.exe", .clan_abbrev = "EXE"},
+      {.name = "Wallhack.exe", .clan_abbrev = "EXE"},
+      {.name = "NotAScammer.exe", .clan_abbrev = "EXE"},
 
-                                                 {"ThunderCockKiller12", "TF"},
+      {.name = "ThunderCockKiller12", .clan_abbrev = "TF"},
 
-                                                 {"1stPlaceBtw", "YUH"},
+      {.name = "1stPlaceBtw", .clan_abbrev = "YUH"},
 
-                                                 {"NoIamFirstPlace", "FR"},
+      {.name = "NoIamFirstPlace", .clan_abbrev = "FR"},
 
-                                                 {"IDied", "LOL"},
+      {.name = "IDied", .clan_abbrev = "LOL"},
 
-                                                 {"TheLegend27", "GOW"}};
+      {.name = "TheLegend27", .clan_abbrev = "GOW"}};
 
   std::string buffer;
   std::vector<BotName> bot_names;

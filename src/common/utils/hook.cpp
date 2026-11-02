@@ -290,25 +290,30 @@ std::optional<std::pair<void *, void *>> iat(const nt::library &library,
                                              const std::string &target_library,
                                              const std::string &process,
                                              void *stub) {
-  if (!library.is_valid())
-    return {};
+  if (library.is_valid()) {
 
-  void **const ptr = library.get_iat_entry(target_library, process);
-  if (!ptr)
-    return {};
+    void **const ptr = reinterpret_cast<void **>(
+        library.get_iat_entry(target_library, process));
+    if (ptr != nullptr) {
+      DWORD protect = 0;
+      VirtualProtect(reinterpret_cast<void *>(ptr), sizeof(*ptr),
+                     PAGE_EXECUTE_READWRITE, &protect);
 
-  DWORD protect;
-  VirtualProtect(ptr, sizeof(*ptr), PAGE_EXECUTE_READWRITE, &protect);
+      std::swap(*ptr, stub);
 
-  std::swap(*ptr, stub);
+      VirtualProtect(reinterpret_cast<void *>(ptr), sizeof(*ptr), protect,
+                     &protect);
+      return {{ptr, stub}};
+    }
+  }
 
-  VirtualProtect(ptr, sizeof(*ptr), protect, &protect);
-  return {{ptr, stub}};
+  return {};
 }
 
 void nop(void *place_arg, const size_t length) {
-  if (!place_arg || length == 0)
+  if ((place_arg == nullptr) || length == 0) {
     return;
+  }
 
   uint8_t *place = static_cast<uint8_t *>(place_arg);
   DWORD old_protect{};

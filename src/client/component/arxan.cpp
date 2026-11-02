@@ -92,9 +92,9 @@ void callstack_stub(utils::hook::assembler &a) {
   a.jmp(qword_ptr(rsp, -8));
 }
 
-constexpr uint64_t pseudo_steam_id = 0x1337;
+constexpr uint64_t PSEUDO_STEAM_ID = 0x1337;
 const HANDLE pseudo_steam_handle = reinterpret_cast<HANDLE>(
-    reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE) - pseudo_steam_id);
+    reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE) - PSEUDO_STEAM_ID);
 
 utils::hook::detour nt_close_hook;
 utils::hook::detour nt_query_system_information_hook;
@@ -112,7 +112,7 @@ void **get_tls_callbacks() {
   const utils::nt::library game{};
   const IMAGE_DATA_DIRECTORY &entry =
       game.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
-  if (!entry.VirtualAddress || !entry.Size) {
+  if (entry.VirtualAddress == 0u || entry.Size == 0u) {
     return nullptr;
   }
 
@@ -123,16 +123,17 @@ void **get_tls_callbacks() {
 
 void disable_tls_callbacks() {
   void **tls_callbacks = get_tls_callbacks();
-  if (tls_callbacks) {
+  if (tls_callbacks != nullptr) {
     original_first_tls_callback = *tls_callbacks;
-    utils::hook::set(tls_callbacks, nullptr);
+    utils::hook::set(reinterpret_cast<void *>(tls_callbacks), nullptr);
   }
 }
 
 void restore_tls_callbacks() {
   void **tls_callbacks = get_tls_callbacks();
-  if (tls_callbacks) {
-    utils::hook::set(tls_callbacks, original_first_tls_callback);
+  if (tls_callbacks != nullptr) {
+    utils::hook::set(reinterpret_cast<void *>(tls_callbacks),
+                     original_first_tls_callback);
   }
 }
 
@@ -162,7 +163,7 @@ HANDLE process_id_to_handle(const DWORD pid) {
 
 HANDLE WINAPI open_process_stub(const DWORD access, const BOOL inherit,
                                 const DWORD pid) {
-  if (pid == pseudo_steam_id) {
+  if (pid == PSEUDO_STEAM_ID) {
     return pseudo_steam_handle;
   }
 
@@ -186,7 +187,7 @@ bool remove_evil_keywords_from_string(const UNICODE_STRING &string) {
       L"Wireshark",    L"Debug",  L"DEBUG",  L"msvsmon",
   };
 
-  if (!string.Buffer || !string.Length) {
+  if (string.Buffer == nullptr || string.Length == 0u) {
     return false;
   }
 
@@ -227,7 +228,7 @@ int WINAPI get_window_text_a_stub(const HWND wnd, const LPSTR str,
   wstr.resize(max_count);
 
   const int res = GetWindowTextW(wnd, wstr.data(), max_count);
-  if (res) {
+  if (res != 0) {
     remove_evil_keywords_from_string(wstr.data(), res);
 
     const std::string regular_str(wstr.begin(), wstr.end());
@@ -262,7 +263,7 @@ NTSTATUS NTAPI nt_query_system_information_stub(
         if (!injected_steam && info->UniqueProcessId != our_pid) {
           static wchar_t steam_path[] = L"steam.exe";
 
-          info->UniqueProcessId = process_id_to_handle(pseudo_steam_id);
+          info->UniqueProcessId = process_id_to_handle(PSEUDO_STEAM_ID);
           info->ImageName.Buffer = steam_path;
           info->ImageName.Length =
               static_cast<uint16_t>(wcslen(steam_path) * 2u);
@@ -271,7 +272,7 @@ NTSTATUS NTAPI nt_query_system_information_stub(
           injected_steam = true;
         }
 
-        if (!info->NextEntryOffset) {
+        if (info->NextEntryOffset == 0u) {
           break;
         }
 
@@ -295,10 +296,10 @@ bool handle_pseudo_steam_process(const HANDLE handle,
   const std::string steam_path = steam_folder + "\\steam.exe"s;
   const std::wstring wide_path(steam_path.begin(), steam_path.end());
 
-  const ULONG required_size =
-      static_cast<ULONG>((wide_path.size() + 1u) * 2u + sizeof(UNICODE_STRING));
+  const ULONG required_size = static_cast<ULONG>(
+      ((wide_path.size() + 1u) * 2u) + sizeof(UNICODE_STRING));
 
-  if (ret_length) {
+  if (ret_length != nullptr) {
     *ret_length = required_size;
   }
 
@@ -335,7 +336,7 @@ NTSTATUS WINAPI nt_query_information_process_stub(
   if (NT_SUCCESS(status)) {
     if (info_class == ProcessBasicInformation) {
       static_cast<PPROCESS_BASIC_INFORMATION>(info)->Reserved3 =
-          process_id_to_handle(pseudo_steam_id);
+          process_id_to_handle(PSEUDO_STEAM_ID);
     } else if (info_class == ProcessDebugObjectHandle) {
       *static_cast<HANDLE *>(info) = nullptr;
       return static_cast<LONG>(0xC0000353);
@@ -360,7 +361,7 @@ NTSTATUS NTAPI nt_close_stub(const HANDLE handle) {
   char info[16];
   if (NtQueryObject(handle, static_cast<OBJECT_INFORMATION_CLASS>(4), &info, 2,
                     nullptr) >= 0 &&
-      size_t(handle) != 0x12345) {
+      reinterpret_cast<size_t>(handle) != 0x12345) {
     return nt_close_hook.invoke<NTSTATUS>(handle);
   }
 
@@ -369,8 +370,8 @@ NTSTATUS NTAPI nt_close_stub(const HANDLE handle) {
 
 void hide_being_debugged() {
   struct _PEB *const peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
-  peb->BeingDebugged = false;
-  *reinterpret_cast<PDWORD>(LPSTR(peb) + 0xBC) &= ~0x70;
+  peb->BeingDebugged = static_cast<BOOL>(false);
+  *reinterpret_cast<PDWORD>(reinterpret_cast<LPSTR>(peb) + 0xBC) &= ~0x70;
 }
 
 void restore_debug_functions() {
@@ -397,9 +398,9 @@ void restore_debug_functions() {
 
   const utils::nt::library ntdll("ntdll.dll");
 
-  for (uint8_t i = 0; i < std::size(functions); ++i) {
+  for (uint8_t i = 0; i < static_cast<uint8_t>(std::size(functions)); ++i) {
     void *func = ntdll.get_proc<void *>(functions[i]);
-    if (func) {
+    if (func != nullptr) {
       if (!loaded) {
         memcpy(buffers[i], func, sizeof(buffer));
       } else {
@@ -431,14 +432,11 @@ const std::vector<std::pair<uint8_t *, size_t>> &get_text_sections() {
 
 bool is_in_texts(const uint64_t addr) {
   const std::vector<std::pair<uint8_t *, size_t>> &texts = get_text_sections();
-  for (const std::pair<uint8_t *, size_t> &text : texts) {
-    const ULONG_PTR start = reinterpret_cast<ULONG_PTR>(text.first);
-    if (addr >= start && addr <= (start + text.second)) {
-      return true;
-    }
-  }
-
-  return false;
+  return std::ranges::any_of(
+      texts, [addr](const std::pair<uint8_t *, size_t> &text) {
+        const ULONG_PTR start = reinterpret_cast<ULONG_PTR>(text.first);
+        return addr >= start && addr <= (start + text.second);
+      });
 }
 
 bool is_in_texts(const void *addr) {
@@ -450,7 +448,7 @@ struct integrity_handler_context {
   uint32_t *original_checksum;
 };
 
-bool is_on_stack(uint8_t *stack_frame, const void *pointer) {
+bool is_on_stack(const uint8_t *stack_frame, const void *pointer) {
   const uint64_t stack_value = reinterpret_cast<uint64_t>(stack_frame);
   const uint64_t pointer_value = reinterpret_cast<uint64_t>(pointer);
 
@@ -487,7 +485,7 @@ uint32_t adjust_integrity_checksum(const uint64_t return_address,
   const integrity_handler_context *context =
       search_handler_context(stack_frame, current_checksum);
 
-  if (!context) {
+  if (context == nullptr) {
     game::show_error(
         utils::string::va("No frame offset for: %llX", handler_address));
     TerminateProcess(GetCurrentProcess(), 0xBAD);
@@ -509,9 +507,9 @@ uint32_t adjust_integrity_checksum(const uint64_t return_address,
 
 void patch_intact_basic_block_integrity_check(void *address) {
   const uint64_t game_address = reinterpret_cast<uint64_t>(address);
-  constexpr int inst_len = 3;
+  constexpr int INST_LEN = 3;
 
-  const uint64_t next_inst_addr = game_address + inst_len;
+  const uint64_t next_inst_addr = game_address + INST_LEN;
   const uint32_t next_inst = *reinterpret_cast<uint32_t *>(next_inst_addr);
 
   if ((next_inst & 0xFF00FFFF) != 0xFF004583) {
@@ -562,9 +560,9 @@ void patch_intact_basic_block_integrity_check(void *address) {
 
 void patch_split_basic_block_integrity_check(void *address) {
   const uint64_t game_address = reinterpret_cast<uint64_t>(address);
-  constexpr int inst_len = 3;
+  constexpr int INST_LEN = 3;
 
-  const uint64_t next_inst_addr = game_address + inst_len;
+  const uint64_t next_inst_addr = game_address + INST_LEN;
 
   if (*reinterpret_cast<uint8_t *>(next_inst_addr) != 0xE9) {
     throw std::runtime_error(utils::string::va(
@@ -606,22 +604,22 @@ void patch_split_basic_block_integrity_check(void *address) {
 
 void search_and_patch_integrity_checks_precomputed() {
   if (game::is_server()) {
-    for (const uint64_t i : intact_integrity_check_blocks_server) {
+    for (const uint64_t i : INTACT_INTEGRITY_CHECK_BLOCKS_SERVER) {
       patch_intact_basic_block_integrity_check(
           reinterpret_cast<void *>(game::relocate(i)));
     }
 
-    for (const uint64_t i : split_integrity_check_blocks_server) {
+    for (const uint64_t i : SPLIT_INTEGRITY_CHECK_BLOCKS_SERVER) {
       patch_split_basic_block_integrity_check(
           reinterpret_cast<void *>(game::relocate(i)));
     }
   } else {
-    for (const uint64_t i : intact_integrity_check_blocks) {
+    for (const uint64_t i : INTACT_INTEGRITY_CHECK_BLOCKS) {
       patch_intact_basic_block_integrity_check(
           reinterpret_cast<void *>(game::relocate(i)));
     }
 
-    for (const uint64_t i : split_integrity_check_blocks) {
+    for (const uint64_t i : SPLIT_INTEGRITY_CHECK_BLOCKS) {
       patch_split_basic_block_integrity_check(
           reinterpret_cast<void *>(game::relocate(i)));
     }
@@ -630,27 +628,27 @@ void search_and_patch_integrity_checks_precomputed() {
 
 void patch_checksum_comparisons_new() {
   // Variant 1: XOR table equality check
-  constexpr uint8_t xor_equality_check_patch[] = {0x48, 0x31, 0xC9,
+  constexpr uint8_t XOR_EQUALITY_CHECK_PATCH[] = {0x48, 0x31, 0xC9,
                                                   0x90, 0x90, 0x90};
   for (uint8_t *i : "8B 0C 8B 33 0C 82"_sig) {
-    utils::hook::set<uint8_t, std::size(xor_equality_check_patch)>(
-        i, xor_equality_check_patch);
+    utils::hook::set<uint8_t, std::size(XOR_EQUALITY_CHECK_PATCH)>(
+        i, XOR_EQUALITY_CHECK_PATCH);
   }
 
   // Variant 2: Subtraction equality check
-  constexpr uint8_t sub_equality_check_patch[] = {0x48, 0x31, 0xC9, 0x90,
+  constexpr uint8_t SUB_EQUALITY_CHECK_PATCH[] = {0x48, 0x31, 0xC9, 0x90,
                                                   0x90, 0x90, 0x90, 0x90};
   for (uint8_t *i : "8B 0C 8B F7 D9 03 0C 82"_sig) {
-    utils::hook::set<uint8_t, std::size(sub_equality_check_patch)>(
-        i, sub_equality_check_patch);
+    utils::hook::set<uint8_t, std::size(SUB_EQUALITY_CHECK_PATCH)>(
+        i, SUB_EQUALITY_CHECK_PATCH);
   }
 
   // Variant 3: Direct table comparison
-  constexpr uint8_t lut_equality_check_patch[] = {0x48, 0x31, 0xC0,
+  constexpr uint8_t LUT_EQUALITY_CHECK_PATCH[] = {0x48, 0x31, 0xC0,
                                                   0x48, 0x31, 0xD2};
   for (uint8_t *i : "8B 04 82 8B 14 8B 3B C2"_sig) {
-    utils::hook::set<uint8_t, std::size(lut_equality_check_patch)>(
-        i, lut_equality_check_patch);
+    utils::hook::set<uint8_t, std::size(LUT_EQUALITY_CHECK_PATCH)>(
+        i, LUT_EQUALITY_CHECK_PATCH);
   }
 }
 
@@ -676,25 +674,25 @@ void search_and_patch_integrity_checks() {
 }
 
 void patch_checksum_comparisons() {
-  constexpr uint16_t xor_ecx = static_cast<uint16_t>(0xC933);
-  constexpr uint16_t xor_edx = static_cast<uint16_t>(0xD233);
+  constexpr uint16_t XOR_ECX = static_cast<uint16_t>(0xC933);
+  constexpr uint16_t XOR_EDX = static_cast<uint16_t>(0xD233);
 
   // Variant 1: XOR table equality check
   for (uint8_t *i : "8B 0C 8B 33 0C 82"_sig) {
-    utils::hook::set<uint16_t>(i, xor_ecx);
+    utils::hook::set<uint16_t>(i, XOR_ECX);
     utils::hook::nop(i + 2, 4);
   }
 
   // Variant 2: Subtraction equality check
   for (uint8_t *i : "8B 0C 8B F7 D9 03 0C 82"_sig) {
-    utils::hook::set<uint16_t>(i, xor_ecx);
+    utils::hook::set<uint16_t>(i, XOR_ECX);
     utils::hook::nop(i + 2, 6);
   }
 
   // Variant 3: Direct table comparison
   for (uint8_t *i : "8B 04 82 8B 14 8B 3B C2"_sig) {
-    utils::hook::set<uint16_t>(i, xor_ecx);
-    utils::hook::set<uint16_t>(i + 2, xor_edx);
+    utils::hook::set<uint16_t>(i, XOR_ECX);
+    utils::hook::set<uint16_t>(i + 2, XOR_EDX);
     utils::hook::nop(i + 4, 4);
   }
 }
@@ -717,16 +715,16 @@ int WINAPI get_system_metrics_stub(const int index) {
 }
 BOOL WINAPI get_thread_context_stub(const HANDLE thread_handle,
                                     const LPCONTEXT context) {
-  constexpr long debug_registers_flag =
+  constexpr long DEBUG_REGISTERS_FLAG =
       (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
-  if (context->ContextFlags & debug_registers_flag) {
+  if ((context->ContextFlags & DEBUG_REGISTERS_FLAG) != 0u) {
     void *source = _ReturnAddress();
     const utils::nt::library game = utils::nt::library{};
     const utils::nt::library source_module =
         utils::nt::library::get_by_address(source);
 
     if (source_module == game) {
-      context->ContextFlags &= ~debug_registers_flag;
+      context->ContextFlags &= ~DEBUG_REGISTERS_FLAG;
     }
   }
 
@@ -739,11 +737,12 @@ NTSTATUS NTAPI get_proc_address_stub(const HMODULE module_handle,
                                      PVOID *function_address,
                                      const BOOL b_value,
                                      PVOID *callback_address) {
-  OutputDebugStringA(utils::string::va("Proc: %s %X\n",
-                                       (function_name && function_name->Buffer)
-                                           ? function_name->Buffer
-                                           : "(null)",
-                                       static_cast<DWORD>(oridinal)));
+  OutputDebugStringA(utils::string::va(
+      "Proc: %s %X\n",
+      (function_name != nullptr && function_name->Buffer != nullptr)
+          ? function_name->Buffer
+          : "(null)",
+      static_cast<DWORD>(oridinal)));
 
   return get_proc_address_hook.invoke<NTSTATUS>(module_handle, function_name,
                                                 oridinal, function_address,
@@ -830,9 +829,9 @@ struct component final : generic_component {
 
     AddVectoredExceptionHandler(1, exception_filter);
 
-    void **sys_met_import =
+    void *sys_met_import =
         utils::nt::library{}.get_iat_entry("user32.dll", "GetSystemMetrics");
-    if (sys_met_import) {
+    if (sys_met_import != nullptr) {
       utils::hook::set(sys_met_import, get_system_metrics_stub);
     }
   }
@@ -870,7 +869,7 @@ struct component final : generic_component {
     detail::callstack_proxy_addr = utils::hook::assemble(callstack_stub);
   }
 
-  component_priority priority() const override {
+  [[nodiscard]] component_priority priority() const override {
     return component_priority::arxan;
   }
 

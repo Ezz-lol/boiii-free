@@ -20,22 +20,22 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
     return;
   }
 
-  const char *eventName = Scr_GetString(inst, 0);
-  const char *formatString = Scr_GetString(inst, 1);
+  const char *event_name = Scr_GetString(inst, 0);
+  const char *format_string = Scr_GetString(inst, 1);
 
-  std::string formatStr = formatString;
-  std::ostringstream messageStream;
-  size_t formatLen = formatStr.length();
+  std::string format_str = format_string;
+  std::ostringstream message_stream;
+  size_t format_len = format_str.length();
 
-  int32_t paramIndex = 2;
-  int32_t vectorComponent = 0;
+  int32_t param_index = 2;
+  int32_t vector_component = 0;
 
-  for (size_t i = 0; i < formatLen; ++i) {
+  for (size_t i = 0; i < format_len; ++i) {
     // Check for the start of a format specifier
-    if (formatStr[i] == '%') {
+    if (format_str[i] == '%') {
       // Handle escaped percent signs "%%"
-      if (i + 1 < formatLen && formatStr[i + 1] == '%') {
-        messageStream << '%';
+      if (i + 1 < format_len && format_str[i + 1] == '%') {
+        message_stream << '%';
         ++i;
         continue;
       }
@@ -43,120 +43,125 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
       // Extract the full format specifier token
       std::string specifier = "%";
       size_t j = i + 1;
-      while (
-          j < formatLen && formatStr[j] != 'd' && formatStr[j] != 'i' &&
-          formatStr[j] != 'o' && formatStr[j] != 'u' && formatStr[j] != 'x' &&
-          formatStr[j] != 'X' && formatStr[j] != 'f' && formatStr[j] != 'F' &&
-          formatStr[j] != 'e' && formatStr[j] != 'E' && formatStr[j] != 'g' &&
-          formatStr[j] != 'G' && formatStr[j] != 'c' && formatStr[j] != 's' &&
-          formatStr[j] != 'p') {
-        specifier += formatStr[j];
+      while (j < format_len && format_str[j] != 'd' && format_str[j] != 'i' &&
+             format_str[j] != 'o' && format_str[j] != 'u' &&
+             format_str[j] != 'x' && format_str[j] != 'X' &&
+             format_str[j] != 'f' && format_str[j] != 'F' &&
+             format_str[j] != 'e' && format_str[j] != 'E' &&
+             format_str[j] != 'g' && format_str[j] != 'G' &&
+             format_str[j] != 'c' && format_str[j] != 's' &&
+             format_str[j] != 'p') {
+        specifier += format_str[j];
         j++;
       }
 
       // If a valid specifier character was found, process the argument
-      if (j < formatLen) {
-        char specChar = formatStr[j];
-        specifier += specChar;
+      if (j < format_len) {
+        char spec_char = format_str[j];
+        specifier += spec_char;
         i = j; // Advance main loop index past the specifier
 
-        if (paramIndex < numParam) {
-          var::ScrVarType type = Scr_GetType(inst, paramIndex);
-          str512_t tempBuffer;
+        if (param_index < numParam) {
+          var::ScrVarType type = Scr_GetType(inst, param_index);
+          str512_t temp_buffer;
 
           // 1. Handle String Formats
-          if (specChar == 's') {
-            const char *strVal = "";
+          if (spec_char == 's') {
+            const char *str_val = "";
             if (type == var::ScrVarType::STRING ||
                 type == var::ScrVarType::LOCALIZED_STRING) {
-              strVal = Scr_GetString(inst, paramIndex);
+              str_val = Scr_GetString(inst, param_index);
             }
-            snprintf(tempBuffer, sizeof(tempBuffer), specifier.c_str(), strVal);
-            messageStream << tempBuffer;
-            paramIndex++;
+            snprintf(temp_buffer, sizeof(temp_buffer), specifier.c_str(),
+                     str_val);
+            message_stream << temp_buffer;
+            param_index++;
           }
           // 2. Handle Floating-Point Formats
-          else if (specChar == 'f' || specChar == 'F' || specChar == 'e' ||
-                   specChar == 'E' || specChar == 'g' || specChar == 'G') {
-            double floatVal = 0.0;
+          else if (spec_char == 'f' || spec_char == 'F' || spec_char == 'e' ||
+                   spec_char == 'E' || spec_char == 'g' || spec_char == 'G') {
+            double float_val = 0.0;
             if (type == var::ScrVarType::FLOAT) {
-              floatVal = static_cast<double>(Scr_GetFloat(inst, paramIndex));
-              paramIndex++;
+              float_val = static_cast<double>(Scr_GetFloat(inst, param_index));
+              param_index++;
             } else if (type == var::ScrVarType::INT) {
-              floatVal = static_cast<double>(Scr_GetInt(inst, paramIndex));
-              paramIndex++;
+              float_val = static_cast<double>(Scr_GetInt(inst, param_index));
+              param_index++;
             } else if (type == var::ScrVarType::VECTOR) {
-              vec3_t vectorValue;
-              Scr_GetVector(inst, paramIndex, &vectorValue);
+              vec3_t vector_value;
+              Scr_GetVector(inst, param_index, &vector_value);
 
-              if (vectorComponent == 0)
-                floatVal = static_cast<double>(vectorValue.x);
-              else if (vectorComponent == 1)
-                floatVal = static_cast<double>(vectorValue.y);
-              else if (vectorComponent == 2)
-                floatVal = static_cast<double>(vectorValue.z);
+              if (vector_component == 0) {
+                float_val = static_cast<double>(vector_value.x);
+              } else if (vector_component == 1) {
+                float_val = static_cast<double>(vector_value.y);
+              } else if (vector_component == 2) {
+                float_val = static_cast<double>(vector_value.z);
+              }
 
-              vectorComponent++;
-              if (vectorComponent == 3) {
-                vectorComponent = 0;
-                paramIndex++;
+              vector_component++;
+              if (vector_component == 3) {
+                vector_component = 0;
+                param_index++;
               }
             } else {
-              paramIndex++;
+              param_index++;
             }
-            snprintf(tempBuffer, sizeof(tempBuffer), specifier.c_str(),
-                     floatVal);
-            messageStream << tempBuffer;
+            snprintf(temp_buffer, sizeof(temp_buffer), specifier.c_str(),
+                     float_val);
+            message_stream << temp_buffer;
           }
           // 3. Handle Integer Formats
           else {
-            int32_t intVal = 0;
+            int32_t int_val = 0;
             if (type == var::ScrVarType::INT) {
-              intVal = Scr_GetInt(inst, paramIndex);
-              paramIndex++;
+              int_val = Scr_GetInt(inst, param_index);
+              param_index++;
             } else if (type == var::ScrVarType::FLOAT) {
-              intVal = static_cast<int32_t>(Scr_GetFloat(inst, paramIndex));
-              paramIndex++;
+              int_val = static_cast<int32_t>(Scr_GetFloat(inst, param_index));
+              param_index++;
             } else if (type == var::ScrVarType::VECTOR) {
-              vec3_t vectorValue;
-              Scr_GetVector(inst, paramIndex, &vectorValue);
+              vec3_t vector_value;
+              Scr_GetVector(inst, param_index, &vector_value);
 
-              if (vectorComponent == 0)
-                intVal = static_cast<int32_t>(vectorValue.x);
-              else if (vectorComponent == 1)
-                intVal = static_cast<int32_t>(vectorValue.y);
-              else if (vectorComponent == 2)
-                intVal = static_cast<int32_t>(vectorValue.z);
+              if (vector_component == 0) {
+                int_val = static_cast<int32_t>(vector_value.x);
+              } else if (vector_component == 1) {
+                int_val = static_cast<int32_t>(vector_value.y);
+              } else if (vector_component == 2) {
+                int_val = static_cast<int32_t>(vector_value.z);
+              }
 
-              vectorComponent++;
-              if (vectorComponent == 3) {
-                vectorComponent = 0;
-                paramIndex++;
+              vector_component++;
+              if (vector_component == vec3_t::size()) {
+                vector_component = 0;
+                param_index++;
               }
             } else {
-              paramIndex++;
+              param_index++;
             }
-            snprintf(tempBuffer, sizeof(tempBuffer), specifier.c_str(), intVal);
-            messageStream << tempBuffer;
+            snprintf(temp_buffer, sizeof(temp_buffer), specifier.c_str(),
+                     int_val);
+            message_stream << temp_buffer;
           }
         } else {
           // Fallback if the format string expects more arguments than
           // provided
-          messageStream << specifier;
+          message_stream << specifier;
         }
       } else {
         // Malformed specifier near the end of the string, print verbatim
-        messageStream << specifier;
+        message_stream << specifier;
         i = j;
       }
     } else {
       // Pass standard characters through verbatim
-      messageStream << formatStr[i];
+      message_stream << format_str[i];
     }
   }
 
-  const char *out = utils::string::va("[BB][0] %s: %s", eventName,
-                                      messageStream.str().c_str());
+  const char *out = utils::string::va("[BB][0] %s: %s", event_name,
+                                      message_stream.str().c_str());
   fprintf(stdout, "%s\n", out);
   fflush(stdout);
   game::trace("{}", out);
@@ -181,7 +186,7 @@ void BB_Print_StdoutRedirect(game::ControllerIndex_t controllerIndex,
   vsnprintf(buffer.data(), buf_len, fmt, args);
   va_end(args);
 
-  if (name && name[0]) {
+  if (name != nullptr && name[0] != NULL) {
     const char *out = utils::string::va("[BB][%d] %s: %s",
                                         static_cast<int32_t>(controllerIndex),
                                         name, buffer.c_str());
@@ -201,7 +206,7 @@ void BB_Print_StdoutRedirect(game::ControllerIndex_t controllerIndex,
 } // namespace game
 namespace bb {
 
-void stub_func() { return; }
+void stub_func() {}
 
 utils::hook::detour BB_Print_hook;
 utils::hook::detour BB_Send_hook;

@@ -27,26 +27,24 @@
 
 namespace {
 volatile bool g_call_tls_callbacks = false;
-std::pair<void **, void *> g_original_import{};
 
 DECLSPEC_NORETURN void WINAPI exit_hook(const uint32_t code) {
   component_loader::pre_destroy();
   ExitProcess(code);
 }
 
-std::pair<void **, void *> patch_steam_import(const std::string &func,
-                                              void *function) {
+std::pair<void *, void *> patch_steam_import(const std::string &func,
+                                             void *function) {
   static const utils::nt::library game{};
 
-  void **game_entry = game.get_iat_entry("steam_api64.dll", func);
-  if (!game_entry) {
+  void *game_entry = game.get_iat_entry("steam_api64.dll", func);
+  if (game_entry == nullptr) {
     // throw std::runtime_error("Import '" + func + "' not found!");
     return {nullptr, nullptr};
   }
 
-  void *original_import = reinterpret_cast<void *>(game_entry);
   utils::hook::set(game_entry, function);
-  return {game_entry, original_import};
+  return {game_entry, game_entry};
 }
 
 bool restart_app_if_necessary_stub() {
@@ -60,7 +58,6 @@ bool restart_app_if_necessary_stub() {
     TerminateProcess(GetCurrentProcess(), 1);
   }
 
-  utils::hook::set(g_original_import.first, g_original_import.second);
   patch_steam_import("SteamAPI_Shutdown", steam::SteamAPI_Shutdown);
 
   game::trace("Executing component post_unpack");
@@ -100,8 +97,8 @@ void patch_imports() {
   patch_steam_import("SteamAPI_GetHSteamPipe", steam::SteamAPI_GetHSteamPipe);
   patch_steam_import("SteamAPI_Init", steam::SteamAPI_Init);
   // patch_steam_import("SteamAPI_Shutdown", steam::SteamAPI_Shutdown);
-  g_original_import = patch_steam_import("SteamAPI_RestartAppIfNecessary",
-                                         restart_app_if_necessary_stub);
+  patch_steam_import("SteamAPI_RestartAppIfNecessary",
+                     restart_app_if_necessary_stub);
 
   const utils::nt::library game{};
   utils::hook::set(game.get_iat_entry("kernel32.dll", "ExitProcess"),
@@ -119,19 +116,19 @@ void remove_crash_file() {
   utils::io::remove_file(game_path);
 }
 
-struct patch_install_cancelled {};
+struct patch_install_cancelled : std::exception {};
 
-constexpr uint32_t legacy_client_checksum = 0x888C368;
-constexpr uint32_t supported_client_checksum = 0x6531394;
+constexpr uint32_t LEGACY_CLIENT_CHECKSUM = 0x888C368;
+constexpr uint32_t SUPPORTED_CLIENT_CHECKSUM = 0x6531394;
 
-constexpr const char supported_client_patch_url[] =
+constexpr const char SUPPORTED_CLIENT_PATCH_URL[] =
     "https://archive.org/download/black-ops-3_20260926/BlackOps3.exe";
-constexpr const char backup_supported_client_patch_url[] =
+constexpr const char BACKUP_SUPPORTED_CLIENT_PATCH_URL[] =
     "https://archive.org/download/black-ops-3_20260927/BlackOps3.exe";
-constexpr const char supported_client_patch_sha1[] =
+constexpr const char SUPPORTED_CLIENT_PATCH_SHA1[] =
     "9D03F81086112113BFB1DD22B8538B9398AC3B9B";
 
-enum class client_binary_state {
+enum class client_binary_state : uint8_t {
   supported,
   legacy,
   incompatible,
@@ -146,7 +143,7 @@ std::optional<uint32_t> get_pe_checksum(const std::filesystem::path &file) {
     if (stream && dos_header.e_magic == IMAGE_DOS_SIGNATURE) {
       stream.seekg(dos_header.e_lfanew, std::ios::beg);
 
-      unsigned long signature = 0;
+      uint32_t signature = 0;
       stream.read(reinterpret_cast<char *>(&signature), sizeof(signature));
       if (stream && signature == IMAGE_NT_SIGNATURE) {
         IMAGE_FILE_HEADER file_header{};
@@ -189,7 +186,7 @@ std::optional<uint32_t> get_pe_checksum(const std::filesystem::path &file) {
 bool has_expected_client_patch_hash(const std::filesystem::path &file) {
   std::ifstream stream(file, std::ios::binary);
   return stream.is_open() && utils::cryptography::sha1::compute(stream, true) ==
-                                 supported_client_patch_sha1;
+                                 SUPPORTED_CLIENT_PATCH_SHA1;
 }
 
 client_binary_state
@@ -199,19 +196,19 @@ classify_client_binary(const std::filesystem::path &client_binary) {
     return client_binary_state::unreadable;
   }
 
-  if (*checksum == supported_client_checksum) {
+  if (*checksum == SUPPORTED_CLIENT_CHECKSUM) {
     return client_binary_state::supported;
   }
 
-  if (*checksum == legacy_client_checksum) {
+  if (*checksum == LEGACY_CLIENT_CHECKSUM) {
     return client_binary_state::legacy;
   }
 
   return client_binary_state::incompatible;
 }
 
-std::vector<unsigned long> get_running_client_binary_process_ids() {
-  std::vector<unsigned long> pids{};
+std::vector<uint32_t> get_running_client_binary_process_ids() {
+  std::vector<uint32_t> pids{};
   const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
   if (snapshot == INVALID_HANDLE_VALUE) {
     return pids;
@@ -223,8 +220,8 @@ std::vector<unsigned long> get_running_client_binary_process_ids() {
   process_entry.dwSize = sizeof(process_entry);
   const DWORD self_pid = GetCurrentProcessId();
 
-  if (Process32FirstW(snapshot, &process_entry)) {
-    while (Process32NextW(snapshot, &process_entry)) {
+  if (Process32FirstW(snapshot, &process_entry) != 0) {
+    while (Process32NextW(snapshot, &process_entry) != 0) {
       if (process_entry.th32ProcessID != self_pid &&
           _wcsicmp(process_entry.szExeFile, L"BlackOps3.exe") == 0) {
         pids.emplace_back(process_entry.th32ProcessID);
@@ -240,12 +237,11 @@ bool is_client_binary_process_running() {
 }
 
 void close_running_client_binary_processes() {
-  const std::vector<unsigned long> pids =
-      get_running_client_binary_process_ids();
-  for (const unsigned long pid : pids) {
+  const std::vector<uint32_t> pids = get_running_client_binary_process_ids();
+  for (const uint32_t pid : pids) {
     const HANDLE process =
         OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, pid);
-    if (!process) {
+    if (process == nullptr) {
       throw std::runtime_error(
           "Failed to access the running BlackOps3.exe process before "
           "installing the patch.");
@@ -253,7 +249,7 @@ void close_running_client_binary_processes() {
 
     auto _ = utils::finally([&]() { CloseHandle(process); });
 
-    if (!TerminateProcess(process, 0)) {
+    if (TerminateProcess(process, 0) == 0) {
       const DWORD error = GetLastError();
       throw std::runtime_error(
           std::string("Failed to close the running BlackOps3.exe process "
@@ -317,13 +313,14 @@ std::string format_download_size(const size_t bytes) {
 
   if (gigabytes >= 1.0) {
     return std::format("{:.2f} GB", gigabytes);
-  } else if (megabytes >= 1.0) {
-    return std::format("{:.2f} MB", megabytes);
-  } else if (kilobytes >= 1.0) {
-    return std::format("{:.2f} KB", kilobytes);
-  } else {
-    return std::format("{} B", bytes);
   }
+  if (megabytes >= 1.0) {
+    return std::format("{:.2f} MB", megabytes);
+  }
+  if (kilobytes >= 1.0) {
+    return std::format("{:.2f} KB", kilobytes);
+  }
+  return std::format("{} B", bytes);
 }
 
 void install_supported_client_binary(
@@ -413,7 +410,7 @@ void install_supported_client_binary(
   const std::optional<uint32_t> downloaded_checksum =
       get_pe_checksum(temp_binary);
   if (!has_expected_client_patch_hash(temp_binary) || !downloaded_checksum ||
-      *downloaded_checksum != supported_client_checksum) {
+      *downloaded_checksum != SUPPORTED_CLIENT_CHECKSUM) {
     throw std::runtime_error(
         "The downloaded BlackOps3.exe patch did not match the BOIII-"
         "compatible version that this build expects.");
@@ -452,9 +449,9 @@ void install_supported_client_binary(
   progress.set_line(1, "Replacing BlackOps3.exe...");
   progress.set_line(2, client_binary.string());
 
-  if (!MoveFileExW(temp_binary.wstring().c_str(),
-                   client_binary.wstring().c_str(),
-                   MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+  if (MoveFileExW(temp_binary.wstring().c_str(),
+                  client_binary.wstring().c_str(),
+                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
     throw std::runtime_error(
         "Failed to replace BlackOps3.exe with the downloaded patch.");
   }
@@ -483,10 +480,10 @@ void ensure_compatible_client_binary(
     const bool close_running_game = is_client_binary_process_running();
     if (prompt_to_install_client_patch(state, close_running_game)) {
       try {
-        install_supported_client_binary(supported_client_patch_url,
+        install_supported_client_binary(SUPPORTED_CLIENT_PATCH_URL,
                                         client_binary, close_running_game);
       } catch (...) {
-        install_supported_client_binary(backup_supported_client_patch_url,
+        install_supported_client_binary(BACKUP_SUPPORTED_CLIENT_PATCH_URL,
                                         client_binary, close_running_game);
       }
     }
@@ -502,7 +499,7 @@ PIMAGE_TLS_CALLBACK *get_tls_callbacks() {
   const utils::nt::library game{};
   const IMAGE_DATA_DIRECTORY &entry =
       game.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
-  if (entry.VirtualAddress && entry.Size) {
+  if (entry.VirtualAddress != 0u && entry.Size != 0u) {
     const IMAGE_TLS_DIRECTORY *tls_dir =
         reinterpret_cast<IMAGE_TLS_DIRECTORY *>(game.get_ptr() +
                                                 entry.VirtualAddress);
@@ -511,10 +508,10 @@ PIMAGE_TLS_CALLBACK *get_tls_callbacks() {
   return nullptr;
 }
 
-void run_tls_callbacks(const unsigned long reason) {
+void run_tls_callbacks(const uint32_t reason) {
   if (g_call_tls_callbacks) {
     PIMAGE_TLS_CALLBACK *callback = get_tls_callbacks();
-    while (callback && *callback) {
+    while (callback != nullptr && *callback != nullptr) {
       (*callback)(GetModuleHandleA(nullptr), reason, nullptr);
       ++callback;
     }
@@ -534,16 +531,17 @@ FARPROC load_process(const std::string &procname) {
   peb->Reserved3[1] = proc.get_ptr();
   static_assert(offsetof(PEB, Reserved3[1]) == 0x10);
 
-  return FARPROC(proc.get_ptr() + proc.get_relative_entry_point());
+  return reinterpret_cast<FARPROC>(proc.get_ptr() +
+                                   proc.get_relative_entry_point());
 }
 
 bool handle_process_runner() {
   const char *const command = "-proc ";
   const char *parent_proc = strstr(GetCommandLineA(), command);
 
-  if (parent_proc) {
-    const unsigned long pid =
-        static_cast<unsigned long>(atoi(parent_proc + strlen(command)));
+  if (parent_proc != nullptr) {
+    const uint32_t pid =
+        static_cast<uint32_t>(atoi(parent_proc + strlen(command)));
     const utils::nt::handle<> process_handle =
         OpenProcess(SYNCHRONIZE, FALSE, pid);
     if (process_handle) {
@@ -564,7 +562,7 @@ void enable_dpi_awareness() {
         user32 ? user32.get_proc<BOOL(WINAPI *)(DPI_AWARENESS_CONTEXT)>(
                      "SetProcessDpiAwarenessContext")
                : nullptr;
-    if (set_dpi) {
+    if (set_dpi != nullptr) {
       set_dpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
       return;
     }
@@ -576,7 +574,7 @@ void enable_dpi_awareness() {
         shcore ? shcore.get_proc<HRESULT(WINAPI *)(PROCESS_DPI_AWARENESS)>(
                      "SetProcessDpiAwareness")
                : nullptr;
-    if (set_dpi) {
+    if (set_dpi != nullptr) {
       set_dpi(PROCESS_PER_MONITOR_DPI_AWARE);
       return;
     }
@@ -586,7 +584,7 @@ void enable_dpi_awareness() {
     BOOL(WINAPI * set_dpi)() =
         user32 ? user32.get_proc<BOOL(WINAPI *)()>("SetProcessDPIAware")
                : nullptr;
-    if (set_dpi) {
+    if (set_dpi != nullptr) {
       set_dpi();
     }
   }
@@ -610,7 +608,7 @@ void trigger_high_performance_gpu_switch() {
       const std::wstring data = L"GpuPreference=2;";
       RegSetValueExW(key, self.get_path().make_preferred().wstring().data(), 0,
                      REG_SZ, reinterpret_cast<const BYTE *>(data.data()),
-                     static_cast<unsigned long>((data.size() + 1u) * 2));
+                     static_cast<uint32_t>((data.size() + 1u) * 2));
     }
   }
 }
@@ -638,45 +636,44 @@ bool is_valid_game_folder(const std::filesystem::path &folder) {
 }
 
 std::string find_steam_game_path() {
-  constexpr std::string_view default_path =
+  constexpr std::string_view DEFAULT_PATH =
       "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Call of Duty Black "
       "Ops III";
-  if (is_valid_game_folder(default_path)) {
-    return std::string(default_path);
+  if (is_valid_game_folder(DEFAULT_PATH)) {
+    return std::string(DEFAULT_PATH);
   }
 
   const std::string steam_path = steam::SteamAPI_GetSteamInstallPath();
-  if (steam_path.empty())
-    return {};
+  if (!steam_path.empty()) {
+    const std::filesystem::path steamapps = std::filesystem::path(steam_path) /
+                                            "steamapps" / "common" /
+                                            "Call of Duty Black Ops III";
+    if (is_valid_game_folder(steamapps)) {
+      return steamapps.string();
+    }
 
-  const std::filesystem::path steamapps = std::filesystem::path(steam_path) /
-                                          "steamapps" / "common" /
-                                          "Call of Duty Black Ops III";
-  if (is_valid_game_folder(steamapps)) {
-    return steamapps.string();
-  }
+    std::filesystem::path vdf_path =
+        std::filesystem::path(steam_path) / "steamapps" / "libraryfolders.vdf";
+    std::string vdf_data;
+    if (utils::io::read_file(vdf_path.string(), &vdf_data)) {
+      std::istringstream stream(vdf_data);
+      std::string line;
+      while (std::getline(stream, line)) {
+        size_t pos = line.find("\"path\"");
+        if (pos != std::string::npos) {
 
-  std::filesystem::path vdf_path =
-      std::filesystem::path(steam_path) / "steamapps" / "libraryfolders.vdf";
-  std::string vdf_data;
-  if (utils::io::read_file(vdf_path.string(), &vdf_data)) {
-    std::istringstream stream(vdf_data);
-    std::string line;
-    while (std::getline(stream, line)) {
-      size_t pos = line.find("\"path\"");
-      if (pos != std::string::npos) {
+          size_t first_quote = line.find('"', pos + 6);
+          size_t last_quote = line.rfind('"');
+          if (first_quote != std::string::npos && last_quote > first_quote) {
 
-        size_t first_quote = line.find('"', pos + 6);
-        size_t last_quote = line.rfind('"');
-        if (first_quote != std::string::npos && last_quote > first_quote) {
-
-          std::string lib_path =
-              line.substr(first_quote + 1, last_quote - first_quote - 1);
-          const std::filesystem::path game_folder =
-              std::filesystem::path(lib_path) / "steamapps" / "common" /
-              "Call of Duty Black Ops III";
-          if (is_valid_game_folder(game_folder)) {
-            return game_folder.string();
+            std::string lib_path =
+                line.substr(first_quote + 1, last_quote - first_quote - 1);
+            const std::filesystem::path game_folder =
+                std::filesystem::path(lib_path) / "steamapps" / "common" /
+                "Call of Duty Black Ops III";
+            if (is_valid_game_folder(game_folder)) {
+              return game_folder.string();
+            }
           }
         }
       }
@@ -691,7 +688,7 @@ bool resolve_game_path() {
 
   if (is_valid_game_folder(".")) {
     char cwd[MAX_PATH];
-    if (GetCurrentDirectoryA(sizeof(cwd), cwd)) {
+    if (GetCurrentDirectoryA(sizeof(cwd), cwd) != 0u) {
       std::error_code ec;
       std::filesystem::create_directories(path_file.parent_path(), ec);
       utils::io::write_file(path_file.string(), std::string(cwd));
@@ -705,8 +702,9 @@ bool resolve_game_path() {
         !stored_path.empty()) {
       while (!stored_path.empty() &&
              (stored_path.back() == '\n' || stored_path.back() == '\r' ||
-              stored_path.back() == ' '))
+              stored_path.back() == ' ')) {
         stored_path.pop_back();
+      }
 
       if (is_valid_game_folder(stored_path)) {
         SetCurrentDirectoryA(stored_path.c_str());
@@ -741,11 +739,12 @@ bool resolve_game_path() {
       [&setup_folder_busy, &setup_folder_done, &setup_folder_mutex,
        &setup_folder_result, &path_set, &setup_window, &path_file](
           const std::vector<html_argument> & /*params*/) -> CComVariant {
-        if (setup_folder_busy.exchange(true))
-          return CComVariant("busy");
+        if (setup_folder_busy.exchange(true)) {
+          return {"busy"};
+        }
         setup_folder_done = false;
         {
-          std::lock_guard lock(setup_folder_mutex);
+          std::scoped_lock lock(setup_folder_mutex);
           setup_folder_result.clear();
         }
         std::thread([&setup_folder_busy, &setup_folder_done,
@@ -779,7 +778,8 @@ bool resolve_game_path() {
                     if (len > 0) {
                       selected.resize(len - 1);
                       WideCharToMultiByte(CP_UTF8, 0, wp.c_str(), -1,
-                                          &selected[0], len, nullptr, nullptr);
+                                          selected.data(), len, nullptr,
+                                          nullptr);
                     }
                     CoTaskMemFree(path_buf);
                   }
@@ -793,7 +793,7 @@ bool resolve_game_path() {
 
           if (!selected.empty()) {
             if (!is_valid_game_folder(selected)) {
-              std::lock_guard lock(setup_folder_mutex);
+              std::scoped_lock lock(setup_folder_mutex);
               setup_folder_result = "invalid";
             } else {
               std::error_code ec;
@@ -805,7 +805,7 @@ bool resolve_game_path() {
                 std::scoped_lock lock(setup_folder_mutex);
                 setup_folder_result = selected;
               }
-              PostMessage(static_cast<HWND>(*(setup_window.get_window())),
+              PostMessage(static_cast<HWND>(*setup_window.get_window()),
                           WM_CLOSE, 0, 0);
             }
           } else {
@@ -823,8 +823,9 @@ bool resolve_game_path() {
       "getFolderPickerResult",
       [&setup_folder_done, &setup_folder_mutex, &setup_folder_result](
           const std::vector<html_argument> & /*params*/) -> CComVariant {
-        if (!setup_folder_done.load())
+        if (!setup_folder_done.load()) {
           return {"pending"};
+        }
         std::scoped_lock lock(setup_folder_mutex);
         return {setup_folder_result.c_str()};
       });
@@ -901,7 +902,7 @@ std::wstring quote_process_argument(const std::wstring_view argument) {
       ++backslashes;
     } else {
       if (character == L'\"') {
-        result.append(backslashes * 2 + 1, L'\\');
+        result.append((backslashes * 2) + 1, L'\\');
         result.push_back(character);
       } else {
         result.append(backslashes, L'\\');
@@ -934,9 +935,9 @@ bool launch_beta_server_if_needed() {
         std::filesystem::path temporary = target;
         temporary += "." + std::to_string(GetCurrentProcessId()) + ".new";
         if (utils::io::write_file_executable(temporary, *data)) {
-          if (!MoveFileExW(
-                  temporary.wstring().c_str(), target.wstring().c_str(),
-                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+          if (MoveFileExW(temporary.wstring().c_str(), target.wstring().c_str(),
+                          MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) ==
+              0) {
             utils::io::remove_file(temporary);
           }
         }
@@ -949,7 +950,7 @@ bool launch_beta_server_if_needed() {
       int argument_count = 0;
       LPWSTR *arguments =
           CommandLineToArgvW(GetCommandLineW(), &argument_count);
-      if (!arguments) {
+      if (arguments == nullptr) {
         throw std::runtime_error("Failed to read the server command line");
       }
 
@@ -958,7 +959,7 @@ bool launch_beta_server_if_needed() {
         command_line.push_back(L' ');
         command_line += quote_process_argument(arguments[index]);
       }
-      LocalFree(arguments);
+      LocalFree(reinterpret_cast<void *>(arguments));
 
       STARTUPINFOW startup_info{};
       PROCESS_INFORMATION process_info{};
@@ -968,10 +969,10 @@ bool launch_beta_server_if_needed() {
       const std::wstring target_path = target.wstring();
       const std::wstring working_directory = game::get_game_path().wstring();
 
-      if (!CreateProcessW(target_path.c_str(), command_line.data(), nullptr,
-                          nullptr, FALSE, creation_flags, nullptr,
-                          working_directory.c_str(), &startup_info,
-                          &process_info)) {
+      if (CreateProcessW(target_path.c_str(), command_line.data(), nullptr,
+                         nullptr, FALSE, creation_flags, nullptr,
+                         working_directory.c_str(), &startup_info,
+                         &process_info) == 0) {
         throw std::runtime_error("Failed to launch the beta server binary");
       }
 
@@ -993,7 +994,7 @@ int main(int argc, char *argv[]) {
   srand(static_cast<uint32_t>(time(nullptr)) ^
         ~(GetTickCount() * GetCurrentProcessId()));
 
-  if (utils::flags::parse_flags(argc, argv)) {
+  if (utils::flags::parse_flags(argc, argv) != 0) {
     return 1;
   }
 
@@ -1069,7 +1070,7 @@ int main(int argc, char *argv[]) {
       }
 
       entry_point = load_process(is_server ? server_binary : client_binary);
-      if (!entry_point) {
+      if (entry_point == nullptr) {
         throw std::runtime_error("Unable to load binary into memory");
       }
 
@@ -1100,6 +1101,7 @@ int main(int argc, char *argv[]) {
   return static_cast<int>(entry_point());
 }
 
-int __stdcall WinMain(HINSTANCE, HINSTANCE, PSTR, int) {
+int __stdcall WinMain(HINSTANCE /*unused*/, HINSTANCE /*unused*/,
+                      PSTR /*unused*/, int /*unused*/) {
   return main(__argc, __argv);
 }

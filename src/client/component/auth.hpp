@@ -12,7 +12,7 @@ game::XUID get_client_guid(
 void clear_stored_guids();
 void clear_stored_challenge();
 bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,
-                                    const game::net::netsrc_t sock,
+                                    game::net::netsrc_t sock,
                                     const game::net::netadr_t *adr,
-                                    const char *data, const int length);
+                                    const char *data, int length);
 } // namespace auth

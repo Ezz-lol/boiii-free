@@ -54,12 +54,13 @@ void preload_map_stub(game::LocalClientNum_t local_client_num,
 
 void reduce_process_affinity() {
   const DWORD_PTR affinity =
-      (1ULL << (std::min(std::thread::hardware_concurrency(), 4U))) - 1;
+      (1ULL << std::min(std::thread::hardware_concurrency(), 4U)) - 1;
   SetProcessAffinityMask(GetCurrentProcess(), affinity);
 }
 
 void reset_process_affinity() {
-  DWORD_PTR affinity_proc, affinity_sys;
+  DWORD_PTR affinity_proc = 0;
+  DWORD_PTR affinity_sys = 0;
   GetProcessAffinityMask(GetCurrentProcess(), &affinity_proc, &affinity_sys);
   SetProcessAffinityMask(GetCurrentProcess(), affinity_sys);
 }
@@ -76,27 +77,27 @@ void fix_amd_cpu_stuttering() {
 bool is_mod_loaded_stub() { return false; }
 
 void patch_is_mod_loaded_checks() {
-  static constexpr uintptr_t is_mod_loaded_addresses[] = {
+  static constexpr uintptr_t IS_MOD_LOADED_ADDRESSES[] = {
       0x1420EAD04, 0x1420EAD24, 0x1420EAC64, 0x1420EAC34, 0x1420EA6D7,
       0x1413E6A74, 0x1415E7EDB, 0x1415E87DB, 0x1415EBAE9, 0x1415F1F29,
       0x1415F1FD9, 0x1415F20A0, 0x1415F7F60, 0x141A80D1D, 0x141A9AD29,
       0x141E93C6B, 0x141E9C1EE, 0x141EA4FA9, 0x141EBF00D, 0x1420EA69D,
   };
 
-  for (const uintptr_t &address : is_mod_loaded_addresses) {
+  for (const uintptr_t &address : IS_MOD_LOADED_ADDRESSES) {
     utils::hook::call(game::relocate(address), is_mod_loaded_stub);
   }
 }
 
 void patch_legacy_is_mod_loaded_checks() {
-  static constexpr uintptr_t is_mod_loaded_addresses[] = {
+  static constexpr uintptr_t IS_MOD_LOADED_ADDRESSES[] = {
       0x1420F7484, 0x1420F74A4, 0x1420F73E4, 0x1420F73B4, 0x1420F6E57,
       0x1413E6A54, 0x1415E7EBB, 0x1415E87BB, 0x1415EBAC9, 0x1415F1F09,
       0x1415F1FB9, 0x1415F2080, 0x1415F7F40, 0x141A8D0ED, 0x141AA70F9,
       0x141EA06FB, 0x141EA8C7E, 0x141EB1A39, 0x141ECBA9D, 0x1420F6E1D,
   };
 
-  for (const uintptr_t &address : is_mod_loaded_addresses) {
+  for (const uintptr_t &address : IS_MOD_LOADED_ADDRESSES) {
     utils::hook::call(game::relocate(address), is_mod_loaded_stub);
   }
 }
@@ -109,7 +110,7 @@ float cl_key_state_pitch_speed_stub(void *key) {
   return game::cl::CL_KeyState(key) * cl_pitch_speed.get_float();
 }
 
-void stub_func() { return; }
+void stub_func() {}
 
 utils::hook::detour sd_alloc_block_hook;
 
@@ -167,11 +168,12 @@ utils::hook::detour snd_queue_add_hook;
 void snd_queue_add_stub(game::snd::SndQueue *queue,
                         game::snd::cmd::SndCommandType cmd, uint32_t size,
                         game::snd::cmd::SndCommand *data) {
-  auto *const buffers = queue->buffers;
-  if (buffers && !buffers->freeList) {
-    auto *const buffer = static_cast<game::snd::cmd::SndCommandBuffer *>(
-        _aligned_malloc(sizeof(game::snd::cmd::SndCommandBuffer), 64));
-    if (buffer) {
+  game::snd::cmd::SndQueueBuffers *const buffers = queue->buffers;
+  if (buffers != nullptr && buffers->freeList == nullptr) {
+    game::snd::cmd::SndCommandBuffer *const buffer =
+        static_cast<game::snd::cmd::SndCommandBuffer *>(
+            _aligned_malloc(sizeof(game::snd::cmd::SndCommandBuffer), 64));
+    if (buffer != nullptr) {
       std::memset(buffer, 0, sizeof(*buffer));
       buffer->buffers = buffers;
       game::snd::SND_QueueBufferFree(buffers, buffer);
@@ -216,7 +218,7 @@ int32_t CM_SightTraceThroughTree_Safe(const game::cm::traceWork_t *tw,
                                       game::cm::trace_t *trace) {
   game::cm::clipMap_t *cm = *game::cm::cm;
   if (cm == nullptr || (clipmapNodeNum >= 0 && cm->nodes == nullptr) ||
-      static_cast<uint32_t>(clipmapNodeNum) > cm->numNodes) {
+      std::cmp_greater(clipmapNodeNum, cm->numNodes)) {
     return 0;
   }
 
@@ -230,6 +232,7 @@ T *return_static_alloc([[maybe_unused]] size_t size) {
   assert(sizeof(T) >= size &&
          "Size of static allocation must be >= size of heap allocation");
 
+  // NOLINTNEXTLINE(readability-redundant-parentheses)
   return &allocation;
 }
 
@@ -241,6 +244,8 @@ T *Hunk_UserAlloc_ReturnStaticAllocation(
 
   assert(sizeof(T) >= size + alignment_size(size, alignment) &&
          "Size of static allocation must be >= size of heap allocation");
+
+  // NOLINTNEXTLINE(readability-redundant-parentheses)
   return &allocation;
 }
 
@@ -254,9 +259,11 @@ T *Hunk_UserAlloc_ReturnStaticAllocation_FirstNull(
          "Size of static allocation must be >= size of heap allocation");
   static std::atomic_uint32_t next_alloc_index = 0;
 
+  // NOLINTNEXTLINE(readability-redundant-parentheses)
   T *result = &allocation[next_alloc_index.load(std::memory_order_acquire)];
 
   next_alloc_index.fetch_add(1, std::memory_order_release);
+  // NOLINTNEXTLINE(readability-redundant-parentheses)
   uint32_t storage_len = std::size(allocation);
   next_alloc_index.compare_exchange_strong(
       storage_len, 0, std::memory_order_release, std::memory_order_acquire);
@@ -455,7 +462,7 @@ void WINAPI frame_limiter_sleep(const DWORD milliseconds) {
   static const HANDLE timer = CreateWaitableTimerExW(
       nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
       TIMER_ALL_ACCESS);
-  if (!timer) {
+  if (timer == nullptr) {
     Sleep(milliseconds);
     return;
   }

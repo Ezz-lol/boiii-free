@@ -16,7 +16,7 @@ utils::hook::detour ClientCommand_hook;
 void ClientCommand_ExecuteRegistered(game::ClientNum_t client_num) {
   game::level::gentity_t *ent = game::level::client_ent(client_num);
 
-  if (ent && ent->client) {
+  if (ent != nullptr && ent->client != nullptr) {
     const command::params_sv params;
     const std::string command = utils::string::to_lower(params.get(0));
     const std::unordered_map<std::string, clientCommandHandler_t>::iterator
@@ -32,7 +32,7 @@ void ClientCommand_ExecuteRegistered(game::ClientNum_t client_num) {
 } // namespace
 
 void register_handler(std::string name, clientCommandHandler_t cmd) {
-  const std::string command = utils::string::to_lower(name);
+  const std::string command = utils::string::to_lower(std::move(name));
   handlers[command] = cmd;
 }
 

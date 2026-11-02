@@ -16,7 +16,7 @@ utils::concurrency::container<LoadTasks> com_unloadlevelfastfiles_tasks;
 utils::hook::detour Com_LoadLevelFastFiles_hook;
 void Com_LoadLevelFastFiles_stub(const char *level) {
   Com_LoadLevelFastFiles_hook.invoke(level);
-  if (level) {
+  if (level != nullptr && level[0] != NULL) {
     com_loadlevelfastfiles_tasks.access([level](LoadTasks &tasks) {
       for (const LoadTask &func : tasks) {
         func(level);
@@ -26,7 +26,7 @@ void Com_LoadLevelFastFiles_stub(const char *level) {
 }
 
 void execute_unload_callbacks(const char *level) {
-  if (level && level[0]) {
+  if (level != nullptr && level[0] != NULL) {
     com_unloadlevelfastfiles_tasks.access([level](LoadTasks &tasks) {
       for (const LoadTask &func : tasks) {
         func(level);
@@ -41,7 +41,7 @@ void DB_LoadXAssets_stub(game::db::xzone::XZoneInfo *zoneInfo,
                          uint32_t zoneCount, qboolean sync,
                          qboolean suppressSync) {
   bool is_level_fastfile_unload = false;
-  if (zoneInfo) {
+  if (zoneInfo != nullptr) {
     bool alloc_flags_include_level_zone =
         /* All zones*/ zoneInfo->allocFlags == 0 ||
         /* Only level zone */ (zoneInfo->allocFlags &
@@ -62,7 +62,7 @@ void DB_LoadXAssets_stub(game::db::xzone::XZoneInfo *zoneInfo,
   DB_LoadXAssets_hook.invoke(zoneInfo, zoneCount, sync, suppressSync);
   if (is_level_fastfile_unload) {
     const char *level = *game::g_mapname;
-    if (level[0]) {
+    if (level[0] != NULL) {
       execute_unload_callbacks(level);
     }
   }

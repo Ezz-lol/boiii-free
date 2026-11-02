@@ -42,8 +42,8 @@ std::optional<int32_t> try_parse_int(const std::string_view &str) {
 
 std::string get_hdd_serial() {
   DWORD serial{};
-  if (!GetVolumeInformationA("C:\\", nullptr, 0, &serial, nullptr, nullptr,
-                             nullptr, 0)) {
+  if (GetVolumeInformationA("C:\\", nullptr, 0, &serial, nullptr, nullptr,
+                            nullptr, 0) == 0) {
     return {};
   }
 
@@ -52,7 +52,7 @@ std::string get_hdd_serial() {
 
 std::string get_hw_profile_guid() {
   HW_PROFILE_INFO info{};
-  if (!GetCurrentHwProfileA(&info)) {
+  if (GetCurrentHwProfileA(&info) == 0) {
     return {};
   }
 
@@ -91,7 +91,7 @@ std::string get_key_entropy(game::ControllerIndex_t controllerIndex) {
   if (controllerIndex != game::ControllerIndex_t::CONTROLLER_INDEX_0) {
     uint32_t index_raw = static_cast<uint32_t>(controllerIndex);
     std::string index_str = utils::string::va("%X", index_raw);
-    entropy.append(std::move(index_str));
+    entropy.append(index_str);
   }
 
   return entropy;
@@ -141,8 +141,8 @@ bool write_key(const std::filesystem::path &key_path,
     return false;
   }
 
-  if (!MoveFileExW(temp_path.wstring().c_str(), key_path.wstring().c_str(),
-                   MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+  if (MoveFileExW(temp_path.wstring().c_str(), key_path.wstring().c_str(),
+                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
     utils::io::remove_file(temp_path);
     return false;
   }
@@ -218,7 +218,7 @@ static challenge_t latest_challenge = {0};
 
 void set_challenge(const game::net::netadr_t &target,
                    const network::data_view &data,
-                   game::LocalClientNum_t clientNum) {
+                   game::LocalClientNum_t client_num) {
 
   {
     std::scoped_lock lock(latest_challenge_mutex);
@@ -231,14 +231,14 @@ void set_challenge(const game::net::netadr_t &target,
            std::min<size_t>(std::size(latest_challenge), data.size()));
   }
 
-  for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
-       localClientIdx < game::LOCAL_CLIENT_COUNT; localClientIdx++) {
+  for (game::LocalClientNum_t local_client_idx = game::LOCAL_CLIENT_0;
+       local_client_idx < game::LOCAL_CLIENT_COUNT; local_client_idx++) {
 
-    if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
-      game::connstate_t *clientConnectionState =
-          &game::cg::clientUIActives->actives[localClientIdx].connectionState;
-      if (*clientConnectionState == game::connstate_t::CHALLENGING) {
-        *clientConnectionState = game::connstate_t::CONNECTING;
+    if (game::com::Com_LocalClient_IsBeingUsed(local_client_idx)) {
+      game::connstate_t *client_connection_state =
+          &game::cg::clientUIActives->actives[local_client_idx].connectionState;
+      if (*client_connection_state == game::connstate_t::CHALLENGING) {
+        *client_connection_state = game::connstate_t::CONNECTING;
       }
     }
   }
@@ -261,7 +261,7 @@ std::string serialize_connect_data(game::ControllerIndex_t controllerIndex,
   std::string signature = utils::cryptography::ecc::sign_message(
       get_key(controllerIndex), challenge);
 
-  buffer.write_string(std::move(signature));
+  buffer.write_string(signature);
 
   profile_infos::get_profile_info()
       .value_or(profile_infos::profile_info{})
@@ -302,13 +302,13 @@ void distribute_player_xuid(const game::net::netadr_t &target,
     buffer.write(player_index);
     buffer.write(xuid);
 
-    const game::XUID localXuid1 = get_guid(game::CONTROLLER_INDEX_0);
-    const game::XUID localXuid2 = get_guid(game::CONTROLLER_INDEX_1);
+    const game::XUID local_xuid1 = get_guid(game::CONTROLLER_INDEX_0);
+    const game::XUID local_xuid2 = get_guid(game::CONTROLLER_INDEX_1);
 
     game::foreach_connected_client(
         [&](const game::sv::client_s &client, const game::ClientNum_t index) {
           const game::XUID client_xuid = client.get_xuid();
-          if (client_xuid != localXuid1 && client_xuid != localXuid2) {
+          if (client_xuid != local_xuid1 && client_xuid != local_xuid2) {
             if (client.address.type != game::net::netadrtype_t::BOT) {
               network::send(client.address, "playerXuid", buffer.get_buffer());
             }
@@ -400,7 +400,7 @@ struct IssuedChallenge {
   challenge_t challenge;
   bool initialized;
 
-  inline bool valid() const noexcept {
+  [[nodiscard]] bool valid() const noexcept {
     if (initialized) {
       const uint64_t now_ms =
           std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -411,9 +411,9 @@ struct IssuedChallenge {
     return true;
   }
 
-  inline bool stale() const noexcept { return !valid(); }
+  [[nodiscard]] bool stale() const noexcept { return !valid(); }
 
-  inline void refresh() noexcept {
+  void refresh() noexcept {
     if (stale()) {
       utils::cryptography::random::get_data(reinterpret_cast<void *>(challenge),
                                             std::size(challenge));
@@ -425,7 +425,7 @@ struct IssuedChallenge {
     }
   }
 
-  inline IssuedChallenge generate() noexcept {
+  static IssuedChallenge generate() noexcept {
     IssuedChallenge result;
     result.refresh();
 
@@ -450,7 +450,7 @@ const challenge_t &get_challenge(const game::net::netadr_t &target) {
 }
 
 void send_challenge(const game::net::netadr_t &addr,
-                    [[maybe_unused]] const network::data_view &,
+                    [[maybe_unused]] const network::data_view & /*unused*/,
                     [[maybe_unused]] game::LocalClientNum_t localClientNum) {
 
   constexpr char CHALLENGE_RESPONSE_COMMAND_PREFIX[] = {
@@ -469,9 +469,9 @@ void send_challenge(const game::net::netadr_t &addr,
 #ifndef NDEBUG
   const std::string hex_challenge_resp = utils::string::hexdump(
       challenge_response_buf, std::size(challenge_response_buf));
-  game::net::netadr_str_t addrBuf = {0};
+  game::net::netadr_str_t addr_buf = {0};
   game::trace("[Auth][Challenge] sending challenge to {}: \"{}\"",
-              addr.toString(addrBuf).buf, hex_challenge_resp.c_str());
+              addr.toString(addr_buf).buf, hex_challenge_resp.c_str());
 #endif
 
   memcpy(&challenge_response_buf[std::size(CHALLENGE_RESPONSE_COMMAND_PREFIX)],
@@ -501,7 +501,7 @@ void evict_stale_challenges() {
 
 void dispatch_connect_packet(const game::net::netadr_t &target,
                              const std::string &data,
-                             game::LocalClientNum_t clientNum) {
+                             game::LocalClientNum_t client_num) {
   utils::byte_buffer buffer(data);
 
   utils::cryptography::ecc::key key{};
@@ -550,15 +550,15 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
 
 void handle_connect_packet_fragment(const game::net::netadr_t &target,
                                     const network::data_view &data,
-                                    game::LocalClientNum_t clientNum) {
+                                    game::LocalClientNum_t client_num) {
   if (game::server_running()) {
     utils::byte_buffer buffer(data);
 
     std::string final_packet{};
     if (game::fragment_handler::handle(target, buffer, final_packet)) {
       scheduler::once(
-          [t = target, p = std::move(final_packet), clientNum = clientNum] {
-            dispatch_connect_packet(t, p, clientNum);
+          [t = target, p = std::move(final_packet), client_num = client_num] {
+            dispatch_connect_packet(t, p, client_num);
           },
           scheduler::server);
     }
@@ -567,17 +567,17 @@ void handle_connect_packet_fragment(const game::net::netadr_t &target,
 
 void handle_player_xuid_packet(const game::net::netadr_t &target,
                                const network::data_view &data,
-                               game::LocalClientNum_t clientNum) {
+                               game::LocalClientNum_t client_num) {
   if (!game::server_running() && party::is_host(target)) {
     utils::byte_buffer buffer(data);
 
-    const game::ClientNum_t clientNum = buffer.read<game::ClientNum_t>();
+    const game::ClientNum_t client_num = buffer.read<game::ClientNum_t>();
     const game::XUID xuid = buffer.read<game::XUID>();
 
     {
       std::scoped_lock lock(client_xuids_mutex);
-      if (game::valid_client_num(clientNum)) {
-        client_xuids[clientNum] = xuid;
+      if (game::valid_client_num(client_num)) {
+        client_xuids[client_num] = xuid;
       }
     }
 
@@ -622,20 +622,20 @@ game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
                    : game::CONTROLLER_INDEX_0];
 }
 
-game::XUID get_guid(const game::ClientNum_t clientNum) {
-  if (game::valid_client_num(clientNum)) {
+game::XUID get_guid(const game::ClientNum_t client_num) {
+  if (game::valid_client_num(client_num)) {
     if (game::server_running()) {
       game::XUID xuid = 0;
 
       if (game::access_connected_client(
-              clientNum, [&xuid](const game::sv::client_s &client) {
+              client_num, [&xuid](const game::sv::client_s &client) {
                 xuid = client.get_xuid();
               })) {
         return xuid;
       }
     } else {
       std::scoped_lock lock(client_xuids_mutex);
-      return client_xuids[clientNum];
+      return client_xuids[client_num];
     }
   }
 
@@ -796,22 +796,22 @@ struct component final : generic_component {
     }
 
     command::add("localXuid", [](const command::params &params) {
-      game::ControllerIndex_t controllerIndex =
+      game::ControllerIndex_t controller_index =
           game::ControllerIndex_t::CONTROLLER_INDEX_0;
       if (params.size() > 1) {
-        const std::optional<int32_t> parseResult = try_parse_int(params[1]);
-        if (parseResult.has_value()) {
+        const std::optional<int32_t> parse_result = try_parse_int(params[1]);
+        if (parse_result.has_value()) {
           const game::ControllerIndex_t parsed =
-              static_cast<game::ControllerIndex_t>(parseResult.value());
+              static_cast<game::ControllerIndex_t>(parse_result.value());
           if (game::valid_controller_index(parsed)) {
-            controllerIndex = parsed;
+            controller_index = parsed;
           }
         }
       }
 
       game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                             game::consoleLabel_e::DEFAULT, "%016X\n",
-                            get_guid(controllerIndex));
+                            get_guid(controller_index));
     });
 
     command::add("lobbyXuids", []() {

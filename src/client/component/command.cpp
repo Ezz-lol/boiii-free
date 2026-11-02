@@ -11,7 +11,7 @@
 
 namespace command {
 namespace {
-constexpr const char *compatibility_commands[] = {
+constexpr const char *COMPATIBILITY_COMMANDS[] = {
     "ffotdversion",     "bbdisable", "bbenable",
     "bitfieldBBPrints", "bbstart",   "setliveevent"};
 
@@ -60,57 +60,57 @@ game::CmdArgs *get_cmd_args() { return game::sys::Sys_GetTLS()->cmdArgs; }
 
 void update_whitelist_stub() {
   game::cmd::cmd_function_s *current_function = *game::cmd::cmd_functions;
-  while (current_function) {
+  while (current_function != nullptr) {
     current_function->autoComplete = 1;
     current_function = current_function->next;
   }
 }
 
 void register_client_compatibility_commands() {
-  for (const char *command_name : compatibility_commands) {
+  for (const char *command_name : COMPATIBILITY_COMMANDS) {
     add(command_name, [](const params &) {});
   }
 }
 } // namespace
 
-params::params() : nesting_(get_cmd_args()->nesting) {
-  assert(this->nesting_ < game::cmd::CMD_MAX_NESTING);
+params::params() : nesting(get_cmd_args()->nesting) {
+  assert(this->nesting < game::cmd::CMD_MAX_NESTING);
 }
 
-params::params(const std::string &text) : needs_end_(true) {
+params::params(const std::string &text) : needs_end(true) {
   game::CmdArgs *cmd_args = get_cmd_args();
   game::cmd::Cmd_TokenizeStringKernel(
       0, game::CONTROLLER_INDEX_FIRST, text.data(),
       512 - cmd_args->totalUsedArgvPool, false, cmd_args);
 
-  this->nesting_ = cmd_args->nesting;
+  this->nesting = cmd_args->nesting;
 }
 
 params::~params() {
-  if (this->needs_end_) {
+  if (this->needs_end) {
     game::cmd::Cmd_EndTokenizedString();
   }
 }
 
-int params::size() const { return get_cmd_args()->argc[this->nesting_]; }
+int params::size() const { return get_cmd_args()->argc[this->nesting]; }
 
-params_sv::params_sv() : nesting_(game::sv::sv_cmd_args->nesting) {
-  assert(this->nesting_ < game::cmd::CMD_MAX_NESTING);
+params_sv::params_sv() : nesting(game::sv::sv_cmd_args->nesting) {
+  assert(this->nesting < game::cmd::CMD_MAX_NESTING);
 }
 
-params_sv::params_sv(const std::string &text) : needs_end_(true) {
+params_sv::params_sv(const std::string &text) : needs_end(true) {
   game::sv::SV_Cmd_TokenizeString(text.data());
-  this->nesting_ = game::sv::sv_cmd_args->nesting;
+  this->nesting = game::sv::sv_cmd_args->nesting;
 }
 
 params_sv::~params_sv() {
-  if (this->needs_end_) {
+  if (this->needs_end) {
     game::sv::SV_Cmd_EndTokenizedString();
   }
 }
 
 int params_sv::size() const {
-  return game::sv::sv_cmd_args->argc[this->nesting_];
+  return game::sv::sv_cmd_args->argc[this->nesting];
 }
 
 const char *params_sv::get(const int index) const {
@@ -118,7 +118,7 @@ const char *params_sv::get(const int index) const {
     return "";
   }
 
-  return game::sv::sv_cmd_args->argv[this->nesting_][index];
+  return game::sv::sv_cmd_args->argv[this->nesting][index];
 }
 
 std::string params_sv::join(const int index) const {
@@ -138,7 +138,7 @@ const char *params::get(const int index) const {
     return "";
   }
 
-  return get_cmd_args()->argv[this->nesting_][index];
+  return get_cmd_args()->argv[this->nesting][index];
 }
 
 std::string params::join(const int index) const {
@@ -159,9 +159,9 @@ void add(const std::string &command, command_function function) {
 void add(const std::string &command, command_param_function function) {
   const std::string lower_command = utils::string::to_lower(command);
 
-  bool is_registered;
+  bool is_registered = false;
   {
-    std::lock_guard lock(get_command_map_mutex());
+    std::scoped_lock lock(get_command_map_mutex());
     command_map &map = get_command_map();
     is_registered = map.contains(lower_command);
     map[lower_command] = std::move(function);
@@ -187,7 +187,7 @@ void add_sv(const std::string &command, sv_command_param_function function) {
   sv_command_map &map = get_sv_command_map();
   const bool is_registered = map.contains(lower_command);
 
-  map[std::move(lower_command)] = std::move(function);
+  map[lower_command] = std::move(function);
 
   if (is_registered) {
     return;
@@ -205,7 +205,7 @@ void add_sv(const std::string &command, sv_command_param_function function) {
 }
 
 std::vector<std::string> get_registered_command_names() {
-  std::lock_guard lock(get_command_map_mutex());
+  std::scoped_lock lock(get_command_map_mutex());
 
   std::vector<std::string> names;
   command_map &map = get_command_map();
@@ -217,7 +217,7 @@ std::vector<std::string> get_registered_command_names() {
 }
 
 size_t get_registered_command_count() {
-  std::lock_guard lock(get_command_map_mutex());
+  std::scoped_lock lock(get_command_map_mutex());
   return get_command_map().size();
 }
 
@@ -225,13 +225,13 @@ namespace {
 utils::hook::detour handle_missing_command_hook;
 
 bool is_launch_flag(const char *name) {
-  if (!name || name[0] != '-') {
+  if (name == nullptr || name[0] != '-') {
     return false;
   }
 
   int32_t count = 0;
   LPWSTR *const argv = CommandLineToArgvW(GetCommandLineW(), &count);
-  if (!argv) {
+  if (argv == nullptr) {
     return false;
   }
 
@@ -239,7 +239,7 @@ bool is_launch_flag(const char *name) {
   for (int32_t i = 1; i < count && !found; ++i) {
     found = _stricmp(utils::string::convert(argv[i]).c_str(), name) == 0;
   }
-  LocalFree(argv);
+  LocalFree(reinterpret_cast<void *>(argv));
   return found;
 }
 
