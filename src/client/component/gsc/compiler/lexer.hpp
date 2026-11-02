@@ -5,7 +5,7 @@
 
 namespace gsc {
 namespace compiler {
-enum class token_type {
+enum class token_type : uint8_t {
   // literals
   t_string,
   t_istring,     // &"..."

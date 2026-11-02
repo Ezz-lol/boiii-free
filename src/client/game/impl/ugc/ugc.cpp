@@ -415,7 +415,7 @@ class ModsUGCDetailsCallbackResult
 public:
   void Set(SteamAPICall_t hApiCall, UGCItem *result) {
 
-    typedef thiscallPtr_t<void(ModsUGCDetailsCallbackResult * _this,
+    typedef thiscallPtr_t<void(ModsUGCDetailsCallbackResult *,
                                SteamAPICall_t hApiCall, UGCItem * result)>
         SetFunc;
 

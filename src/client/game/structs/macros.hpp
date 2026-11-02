@@ -10,6 +10,7 @@
 
 // Automatically pad a partially defined (reverse-engineered, in our case)
 // struct to a fixed, known-correct total length
+#ifndef partial_def
 #define partial_def(TotalSize, PrimType, Fixed, Verified)                      \
   PrimType Fixed {                                                             \
     union {                                                                    \
@@ -17,40 +18,133 @@
       uint8_t __raw[TotalSize];                                                \
     };                                                                         \
   }
+#endif
 
+#ifndef inline_partial_def
 #define inline_partial_def(InlineNum, FixedTotalSize, PrimType, Verified)      \
   union {                                                                      \
     PrimType Verified verified_##InlineNum;                                    \
     uint8_t __raw_##InlineNum[FixedTotalSize];                                 \
   }
+#endif
 
-#define IMPL_ENUM_OPERATORS(name)                                              \
-  inline constexpr name &operator++(name &s) {                                 \
-    using underlying = std::underlying_type_t<name>;                           \
-    s = static_cast<name>(static_cast<underlying>(s) + 1);                     \
+#ifndef IMPL_ENUM_OPERATORS
+#define IMPL_ENUM_OPERATORS(Enum)                                              \
+  inline constexpr Enum &operator++(Enum &s) noexcept {                        \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    s = static_cast<Enum>(static_cast<Underlying>(s) + 1);                     \
     return s;                                                                  \
   }                                                                            \
-                                                                               \
-  inline constexpr name operator++(name &s, int) {                             \
-    name temp = s;                                                             \
+  inline constexpr Enum operator++(Enum &s, int) noexcept {                    \
+    Enum temp = s;                                                             \
     ++s;                                                                       \
     return temp;                                                               \
   }                                                                            \
-                                                                               \
-  inline constexpr name &operator--(name &s) {                                 \
-    using underlying = std::underlying_type_t<name>;                           \
-    s = static_cast<name>(static_cast<underlying>(s) - 1);                     \
+  inline constexpr Enum &operator--(Enum &s) noexcept {                        \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    s = static_cast<Enum>(static_cast<Underlying>(s) - 1);                     \
     return s;                                                                  \
   }                                                                            \
-                                                                               \
-  inline constexpr name operator--(name &s, int) {                             \
-    name temp = s;                                                             \
+  inline constexpr Enum operator--(Enum &s, int) noexcept {                    \
+    Enum temp = s;                                                             \
     --s;                                                                       \
     return temp;                                                               \
   }                                                                            \
-  inline constexpr std::underlying_type_t<name> operator+(name s) {            \
-    return static_cast<std::underlying_type_t<name>>(s);                       \
+                                                                               \
+  inline constexpr std::underlying_type_t<Enum> operator+(Enum s) noexcept {   \
+    return static_cast<std::underlying_type_t<Enum>>(s);                       \
+  }                                                                            \
+  inline constexpr Enum operator-(Enum s) noexcept {                           \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    return static_cast<Enum>(-static_cast<Underlying>(s));                     \
+  }                                                                            \
+  inline constexpr Enum operator~(Enum s) noexcept {                           \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    return static_cast<Enum>(~static_cast<Underlying>(s));                     \
+  }                                                                            \
+                                                                               \
+  inline constexpr Enum &operator+=(Enum &a, Enum b) noexcept {                \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) +                         \
+                          static_cast<Underlying>(b));                         \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator+(Enum a, Enum b) noexcept { return a += b; }  \
+                                                                               \
+  inline constexpr Enum &operator-=(Enum &a, Enum b) noexcept {                \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) -                         \
+                          static_cast<Underlying>(b));                         \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator-(Enum a, Enum b) noexcept { return a -= b; }  \
+                                                                               \
+  inline constexpr Enum &operator*=(Enum &a, Enum b) noexcept {                \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) *                         \
+                          static_cast<Underlying>(b));                         \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator*(Enum a, Enum b) noexcept { return a *= b; }  \
+                                                                               \
+  inline constexpr Enum &operator/=(Enum &a, Enum b) noexcept {                \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) /                         \
+                          static_cast<Underlying>(b));                         \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator/(Enum a, Enum b) noexcept { return a /= b; }  \
+                                                                               \
+  inline constexpr Enum &operator%=(Enum &a, Enum b) noexcept {                \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) %                         \
+                          static_cast<Underlying>(b));                         \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator%(Enum a, Enum b) noexcept { return a %= b; }  \
+                                                                               \
+  inline constexpr Enum &operator&=(Enum &a, Enum b) noexcept {                \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) &                         \
+                          static_cast<Underlying>(b));                         \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator&(Enum a, Enum b) noexcept { return a &= b; }  \
+                                                                               \
+  inline constexpr Enum &operator|=(Enum &a, Enum b) noexcept {                \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) |                         \
+                          static_cast<Underlying>(b));                         \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator|(Enum a, Enum b) noexcept { return a |= b; }  \
+                                                                               \
+  inline constexpr Enum &operator^=(Enum &a, Enum b) noexcept {                \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) ^                         \
+                          static_cast<Underlying>(b));                         \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator^(Enum a, Enum b) noexcept { return a ^= b; }  \
+                                                                               \
+  inline constexpr Enum &operator<<=(Enum &a, int shift) noexcept {            \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) << shift);                \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator<<(Enum a, int shift) noexcept {               \
+    return a <<= shift;                                                        \
+  }                                                                            \
+                                                                               \
+  inline constexpr Enum &operator>>=(Enum &a, int shift) noexcept {            \
+    using Underlying = std::underlying_type_t<Enum>;                           \
+    a = static_cast<Enum>(static_cast<Underlying>(a) >> shift);                \
+    return a;                                                                  \
+  }                                                                            \
+  inline constexpr Enum operator>>(Enum a, int shift) noexcept {               \
+    return a >>= shift;                                                        \
   }
+#endif
 
 template <typename T, T Actual, T Expected>
 concept ValueMatches = (Actual == Expected);
@@ -146,12 +240,13 @@ template <typename T> consteval bool is_cpp03_pod() { return CPP03PoD<T>; }
       #name " must be an aggregate or scalar type!");
 
 inline constexpr auto BITS_PER_BYTE = CHAR_BIT;
-template <typename T> inline constexpr auto bitsizeof() noexcept {
+template <typename T> alwaysinline constexpr auto bitsizeof() noexcept {
   return sizeof(T) * BITS_PER_BYTE;
 }
 
 template <typename T>
-inline constexpr size_t bitsizeof([[maybe_unused]] const T) noexcept {
+alwaysinline constexpr size_t
+bitsizeof([[maybe_unused]] const T /*unused*/) noexcept {
   return sizeof(T) * BITS_PER_BYTE;
 }
 

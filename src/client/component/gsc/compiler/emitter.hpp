@@ -8,25 +8,28 @@ namespace gsc {
 namespace compiler {
 
 // Import flags (FunctionFlags | CallFlags combined in one byte)
-enum import_flags : uint8_t {
-  IMPORT_FUNC_GETFUNCTION = 0x01,
-  IMPORT_FUNC_CALL = 0x02,
-  IMPORT_FUNC_THREAD = 0x03,
-  IMPORT_FUNC_METHOD = 0x04,
-  IMPORT_FUNC_METHOD_THREAD = 0x05,
-  IMPORT_CALL_EXTERNAL = 0x00,
-  IMPORT_CALL_EXTERNAL_DEV = 0x10,
-  IMPORT_CALL_LOCAL = 0x20,
-  IMPORT_CALL_LOCAL_DEV = 0x30,
+enum class import_flags : uint8_t {
+  NONE = 0x0,
+  FUNC_GETFUNCTION = 0x01,
+  FUNC_CALL = 0x02,
+  FUNC_THREAD = 0x03,
+  FUNC_METHOD = 0x04,
+  FUNC_METHOD_THREAD = 0x05,
+  CALL_EXTERNAL = 0x00,
+  CALL_EXTERNAL_DEV = 0x10,
+  CALL_LOCAL = 0x20,
+  CALL_LOCAL_DEV = 0x30,
 };
+IMPL_ENUM_OPERATORS(import_flags);
 
 // Export flags
-enum export_flags : uint8_t {
-  EXPORT_NONE = 0,
-  EXPORT_AUTOEXEC = 2,
-  EXPORT_PRIVATE = 4,
-  EXPORT_VARARG = 0x20,
+enum class export_flags : uint8_t {
+  NONE = 0,
+  AUTOEXEC = 2,
+  PRIVATE = 4,
+  VARARG = 0x20,
 };
+IMPL_ENUM_OPERATORS(export_flags);
 
 struct emitter_result {
   bool success;

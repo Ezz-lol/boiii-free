@@ -14,11 +14,13 @@ struct lexer_state {
   lexer_state(const std::string &src)
       : source(src), pos(0), line(1), column(1) {}
 
-  char peek() const { return pos < source.size() ? source[pos] : '\0'; }
-  char peek_next() const {
+  [[nodiscard]] char peek() const {
+    return pos < source.size() ? source[pos] : '\0';
+  }
+  [[nodiscard]] char peek_next() const {
     return pos + 1 < source.size() ? source[pos + 1] : '\0';
   }
-  char peek_at(size_t offset) const {
+  [[nodiscard]] char peek_at(size_t offset) const {
     return pos + offset < source.size() ? source[pos + offset] : '\0';
   }
 
@@ -58,8 +60,9 @@ void skip_whitespace_and_comments(lexer_state &s) {
       s.advance();
     } else if (c == '/' && s.peek_next() == '/') {
       // line comment
-      while (!s.at_end() && s.peek() != '\n')
+      while (!s.at_end() && s.peek() != '\n') {
         s.advance();
+      }
     } else if (c == '/' && s.peek_next() == '*') {
       // block comment
       s.advance();
@@ -84,12 +87,13 @@ void skip_whitespace_and_comments(lexer_state &s) {
         }
         s.advance();
       }
-    } else if (c == '#' && s.peek_next() == '/') {
-      // devblock start (treat as comment/passthrough)
-      // #/ ... /# is a dev block delimiter - skip it as a token
+      // TODO: devblock
+      // } else if (c == '#' && s.peek_next() == '/') {
+      //   // #/ ... /# is a dev block delimiter - skip it as a token
+      //   break;
+    } else {
       break;
-    } else
-      break;
+    }
   }
 }
 
