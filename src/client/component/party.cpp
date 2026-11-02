@@ -552,7 +552,7 @@ void handle_connect_query_response(const bool success,
 
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
                                              base_uri) &&
-            workshop::check_valid_mod_id(mod_id, workshop_id, base_uri)) {
+            workshop::check_valid_mod_id(mod_id, {}, base_uri)) {
           connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
                           lobby);
         } else {
