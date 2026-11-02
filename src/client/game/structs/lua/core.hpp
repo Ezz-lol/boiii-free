@@ -346,7 +346,8 @@ enum class QueryID : int32_t {
   SESSION_DEDICATED_PARKED = 5,
   SESSIONS_BY_SERVER_TYPE = 6,
 };
-enum ShowInMatchmaking : int32_t {
+
+enum class ShowInMatchmaking : int32_t {
   SHOW_IN_MATCHMAKING_FALSE = 0,
   SHOW_IN_MATCHMAKING_TRUE = 1,
 };
@@ -859,16 +860,16 @@ enum class CustomizationScaleType : int32_t {
   FIXED = 0,
   FREE = 1,
 };
-enum CustomizationTypeLayerCount : int32_t {
-  CUSTOMIZATION_TYPE_EMBLEM_MAX_LAYERS = 64,
-  CUSTOMIZATION_TYPE_PAINTSHOP_MAX_LAYERS = 64,
+enum class CustomizationTypeLayerCount : int32_t {
+  EMBLEM = 64,
+  PAINTSHOP = 64,
 };
-enum CustomizationPaintjobInvalidID : int32_t {
-  CUSTOMIZATION_INVALID_PAINTJOB_INDEX = 15,
-  CUSTOMIZATION_INVALID_PAINTJOB_SLOT = 15,
+enum class CustomizationPaintjobInvalidID : int32_t {
+  INDEX = 15,
+  SLOT = 15,
 };
-enum CustomizationTypeGroupCount : int32_t {
-  CUSTOMIZATION_TYPE_MAX_GROUPS = 11,
+enum class CustomizationTypeGroupCount : int32_t {
+  COUNT = 11,
 };
 enum class CustomizationColorSwatch : int32_t {
   ROWS = 9,

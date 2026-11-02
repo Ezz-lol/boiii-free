@@ -13,7 +13,7 @@ using namespace game;
 namespace {
 
 void apply_flags() {
-  for (flag_setting *setting : all_settings) {
+  for (flag_setting *setting : ALL_SETTINGS) {
     if (setting->dvar && utils::flags::has_flag(setting->flag)) {
       setting->dvar.set(true);
     }
@@ -26,7 +26,7 @@ class component final : public client_component {
 
 public:
   void post_unpack() override {
-    for (flag_setting *setting : all_settings) {
+    for (flag_setting *setting : ALL_SETTINGS) {
       setting->dvar = game::register_dvar_bool(setting->dvar_name, false,
                                                game::dvarFlags_e::ARCHIVE,
                                                setting->description);

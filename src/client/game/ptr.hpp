@@ -7,7 +7,7 @@
 #include <intrin.h>
 
 namespace game {
-#if defined(_WIN64)
+#ifdef _WIN64
 #include <intrin.h>
 alwaysinline uintptr_t PEB() {
   // PEB pointer location on x64 Windows TEB (GS:[0x60])
@@ -31,22 +31,18 @@ alwaysinline uint32_t PEB32() { return static_cast<uint32_t>(PEB()); }
 constexpr uintptr_t ENGINE_MODULE_BASE = 0x140000000;
 constexpr uintptr_t ENGINE_ADDRESS_SPACE_SIZE = 0x030000000;
 
-alwaysinline uintptr_t relocate(const uintptr_t ptr) {
-  if (ptr) {
-    const uintptr_t base = get_engine_base();
-    return base + (ptr - ENGINE_MODULE_BASE);
-  }
+inline constexpr uintptr_t UINTPTR_NULLPTR = 0;
 
-  return reinterpret_cast<uintptr_t>(nullptr);
+alwaysinline uintptr_t relocate(const uintptr_t ptr) {
+  return ptr == UINTPTR_NULLPTR
+             ? UINTPTR_NULLPTR
+             : get_engine_base() + (ptr - ENGINE_MODULE_BASE);
 }
 
 alwaysinline uintptr_t derelocate(const uintptr_t ptr) {
-  if (ptr) {
-    const uintptr_t base = get_engine_base();
-    return (ptr - base) + ENGINE_MODULE_BASE;
-  }
-
-  return reinterpret_cast<uintptr_t>(nullptr);
+  return ptr == UINTPTR_NULLPTR
+             ? UINTPTR_NULLPTR
+             : (ptr - get_engine_base()) + ENGINE_MODULE_BASE;
 }
 
 template <typename T> alwaysinline T *derelocate(T *ptr) {
@@ -112,17 +108,16 @@ alwaysinline volatile T *select(volatile T *client_val,
 /// @brief Checks if a pointer resides within the current thread's stack
 /// boundaries.
 alwaysinline bool valid_stack_ptr(uintptr_t ptr) {
-  if (ptr) {
-    // In x64 Windows, GS:[0x08] holds the Stack Base (highest address)
-    // and GS:[0x10] holds the Stack Limit (lowest address).
-    // The stack grows downwards from the Base to the Limit.
-    uintptr_t stack_base = __readgsqword(0x08);
-    uintptr_t stack_limit = __readgsqword(0x10);
-
-    return (ptr >= stack_limit) && (ptr < stack_base);
+  if (ptr == UINTPTR_NULLPTR) {
+    return false;
   }
+  // In x64 Windows, GS:[0x08] holds the Stack Base (highest address)
+  // and GS:[0x10] holds the Stack Limit (lowest address).
+  // The stack grows downwards from the Base to the Limit.
+  uintptr_t stack_base = __readgsqword(0x08);
+  uintptr_t stack_limit = __readgsqword(0x10);
 
-  return false;
+  return (ptr >= stack_limit) && (ptr < stack_base);
 }
 
 template <typename T> alwaysinline bool valid_stack_ptr(const T *ptr) {
@@ -147,7 +142,8 @@ template <typename T> alwaysinline bool valid_current_module_ptr(const T *ptr) {
 }
 
 alwaysinline bool valid_module_ptr(uintptr_t ptr) {
-  return ptr && (valid_engine_module_ptr(ptr) || valid_current_module_ptr(ptr));
+  return ptr != UINTPTR_NULLPTR &&
+         (valid_engine_module_ptr(ptr) || valid_current_module_ptr(ptr));
 }
 
 template <typename T> alwaysinline bool valid_module_ptr(const T *ptr) {
@@ -157,7 +153,8 @@ template <typename T> alwaysinline bool valid_module_ptr(const T *ptr) {
 /// @brief Checks if a pointer's address points to the engine module address
 /// space or a location on the current thread's stack.
 alwaysinline bool valid_engine_ptr(uintptr_t ptr) {
-  return ptr && (valid_module_ptr(ptr) || valid_stack_ptr(ptr));
+  return ptr != UINTPTR_NULLPTR &&
+         (valid_module_ptr(ptr) || valid_stack_ptr(ptr));
 }
 
 template <typename T> alwaysinline bool valid_engine_ptr(const T *ptr) {
@@ -165,7 +162,8 @@ template <typename T> alwaysinline bool valid_engine_ptr(const T *ptr) {
 }
 
 alwaysinline bool readable_ptr(uintptr_t ptr) {
-  return ptr && (valid_engine_ptr(ptr) || ::readable_ptr(ptr));
+  return ptr != UINTPTR_NULLPTR &&
+         (valid_engine_ptr(ptr) || ::readable_ptr(ptr));
 }
 
 template <typename T> alwaysinline bool readable_ptr(const T *ptr) {

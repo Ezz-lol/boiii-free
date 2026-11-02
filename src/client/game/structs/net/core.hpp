@@ -81,62 +81,64 @@ union netipv4_t {
     if (terminate) {
       APPENDCHAR(ptr, '\0');
     }
-    return ToStringResult{buf, ptr};
+    return ToStringResult{.buf = buf, .ptr = ptr};
   }
 };
 
-enum netadrtype_t : int32_t {
-  NA_BOT = 0x0,
-  NA_BAD = 0x1,
-  NA_LOOPBACK = 0x2,
-  NA_RAWIP = 0x3,
-  NA_IP = 0x4,
+enum class netadrtype_t : int32_t {
+  BOT = 0x0,
+  BAD = 0x1,
+  LOOPBACK = 0x2,
+  RAWIP = 0x3,
+  IP = 0x4,
   // Does not exist in engine
-  NA_INVALID = -1
+  INVALID = -1
 };
+IMPL_ENUM_OPERATORS(netadrtype_t);
 
 inline constexpr const char *serialize(netadrtype_t type) {
   switch (type) {
-  case NA_BOT:
-    return "NA_BOT";
-  case NA_BAD:
-    return "NA_BAD";
-  case NA_LOOPBACK:
-    return "NA_LOOPBACK";
-  case NA_RAWIP:
-    return "NA_RAWIP";
-  case NA_IP:
-    return "NA_IP";
+  case netadrtype_t::BOT:
+    return "netadrtype_t::BOT";
+  case netadrtype_t::BAD:
+    return "netadrtype_t::BAD";
+  case netadrtype_t::LOOPBACK:
+    return "netadrtype_t::LOOPBACK";
+  case netadrtype_t::RAWIP:
+    return "netadrtype_t::RAWIP";
+  case netadrtype_t::IP:
+    return "netadrtype_t::IP";
   default:
-    return "NA_INVALID";
+    return "netadrtype_t::INVALID";
   }
 }
 
-enum netsrc_t : int32_t {
+enum class netsrc_t : int32_t {
   NS_NULL = -1,
-  NS_CLIENT1 = 0x0,
-  NS_CLIENT2 = 0x1,
-  NS_CLIENT3 = 0x2,
-  NS_CLIENT4 = 0x3,
-  NS_SERVER = 0x4,
-  NS_MAXCLIENTS = 0x4,
-  NS_PACKET = 0x5,
+  CLIENT1 = 0x0,
+  CLIENT2 = 0x1,
+  CLIENT3 = 0x2,
+  CLIENT4 = 0x3,
+  SERVER = 0x4,
+  MAXCLIENTS = 0x4,
+  PACKET = 0x5,
 };
+IMPL_ENUM_OPERATORS(netsrc_t);
 
 inline constexpr const char *serialize(netsrc_t src) {
   switch (src) {
-  case NS_CLIENT1:
-    return "NS_CLIENT1";
-  case NS_CLIENT2:
-    return "NS_CLIENT2";
-  case NS_CLIENT3:
-    return "NS_CLIENT3";
-  case NS_CLIENT4:
-    return "NS_CLIENT4";
-  case NS_SERVER:
-    return "NS_SERVER";
-  case NS_PACKET:
-    return "NS_PACKET";
+  case netsrc_t::CLIENT1:
+    return "netsrc_t::CLIENT1";
+  case netsrc_t::CLIENT2:
+    return "netsrc_t::CLIENT2";
+  case netsrc_t::CLIENT3:
+    return "netsrc_t::CLIENT3";
+  case netsrc_t::CLIENT4:
+    return "netsrc_t::CLIENT4";
+  case netsrc_t::SERVER:
+    return "netsrc_t::SERVER";
+  case netsrc_t::PACKET:
+    return "netsrc_t::PACKET";
   default:
     return "NS_NULL";
   }
@@ -181,7 +183,10 @@ struct netadr_t {
     return {.buf = buf, .ptr = ptr};
   }
 };
+ASSERT_SIZE(netadr_t, 0x10);
 
+// `bdCommonAddr`, serialized using the `bdBytePacker`, which essentially just
+// appends each field's bytes, sequentially, in network (big endian) byte order
 struct XNADDR {
   static inline constexpr size_t SIZE = 37;
 
@@ -313,8 +318,8 @@ PACKED(struct HostInfo {
 ASSERT_SIZE(HostInfo, 0x80);
 
 enum svscmd_type {
-  SV_CMD_CAN_IGNORE = 0x0,
-  SV_CMD_RELIABLE = 0x1,
+  CAN_IGNORE = 0x0,
+  RELIABLE = 0x1,
 };
 
 enum class clientState_t : int32_t {
@@ -367,7 +372,7 @@ struct netProfileStream_t {
   int32_t iLargestPacket;
   int32_t iSmallestPacket;
 };
-ASSERT_SIZE(netProfileStream_t, 0x2f0);
+ASSERT_SIZE(netProfileStream_t, 0x2F0);
 
 struct netProfileInfo_t {
   netProfileStream_t send;
@@ -390,10 +395,10 @@ struct EVENT_HANDLE {
   qboolean manualReset;
   uint8_t _padding[4];
 };
-enum netchanMessageState_e : int32_t {
-  NETCHAN_MESSAGE_COMPLETE = 0x0,
-  NETCHAN_MESSAGE_FAILED = 0x1,
-  NETCHAN_MESSAGE_TIMEOUT = 0x2,
+enum class netchanMessageState_e : uint32_t {
+  COMPLETE = 0x0,
+  FAILED = 0x1,
+  TIMEOUT = 0x2,
 };
 
 struct netchanMsgConfig_s {

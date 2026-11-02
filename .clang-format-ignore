@@ -1,1 +1,14 @@
 deps/
+.vs
+.vscode
+/build/
+node_modules/
+usergenerate.bat
+nul
+/**/*.gdb
+/**/*.gscc
+/**/*.gscasm
+/**/*.cscc
+/**/*.cscasm
+/**/*.luac
+/**/*.aps

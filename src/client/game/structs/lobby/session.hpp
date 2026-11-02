@@ -407,7 +407,7 @@ enum class ServerStatus : uint32_t {
 
 struct PeerToPeerInfo {
   int32_t connectivityBits;
-  msg::NetChanMsg netMsg[18];
+  LobbyClientPool<msg::NetChanMsg> netMsg;
 };
 
 struct SharedVoiceSessionData {

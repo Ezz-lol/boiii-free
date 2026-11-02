@@ -12,7 +12,7 @@ public:
 
   VTbl *vtbl;
   task::manage::bdRemoteTaskManager *m_remoteTaskManager;
-  bdNChar8 m_context[16];
+  bdNChar8 m_context[0x10];
 };
 
 } // namespace storage

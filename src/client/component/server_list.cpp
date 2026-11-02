@@ -56,8 +56,8 @@ parse_server_list_data(const network::data_view &data) {
       }
 
       game::net::netadr_t address{};
-      address.type = game::net::NA_RAWIP;
-      address.localNetID = game::net::NS_CLIENT1;
+      address.type = game::net::netadrtype_t::RAWIP;
+      address.localNetID = game::net::netsrc_t::CLIENT1;
       memcpy(&address.ipv4.a, data.data() + i + 0, 4);
       memcpy(&address.port, data.data() + i + 4, 2);
       address.port = ntohs(address.port);
@@ -210,7 +210,7 @@ void read_recent_servers() {
           if (!server_address.empty()) {
             game::net::netadr_t server =
                 network::address_from_string(server_address);
-            if (server.type != game::net::NA_BAD) {
+            if (server.type != game::net::netadrtype_t::BAD) {
               servers.emplace_back(server);
               if (servers.size() >= 50) {
                 break;
@@ -247,7 +247,7 @@ void add_lan_server_from_string(const std::string &in) {
   const std::string normalized = normalize_lan_input(in);
   if (!normalized.empty()) {
     const game::net::netadr_t addr = network::address_from_string(normalized);
-    if (addr.type != game::net::NA_BAD) {
+    if (addr.type != game::net::netadrtype_t::BAD) {
       std::string data;
       utils::io::read_file(LAN_SERVER_PATH, &data);
       const std::vector<std::string> lines = utils::string::split(data, '\n');
@@ -300,7 +300,7 @@ inline void parse_master_server_hosts() {
         }
         const game::net::netadr_t addr =
             network::address_from_string(l.c_str());
-        if (addr.type != game::net::NA_BAD) {
+        if (addr.type != game::net::netadrtype_t::BAD) {
           master_server_hosts.emplace_back(addr);
         }
       }
@@ -310,7 +310,7 @@ inline void parse_master_server_hosts() {
     std::string write;
     for (const std::string_view &host : default_hosts) {
       const game::net::netadr_t addr = network::address_from_string(host);
-      if (addr.type != game::net::NA_BAD) {
+      if (addr.type != game::net::netadrtype_t::BAD) {
         master_server_hosts.emplace_back(addr);
       }
       write.append(host);

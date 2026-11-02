@@ -10,34 +10,47 @@ struct flag_setting {
   const char *description;
   mutable EngineDependentDvarMut dvar{};
 
-  inline bool enabled() const noexcept {
+  alwaysinline bool enabled() const noexcept {
     return dvar ? dvar.get_bool() : utils::flags::has_flag(flag);
   }
 };
 
 inline constinit flag_setting skip_intro_flag{
-    "boiii_skipIntro", "nointro", "Skip the intro video on startup"};
+    .dvar_name = "boiii_skipIntro",
+    .flag = "nointro",
+    .description = "Skip the intro video on startup"};
 inline constinit flag_setting skip_cinematics_flag{
-    "boiii_skipCinematics", "nocinematics", "Skip all cinematics and videos"};
+    .dvar_name = "boiii_skipCinematics",
+    .flag = "nocinematics",
+    .description = "Skip all cinematics and videos"};
 inline constinit flag_setting skip_forest_cinematic_flag{
-    "boiii_skipForestCinematic", "noforestcinematic",
-    "Skip the forest video that plays before joining a Zombies game"};
+    .dvar_name = "boiii_skipForestCinematic",
+    .flag = "noforestcinematic",
+    .description =
+        "Skip the forest video that plays before joining a Zombies game"};
 inline constinit flag_setting full_logs_flag{
-    "boiii_fullLogs", "fulllogs", "Show every log message in the console"};
+    .dvar_name = "boiii_fullLogs",
+    .flag = "fulllogs",
+    .description = "Show every log message in the console"};
 inline constinit flag_setting log_script_errors_flag{
-    "boiii_logScriptErrors", "log-script-errors",
-    "Log every script error, including non-fatal ones"};
+    .dvar_name = "boiii_logScriptErrors",
+    .flag = "log-script-errors",
+    .description = "Log every script error, including non-fatal ones"};
 inline constinit flag_setting ultrawide_flag{
-    "boiii_ultrawide", "ultrawide",
-    "Use the full width of ultrawide screens (requires a restart)"};
+    .dvar_name = "boiii_ultrawide",
+    .flag = "ultrawide",
+    .description =
+        "Use the full width of ultrawide screens (requires a restart)"};
 inline constinit flag_setting allow_cheats_flag{
-    "boiii_allowCheats", "cheats",
-    "Allow cheat commands like noclip and god mode"};
+    .dvar_name = "boiii_allowCheats",
+    .flag = "cheats",
+    .description = "Allow cheat commands like noclip and god mode"};
 inline constinit flag_setting xp_bar_flag{
-    "boiii_xpBar", "xpbar",
-    "Show an XP progress bar in Multiplayer and Zombies"};
+    .dvar_name = "boiii_xpBar",
+    .flag = "xpbar",
+    .description = "Show an XP progress bar in Multiplayer and Zombies"};
 
-inline constexpr flag_setting *all_settings[] = {
+inline constexpr flag_setting *ALL_SETTINGS[] = {
     &skip_intro_flag,
     &skip_cinematics_flag,
     &skip_forest_cinematic_flag,

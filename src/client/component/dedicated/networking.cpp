@@ -32,7 +32,7 @@ constexpr auto RATE_LIMIT_WINDOW = std::chrono::seconds(10);
 
 bool rate_limited(const game::net::netadr_t &adr) {
   bool result = false;
-  if (adr.type != game::net::NA_BOT) {
+  if (adr.type != game::net::netadrtype_t::BOT) {
     const std::chrono::time_point now = std::chrono::steady_clock::now();
 
     const connect_attempt new_val = {adr.addr, now, 1};

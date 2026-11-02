@@ -277,7 +277,7 @@ get_live_steam_server_name() {
 }
 [[nodiscard]] inline std::optional<std::string_view>
 get_live_steam_server_description() {
-  return *get_live_steam_server_description
+  return *live_steam_server_description
              ? live_steam_server_description->get_string()
              : std::nullopt;
 }
@@ -286,9 +286,8 @@ get_live_steam_server_description() {
 }
 [[nodiscard]] inline std::optional<std::string_view>
 get_live_steam_server_password() {
-  return *get_live_steam_server_password
-             ? live_steam_server_password->get_string()
-             : std::nullopt;
+  return *live_steam_server_password ? live_steam_server_password->get_string()
+                                     : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> server_password() {
   return get_live_steam_server_password();
@@ -341,23 +340,24 @@ constexpr uint16_t DEFAULT_PORT = 3074;
                          : lobby::MAX_PLAYERS;
 }
 [[nodiscard]] inline ClientNum_t get_max_client_count() {
-  return static_cast<ClientNum_t>(get_com_maxclients());
+  return get_com_maxclients();
 }
 
 typedef fastcall_t<void(
-    const std::function<void(sv::client_s &cl, ClientNum_t clientNum)>
+    const std::function<void(sv::client_s &cl, ClientNum_t client_num)>
         &callback)>
     forEachClientIterator_t;
 
-void foreach_client(const std::function<void(sv::client_s &cl,
-                                             ClientNum_t clientNum)> &callback);
+void foreach_client(
+    const std::function<void(sv::client_s &cl, ClientNum_t client_num)>
+        &callback);
 void foreach_client(const std::function<void(sv::client_s &cl)> &callback);
 void first_client(const std::function<bool(sv::client_s &cl,
-                                           ClientNum_t clientNum)> &callback);
+                                           ClientNum_t client_num)> &callback);
 void first_client(const std::function<bool(sv::client_s &cl)> &callback);
 
 void foreach_connected_client(
-    const std::function<void(sv::client_s &cl, ClientNum_t clientNum)>
+    const std::function<void(sv::client_s &cl, ClientNum_t client_num)>
         &callback);
 void foreach_connected_client(
     const std::function<void(sv::client_s &cl)> &callback);
@@ -367,16 +367,16 @@ inline ClientNum_t connected_client_count() {
   return count;
 }
 void first_connected_client(
-    const std::function<bool(sv::client_s &cl, ClientNum_t clientNum)>
+    const std::function<bool(sv::client_s &cl, ClientNum_t client_num)>
         &callback);
 void first_connected_client(
     const std::function<bool(sv::client_s &cl)> &callback);
 bool access_connected_client(
-    ClientNum_t clientNum,
+    ClientNum_t client_num,
     const std::function<void(sv::client_s &cl)> &callback);
 
 void foreach_test_client(
-    const std::function<void(sv::client_s &cl, ClientNum_t clientNum)>
+    const std::function<void(sv::client_s &cl, ClientNum_t client_num)>
         &callback);
 void foreach_test_client(const std::function<void(sv::client_s &cl)> &callback);
 inline ClientNum_t test_client_count() {
@@ -385,12 +385,12 @@ inline ClientNum_t test_client_count() {
   return count;
 }
 void first_test_client(
-    const std::function<bool(sv::client_s &cl, ClientNum_t clientNum)>
+    const std::function<bool(sv::client_s &cl, ClientNum_t client_num)>
         &callback);
 void first_test_client(const std::function<bool(sv::client_s &cl)> &callback);
 
 void foreach_active_client(
-    const std::function<void(sv::client_s &cl, ClientNum_t clientNum)>
+    const std::function<void(sv::client_s &cl, ClientNum_t client_num)>
         &callback);
 void foreach_active_client(
     const std::function<void(sv::client_s &cl)> &callback);
@@ -400,11 +400,11 @@ inline ClientNum_t active_client_count() {
   return count;
 }
 void first_active_client(
-    const std::function<bool(sv::client_s &cl, ClientNum_t clientNum)>
+    const std::function<bool(sv::client_s &cl, ClientNum_t client_num)>
         &callback);
 void first_active_client(const std::function<bool(sv::client_s &cl)> &callback);
 bool access_active_client(
-    ClientNum_t clientNum,
+    ClientNum_t client_num,
     const std::function<void(sv::client_s &cl)> &callback);
 
 inline ClientNum_t available_client_count() {
@@ -416,7 +416,7 @@ template <typename E>
 concept EnumType = std::is_enum_v<E>;
 
 template <EnumType T, const T MinValue, const T MaxValue>
-inline constexpr bool valid(const T enum_val) {
+constexpr bool valid(const T enum_val) {
   using Underlying = std::underlying_type_t<T>;
 
   const Underlying casted = static_cast<Underlying>(enum_val);
@@ -424,17 +424,16 @@ inline constexpr bool valid(const T enum_val) {
          casted < static_cast<Underlying>(MaxValue);
 }
 
-inline constexpr bool valid_client_num(ClientNum_t clientNum) {
-  return valid<ClientNum_t, CLIENT_INDEX_0, CLIENT_INDEX_COUNT>(clientNum);
+constexpr bool valid_client_num(ClientNum_t client_num) {
+  return valid<ClientNum_t, CLIENT_INDEX_0, CLIENT_INDEX_COUNT>(client_num);
 }
 
-inline constexpr bool
-valid_controller_index(ControllerIndex_t controllerIndex) {
+constexpr bool valid_controller_index(ControllerIndex_t controllerIndex) {
   return valid<ControllerIndex_t, CONTROLLER_INDEX_0, CONTROLLER_INDEX_COUNT>(
       controllerIndex);
 }
 
-inline constexpr bool valid_local_client_num(LocalClientNum_t localClientNum) {
+constexpr bool valid_local_client_num(LocalClientNum_t localClientNum) {
   return valid<LocalClientNum_t, LOCAL_CLIENT_0, LOCAL_CLIENT_COUNT>(
       localClientNum);
 }
@@ -449,15 +448,15 @@ template <typename T>
   requires(std::is_convertible_v<T, game::ClientNum_t>)
 inline level::gentity_t *client_ent(T index) {
   level::gentity_pool *pool = get_g_entities();
-  ClientNum_t clientNum = static_cast<game::ClientNum_t>(index);
-  return valid_client_num(clientNum) ? &pool->pool[clientNum] : nullptr;
+  ClientNum_t client_num = static_cast<game::ClientNum_t>(index);
+  return valid_client_num(client_num) ? &pool->pool[client_num] : nullptr;
 }
 } // namespace level
 
 namespace sl {
 inline bool valid_refstring_ptr(volatile RefString *ref) {
   return valid_stack_ptr(ref) ||
-         (scr::mt::gScrMemTreePub->mt_buffer &&
+         (scr::mt::gScrMemTreePub->mt_buffer != nullptr &&
           scr::mt::gScrMemTreePub->mt_buffer->contains(ref));
 }
 

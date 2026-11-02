@@ -36,15 +36,16 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
   game::trace(
       "[Network] handle_command called with address: \"{}\", command: \"{}\", "
       "localClientNum: {}",
-      address ? address->serialize() : "NULL", command ? command : "NULL",
-      serialize(localClientNum));
+      address == nullptr ? "NULL" : address->serialize(),
+      command == nullptr ? "NULL" : command, serialize(localClientNum));
 #endif
 
   const std::string cmd_string = utils::string::to_lower(command);
   const size_t offset = cmd_string.size() + 5;
 
   std::basic_string_view<uint8_t> data;
-  if (message->cursize > 0 && static_cast<size_t>(message->cursize) >= offset) {
+  if (message->cursize > 0 &&
+      std::cmp_greater_equal(message->cursize, offset)) {
     data = std::basic_string_view(message->data + offset,
                                   message->cursize - offset);
   }
@@ -62,10 +63,10 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
     } catch (...) {
     }
 
-    return false;
+    return static_cast<int64_t>(false);
   }
 
-  return true;
+  return static_cast<int64_t>(true);
 }
 
 bool cl_dispatch_connectionless_packet_stub(
@@ -75,7 +76,7 @@ bool cl_dispatch_connectionless_packet_stub(
   const command::params params;
   const char *c = params.get(0);
 
-  return handle_command(&from, c, msg, local_client_num) == true;
+  return static_cast<bool>(handle_command(&from, c, msg, local_client_num));
 }
 
 void handle_command_stub(utils::hook::assembler &a) {
@@ -95,65 +96,64 @@ void handle_command_stub(utils::hook::assembler &a) {
   a.get().ret();
 }
 
-bool socket_set_blocking(const SOCKET s, const bool blocking) {
+bool socket_set_blocking(const SOCKET sock, const bool blocking) {
   unsigned long mode = blocking ? 0 : 1;
-  return ioctlsocket(s, FIONBIO, &mode) == 0;
+  return ioctlsocket(sock, FIONBIO, &mode) == 0;
 }
 
 void create_ip_socket() {
-  SOCKET &s = *game::net::ip_socket;
-  if (s) {
-    return;
-  }
-
-  s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (s == INVALID_SOCKET) {
-    throw std::runtime_error("Unable to create socket");
-  }
-
-  constexpr char broadcast = 1;
-  setsockopt(s, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
-
-  socket_set_blocking(s, false);
-
-  const uint32_t address = htonl(INADDR_ANY);
-  const uint16_t wanted_port = game::port();
-  uint16_t port = wanted_port;
-
-  sockaddr_in server_addr{};
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = address;
-
-  int32_t retries = 0;
-  do {
-    server_addr.sin_port = htons(port++);
-    if (++retries > 10) {
-      if (game::is_server()) {
-        printf("[WARNING] Ports %u to %u are all in use, so the server can't "
-               "accept players. Close the other program or change net_port.\n",
-               static_cast<uint32_t>(wanted_port),
-               static_cast<uint32_t>(port - 2));
-      }
-      return;
+  SOCKET &sock = *game::net::ip_socket;
+  if (static_cast<uintptr_t>(sock) != 0) {
+    sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sock == static_cast<uintptr_t>(INVALID_SOCKET)) {
+      throw std::runtime_error("Unable to create socket");
     }
-  } while (bind(s, reinterpret_cast<sockaddr *>(&server_addr),
-                sizeof(server_addr)) == SOCKET_ERROR);
 
-  bound_port = port - 1;
-  printf("[NET] Socket bound on port %u\n", static_cast<uint32_t>(port - 1));
-  if (game::is_server() && bound_port != wanted_port) {
-    printf("[WARNING] Port %u is already in use, so the server is running on "
-           "port %u instead. Players, port forwarding and admin tools set to "
-           "port %u won't reach it.\n",
-           static_cast<uint32_t>(wanted_port),
-           static_cast<uint32_t>(bound_port.load()),
-           static_cast<uint32_t>(wanted_port));
-  }
+    constexpr char BROADCAST = 1;
+    setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &BROADCAST, sizeof(BROADCAST));
 
-  if (!game::is_server()) {
-    SOCKET *server_socket =
-        reinterpret_cast<SOCKET *>(game::select(0x14A5B09D8, 0x14A640988, 0x0));
-    *server_socket = s;
+    socket_set_blocking(sock, false);
+
+    const uint32_t address = htonl(INADDR_ANY);
+    const uint16_t wanted_port = game::port();
+    uint16_t port = wanted_port;
+
+    sockaddr_in server_addr{};
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = address;
+
+    constexpr auto MAX_SOCK_BIND_RETRIES = 10;
+    int32_t retries = 0;
+    do {
+      server_addr.sin_port = htons(port++);
+      if (++retries > MAX_SOCK_BIND_RETRIES) {
+        if (game::is_server()) {
+          printf(
+              "[WARNING] Ports %u to %u are all in use, so the server can't "
+              "accept players. Close the other program or change net_port.\n",
+              static_cast<uint32_t>(wanted_port),
+              static_cast<uint32_t>(port - 2));
+        }
+        return;
+      }
+    } while (bind(sock, reinterpret_cast<sockaddr *>(&server_addr),
+                  sizeof(server_addr)) == SOCKET_ERROR);
+
+    bound_port = port - 1;
+    printf("[NET] Socket bound on port %u\n", static_cast<uint32_t>(port - 1));
+    if (game::is_server()) {
+      if (bound_port != wanted_port) {
+        printf(
+            "[WARNING] Port %u is already in use, so the server is running on "
+            "port %u instead. Players, port forwarding and admin tools set to "
+            "port %u won't reach it.\n",
+            static_cast<uint32_t>(wanted_port),
+            static_cast<uint32_t>(bound_port.load()),
+            static_cast<uint32_t>(wanted_port));
+      }
+    } else {
+      *game::net::server_ip_socket = sock;
+    }
   }
 }
 
@@ -164,9 +164,11 @@ bool &socket_byte_missing() {
 
 uint8_t read_socket_byte_stub(game::net::msg::msg_t *msg) {
   bool &byte_missing = socket_byte_missing();
-  byte_missing = msg->cursize >= 4 && *reinterpret_cast<int *>(msg->data) == -1;
+  byte_missing = msg->cursize >= sizeof(game::net::netsrc_t) &&
+                 *reinterpret_cast<game::net::netsrc_t *>(msg->data) ==
+                     game::net::netsrc_t::NS_NULL;
   if (byte_missing) {
-    return game::net::NS_SERVER | (game::net::NS_SERVER << 4);
+    return +game::net::netsrc_t::SERVER | (+game::net::netsrc_t::SERVER << 4);
   }
 
   const auto _ = utils::finally([msg] { ++msg->data; });
@@ -186,8 +188,7 @@ void con_restricted_execute_buf_stub(game::LocalClientNum_t local_client_num,
 
 int32_t bind_stub(const SOCKET s, const sockaddr *addr, const int32_t namelen) {
   sockaddr_in address{};
-  if (addr->sa_family != AF_INET ||
-      namelen < static_cast<int32_t>(sizeof(address))) {
+  if (addr->sa_family != AF_INET || std::cmp_less(namelen, sizeof(address))) {
     return bind(s, addr, namelen);
   }
 
@@ -199,7 +200,7 @@ int32_t bind_stub(const SOCKET s, const sockaddr *addr, const int32_t namelen) {
 }
 
 const char *net_adr_to_string_stub(const game::net::netadr_t *address) {
-  if (address->type != game::net::NA_RAWIP) {
+  if (address->type != game::net::netadrtype_t::RAWIP) {
     return net_adr_to_string_hook.invoke<const char *>(address);
   }
   static thread_local game::net::netadr_str_t buffer{};
@@ -210,16 +211,16 @@ const char *net_adr_to_string_stub(const game::net::netadr_t *address) {
 void com_error_oob_stub(const char *file, int32_t line, game::errorParm code,
                         [[maybe_unused]] const char *fmt, const char *error) {
 
-  intptr_t callerAddr = reinterpret_cast<intptr_t>(_ReturnAddress());
+  intptr_t caller_addr = reinterpret_cast<intptr_t>(_ReturnAddress());
   char buffer[1024]{};
 
   strscpy(buffer, error);
 
-  std::string file_str = file ? file : "unknown";
+  std::string file_str = file == nullptr ? "unknown" : file;
   std::string log_str =
       utils::string::va("Com_Error_Oob called from 0x%p with file: \"%s\", "
                         "line: %d, code: %d,  message: \"%s\"\n",
-                        callerAddr, file_str.c_str(), line,
+                        caller_addr, file_str.c_str(), line,
                         static_cast<int32_t>(code), buffer, code);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s", log_str.c_str());
@@ -264,15 +265,15 @@ void send_data(const game::net::netadr_t &address, const std::string &data) {
 
 game::net::netadr_t address_from_string(const std::string_view &address) {
   game::net::netadr_t addr{};
-  addr.localNetID = game::net::NS_SERVER;
+  addr.localNetID = game::net::netsrc_t::SERVER;
 
   if (!game::net::NET_StringToAdr(address.data(), &addr)) {
-    addr.type = game::net::NA_BAD;
+    addr.type = game::net::netadrtype_t::BAD;
     return addr;
   }
 
-  if (addr.type == game::net::NA_IP) {
-    addr.type = game::net::NA_RAWIP;
+  if (addr.type == game::net::netadrtype_t::IP) {
+    addr.type = game::net::netadrtype_t::RAWIP;
   }
 
   return addr;
@@ -288,8 +289,8 @@ void address_from_string_async(const std::string &address,
 
 game::net::netadr_t address_from_ip(const uint32_t ip, const uint16_t port) {
   game::net::netadr_t addr{};
-  addr.localNetID = game::net::NS_SERVER;
-  addr.type = game::net::NA_RAWIP;
+  addr.localNetID = game::net::netsrc_t::SERVER;
+  addr.type = game::net::netadrtype_t::RAWIP;
   addr.port = port;
   addr.addr = ip;
 
@@ -302,7 +303,8 @@ bool are_addresses_equal(const game::net::netadr_t &a,
     return false;
   }
 
-  if (a.type != game::net::NA_RAWIP && a.type != game::net::NA_IP) {
+  if (a.type != game::net::netadrtype_t::RAWIP &&
+      a.type != game::net::netadrtype_t::IP) {
     return true;
   }
 
@@ -310,7 +312,8 @@ bool are_addresses_equal(const game::net::netadr_t &a,
 }
 
 bool is_ip_address(const game::net::netadr_t &addr) {
-  return addr.type == game::net::NA_IP || addr.type == game::net::NA_RAWIP;
+  return addr.type == game::net::netadrtype_t::IP ||
+         addr.type == game::net::netadrtype_t::RAWIP;
 }
 
 bool is_connectable_address(const game::net::netadr_t &addr) {
@@ -332,13 +335,13 @@ int32_t net_sendpacket_stub(const game::net::netsrc_t sock,
                             const game::net::netadr_t *to) {
   // printf("Sending packet of size: %X\n", length);
 
-  if (to->type != game::net::NA_RAWIP) {
+  if (to->type != game::net::netadrtype_t::RAWIP) {
     printf("NET_SendPacket: bad address type\n");
     return 0;
   }
 
   const SOCKET s = *game::net::ip_socket;
-  if (!s || sock > game::net::NS_MAXCLIENTS) {
+  if (s == 0u || sock > game::net::netsrc_t::MAXCLIENTS) {
     return 0;
   }
 
@@ -354,7 +357,7 @@ int32_t net_sendpacket_stub(const game::net::netsrc_t sock,
   std::vector<char> buffer{};
   buffer.resize(size + 1);
   buffer[0] = static_cast<char>((static_cast<uint32_t>(sock) & 0xF) |
-                                ((to->localNetID & 0xF) << 4));
+                                ((+to->localNetID & 0xF) << 4));
   memcpy(buffer.data() + 1, data, size);
 
   return sendto(s, buffer.data(), static_cast<int>(buffer.size()), 0,
@@ -363,30 +366,31 @@ int32_t net_sendpacket_stub(const game::net::netsrc_t sock,
 
 template <game::forEachClientIterator_t &ForEachClientIterator>
 void client_listing_command(const command::params &params) {
-  std::string completeListing = "{ ";
+  std::string complete_listing = "{ ";
   size_t listed = 0;
-  ForEachClientIterator([&completeListing,
+  ForEachClientIterator([&complete_listing,
                          &listed](const game::sv::client_s &cl,
                                   game::ClientNum_t index) {
     if (listed) {
-      completeListing += ", ";
+      complete_listing += ", ";
     }
-    completeListing += std::format("{}: {}", serialize(index), cl.serialize());
+    complete_listing += std::format("{}: {}", serialize(index), cl.serialize());
     listed++;
   });
 
-  completeListing += " }";
+  complete_listing += " }";
 
-  const std::string_view completeListingView = completeListing;
-  game::trace("{}", completeListing);
+  const std::string_view complete_listing_view = complete_listing;
+  game::trace("{}", complete_listing);
 
   constexpr size_t PRINT_CHUNK_SIZE = 255;
-  for (size_t i = 0; i < completeListingView.length(); i += PRINT_CHUNK_SIZE) {
-    const size_t currChunkSize =
-        std::min<size_t>(PRINT_CHUNK_SIZE, completeListingView.length() - i);
-    if (currChunkSize) {
+  for (size_t i = 0; i < complete_listing_view.length();
+       i += PRINT_CHUNK_SIZE) {
+    const size_t curr_chunk_size =
+        std::min<size_t>(PRINT_CHUNK_SIZE, complete_listing_view.length() - i);
+    if (curr_chunk_size) {
       const std::string_view chunk =
-          completeListingView.substr(i, currChunkSize);
+          complete_listing_view.substr(i, curr_chunk_size);
       fprintf(stdout, "%s", chunk.data());
       fflush(stdout);
 
@@ -439,10 +443,10 @@ struct component final : generic_component {
     utils::hook::set<uint8_t>(
         game::select(0x14211A432, 0x142172EF2, 0x140515881), 0xEB);
 
-    // NA_IP -> NA_RAWIP in NetAdr_ToString
-    utils::hook::set<uint8_t>(
+    // netadrtype_t::IP -> netadrtype_t::RAWIP in NetAdr_ToString
+    utils::hook::set<game::net::netadrtype_t>(
         game::select(0x14211A414, 0x142172ED4, 0x140515864),
-        game::net::NA_RAWIP);
+        game::net::netadrtype_t::RAWIP);
 
     if (game::is_server()) {
       // Remove restrictions for rcon commands

@@ -46,7 +46,7 @@ struct msg_t {
     bit = 0;
     lastEntityRef = 0;
     flush = qfalse;
-    targetLocalNetID = netsrc_t::NS_CLIENT1;
+    targetLocalNetID = netsrc_t::CLIENT1;
 
     data = d;
     maxsize = length;

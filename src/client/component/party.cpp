@@ -32,10 +32,10 @@
 namespace party {
 game::EngineDependentDvarMut cl_connected_to_dedi;
 namespace {
-constexpr uint16_t default_server_port = 27017;
+constexpr uint16_t DEFAULT_SERVER_PORT = 27017;
 
 std::atomic_bool is_connecting_to_dedi{false};
-game::net::netadr_t connect_host{{}, {}, game::net::NA_BAD, {}};
+game::net::netadr_t connect_host{{}, {}, game::net::netadrtype_t::BAD, {}};
 
 std::mutex hostname_mutex;
 std::string cached_server_hostname;
@@ -51,7 +51,7 @@ std::string normalize_connect_address(std::string address) {
   }
 
   if (separator == std::string::npos) {
-    address.append(":" + std::to_string(default_server_port));
+    address.append(":" + std::to_string(DEFAULT_SERVER_PORT));
   }
 
   return address;
@@ -62,9 +62,9 @@ void update_dedi_dvar(bool on_dedi) { cl_connected_to_dedi.set(on_dedi); }
 struct server_query {
   bool sent{false};
   game::net::netadr_t host{};
-  std::string challenge{};
-  query_callback callback{};
-  std::chrono::high_resolution_clock::time_point query_time{};
+  std::string challenge;
+  query_callback callback;
+  std::chrono::high_resolution_clock::time_point query_time;
 };
 
 utils::concurrency::container<std::vector<server_query>> &get_server_queries() {
@@ -88,17 +88,17 @@ void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
 
   game::net::XSESSION_INFO info{};
 
-  int32_t publicSlots = 0;
+  int32_t public_slots = 0;
   for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
        localClientIdx < game::LOCAL_CLIENT_COUNT; ++localClientIdx) {
     if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
-      ++publicSlots;
+      ++public_slots;
     }
   }
 
   // publicSlots is entirely unused within CL_ConnectFromLobby, but just
   // for the sake of completeness, we will pass the correct value.
-  game::cl::CL_ConnectFromLobby(controllerIndex, &info, &addr, publicSlots, 0,
+  game::cl::CL_ConnectFromLobby(controllerIndex, &info, &addr, public_slots, 0,
                                 mapname.data(), gamemode.data(),
                                 usermap_id.data());
 }
@@ -118,18 +118,18 @@ struct GameModeConfiguration {
   game::name_t name = {NULL};
   game::name_t gametype = {NULL};
 
-  inline constexpr GameModeConfiguration() noexcept {}
+  alwaysinline constexpr GameModeConfiguration() noexcept = default;
 
-  inline constexpr GameModeConfiguration(const game::eModes mode) noexcept
+  alwaysinline constexpr GameModeConfiguration(const game::eModes mode) noexcept
       : mode(mode) {}
 
-  inline constexpr GameModeConfiguration(
+  alwaysinline constexpr GameModeConfiguration(
       const game::eModes mode, const std::string_view &name_val) noexcept
       : mode(mode) {
     strscpy(name, name_val);
   }
 
-  inline constexpr GameModeConfiguration(
+  alwaysinline constexpr GameModeConfiguration(
       const game::eModes mode, const std::string_view &name_val,
       const std::string_view &gametype_val) noexcept
       : mode(mode) {
@@ -138,7 +138,7 @@ struct GameModeConfiguration {
   }
 };
 
-static constexpr GameModeConfiguration
+constexpr GameModeConfiguration
     DEFAULT_GAMEMODE_CONFIGURATION_ARRAY[+game::eModes::COUNT] = {
         // Zombies
         GameModeConfiguration(game::eModes::ZOMBIES, "zm", "zclassic"),
@@ -147,8 +147,8 @@ static constexpr GameModeConfiguration
         // Campaign
         GameModeConfiguration(game::eModes::CAMPAIGN, "cp", "coop")};
 
-static constexpr frozen::unordered_map<frozen::string, GameModeConfiguration,
-                                       +game::eModes::COUNT>
+constexpr frozen::unordered_map<frozen::string, GameModeConfiguration,
+                                +game::eModes::COUNT>
     DEFAULT_GAMEMODE_CONFIGURATIONS = frozen::make_unordered_map(map_array(
         DEFAULT_GAMEMODE_CONFIGURATION_ARRAY,
         [](const GameModeConfiguration &config) constexpr {
@@ -158,7 +158,7 @@ static constexpr frozen::unordered_map<frozen::string, GameModeConfiguration,
               config);
         }));
 
-inline constexpr std::optional<GameModeConfiguration>
+constexpr std::optional<GameModeConfiguration>
 get_default_gamemode_config_for_map(const std::string_view &map) {
   const size_t prefix_idx = map.find("_");
   if (prefix_idx != std::string_view::npos) {
@@ -197,8 +197,8 @@ ui_scripting::table lua_globals() {
 }
 
 void launch_from_frontend(const GameModeConfiguration mode,
-                          const std::string mapname) {
-  enum class stage { mod, lobby, launch };
+                          const std::string &mapname) {
+  enum class stage : uint8_t { mod, lobby, launch };
   stage current = stage::mod;
   int32_t ready_ticks = 0;
 
@@ -443,7 +443,7 @@ void handle_connect_query_response(const bool success,
   update_dedi_dvar(is_connecting_to_dedi.load());
 
   {
-    std::lock_guard lock(hostname_mutex);
+    std::scoped_lock lock(hostname_mutex);
     cached_server_hostname = info.get("hostname");
     const std::string max_clients_str = info.get("sv_maxclients");
     cached_server_max_clients =
@@ -578,7 +578,7 @@ void connect_finish(const game::net::netadr_t &target) {
 }
 
 void connect_stub(const char *address) {
-  if (address) {
+  if (address != nullptr) {
     const std::string address_copy = normalize_connect_address(address);
 
     const auto friend_unavailable = [](const char *reason) {
@@ -589,8 +589,9 @@ void connect_stub(const char *address) {
     const bool is_loopback = address_copy.starts_with("127.");
     if (const auto friend_id =
             is_loopback ? 0 : friends::find_browser_route(address_copy)) {
-      if (!friends::connect_to_friend(friend_id))
+      if (!friends::connect_to_friend(friend_id)) {
         friend_unavailable("No joinable match was found");
+      }
       return;
     }
 
@@ -601,11 +602,11 @@ void connect_stub(const char *address) {
 
     toast::show("Connecting", address_copy, "t7_icon_connect_overlays");
 
-    network::resolvedAddrCallback_t resolveCb =
+    network::resolvedAddrCallback_t resolve_cb =
         [address_copy](game::net::netadr_t target) -> void {
       scheduler::once(
           [address_copy, target] {
-            if (target.type == game::net::NA_BAD) {
+            if (target.type == game::net::netadrtype_t::BAD) {
               printf("Connect failed: invalid address \"%s\"\n",
                      address_copy.c_str());
               toast::show("Connect failed", "Invalid address",
@@ -628,7 +629,7 @@ void connect_stub(const char *address) {
           scheduler::main);
     };
     // Resolve the address on a background thread.
-    network::address_from_string_async(address_copy, resolveCb);
+    network::address_from_string_async(address_copy, resolve_cb);
   } else {
     connect_finish(connect_host);
   }
@@ -737,21 +738,21 @@ bool is_host(const game::net::netadr_t &addr) {
 
 uint16_t get_local_port() {
   const uint16_t port = network::get_bound_port();
-  return port ? port : game::port();
+  return port == 0 ? game::port() : port;
 }
 
 std::string get_server_hostname() {
-  std::lock_guard lock(hostname_mutex);
+  std::scoped_lock lock(hostname_mutex);
   return cached_server_hostname;
 }
 
 int get_server_max_clients() {
-  std::lock_guard lock(hostname_mutex);
+  std::scoped_lock lock(hostname_mutex);
   return cached_server_max_clients;
 }
 
 void clear_server_info() {
-  std::lock_guard lock(hostname_mutex);
+  std::scoped_lock lock(hostname_mutex);
   cached_server_hostname.clear();
   cached_server_max_clients = 0;
 }

@@ -309,11 +309,12 @@ void distribute_player_xuid(const game::net::netadr_t &target,
         [&](const game::sv::client_s &client, const game::ClientNum_t index) {
           const game::XUID client_xuid = client.get_xuid();
           if (client_xuid != localXuid1 && client_xuid != localXuid2) {
-            if (client.address.type != game::net::NA_BOT) {
+            if (client.address.type != game::net::netadrtype_t::BOT) {
               network::send(client.address, "playerXuid", buffer.get_buffer());
             }
 
-            if (index != player_index && target.type != game::net::NA_BOT) {
+            if (index != player_index &&
+                target.type != game::net::netadrtype_t::BOT) {
               utils::byte_buffer current_buffer{};
               current_buffer.write(static_cast<uint32_t>(index));
               current_buffer.write(client_xuid);
@@ -353,34 +354,34 @@ void handle_new_player(const game::net::netadr_t &target) {
     game::XUID xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
 
     game::ClientNum_t player_index = game::CLIENT_INDEX_COUNT;
-    game::first_connected_client(
-        [&player_index, &target, &xuid](game::sv::client_s &client,
-                                        const game::ClientNum_t index) {
-          // SV_UserinfoChanged has already set a player's XUID from their
-          // userinfo. Bots share one XUID, so only take a bot that has none yet
-          const game::XUID client_xuid = client.get_xuid();
-          if (client.address == target &&
-              (client_xuid == 0 ||
-               (target.type != game::net::NA_BOT && client_xuid == xuid))) {
-            // Every bot connects with the same XUID. Clients read its low byte
-            // as the bot's slot to pick its default emblem and calling card,
-            // which the engine only adds in its session info
-            if (client.address.type == game::net::NA_BOT) {
-              xuid |= static_cast<game::XUID>(index);
-            }
-            client.set_xuid(xuid);
-            if (game::is_client()) {
-              refresh_bot_emblem(xuid);
-            }
-            if (game::valid_engine_ptr(client.gentity) &&
-                game::valid_engine_ptr(client.gentity->client)) {
-              client.gentity->client->sess.cs.xuid = xuid;
-            }
-            player_index = index;
-            return true;
-          }
-          return false;
-        });
+    game::first_connected_client([&player_index, &target,
+                                  &xuid](game::sv::client_s &client,
+                                         const game::ClientNum_t index) {
+      // SV_UserinfoChanged has already set a player's XUID from their
+      // userinfo. Bots share one XUID, so only take a bot that has none yet
+      const game::XUID client_xuid = client.get_xuid();
+      if (client.address == target &&
+          (client_xuid == 0 || (target.type != game::net::netadrtype_t::BOT &&
+                                client_xuid == xuid))) {
+        // Every bot connects with the same XUID. Clients read its low byte
+        // as the bot's slot to pick its default emblem and calling card,
+        // which the engine only adds in its session info
+        if (client.address.type == game::net::netadrtype_t::BOT) {
+          xuid |= static_cast<game::XUID>(index);
+        }
+        client.set_xuid(xuid);
+        if (game::is_client()) {
+          refresh_bot_emblem(xuid);
+        }
+        if (game::valid_engine_ptr(client.gentity) &&
+            game::valid_engine_ptr(client.gentity->client)) {
+          client.gentity->client->sess.cs.xuid = xuid;
+        }
+        player_index = index;
+        return true;
+      }
+      return false;
+    });
 
     distribute_player_xuid(target, player_index, xuid);
   }

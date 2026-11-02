@@ -6,6 +6,14 @@ Checks:
   - "clang-diagnostic-*"
   - "clang-analyzer-*"
   - "cppcoreguidelines-*"
+  - "readability-*"
+  - "performance-*"
+  - "bugprone-*"
+  - "cert-*"
+  - "-bugprone-easily-swappable-parameters"
+  - "-bugprone-empty-catch"
+  - "-bugprone-suspicious-stringview-data-usage"
+  - "-bugprone-throwing-static-initialization"
   - "-cppcoreguidelines-pro-type-vararg"
   - "-cppcoreguidelines-avoid-c-arrays"
   - "-cppcoreguidelines-avoid-non-const-global-variables"
@@ -20,6 +28,8 @@ Checks:
   - "-cppcoreguidelines-pro-bounds-constant-array-index"
   - "-cppcoreguidelines-special-member-functions"
   - "-cppcoreguidelines-pro-type-member-init"
+  - "-cert-err33-c"
+  - "-cert-err58-cpp"
   - "modernize-*"
   - "-modernize-use-trailing-return-type"
   - "-modernize-use-using"
@@ -27,6 +37,9 @@ Checks:
   - "-modernize-avoid-c-arrays"
   - "-modernize-concat-nested-namespaces"
   - "-hicpp-use-auto"
+  - "-readability-identifier-length"
+  - "-readability-trailing-comma"
+  - "-readability-uppercase-literal-suffix"
 
 WarningsAsErrors: "bugprone-*,modernize-concat-nested-namespaces"
 
@@ -37,7 +50,19 @@ ExtraArgs: ["-std=c++20", "-Wall"]
 CheckOptions:
   - key: readability-identifier-naming.VariableCase
     value: "lower_case"
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: "UPPER_CASE"
+  - key: readability-identifier-naming.ConstexprVariableStyle
+    value: ""
   - key: modernize-loop-convert.NamingStyle
     value: "CamelCase"
   - key: cppcoreguidelines-explicit-virtual-functions.IgnoreDestructors
+    value: "true"
+  - key: cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues
+    value: "1;2;4;8" # Common alignment and buffer sizes
+  - key: cppcoreguidelines-avoid-magic-numbers.IgnoreTypeAliases
+    value: "true"
+  - key: readability-magic-numbers.IgnorePowersOf2IntegerValues
+    value: "true"
+  - key: cppcoreguidelines-avoid-magic-numbers.IgnoreBitFieldsWidths
     value: "true"

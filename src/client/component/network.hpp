@@ -53,9 +53,10 @@ template <> struct equal_to<game::net::netadr_t> {
 
 template <> struct hash<game::net::netadr_t> {
   size_t operator()(const game::net::netadr_t &x) const noexcept {
-    const auto type_hash = hash<uint32_t>()(x.type);
+    const auto type_hash = hash<uint32_t>()(+x.type);
 
-    if (x.type != game::net::NA_IP && x.type != game::net::NA_RAWIP) {
+    if (x.type != game::net::netadrtype_t::IP &&
+        x.type != game::net::netadrtype_t::RAWIP) {
       return type_hash;
     }
 

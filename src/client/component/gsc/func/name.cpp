@@ -94,7 +94,7 @@ void reset_tracked_client_dvars() {
 
       for (const std::string &dvar_name : dvars) {
         sv::SV_GameSendServerCommand(
-            client_num, game::net::SV_CMD_CAN_IGNORE,
+            client_num, game::net::svscmd_type::CAN_IGNORE,
             utils::string::va("c \"reset %s\"", dvar_name.c_str()));
       }
     }
@@ -214,7 +214,7 @@ void set(scriptInstance_t inst, game::ClientNum_t client_num,
       client_dvar_changes[client_num].insert(*dvar_name);
     }
 
-    sv::SV_GameSendServerCommand(client_num, game::net::SV_CMD_CAN_IGNORE,
+    sv::SV_GameSendServerCommand(client_num, game::net::svscmd_type::CAN_IGNORE,
                                  utils::string::va("c \"%s\"", dvar_cmd));
   } else {
     Scr_ParamError(inst, command_index,

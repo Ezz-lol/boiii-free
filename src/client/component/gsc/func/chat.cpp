@@ -30,7 +30,7 @@ void gscr_say(scriptInstance_t inst) {
   const char *msg = Scr_GetString(inst, 0);
   if (msg) {
     sv::SV_GameSendServerCommand(
-        game::INVALID_CLIENT_INDEX, game::net::SV_CMD_CAN_IGNORE,
+        game::INVALID_CLIENT_INDEX, game::net::svscmd_type::CAN_IGNORE,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
   }
 }
@@ -41,7 +41,7 @@ void send(scriptInstance_t inst, game::ClientNum_t client_num,
   const char *msg = Scr_GetString(inst, message_index);
   if (game::valid_client_num(client_num) && msg) {
     sv::SV_GameSendServerCommand(
-        client_num, game::net::SV_CMD_CAN_IGNORE,
+        client_num, game::net::svscmd_type::CAN_IGNORE,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
   }
 }

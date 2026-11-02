@@ -9,19 +9,17 @@ using namespace game::sv;
 namespace game {
 
 namespace {
-utils::concurrency::container<std::vector<std::string>>
-    registered_dvar_names_{};
-std::atomic_size_t registered_dvar_name_count_{0};
+utils::concurrency::container<std::vector<std::string>> registered_dvar_names{};
+std::atomic_size_t registered_dvar_name_count{0};
 } // namespace
 
 void record_registered_dvar_name(const char *dvar_name) {
-  if (!dvar_name || !dvar_name[0]) {
-    return;
+  if (dvar_name != nullptr && dvar_name[0] != NULL) {
+    registered_dvar_names.access([dvar_name](std::vector<std::string> &names) {
+      names.emplace_back(dvar_name);
+    });
+    registered_dvar_name_count.fetch_add(1, std::memory_order_seq_cst);
   }
-  registered_dvar_names_.access([dvar_name](std::vector<std::string> &names) {
-    names.emplace_back(dvar_name);
-  });
-  registered_dvar_name_count_.fetch_add(1, std::memory_order_seq_cst);
 } // namespace
 
 template <typename T>
@@ -118,10 +116,10 @@ void first_connected_client(
 }
 
 bool access_connected_client(
-    const ClientNum_t index,
+    const ClientNum_t client_num,
     const std::function<void(sv::client_s &cl)> &callback) {
-  return is_server() ? access_client(*svs_clients, index, callback)
-                     : access_client(*svs_clients_cl, index, callback);
+  return is_server() ? access_client(*svs_clients, client_num, callback)
+                     : access_client(*svs_clients_cl, client_num, callback);
 }
 
 void foreach_test_client(
@@ -186,16 +184,16 @@ void first_active_client(
 }
 
 bool access_active_client(
-    const ClientNum_t index,
+    const ClientNum_t client_num,
     const std::function<void(sv::client_s &cl)> &callback) {
-  return is_server() ? access_client(*svs_clients, index, callback)
-                     : access_client(*svs_clients_cl, index, callback);
+  return is_server() ? access_client(*svs_clients, client_num, callback)
+                     : access_client(*svs_clients_cl, client_num, callback);
 }
 
 const std::vector<std::string> &get_registered_dvar_names() {
   static const std::vector<std::string> result = []() {
     std::vector<std::string> result;
-    registered_dvar_names_.access(
+    registered_dvar_names.access(
         [&result](const std::vector<std::string> &names) { result = names; });
     return result;
   }();
@@ -203,7 +201,7 @@ const std::vector<std::string> &get_registered_dvar_names() {
 }
 
 size_t get_registered_dvar_name_count() {
-  return registered_dvar_name_count_.load();
+  return registered_dvar_name_count.load();
 }
 
 } // namespace game

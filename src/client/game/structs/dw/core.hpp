@@ -23,7 +23,7 @@ public:
   bdUInt m_size;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"m_head\": {}, \"m_tail\": {}, \"m_size\": {} }}",
+    return std::format(R"({{ "m_head": {}, "m_tail": {}, "m_size": {} }})",
                        ::serialize(m_head), ::serialize(m_tail), m_size);
   }
 };
@@ -73,7 +73,7 @@ public:
   bdSemaphoreHandle m_handle;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"vtbl\": {:p}, \"m_handle\": {:p} }}",
+    return std::format(R"({{ "vtbl": {:p}, "m_handle": {:p} }})",
                        reinterpret_cast<const void *>(vtbl),
                        reinterpret_cast<const void *>(m_handle));
   }
@@ -84,7 +84,7 @@ public:
   bdNChar8 *m_string;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"m_string\": {} }}", ::serialize(m_string));
+    return std::format(R"({{ "m_string": {} }})", ::serialize(m_string));
   }
 };
 
@@ -349,13 +349,13 @@ public:
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     const bdInt m_refCountCopy = m_refCount;
-    return std::format("{{ \"vtbl\": {:p}, \"m_refCount\": {} }}",
+    return std::format(R"({{ "vtbl": {:p}, "m_refCount": {} }})",
                        reinterpret_cast<const void *>(vtbl), m_refCountCopy);
   }
 };
 class bdReferencable : public _bdReferencable<bdReferencableVTbl> {
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"base\": {} }}",
+    return std::format(R"({{ "base": {} }})",
                        _bdReferencable<bdReferencableVTbl>::serialize());
   }
 };
@@ -1557,9 +1557,8 @@ public:
   bdUInt m_size;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"m_data\": {}, \"m_capacity\": {}, \"m_size\": {} }}",
-        ::serialize(m_data, m_size), m_capacity, m_size);
+    return std::format(R"({{ "m_data": {}, "m_capacity": {}, "m_size": {} }})",
+                       ::serialize(m_data, m_size), m_capacity, m_size);
   }
 };
 
@@ -1968,9 +1967,9 @@ struct Event {
   int32_t returnCode;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"service\": {}, \"event\": {}, \"returnCode\": {} }}",
-        game::dw::serialize(service), game::dw::serialize(event), returnCode);
+    return std::format(R"({{ "service": {}, "event": {}, "returnCode": {} }})",
+                       game::dw::serialize(service), game::dw::serialize(event),
+                       returnCode);
   }
 };
 
@@ -2005,7 +2004,7 @@ template <typename T> struct _TaskRecord {
   bool skipAllCallbacksAfterComplete;
   uint8_t _padding63[5];
 
-  std::string serialize() const noexcept;
+  [[nodiscard]] std::string serialize() const noexcept;
 };
 
 struct TaskRecord : public _TaskRecord<void *> {
@@ -2024,12 +2023,12 @@ public:
   struct VTbl {};
 
   VTbl *vtbl;
-  bdNChar8 m_accountType[10];
+  bdNChar8 m_accountType[0xA];
   bdOnlineUserID m_userID;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"vtbl\": {:p}, \"m_accountType\": {}, \"m_userID\": {:016X} }}",
+        R"({{ "vtbl": {:p}, "m_accountType": {}, "m_userID": {:016X} }})",
         reinterpret_cast<const void *>(vtbl), ::serialize(m_accountType),
         m_userID);
   }

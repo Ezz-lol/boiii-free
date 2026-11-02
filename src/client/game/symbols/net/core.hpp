@@ -8,6 +8,7 @@ namespace game {
 namespace net {
 
 WEAK symbol<SOCKET> ip_socket{0x157DF68E8, 0x157E75818, 0x14A640988};
+WEAK symbol<SOCKET> server_ip_socket{0x14A5B09D8, 0x14A640988, 0x0};
 
 // NET
 WEAK symbol<uint8_t *()> Netchan_AllocMessage{0x14211AED0, 0x142173990,

@@ -39,7 +39,7 @@ void SV_SetConfigString_Impl(const int32_t index, const char *val) {
           foreach_active_client(
               [packet](client_t &cl,
                        [[maybe_unused]] size_t client_index) -> void {
-                SV_AddServerCommand(&cl, net::SV_CMD_RELIABLE, packet);
+                SV_AddServerCommand(&cl, net::svscmd_type::RELIABLE, packet);
               });
         } else {
           size_t sent = 0;
@@ -87,7 +87,7 @@ void SV_SetConfigString_Impl(const int32_t index, const char *val) {
             foreach_active_client(
                 [packet](client_t &cl,
                          [[maybe_unused]] size_t client_index) -> void {
-                  SV_AddServerCommand(&cl, net::SV_CMD_RELIABLE, packet);
+                  SV_AddServerCommand(&cl, net::svscmd_type::RELIABLE, packet);
                 });
 
             sent += chunk_len;

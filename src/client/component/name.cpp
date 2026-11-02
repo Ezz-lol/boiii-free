@@ -90,7 +90,8 @@ std::string strip_color_codes(const std::string &s) {
 }
 
 bool is_syncable(const game::net::netadr_t &address) {
-  return address.type != game::net::NA_BAD && address.type != game::net::NA_BOT;
+  return address.type != game::net::netadrtype_t::BAD &&
+         address.type != game::net::netadrtype_t::BOT;
 }
 
 void send(const game::net::netadr_t &target, const std::string &data) {
