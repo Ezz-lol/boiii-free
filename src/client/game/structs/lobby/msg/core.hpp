@@ -43,8 +43,11 @@ enum class MsgType : int32_t {
   INFO_RESPONSE = 1,
   LOBBY_STATE_PRIVATE = 2,
   LOBBY_STATE_GAME = 3,
+  // Unused
   LOBBY_STATE_GAMEPUBLIC = 4,
+  // Unused
   LOBBY_STATE_GAMECUSTOM = 5,
+  // Unused
   LOBBY_STATE_GAMETHEATER = 6,
   LOBBY_HOST_HEARTBEAT = 7,
   LOBBY_HOST_DISCONNECT = 8,
@@ -133,6 +136,20 @@ union LobbyMsgEncodeFlags {
 
   inline constexpr void clear() noexcept { packed = 0; }
 };
+
+template <typename T>
+concept Packageable = requires(T t, LobbyMsg &msg) {
+  { t.package(msg) } -> std::same_as<bool>;
+};
+
+template <typename T>
+concept TypedPacket = requires {
+  { T::MESSAGE_TYPE } -> std::same_as<MsgType>;
+};
+
+template <typename T>
+concept Packet = Packageable<T> && TypedPacket<T>;
+
 struct LobbyMsg {
   net::msg::msg_t msg;
   MsgType msgType;
@@ -143,12 +160,21 @@ struct LobbyMsg {
   bool package_bool(const std::string_view &key, bool *val);
   bool package_char(const std::string_view &key, char *val);
   bool package_glob(const std::string_view &key, void *val, int numbytes);
+  template <const size_t N>
+  inline bool package_glob(const std::string_view &key, uint8_t (&arr)[N]) {
+    return package_glob(key, reinterpret_cast<void *>(arr),
+                        static_cast<int32_t>(N));
+  }
   bool package_uint(const std::string_view &key, uint32_t *val);
   bool package_xuid(const std::string_view &key, XUID *val);
   bool package_float(const std::string_view &key, float *val);
   bool package_short(const std::string_view &key, int16_t *val);
   bool package_uchar(const std::string_view &key, uint8_t *val);
   bool package_string(const std::string_view &key, char *val, int maxChar);
+  template <const size_t N>
+  inline bool package_string(const std::string_view &key, char (&val)[N]) {
+    return package_string(key, val, static_cast<int32_t>(N));
+  }
   bool package_uint64(const std::string_view &key, uint64_t *val);
   bool package_ushort(const std::string_view &key, uint16_t *val);
   bool package_element(bool addElement);
@@ -162,6 +188,12 @@ struct LobbyMsg {
   bool read_bool(const std::string_view &expectedKey, bool *val);
   bool read_glob(const std::string_view &expectedKey, void *data,
                  int32_t numBytes);
+  template <const size_t N>
+  inline bool read_glob(const std::string_view &expectedKey,
+                        uint8_t (&arr)[N]) {
+    return package_glob(expectedKey, reinterpret_cast<void *>(arr),
+                        static_cast<int32_t>(N));
+  }
   bool read_uint(const std::string_view &expectedKey, uint32_t *val);
   bool read_xuid(const std::string_view &expectedKey, XUID *val);
   bool read_float(const std::string_view &expectedKey, float *val);
@@ -169,6 +201,11 @@ struct LobbyMsg {
   bool read_uchar(const std::string_view &expectedKey, uint8_t *val);
   bool read_string(const std::string_view &expectedKey, char *outStr,
                    uint32_t maxChar);
+  template <const size_t N>
+  inline bool read_string(const std::string_view &key, char (&outStr)[N]) {
+    return read_string(key, outStr, static_cast<int32_t>(N));
+  }
+
   bool read_uint64(const std::string_view &expectedKey, uint64_t *val);
   bool read_ushort(const std::string_view &expectedKey, uint16_t *val);
   bool read_arrayBegin(const std::string_view &expectedKey);
@@ -176,14 +213,69 @@ struct LobbyMsg {
   bool write_char(const std::string_view &key, char val);
   bool write_int(const std::string_view &key, int32_t val);
   bool write_glob(const std::string_view &key, void *val, int32_t numbytes);
+  template <const size_t N>
+  inline bool write_glob(const std::string_view &key, uint8_t (&arr)[N]) {
+    return package_glob(key, reinterpret_cast<void *>(arr),
+                        static_cast<int32_t>(N));
+  }
+
   bool write_uint(const std::string_view &key, uint32_t val);
   bool write_xuid(const std::string_view &key, XUID val);
   bool write_float(const std::string_view &key, float val);
   bool write_short(const std::string_view &key, int16_t val);
   bool write_uchar(const std::string_view &key, uint8_t val);
   bool write_string(const std::string_view &key, const std::string_view &val);
+  template <const size_t N>
+  inline bool write_string(const std::string_view &key, char (&val)[N]) {
+    return write_string(key, val, static_cast<int32_t>(N));
+  }
   bool write_uint64(const std::string_view &key, uint64_t val);
   bool write_ushort(const std::string_view &key, uint16_t val);
+
+  template <Packageable T> inline bool package(T &data) {
+    return data.package(*this);
+  }
+
+  template <Packageable T> inline bool package(T *data, const size_t count) {
+    bool result = true;
+    for (size_t i = 0; package_element(i < count); ++i) {
+      result &= package(data[i]);
+    }
+
+    return result;
+  }
+
+  template <Packageable T, const size_t N> inline bool package(T (&data)[N]) {
+    return package(data, N);
+  }
+
+  template <Packageable T, const size_t N>
+  inline bool package(std::span<T, N> &data) {
+    return package(data.data(), N);
+  }
+
+  template <Packageable T> inline bool package(std::span<T> &data) {
+    return package(data.data(), data.size());
+  }
+
+  template <Packageable T, const size_t N>
+  inline bool package(std::array<T, N> &data) {
+    return package(data.data(), N);
+  }
+
+  template <Packageable T> inline bool package(std::vector<T> &data) {
+    return package(data.data(), data.size());
+  }
+
+  static inline constexpr auto MESSAGE_BUF_LEN = 0x20000;
+  template <Packet P> inline bool write(P &packet) {
+    return prep_writeMsg(&packet, MESSAGE_BUF_LEN, P::MESSAGE_TYPE) &&
+           package(packet);
+  }
+
+  template <Packet P> inline bool read(P &packet) {
+    return prep_readMsg(&packet, MESSAGE_BUF_LEN) && package(packet);
+  }
 };
 
 enum class MsgState : uint32_t {

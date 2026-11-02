@@ -336,7 +336,7 @@ PACKED(struct MutableClientInfo {
       uint32_t arenaProbationEndTime;
     };
   };
-  uint8_t chunkStatuses[3];
+  bool chunkStatuses[3];
   bool isStarterPack;
   ContentFlags dlcBits;
   uint32_t doubleXPGroupMask;
@@ -345,6 +345,8 @@ PACKED(struct MutableClientInfo {
   bool isInFrontend;
   uint8_t _padding40B[1];
   connstate_t connectionState;
+
+  static inline constexpr auto MAX_DDL_BUFF_SIZE = 0x200;
 
   IMPL_SLICE_METHODS(ddlBuff, ddlBuffSize, DdlBuff);
 });

@@ -57,7 +57,7 @@ union netipv4_t {
   };
   uint8_t parts[4];
 
-  inline std::string toString() const noexcept {
+  [[nodiscard]] inline std::string toString() const noexcept {
     return std::format("{}.{}.{}.{}", a, b, c, d);
   }
 
@@ -159,7 +159,7 @@ struct netadr_t {
   netadrtype_t type;
   netsrc_t localNetID;
 
-  inline std::string toString() const noexcept {
+  [[nodiscard]] inline std::string toString() const noexcept {
     return std::format("{}:{}", ipv4.toString(), port);
   }
 
@@ -178,7 +178,7 @@ struct netadr_t {
       APPENDCHAR(ptr, '\0');
     }
 
-    return {buf, ptr};
+    return {.buf = buf, .ptr = ptr};
   }
 };
 

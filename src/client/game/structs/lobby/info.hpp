@@ -6,6 +6,9 @@
 
 namespace game {
 namespace lobby {
+namespace msg {
+struct LobbyMsg;
+}
 namespace info {
 
 // Verified
@@ -28,6 +31,8 @@ PACKED(struct InfoResponseLobby {
   LobbyParams lobbyParams;
   LobbyUGCInfo ugcInfo;
   uint8_t _padding9C[4];
+
+  bool package(msg::LobbyMsg & msg);
 });
 ASSERT_SIZE(InfoResponseLobby, 0xA0);
 
