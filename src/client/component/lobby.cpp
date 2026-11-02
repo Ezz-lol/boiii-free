@@ -112,6 +112,27 @@ void connect_from_lobby_stub(ControllerIndex_t controllerIndex,
                                        numPublicSlots, numPrivateSlots, mapname,
                                        gametype, usermap);
 }
+utils::hook::detour add_client_at_position_hook;
+uint64_t add_client_at_position_stub(uint64_t controllerIndex,
+                                     session::LobbySession *lobbySession,
+                                     XUID xuid, uint64_t a4, uint64_t a5,
+                                     uint64_t a6, uint64_t a7, uint64_t a8,
+                                     uint64_t a9, uint64_t a10,
+                                     int32_t position, uint64_t a12,
+                                     uint64_t a13, uint64_t a14, uint64_t a15) {
+  if (position == -1 &&
+      lobbySession == LobbyHostData_GetSession(LobbyType::GAME)) {
+    foreach_connected_client([&](sv::client_s &client, ClientNum_t num) {
+      if (client.get_xuid() == xuid && num < MAX_PLAYERS &&
+          !lobbySession->client[num].xuid) {
+        position = static_cast<int32_t>(num);
+      }
+    });
+  }
+  return add_client_at_position_hook.invoke<uint64_t>(
+      controllerIndex, lobbySession, xuid, a4, a5, a6, a7, a8, a9, a10,
+      position, a12, a13, a14, a15);
+}
 } // namespace
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lobby");
@@ -134,6 +155,11 @@ public:
     utils::hook::call(
         host::LobbyHost_CanFit.offset(game::select_value(0x6e, 0x6e, 0x69)),
         return_const<false>);
+
+    if (game::is_server()) {
+      add_client_at_position_hook.create(0x1404AD0D0_g,
+                                         add_client_at_position_stub);
+    }
 
     if (game::is_new_client()) {
       for (const size_t offset : {0xa4, 0x26d}) {
