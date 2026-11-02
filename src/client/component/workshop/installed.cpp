@@ -257,11 +257,6 @@ bool delete_installed(const std::string_view &id, std::string &error) {
     if (item.id != id && item.folder != id)
       continue;
     found = true;
-    if (std::filesystem::path(item.path).parent_path() == steam_root()) {
-      error = "This item is from your Steam subscriptions. Unsubscribe on "
-              "Steam to remove it.";
-      return false;
-    }
     if (is_loaded_by_game(item)) {
       error = "Unload the mod/map before deleting it.";
       return false;
