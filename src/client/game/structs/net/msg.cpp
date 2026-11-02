@@ -31,27 +31,29 @@ uint8_t msg_t::read_byte() {
   return result;
 }
 
-void msg_t::read_data(void *dest, int32_t len) {
+void msg_t::read_data(void *dest, size_t len) {
   if (len > 0) {
     if (readcount + len > cursize + splitSize) {
       overflowed = qtrue;
       std::memset(dest, -1, len);
     } else {
       char *dest_ptr = static_cast<char *>(dest);
-      int32_t remaining = len;
+      size_t remaining = len;
 
       while (remaining > 0) {
         if (readcount < cursize) {
-          int32_t chunk = std::min(remaining, cursize - readcount);
+          size_t chunk =
+              std::min(remaining, static_cast<size_t>(cursize - readcount));
           std::memcpy(dest_ptr, data + readcount, chunk);
-          readcount += chunk;
+          readcount += static_cast<int32_t>(chunk);
           dest_ptr += chunk;
           remaining -= chunk;
         } else {
-          int32_t chunk =
-              std::min(remaining, (cursize + splitSize) - readcount);
+          size_t chunk = std::min<size_t>(
+              remaining,
+              static_cast<size_t>((cursize + splitSize) - readcount));
           std::memcpy(dest_ptr, splitData + (readcount - cursize), chunk);
-          readcount += chunk;
+          readcount += static_cast<int32_t>(chunk);
           dest_ptr += chunk;
           remaining -= chunk;
         }
@@ -132,7 +134,7 @@ int16_t msg_t::read_short() {
   return static_cast<int16_t>(ntohs(val));
 }
 
-char *msg_t::read_string(char *string, uint32_t maxChars) {
+char *msg_t::read_string(char *string, size_t maxChars) {
   if (maxChars > 0) {
     uint32_t i = 0;
     while (true) {
@@ -153,7 +155,7 @@ char *msg_t::read_string(char *string, uint32_t maxChars) {
   return string;
 }
 
-char *msg_t::read_stringLine(char *string, uint32_t maxChars) {
+char *msg_t::read_stringLine(char *string, size_t maxChars) {
   if (maxChars > 0) {
     uint32_t i = 0;
     while (true) {
@@ -182,13 +184,13 @@ void msg_t::write_byte(uint8_t c) {
   }
 }
 
-void msg_t::write_data(const void *src_data, int32_t length) {
+void msg_t::write_data(const void *src_data, size_t length) {
   if (length > 0) {
     if (cursize + length > maxsize) {
       overflowed = qtrue;
     } else {
       std::memcpy(data + cursize, src_data, length);
-      cursize += length;
+      cursize += static_cast<int32_t>(length);
     }
   }
 }

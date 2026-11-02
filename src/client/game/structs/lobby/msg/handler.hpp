@@ -417,6 +417,9 @@ PACKED(struct Msg_ClientContent {
   eModes sessionMode;
   eGameModes gameMode;
 
+  IMPL_SLICE_METHODS(clientContentData, compressedBufferSize,
+                     ClientContentData);
+
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_CLIENT_CONTENT;
 
   inline bool package(LobbyMsg & lobbyMsg) {
@@ -425,16 +428,12 @@ PACKED(struct Msg_ClientContent {
                                 reinterpret_cast<int32_t *>(&lobbyType)) &&
            lobbyMsg.package_xuid("clientxuid", &clientXUID) &&
            lobbyMsg.package_ushort("buffersize", &compressedBufferSize) &&
-           lobbyMsg.package_glob("buffer", clientContentData,
-                                 compressedBufferSize) &&
+           lobbyMsg.package_glob("buffer", getClientContentData()) &&
            lobbyMsg.package_uchar("sessionmode",
                                   reinterpret_cast<uint8_t *>(&sessionMode)) &&
            lobbyMsg.package_uchar("gamemode",
                                   reinterpret_cast<uint8_t *>(&gameMode));
   }
-
-  IMPL_SLICE_METHODS(clientContentData, compressedBufferSize,
-                     ClientContentData);
 });
 ASSERT_SIZE(Msg_ClientContent, 0x27C20);
 

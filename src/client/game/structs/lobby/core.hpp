@@ -348,7 +348,8 @@ PACKED(struct MutableClientInfo {
 
   static inline constexpr auto MAX_DDL_BUFF_SIZE = 0x200;
 
-  IMPL_SLICE_METHODS(ddlBuff, ddlBuffSize, DdlBuff);
+  IMPL_SLICE_METHODS(
+      ddlBuff, std::min<uint16_t>(ddlBuffSize, MAX_DDL_BUFF_SIZE), DdlBuff);
 });
 ASSERT_SIZE(MutableClientInfo, 0x410);
 

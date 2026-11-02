@@ -23,7 +23,7 @@ bool LobbyMsg::package_bool(const std::string_view &key, bool *val) {
   case PackageType::READ:
     return read_bool(key, val);
   case PackageType::WRITE:
-    return write_uchar(key, *val);
+    return write_uchar(key, static_cast<uint8_t>(*val));
   case PackageType::NONE:
     return false;
   }
@@ -42,7 +42,7 @@ bool LobbyMsg::package_char(const std::string_view &key, char *val) {
 }
 
 bool LobbyMsg::package_glob(const std::string_view &key, void *val,
-                            int32_t numBytes) {
+                            size_t numBytes) {
   switch (packageType) {
   case PackageType::READ:
     return read_glob(key, val, numBytes);
@@ -109,7 +109,7 @@ bool LobbyMsg::package_uchar(const std::string_view &key, uint8_t *val) {
 }
 
 bool LobbyMsg::package_string(const std::string_view &key, char *val,
-                              int32_t maxChar) {
+                              size_t maxChar) {
   if (packageType == PackageType::NONE) {
     return false;
   }
@@ -233,13 +233,13 @@ bool LobbyMsg::prep_readMsg(net::msg::msg_t *m) {
   return prep_readMsg();
 }
 
-bool LobbyMsg::prep_readMsg(uint8_t *data, int32_t length) {
+bool LobbyMsg::prep_readMsg(uint8_t *data, size_t length) {
   msg.init(data, length);
-  msg.cursize = length;
+  msg.cursize = static_cast<int32_t>(length);
   return prep_readMsg();
 }
 
-bool LobbyMsg::prep_writeMsg(uint8_t *data, int32_t length, MsgType type) {
+bool LobbyMsg::prep_writeMsg(uint8_t *data, size_t length, MsgType type) {
   msg.init(data, length);
   if (msg.cursize == 0 && msg.bit == 0) {
     packageType = PackageType::WRITE;
@@ -305,7 +305,7 @@ bool LobbyMsg::read_bool(const std::string_view &expectedKey, bool *val) {
 }
 
 bool LobbyMsg::read_glob(const std::string_view &expectedKey, void *data,
-                         int32_t nBytes) {
+                         size_t nBytes) {
   const LobbyMsgElementType type =
       static_cast<LobbyMsgElementType>(msg.read_byte());
   if (type != LobbyMsgElementType::GLOB) {
@@ -411,7 +411,7 @@ bool LobbyMsg::read_uchar(const std::string_view &expectedKey, uint8_t *val) {
 }
 
 bool LobbyMsg::read_string(const std::string_view &expectedKey, char *outStr,
-                           uint32_t maxChar) {
+                           size_t maxChar) {
   const LobbyMsgElementType type =
       static_cast<LobbyMsgElementType>(msg.read_byte());
   if (type != LobbyMsgElementType::STRING) {
@@ -501,7 +501,7 @@ bool LobbyMsg::write_char(const std::string_view &key, char val) {
   if (encodeFlags.encodeKey) {
     msg.write_string(key);
   }
-  msg.write_byte(val);
+  msg.write_byte(static_cast<int8_t>(val));
   return !msg.overflowed;
 }
 
@@ -518,7 +518,7 @@ bool LobbyMsg::write_int(const std::string_view &key, int32_t val) {
 }
 
 bool LobbyMsg::write_glob(const std::string_view &key, void *val,
-                          int32_t numBytes) {
+                          size_t numBytes) {
   msg.write_byte(static_cast<uint8_t>(LobbyMsgElementType::GLOB));
   if (key.size() <= LOBBYMSG_MAX_KEY_LENGTH && encodeFlags.encodeKey) {
     msg.write_string(key);

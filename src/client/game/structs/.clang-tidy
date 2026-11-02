@@ -1,2 +1,4 @@
 InheritParentConfig: true
-Checks: "-readability-identifier-naming"
+Checks:
+  - "-readability-identifier-naming"
+  - "-performance-enum-size"

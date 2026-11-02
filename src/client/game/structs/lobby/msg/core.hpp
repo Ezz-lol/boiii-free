@@ -134,7 +134,7 @@ union LobbyMsgEncodeFlags {
     uint8_t : 6;
   };
 
-  inline constexpr void clear() noexcept { packed = 0; }
+  alwaysinline constexpr void clear() noexcept { packed = 0; }
 };
 
 template <typename T>
@@ -159,21 +159,34 @@ struct LobbyMsg {
   bool package_int(const std::string_view &key, int32_t *val);
   bool package_bool(const std::string_view &key, bool *val);
   bool package_char(const std::string_view &key, char *val);
-  bool package_glob(const std::string_view &key, void *val, int numbytes);
+  bool package_glob(const std::string_view &key, void *val, size_t numbytes);
   template <const size_t N>
-  inline bool package_glob(const std::string_view &key, uint8_t (&arr)[N]) {
-    return package_glob(key, reinterpret_cast<void *>(arr),
-                        static_cast<int32_t>(N));
+  alwaysinline bool package_glob(const std::string_view &key,
+                                 uint8_t (&arr)[N]) {
+    return package_glob(key, reinterpret_cast<void *>(arr), N);
   }
+  template <const size_t N>
+  alwaysinline bool package_glob(const std::string_view &key,
+                                 std::span<uint8_t, N> data) {
+    return package_glob(key, reinterpret_cast<void *>(data.data()), N);
+  }
+
+  alwaysinline bool package_glob(const std::string_view &key,
+                                 std::span<uint8_t> data) {
+    return package_glob(key, reinterpret_cast<void *>(data.data()),
+                        data.size());
+  }
+
   bool package_uint(const std::string_view &key, uint32_t *val);
   bool package_xuid(const std::string_view &key, XUID *val);
   bool package_float(const std::string_view &key, float *val);
   bool package_short(const std::string_view &key, int16_t *val);
   bool package_uchar(const std::string_view &key, uint8_t *val);
-  bool package_string(const std::string_view &key, char *val, int maxChar);
+  bool package_string(const std::string_view &key, char *val, size_t maxChar);
   template <const size_t N>
-  inline bool package_string(const std::string_view &key, char (&val)[N]) {
-    return package_string(key, val, static_cast<int32_t>(N));
+  alwaysinline bool package_string(const std::string_view &key,
+                                   char (&val)[N]) {
+    return package_string(key, val, N);
   }
   bool package_uint64(const std::string_view &key, uint64_t *val);
   bool package_ushort(const std::string_view &key, uint16_t *val);
@@ -181,18 +194,17 @@ struct LobbyMsg {
   bool package_arrayStart(const std::string_view &key);
   bool prep_readMsg();
   bool prep_readMsg(net::msg::msg_t *msg);
-  bool prep_readMsg(uint8_t *data, int length);
-  bool prep_writeMsg(uint8_t *data, int length, MsgType type);
+  bool prep_readMsg(uint8_t *data, size_t length);
+  bool prep_writeMsg(uint8_t *data, size_t length, MsgType type);
   bool read_char(const std::string_view &expectedKey, char *val);
   bool read_int(const std::string_view &expectedKey, int32_t *val);
   bool read_bool(const std::string_view &expectedKey, bool *val);
   bool read_glob(const std::string_view &expectedKey, void *data,
-                 int32_t numBytes);
+                 size_t nBytes);
   template <const size_t N>
-  inline bool read_glob(const std::string_view &expectedKey,
-                        uint8_t (&arr)[N]) {
-    return package_glob(expectedKey, reinterpret_cast<void *>(arr),
-                        static_cast<int32_t>(N));
+  alwaysinline bool read_glob(const std::string_view &expectedKey,
+                              uint8_t (&arr)[N]) {
+    return package_glob(expectedKey, reinterpret_cast<void *>(arr), N);
   }
   bool read_uint(const std::string_view &expectedKey, uint32_t *val);
   bool read_xuid(const std::string_view &expectedKey, XUID *val);
@@ -200,10 +212,11 @@ struct LobbyMsg {
   bool read_short(const std::string_view &expectedKey, int16_t *val);
   bool read_uchar(const std::string_view &expectedKey, uint8_t *val);
   bool read_string(const std::string_view &expectedKey, char *outStr,
-                   uint32_t maxChar);
+                   size_t maxChar);
   template <const size_t N>
-  inline bool read_string(const std::string_view &key, char (&outStr)[N]) {
-    return read_string(key, outStr, static_cast<int32_t>(N));
+  alwaysinline bool read_string(const std::string_view &key,
+                                char (&outStr)[N]) {
+    return read_string(key, outStr, N);
   }
 
   bool read_uint64(const std::string_view &expectedKey, uint64_t *val);
@@ -212,11 +225,10 @@ struct LobbyMsg {
   LobbyMsgElementType read_elementType();
   bool write_char(const std::string_view &key, char val);
   bool write_int(const std::string_view &key, int32_t val);
-  bool write_glob(const std::string_view &key, void *val, int32_t numbytes);
+  bool write_glob(const std::string_view &key, void *val, size_t numbytes);
   template <const size_t N>
-  inline bool write_glob(const std::string_view &key, uint8_t (&arr)[N]) {
-    return package_glob(key, reinterpret_cast<void *>(arr),
-                        static_cast<int32_t>(N));
+  alwaysinline bool write_glob(const std::string_view &key, uint8_t (&arr)[N]) {
+    return package_glob(key, reinterpret_cast<void *>(arr), N);
   }
 
   bool write_uint(const std::string_view &key, uint32_t val);
@@ -224,19 +236,24 @@ struct LobbyMsg {
   bool write_float(const std::string_view &key, float val);
   bool write_short(const std::string_view &key, int16_t val);
   bool write_uchar(const std::string_view &key, uint8_t val);
+  alwaysinline bool write_bool(const std::string_view &key, bool val) {
+    return write_uchar(key, static_cast<uint8_t>(val));
+  }
+
   bool write_string(const std::string_view &key, const std::string_view &val);
   template <const size_t N>
-  inline bool write_string(const std::string_view &key, char (&val)[N]) {
-    return write_string(key, val, static_cast<int32_t>(N));
+  alwaysinline bool write_string(const std::string_view &key, char (&val)[N]) {
+    return write_string(key, val, N);
   }
   bool write_uint64(const std::string_view &key, uint64_t val);
   bool write_ushort(const std::string_view &key, uint16_t val);
 
-  template <Packageable T> inline bool package(T &data) {
+  template <Packageable T> alwaysinline bool package(T &data) {
     return data.package(*this);
   }
 
-  template <Packageable T> inline bool package(T *data, const size_t count) {
+  template <Packageable T>
+  alwaysinline bool package(T *data, const size_t count) {
     bool result = true;
     for (size_t i = 0; package_element(i < count); ++i) {
       result &= package(data[i]);
@@ -245,35 +262,36 @@ struct LobbyMsg {
     return result;
   }
 
-  template <Packageable T, const size_t N> inline bool package(T (&data)[N]) {
+  template <Packageable T, const size_t N>
+  alwaysinline bool package(T (&data)[N]) {
     return package(data, N);
   }
 
   template <Packageable T, const size_t N>
-  inline bool package(std::span<T, N> &data) {
+  alwaysinline bool package(std::span<T, N> &data) {
     return package(data.data(), N);
   }
 
-  template <Packageable T> inline bool package(std::span<T> &data) {
+  template <Packageable T> alwaysinline bool package(std::span<T> &data) {
     return package(data.data(), data.size());
   }
 
   template <Packageable T, const size_t N>
-  inline bool package(std::array<T, N> &data) {
+  alwaysinline bool package(std::array<T, N> &data) {
     return package(data.data(), N);
   }
 
-  template <Packageable T> inline bool package(std::vector<T> &data) {
+  template <Packageable T> alwaysinline bool package(std::vector<T> &data) {
     return package(data.data(), data.size());
   }
 
-  static inline constexpr auto MESSAGE_BUF_LEN = 0x20000;
-  template <Packet P> inline bool write(P &packet) {
+  static constexpr auto MESSAGE_BUF_LEN = 0x20000;
+  template <Packet P> alwaysinline bool write(P &packet) {
     return prep_writeMsg(&packet, MESSAGE_BUF_LEN, P::MESSAGE_TYPE) &&
            package(packet);
   }
 
-  template <Packet P> inline bool read(P &packet) {
+  template <Packet P> alwaysinline bool read(P &packet) {
     return prep_readMsg(&packet, MESSAGE_BUF_LEN) && package(packet);
   }
 };

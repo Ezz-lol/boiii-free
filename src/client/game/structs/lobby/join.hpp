@@ -150,6 +150,8 @@ struct Join {
   JoinType joinType;
   uint8_t _unknown282C[0xC];
   JoinResult joinResult;
+
+  IMPL_SLICE_METHODS(hostList, hostCount, HostList);
 };
 ASSERT_OFFSET(Join, joinResult, 0x2838);
 

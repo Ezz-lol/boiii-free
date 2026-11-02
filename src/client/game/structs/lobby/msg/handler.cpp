@@ -102,10 +102,7 @@ bool MsgMutableClientInfo::package(LobbyMsg &lobbyMsg) {
                                &mutableClientInfo.profileNonce) &&
          lobbyMsg.package_ushort("ddlbuffsize",
                                  &mutableClientInfo.ddlBuffSize) &&
-         lobbyMsg.package_glob(
-             "ddlbuff", mutableClientInfo.ddlBuff,
-             std::min<uint16_t>(mutableClientInfo.ddlBuffSize,
-                                MutableClientInfo::MAX_DDL_BUFF_SIZE)) &&
+         lobbyMsg.package_glob("ddlbuff", mutableClientInfo.getDdlBuff()) &&
          lobbyMsg.package_uint("pprobation",
                                &mutableClientInfo.publicProbationEndTime) &&
          lobbyMsg.package_uint("aprobation",
@@ -291,8 +288,7 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
     return result &&
            lobbyMsg.package_int("settingssize", &compressedBufferSize) &&
            compressedBufferSize > 0 &&
-           lobbyMsg.package_glob("settings", compressedBuffer,
-                                 compressedBufferSize) &&
+           lobbyMsg.package_glob("settings", getCompressedBuffer()) &&
            lobbyMsg.package_int("compstate", reinterpret_cast<int32_t *>(
                                                  &dataGame.pregameState)) &&
            lobbyMsg.package_string("customname",
