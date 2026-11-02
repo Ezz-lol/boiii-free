@@ -27,6 +27,11 @@ std::filesystem::path root_for(const game::ZoneType type) {
   return game::get_game_path() / std::format("{}s", game::toString(type));
 }
 
+std::filesystem::path steam_root() {
+  return game::get_game_path().parent_path().parent_path() / "workshop" /
+         "content" / game::APP_ID_STR;
+}
+
 std::optional<rapidjson::Document>
 read_workshop_json(const std::filesystem::path &dir) {
   for (const std::filesystem::path &file :
@@ -68,7 +73,7 @@ std::optional<game::ZoneType> detect_kind(const std::filesystem::path &dir) {
          std::filesystem::directory_iterator(zone_dir, ec)) {
       const std::string name =
           utils::string::to_lower(entry.path().filename().string());
-      if (name == "mod.ff" || name == "core_mod.ff")
+      if (name == "mod.ff" || name.ends_with("_mod.ff"))
         return game::ZoneType::MOD;
       has_map_zone |= entry.path().extension() == ".ff" &&
                       (name.starts_with("zm_") || name.starts_with("mp_") ||
@@ -78,24 +83,37 @@ std::optional<game::ZoneType> detect_kind(const std::filesystem::path &dir) {
   return has_map_zone ? std::optional(game::ZoneType::USERMAP) : std::nullopt;
 }
 
-void scan_root(game::ZoneType type, std::vector<installed_item> &items) {
+void scan_root(const std::filesystem::path &root,
+               const std::optional<game::ZoneType> type,
+               std::vector<installed_item> &items) {
   std::error_code ec;
   for (const std::filesystem::directory_entry &entry :
-       std::filesystem::directory_iterator(root_for(type), ec)) {
-    if (!entry.is_directory(ec) || entry.path().extension() == ".deleting")
+       std::filesystem::directory_iterator(root, ec)) {
+    if (!entry.is_directory(ec) || entry.path().extension() == ".deleting" ||
+        entry.path().filename() == "usermaps")
       continue;
     const std::optional<rapidjson::Document> doc =
         read_workshop_json(entry.path());
-    if (!doc)
+    const std::optional<game::ZoneType> detected =
+        doc && type ? type : detect_kind(entry.path());
+    const std::optional<game::ZoneType> kind =
+        type && detected ? type : detected;
+    if (!kind)
       continue;
 
     installed_item item{};
     item.folder = entry.path().filename().string();
-    item.type = type;
+    item.type = *kind;
     item.path = entry.path().generic_string();
-    item.id = json_string(*doc, {"PublisherID", "PublishedFileId"});
-    item.title = json_string(*doc, {"Title", "FolderName"});
-    item.description = clean_description(json_string(*doc, {"Description"}));
+    if (doc) {
+      item.id = json_string(*doc, {"PublisherID", "PublishedFileId"});
+      item.title = json_string(*doc, {"Title", "FolderName"});
+      item.description = clean_description(json_string(*doc, {"Description"}));
+    }
+    if (std::ranges::any_of(items, [&](const installed_item &existing) {
+          return existing.id == (item.id.empty() ? item.folder : item.id);
+        }))
+      continue;
     if (item.id.empty())
       item.id = item.folder;
     if (item.title.empty())
@@ -146,8 +164,10 @@ std::vector<installed_item> list_installed() {
   if (!cache_valid ||
       std::chrono::steady_clock::now() - cache_time > CACHE_TTL) {
     cache.clear();
-    scan_root(game::ZoneType::MOD, cache);
-    scan_root(game::ZoneType::USERMAP, cache);
+    scan_root(root_for(game::ZoneType::MOD), game::ZoneType::MOD, cache);
+    scan_root(root_for(game::ZoneType::USERMAP), game::ZoneType::USERMAP,
+              cache);
+    scan_root(steam_root(), std::nullopt, cache);
     cache_time = std::chrono::steady_clock::now();
     cache_valid = true;
   }
@@ -180,8 +200,7 @@ std::filesystem::path find_installed(const std::string_view &id) {
   };
   for (const std::filesystem::path &root :
        {root_for(game::ZoneType::USERMAP), root_for(game::ZoneType::MOD),
-        game::get_game_path().parent_path().parent_path() / "workshop" /
-            "content" / game::APP_ID_STR}) {
+        steam_root()}) {
     if (has_content(root / id))
       return root / id;
   }
@@ -238,6 +257,11 @@ bool delete_installed(const std::string_view &id, std::string &error) {
     if (item.id != id && item.folder != id)
       continue;
     found = true;
+    if (std::filesystem::path(item.path).parent_path() == steam_root()) {
+      error = "This item is from your Steam subscriptions. Unsubscribe on "
+              "Steam to remove it.";
+      return false;
+    }
     if (is_loaded_by_game(item)) {
       error = "Unload the mod/map before deleting it.";
       return false;
@@ -266,7 +290,7 @@ bool delete_installed(const std::string_view &id, std::string &error) {
 void request_content_reload(const std::string_view &finished_title) {
   invalidate_cache();
   scheduler::once(
-      [finished_title] {
+      [finished_title = std::string(finished_title)] {
         if (!is_in_match()) {
           reload_now();
           return;
