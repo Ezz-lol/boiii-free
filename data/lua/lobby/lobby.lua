@@ -50,6 +50,18 @@ Lobby.Actions.LobbyClientEnd = function(lobbyType)
   return action
 end
 
+local function DediLobbyTarget(target)
+  if
+    target
+    and target.id == LobbyData.UITargets.UI_MPLOBBYONLINEMODGAME.id
+    and Engine.IsInGame()
+    and Engine.DvarBool(nil, "cl_connected_to_dedi")
+  then
+    return LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME
+  end
+  return target
+end
+
 local function RecoverTarget()
   if Engine.DvarBool(nil, "cl_connected_to_dedi") then
     if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
@@ -1390,6 +1402,7 @@ LobbyVM.LobbySettings = function(params)
   if type(target) == "number" then
     target = LobbyData:UITargetFromId(target)
   end
+  target = DediLobbyTarget(target)
   if target == nil then
     Engine.PrintInfo(Enum.consoleLabel.LABEL_LOBBYHOST, "Tried to apply settings for an invalid target.\n")
     return
@@ -1454,6 +1467,7 @@ LobbyVM.UpdateUI = function(params)
   if type(target) == "number" then
     target = LobbyData:UITargetFromId(target)
   end
+  target = DediLobbyTarget(target)
   local function roomNameMapping(roomName)
     if roomName == "auto" then
       return "room2"
