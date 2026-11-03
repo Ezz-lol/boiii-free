@@ -565,9 +565,10 @@ void handle_connect_query_response(const bool success,
         // Always save latest address for mod reconnect (mod unload/reload)
         workshop::set_pending_mod_reconnect(addr_str);
 
-        if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
-                                             base_uri) &&
-            workshop::check_valid_mod_id(mod_id, {}, base_uri)) {
+        if (mapname == "core_frontend" ||
+            (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
+                                              base_uri) &&
+             workshop::check_valid_mod_id(mod_id, {}, base_uri))) {
           connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
                           lobby);
         } else {
