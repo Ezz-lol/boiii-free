@@ -2343,9 +2343,6 @@ local function IsModLoaded(ugcInfo)
 end
 
 LobbyVM.LoadMod = function(modInfo)
-  if IsModLoaded(modInfo) then
-    return
-  end
   local loadModProcess = Lobby.Process.LoadMod(Engine.GetPrimaryController(), modInfo)
   if loadModProcess ~= nil then
     Lobby.ProcessQueue.AddToQueue("LoadMod", loadModProcess)
