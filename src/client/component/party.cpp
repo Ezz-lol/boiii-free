@@ -378,7 +378,7 @@ void update_server_lobby() {
     cl_connected_to_dedi.set(on_dedi);
   }
   if (!requested && on_dedi && !game::server_running() &&
-      nat::has_party_lobby()) {
+      nat::has_party_lobby() && !nat::has_party_members()) {
     requested = true;
     nat::join_server_lobby(get_connected_server(game::LOCAL_CLIENT_0));
   }
@@ -456,6 +456,9 @@ void handle_connect_query_response(const bool success,
 
   is_connecting_to_dedi = info.get("dedicated") == "1";
   update_dedi_dvar(is_connecting_to_dedi.load());
+  if (is_connecting_to_dedi) {
+    nat::send_party_to_server(target);
+  }
 
   {
     std::scoped_lock lock(hostname_mutex);

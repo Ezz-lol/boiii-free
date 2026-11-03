@@ -713,6 +713,24 @@ void receive_lobby_host(const game::net::netadr_t &sender,
                     scheduler::main);
 }
 
+void receive_lobby_follow(const game::net::netadr_t &sender,
+                          const network::data_view &data,
+                          game::LocalClientNum_t) {
+  if (lobby_host_info() || game::com::Com_IsInGame() || !is_lobby_peer(sender))
+    return;
+  const game::net::netadr_t server =
+      network::address_from_string(payload_string(data));
+  if (!network::is_connectable_address(server))
+    return;
+  {
+    std::scoped_lock lock(peers_mutex);
+    std::erase_if(lobby_peers, [&](const lobbyPeerMap_t::value_type &peer) {
+      return network::are_addresses_equal(peer.second, sender);
+    });
+  }
+  scheduler::once([server] { party::connect(server); }, scheduler::main);
+}
+
 void receive_lobby_game(const game::net::netadr_t &sender,
                         const network::data_view &data,
                         game::LocalClientNum_t) {
@@ -953,6 +971,30 @@ bool has_party_lobby() {
                                   game::lobby::LobbyClientType::LOCAL) > 0;
 }
 
+bool has_party_members() {
+  return lobby_host_info() && game::lobby::LobbyHost_GetClientCount(
+                                  game::lobby::LobbyType::PRIVATE,
+                                  game::lobby::LobbyClientType::REMOTE) > 0;
+}
+
+void send_party_to_server(const game::net::netadr_t &server) {
+  if (!has_party_members())
+    return;
+  std::vector<game::net::netadr_t> members;
+  {
+    std::scoped_lock lock(peers_mutex);
+    for (const auto &[key, endpoint] : lobby_peers) {
+      if (!network::are_addresses_equal(endpoint, server) &&
+          std::ranges::none_of(members, [&](const game::net::netadr_t &m) {
+            return network::are_addresses_equal(m, endpoint);
+          }))
+        members.push_back(endpoint);
+    }
+  }
+  for (const game::net::netadr_t &member : members)
+    network::send(member, "lobbyFollow", network::address_to_string(server));
+}
+
 void join_server_lobby(const game::net::netadr_t &server) {
   server_lobby = server;
   request_lobby(server, "match", [] {});
@@ -1073,6 +1115,7 @@ public:
     network::on("friendOnline", receive_friend_online);
     network::on("lobbyHost", receive_lobby_host);
     network::on("lobbyGame", receive_lobby_game);
+    network::on("lobbyFollow", receive_lobby_follow);
 
     scheduler::loop(update_punching, scheduler::main, 250ms);
     scheduler::loop(update_hosting, scheduler::main, REGISTER_INTERVAL);
