@@ -12,11 +12,11 @@ WEAK symbol<int32_t(LobbySession *lobbySession, LobbyClientType clientType)>
 
 WEAK symbol<SessionClient *(
     ControllerIndex_t controllerIndex, LobbySession *lobbySession, XUID xuid,
-    const char *gamertag, dw::net::bdCommonAddrRef commonAdr, LobbyID lobbyID,
-    XUID probedXuid, int32_t qport, net::netsrc_t localNetID,
+    const char *gamertag, bool isGuest, dw::net::bdCommonAddrRef commonAdr,
+    LobbyID lobbyID, XUID probedXuid, int32_t qport, net::netsrc_t localNetID,
     ClientNum_t atPosition, uint8_t latencyBand, ContentFlags dlcBits,
-    uint32_t joinOrder, LobbyClientType clientType, const char *reason)>
-    LobbySession_AddClientAtPosition{0x141EF3330, 0x141EFFAB0, 0x0};
+    uint32_t joinOrder, const char *reason)>
+    LobbySession_AddClientAtPosition{0x141EF3330, 0x141EFFAB0, 0x1404AD0D0};
 } // namespace session
 } // namespace lobby
 } // namespace game
