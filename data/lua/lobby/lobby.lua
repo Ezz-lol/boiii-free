@@ -66,6 +66,8 @@ local function RecoverTarget()
   if Engine.DvarBool(nil, "cl_connected_to_dedi") then
     if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
       return LobbyData.UITargets.UI_MPLOBBYONLINE.id
+    elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
+      return LobbyData.UITargets.UI_ZMLOBBYONLINE.id
     end
     return LobbyData.UITargets.UI_MODESELECT.id
   end
