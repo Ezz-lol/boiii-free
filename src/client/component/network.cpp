@@ -101,6 +101,27 @@ bool socket_set_blocking(const SOCKET sock, const bool blocking) {
   return ioctlsocket(sock, FIONBIO, &mode) == 0;
 }
 
+uint16_t first_free_port() {
+  constexpr uint16_t BASE_PORT = 27017;
+  WSADATA wsa_data{};
+  WSAStartup(MAKEWORD(2, 2), &wsa_data);
+  const auto _ = utils::finally([] { WSACleanup(); });
+  for (uint16_t port = BASE_PORT; port < BASE_PORT + 10; ++port) {
+    const SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(port);
+    const bool free = bind(sock, reinterpret_cast<sockaddr *>(&addr),
+                           sizeof(addr)) != SOCKET_ERROR;
+    closesocket(sock);
+    if (free) {
+      return port;
+    }
+  }
+  return BASE_PORT;
+}
+
 void create_ip_socket() {
   SOCKET &sock = *game::net::ip_socket;
   if (static_cast<uintptr_t>(sock) == 0) {
@@ -468,6 +489,10 @@ struct component final : generic_component {
       // Disable `echo` command in `CL_DispatchConnectionlessPacket`
       utils::hook::set<uint8_t>(game::select(0x14134D11B, 0x14134D0FB, 0x0),
                                 0xEB);
+
+      if (game::is_new_client()) {
+        utils::hook::jump(game::net::NET_GetDefaultPort.get(), first_free_port);
+      }
     }
 
     // TODO: Fix that
