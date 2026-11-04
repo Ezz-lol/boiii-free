@@ -24,6 +24,7 @@ std::string joinable_lobby();
 void join_match_lobby(const game::net::netadr_t &host,
                       std::function<void()> fallback);
 bool is_lobby_peer(const game::net::netadr_t &address);
+std::vector<game::net::netadr_t> get_lobby_peers();
 bool has_party_lobby();
 void join_server_lobby(const game::net::netadr_t &server);
 void leave_server_lobby();

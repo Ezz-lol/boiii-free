@@ -2,6 +2,7 @@
 
 #include <loader/component_loader.hpp>
 
+#include "nat.hpp"
 #include "network.hpp"
 #include "party.hpp"
 #include "profile_infos.hpp"
@@ -372,7 +373,8 @@ struct component final : generic_component {
       network::on("profileInfo", [](const game::net::netadr_t &server,
                                     const network::data_view &data,
                                     game::LocalClientNum_t clientNum) {
-        if (!party::is_host(server)) {
+        const bool from_lobby_peer = nat::is_lobby_peer(server);
+        if (!from_lobby_peer && !party::is_host(server)) {
           return;
         }
 
@@ -385,6 +387,13 @@ struct component final : generic_component {
           const profile_info info(buffer);
 
           add_profile_info(xuid, info);
+          if (from_lobby_peer) {
+            for (const game::net::netadr_t &peer : nat::get_lobby_peers()) {
+              if (peer != server) {
+                distribute_profile_info_to_user(peer, xuid, info);
+              }
+            }
+          }
         }
       });
     }

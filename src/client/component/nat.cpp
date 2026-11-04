@@ -11,6 +11,7 @@
 #include "nat.hpp"
 #include "network.hpp"
 #include "party.hpp"
+#include "profile_infos.hpp"
 #include "scheduler.hpp"
 #include "server_list.hpp"
 #include "toast.hpp"
@@ -250,8 +251,11 @@ std::string peer_key(const game::net::XNADDR &address) {
 
 void add_peer(const game::net::XNADDR &address,
               const game::net::netadr_t &endpoint) {
-  std::scoped_lock lock(peers_mutex);
-  lobby_peers.insert_or_assign(peer_key(address), endpoint);
+  {
+    std::scoped_lock lock(peers_mutex);
+    lobby_peers.insert_or_assign(peer_key(address), endpoint);
+  }
+  profile_infos::distribute_profile_infos_to_user(endpoint);
 }
 
 std::optional<game::net::netadr_t> find_peer(const game::net::XNADDR &address) {
@@ -1017,6 +1021,15 @@ bool is_lobby_peer(const game::net::netadr_t &address) {
       lobby_peers, [&address](lobbyPeerMap_t::value_type &peer) {
         return network::are_addresses_equal(peer.second, address);
       });
+}
+
+std::vector<game::net::netadr_t> get_lobby_peers() {
+  std::scoped_lock lock(peers_mutex);
+  std::vector<game::net::netadr_t> peers;
+  for (const auto &[key, endpoint] : lobby_peers) {
+    peers.push_back(endpoint);
+  }
+  return peers;
 }
 
 bool is_rendezvous(const game::net::netadr_t &sender) {
