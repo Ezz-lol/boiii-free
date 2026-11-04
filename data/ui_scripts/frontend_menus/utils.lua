@@ -142,10 +142,9 @@ local AddSmallButton = function(controller, options, button, index)
 end
 
 local AddSpacer = function(options, index)
-  if index ~= nil then
-    options[index].isLastButtonInGroup = true
-  elseif 0 < #options then
-    options[#options].isLastButtonInGroup = true
+  local button = options[index or #options]
+  if button then
+    button.isLastButtonInGroup = true
   end
 end
 
