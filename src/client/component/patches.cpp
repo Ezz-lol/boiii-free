@@ -3,10 +3,7 @@
 #include "component/error_help.hpp"
 #include "component/exception.hpp"
 #include "component/game_event.hpp"
-#include "component/network.hpp"
-#include "component/party.hpp"
 #include "component/path.hpp"
-#include "component/script_error.hpp"
 
 #include <loader/component_loader.hpp>
 
@@ -89,15 +86,6 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
 
     if (!game::is_server() && code == game::errorParm::FATAL) {
       exception::show_fatal_error(buffer);
-    }
-
-    if (game::is_server() &&
-        (code == game::errorParm::FATAL || code == game::errorParm::DROP)) {
-      const std::string_view reason =
-          std::string_view(buffer).substr(buffer[0] == '\x15');
-      game::foreach_connected_client([&](game::sv::client_s &client) {
-        network::send(client.address, "serverError", std::string(reason));
-      });
     }
 #ifndef NDEBUG
   }
@@ -392,17 +380,6 @@ struct component final : generic_component {
       utils::hook::nop(game::com::Com_ErrorCleanup_PrintErrorCall.get(), 5);
       utils::hook::nop(game::com::Com_ErrorCleanup_PrintDisconnectCall.get(),
                        5);
-    }
-    if (game::is_client()) {
-      network::on("serverError",
-                  [](const game::net::netadr_t &from,
-                     const network::data_view &data,
-                     const game::LocalClientNum_t localClientNum) {
-                    if (from == party::get_connected_server(localClientNum)) {
-                      script_error::show_error_popup(
-                          std::string(data.begin(), data.end()));
-                    }
-                  });
     }
     if (game::is_new_client()) {
       active_network_mode_hook.create(

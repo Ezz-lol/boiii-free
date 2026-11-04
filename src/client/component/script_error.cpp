@@ -1,5 +1,7 @@
 #include <std_include.hpp>
 
+#include "network.hpp"
+#include "party.hpp"
 #include "scheduler.hpp"
 #include "script.hpp"
 #include "script_error.hpp"
@@ -690,14 +692,25 @@ void show_error_popup(const std::string &text) {
       scheduler::pipeline::main);
 }
 
+void notify_players(const std::string &message) {
+  game::foreach_connected_client([&](game::sv::client_s &client) {
+    network::send(client.address, "serverError", message);
+  });
+}
+
 namespace {
 void drop_with_report(const char *file, const int32_t line,
                       const report &report) {
-  if (!game::is_server()) {
-    print_report(report, {});
+  print_report(report, {});
+  const std::string reason =
+      !game::is_server() || game::log_script_errors()
+          ? report_text(report, {})
+          : "The server stopped because of a script error.";
+  if (game::is_server()) {
+    notify_players(reason);
   }
   game::com::Com_Error_(file, line, game::errorParm::DROP, "\x15%s",
-                        report_text(report, {}).c_str());
+                        reason.c_str());
 }
 
 void Com_Error_ScriptNotFound(const char *file, const int32_t line,
@@ -852,6 +865,14 @@ struct component final : generic_component {
     if (game::is_client()) {
       ReportObjLinkError2_hook.create(ReportObjLinkError2,
                                       ReportObjLinkError_Report);
+      network::on("serverError",
+                  [](const game::net::netadr_t &from,
+                     const network::data_view &data,
+                     const game::LocalClientNum_t localClientNum) {
+                    if (from == party::get_connected_server(localClientNum)) {
+                      show_error_popup(std::string(data.begin(), data.end()));
+                    }
+                  });
     }
   }
 };
