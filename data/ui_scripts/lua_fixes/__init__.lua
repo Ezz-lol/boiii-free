@@ -11,6 +11,16 @@ if type(GoBackAndOpenOverlayOnParent) == "function" then
   end
 end
 
+if type(GetRankIconLarge) == "function" then
+  local getRankIconLarge = GetRankIconLarge
+  GetRankIconLarge = function(icon)
+    if type(icon) == "string" and icon:match("^rank_prestige%d+$") then
+      return icon
+    end
+    return getRankIconLarge(icon)
+  end
+end
+
 local function guarded(owner, name, fallback)
   local original = owner and owner[name]
   if original then
