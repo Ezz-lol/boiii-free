@@ -9,7 +9,6 @@ struct report {
 
 void print_report(const report &report, const std::string &outcome);
 void show_error_popup(const std::string &text);
-void notify_players(const std::string &message);
 
 void report_runaway_loop(game::scr::scriptInstance_t inst, const uint8_t *pos,
                          uint32_t elapsed_ms);

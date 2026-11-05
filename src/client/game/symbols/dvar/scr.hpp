@@ -16,9 +16,6 @@ WEAK symbol<EngineDependentDvarMut> scr_disablestattracking{0x0, 0x0,
                                                             0x14948DB80};
 WEAK symbol<EngineDependentDvarMut> scr_dynamic_source_loading{
     0x159BAB798, 0x159C2A718, 0x14B34A300};
-WEAK symbol<EngineDependentDvarMut> scr_gunxpscalecp{0x0, 0x0, 0x14948DB18};
-WEAK symbol<EngineDependentDvarMut> scr_gunxpscalemp{0x0, 0x0, 0x14948DB20};
-WEAK symbol<EngineDependentDvarMut> scr_gunxpscalezm{0x0, 0x0, 0x14948DB28};
 WEAK symbol<EngineDependentDvarMut> scr_hardcore{0x157960B68, 0x1579DFA68,
                                                  0x14A30C4F0};
 WEAK symbol<EngineDependentDvarMut> scr_hostmigrationtest{
@@ -43,12 +40,6 @@ WEAK symbol<EngineDependentDvarMut> scr_vialsawardedscale{0x0, 0x0,
                                                           0x14948DB50};
 WEAK symbol<EngineDependentDvarMut> scr_writeConfigStrings{0x0, 0x0,
                                                            0x14A038AE0};
-WEAK symbol<EngineDependentDvarMut> scr_xpscalecp{0x15686EBF8, 0x0,
-                                                  0x14948F1D8};
-WEAK symbol<EngineDependentDvarMut> scr_xpscalemp{0x15686EC00, 0x0,
-                                                  0x14948F1E0};
-WEAK symbol<EngineDependentDvarMut> scr_xpscalezm{0x15686EC08, 0x0,
-                                                  0x14948F1E8};
 WEAK symbol<EngineDependentDvarMut> scr_xpscalezmpromo{0x15686EC10, 0x0,
                                                        0x14948DB10};
 } // namespace game
