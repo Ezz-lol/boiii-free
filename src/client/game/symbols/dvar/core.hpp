@@ -7,80 +7,16 @@
 
 namespace game {
 
-WEAK symbol<EngineDependentDvarMut> com_maxclients{0x15686E8D0, 0x1568ED850,
-                                                   0x14948EE70};
-// "sv_running" is the name of the dvar. `com_sv_running` is the name used
-// internally by the engine to label dvar global
-WEAK symbol<EngineDependentDvarMut> com_sv_running{0x15686E8C8, 0x1568ED848,
-                                                   0x14948EE68};
-WEAK symbol<EngineDependentDvarMut> com_clientfieldsdebug{
-    0x15686E8B0, 0x1568ED830, 0x14948EE50};
-
-WEAK symbol<EngineDependentDvarMut> g_gametype{0x14A037790, 0x14A399348,
-                                               0x147836878};
-WEAK symbol<EngineDependentDvarMut> g_password{0x14A037798, 0x14A399350,
-                                               0x147836880};
-
-WEAK symbol<EngineDependentDvarMut> sv_hostname{0x157736810, 0x1577C5790,
-                                                0x14A1797A8};
-WEAK symbol<EngineDependentDvarMut> sv_maprotation{0x157746970, 0x1577C5888,
-                                                   0x14A179948};
-WEAK symbol<EngineDependentDvarMut> sv_maprotationcurrent{
-    0x157746978, 0x1577C5890, 0x14A189980};
-// The sv_cheats dvar used to enable/disable cheat commands - both in console
-// and in SV commands
-WEAK symbol<EngineDependentDvarMut> sv_cheats{0x157679718, 0x1576F8698,
-                                              0x14A189A18};
 // Also named sv_cheats, but global is named `dvar_cheats` in the engine.
 // Used to enable/disable cheat dvars - controls whether cheat
 // protection on a dvar to be modified is checked and respected in internal
 // setters.
 WEAK symbol<EngineDependentDvarMut> dvar_cheats{0x157A47310, 0x157AC6210,
                                                 0x14A3CB610};
-WEAK symbol<EngineDependentDvarMut> sv_gametype{0x157736870, 0x1577C57F0,
-                                                0x14A179888};
-WEAK symbol<qboolean> sv_running{0x15686E8C8, 0x1457D9928, 0x142CE04A8};
-// Specific to dedicated server
-WEAK symbol<EngineDependentDvarMut> sv_detailedScriptErrors{0x0, 0x0,
-                                                            0x14A1797D0};
-
 WEAK symbol<EngineDependentDvarMut> mapname{0x157736848, 0x1577C57C8,
                                             0x14A179858};
-WEAK symbol<EngineDependentDvarMut> fs_game{0x1579E63F8, 0x157A652F8,
-                                            0x14A39C638};
 
-WEAK symbol<EngineDependentDvarMut> live_steam_server_name{
-    0x1513AF1B0, 0x15142E120, 0x14837F770};
-WEAK symbol<EngineDependentDvarMut> live_steam_server_description{
-    0x1513AF1B8, 0x15142E128, 0x14837F778};
-WEAK symbol<EngineDependentDvarMut> live_steam_server_password{
-    0x1513AF1C0, 0x15142E130, 0x14837F780};
 
-WEAK symbol<EngineDependentDvarMut> net_port{0x157DF63F0, 0x157E75320,
-                                             0x14A640490};
-WEAK symbol<EngineDependentDvarMut> net_ip{0x157DF63E8, 0x157E75318,
-                                           0x14A640488};
-
-WEAK symbol<EngineDependentDvarMut> rcon_password{0x1577367F8, 0x1577B5768,
-                                                  0x14A178278};
-
-WEAK symbol<EngineDependentDvarMut> ui_checksum_enabled{
-    0x15686ED18, 0x1568EDC98, 0x14948DC18};
-WEAK symbol<EngineDependentDvarMut> ui_error_report{0x15686FF30, 0x1568EEEA8,
-                                                    0x14948DC20};
-WEAK symbol<EngineDependentDvarMut> ui_error_report_delay{
-    0x15686FF38, 0x1568EEEB0, 0x14948DC28};
-WEAK symbol<EngineDependentDvarMut> ui_error_callstack_ship{
-    0x15686ED20, 0x1568EDCA0, 0x14948DC30};
-WEAK symbol<EngineDependentDvarMut> ui_enableAllHeroes{0x157960A80, 0x1579DF948,
-                                                       0x14A30C408};
-
-WEAK symbol<EngineDependentDvarMut> g_log{0x14A0378C0, 0x14A3D15E0,
-                                          0x147102FA0};
-WEAK symbol<EngineDependentDvarMut> g_motd{0x14A0378B0, 0x14A3D15D0,
-                                           0x147836998};
-WEAK symbol<EngineDependentDvarMut> live_motdEnabled{0x1515C0D00, 0x15163FC70,
-                                                     0x148382988};
 WEAK symbol<EngineDependentDvarMut> motd_enabled{0x15118D800, 0x15120C780,
                                                  0x1482DED80};
 WEAK symbol<EngineDependentDvarMut> motddelay{0x15118D7F8, 0x15120C778,
@@ -89,33 +25,213 @@ WEAK symbol<EngineDependentDvarMut> motddelay{0x15118D7F8, 0x15120C778,
 WEAK symbol<EngineDependentDvarMut> testmissingcontentpacks{
     0x15686EE70, 0x1568EDDF0, 0x14948DD90};
 
-WEAK symbol<EngineDependentDvarMut> splitscreen{0x1453559F0, 0x1453D49F0,
-                                                0x1428AAEC8};
-WEAK symbol<EngineDependentDvarMut> splitscreen_playerCount{
-    0x145355A00, 0x1453D4A00, 0x1428AAED8};
 
-WEAK symbol<EngineDependentDvarMut> r_vsync{0x14AE16118, 0x14AE95098,
-                                            0x147CBC1E0};
-WEAK symbol<EngineDependentDvarMut> r_fullscreen{0x14AE15E78, 0x14AE94DF8,
-                                                 0x147CBBF48};
-
-WEAK symbol<EngineDependentDvarMut> g_vehicleDrawPath{0x14A0377E0, 0x14A3D1500,
-                                                      0x1478368C8};
-WEAK symbol<EngineDependentDvarMut> g_vehicleDrawSplines{
-    0x14A0377E8, 0x14A3D1508, 0x1478368D0};
-WEAK symbol<EngineDependentDvarMut> g_vehicleDebug{0x14A0377F0, 0x14A3D1510,
-                                                   0x1478368D8};
-WEAK symbol<EngineDependentDvarMut> safeArea_horizontal{
-    0x14577B6D0, 0x1457FA6D0, 0x142CF1340};
-WEAK symbol<EngineDependentDvarMut> safeArea_vertical{0x14577B6D8, 0x1457FA6D8,
-                                                      0x142CF1348};
-WEAK symbol<EngineDependentDvarMut> ui_safeArea{0x14577B6E0, 0x1457FA6E0, 0x0};
-WEAK symbol<EngineDependentDvarMut> r_dof_enable{0x14AE95478, 0x14AE164F8,
-                                                 0x147CBC5B8};
-WEAK symbol<EngineDependentDvarMut> cg_fovScale{0x1449B2A88, 0x144A31A88,
-                                                0x14222BFC0};
-WEAK symbol<EngineDependentDvarMut> loc_language{0x15789FE48, 0x15791ED48,
-                                                 0x14A2DB050};
+WEAK symbol<EngineDependentDvarMut> selectedfriendindex{0x157960B20, 0x0,
+                                                        0x14A30C4A8};
+WEAK symbol<EngineDependentDvarMut> selectedfriendname{0x157960B18, 0x1579DFA18,
+                                                       0x14A30C4A0};
+WEAK symbol<EngineDependentDvarMut> selectedplayerxuid{0x157960B28, 0x1579DFA20,
+                                                       0x14A30C4B0};
+WEAK symbol<EngineDependentDvarMut> mapcrc{0x0, 0x0, 0x14A179868};
+WEAK symbol<EngineDependentDvarMut> matchmaking_debug{0x151395898, 0x151414808,
+                                                      0x148374620};
+WEAK symbol<EngineDependentDvarMut> maxDailyZMDoubleXP{0x1511A68F0, 0x151225870,
+                                                       0x0};
+WEAK symbol<EngineDependentDvarMut> maxLossesValue{0x151399960, 0x1514188D0,
+                                                   0x148378190};
+WEAK symbol<EngineDependentDvarMut> menuMapMaxRange{0x144785520, 0x144804520,
+                                                    0x14201EF50};
+WEAK symbol<EngineDependentDvarMut> long_blocking_call{0x15686E8A0, 0x1568ED820,
+                                                       0x14948EE40};
+WEAK symbol<EngineDependentDvarMut> local_media_tier{0x151272790, 0x1512F1700,
+                                                     0x0};
+WEAK symbol<EngineDependentDvarMut> disableLookAtEntityLogic{
+    0x159BAB4D0, 0x159C2A450, 0x14B349C90};
+WEAK symbol<EngineDependentDvarMut> disable_rope{0x159BAB3F0, 0x159C2A370,
+                                                 0x14B349C20};
+WEAK symbol<EngineDependentDvarMut> disconnected_ctrls{0x15686EB70, 0x1568EDAF0,
+                                                       0x14948F148};
+WEAK symbol<EngineDependentDvarMut> beta_special{0x15686EB78, 0x1568EDAF8,
+                                                 0x14948F150};
+WEAK symbol<EngineDependentDvarMut> version{0x0, 0x0, 0x14948EE90};
+WEAK symbol<EngineDependentDvarMut> zombie_devgui{0x15686ED58, 0x1568EDCD8,
+                                                  0x14948DC78};
+WEAK symbol<EngineDependentDvarMut> Zm_Private_Rankedmatch{
+    0x15686ED70, 0x1568EDCF0, 0x14948DC90};
+WEAK symbol<EngineDependentDvarMut> SystemLink{0x0, 0x0, 0x1428AAEC0};
+WEAK symbol<EngineDependentDvarMut> systemUnderMaintenance{
+    0x15118D898, 0x15120C818, 0x1482DEE18};
+WEAK symbol<EngineDependentDvarMut> teamsplitter_verbose{
+    0x1512508B8, 0x1512CF7F8, 0x148340248};
+WEAK symbol<EngineDependentDvarMut> testintervaljitter{0x1556CE7E8, 0x15574D758,
+                                                       0x148581288};
+WEAK symbol<EngineDependentDvarMut> throwback_enabled{0x15686ED00, 0x1568EDC80,
+                                                      0x14948DC00};
+WEAK symbol<EngineDependentDvarMut> timescale{0x15686E8B8, 0x1568ED838,
+                                              0x14948EE58};
+WEAK symbol<EngineDependentDvarMut> useClassSets{0x151642E30, 0x1516C1DA0,
+                                                 0x1483C2A40};
+WEAK symbol<EngineDependentDvarMut> useLargeRadius{0x14A037938, 0x14A3D1658,
+                                                   0x147103018};
+WEAK symbol<EngineDependentDvarMut> useMapPreloading{0x15686EEC0, 0x0, 0x0};
+WEAK symbol<EngineDependentDvarMut> useRadius{0x14A037930, 0x14A3D1650,
+                                              0x147103010};
+WEAK symbol<EngineDependentDvarMut> waitforinitial{0x15686EEB0, 0x1568EDE38,
+                                                   0x14948DDD8};
+WEAK symbol<EngineDependentDvarMut> waitforstreamer{0x15686EEA8, 0x1568EDE30,
+                                                    0x14948DDD0};
+WEAK symbol<EngineDependentDvarMut> waterbrush_entity{0x159BABA50, 0x159C2A9D0,
+                                                      0x14B349F78};
+WEAK symbol<EngineDependentDvarMut> actors_walkable{0x159BABA90, 0x159C2AA10,
+                                                    0x14B349FB8};
+WEAK symbol<EngineDependentDvarMut> addmappackflagsuserinfo{
+    0x15686EE78, 0x1568EDDF8, 0x14948DD98};
+WEAK symbol<EngineDependentDvarMut> adsZeroSpread{0x159BAB820, 0x159C2A7A0,
+                                                  0x14B34A340};
+WEAK symbol<EngineDependentDvarMut> allowtaskmanagerrsu{
+    0x15686EB68, 0x1568EDAE8, 0x14948F140};
+WEAK symbol<EngineDependentDvarMut> all_players_are_connected{
+    0x15686EDA8, 0x1568EDD28, 0x14948DCC8};
+WEAK symbol<EngineDependentDvarMut> amd_useshaderextension{
+    0x14AE16CF8, 0x14AE95C78, 0x147CBCFA0};
+WEAK symbol<EngineDependentDvarMut> autoexecdemoconfig{0x15686EB90, 0x1568EDB10,
+                                                       0x14948F168};
+WEAK symbol<EngineDependentDvarMut> bandwidth_retry_interval{
+    0x15138F230, 0x15140E1A0, 0x14836DFC8};
+WEAK symbol<EngineDependentDvarMut> behaviorTrackerVersionNumber{
+    0x151399818, 0x151418788, 0x148378048};
+WEAK symbol<EngineDependentDvarMut> checkEmblemForRank{0x159B80488, 0x159BFF408,
+                                                       0x0};
+WEAK symbol<EngineDependentDvarMut> content_trialcontentpackbits{
+    0x0, 0x156CF41C8, 0x149758CF8};
+WEAK symbol<EngineDependentDvarMut> con_typewriterColorBase{0x0, 0x0,
+                                                            0x142872C38};
+WEAK symbol<EngineDependentDvarMut> cp_queued_level{0x157736858, 0x0,
+                                                    0x14A179870};
+WEAK symbol<EngineDependentDvarMut> cybercom_enabled{0x1441D5C50, 0x144254C50,
+                                                     0x141E56C08};
+WEAK symbol<EngineDependentDvarMut> daily_contract_cryptokey_reward_count{
+    0x15114E488, 0x1511CD408, 0x0};
+WEAK symbol<EngineDependentDvarMut> db_keyserver1{0x1493890E0, 0x1494080E0,
+                                                  0x1468F91C0};
+WEAK symbol<EngineDependentDvarMut> defaultClassSetCount{
+    0x151642E40, 0x1516C1DB0, 0x1483C2A50};
+WEAK symbol<EngineDependentDvarMut> def_unlink_nodes_for{0x0, 0x1568EDB58,
+                                                         0x14948F1B0};
+WEAK symbol<EngineDependentDvarMut> developer{0x14AE169A0, 0x14AE95920,
+                                              0x147CBCC48};
+WEAK symbol<EngineDependentDvarMut> doublejump_enabled{0x159BAB898, 0x159C2A818,
+                                                       0x14B34A380};
+WEAK symbol<EngineDependentDvarMut> doublesided_raycasts{
+    0x15686ECF0, 0x1568EDC70, 0x14948DBF0};
+WEAK symbol<EngineDependentDvarMut> excellentping{0x1556CE748, 0x15574D6B8,
+                                                  0x1485811E8};
+WEAK symbol<EngineDependentDvarMut> exp_objective_setgamemodeflags{0x0, 0x0,
+                                                                   0x14A179880};
+WEAK symbol<EngineDependentDvarMut> filterdedicatedserverresults{
+    0x151395900, 0x151414870, 0x148374688};
+WEAK symbol<EngineDependentDvarMut> fixedtime{0x15686ECB8, 0x1568EDC38,
+                                              0x14948DBB8};
+WEAK symbol<EngineDependentDvarMut> fixedtime_float{0x15686ECC0, 0x1568EDC40,
+                                                    0x14948DBC0};
+WEAK symbol<EngineDependentDvarMut> fixNegativeLosses{0x151399958, 0x1514188C8,
+                                                      0x148378188};
+WEAK symbol<EngineDependentDvarMut> flaredisableeffects{
+    0x144CB33A0, 0x144D323A0, 0x142240DE8};
+WEAK symbol<EngineDependentDvarMut> footstep_sounds_cutoff{
+    0x159BAB410, 0x159C2A390, 0x14B349C30};
+WEAK symbol<EngineDependentDvarMut> friction{0x159BAB388, 0x159C2A308,
+                                             0x14B34A0E0};
+WEAK symbol<EngineDependentDvarMut> friendlyContentOutlines{
+    0x159BAB970, 0x159C2A8F0, 0x14B34A3E8};
+WEAK symbol<EngineDependentDvarMut> hackMultiLauncherVerticleOffset{
+    0x14A5746F8, 0x14A5F36E8, 0x147A5C2E8};
+WEAK symbol<EngineDependentDvarMut> hidef{0x15686E908, 0x1568ED888,
+                                          0x14948EEA8};
+WEAK symbol<EngineDependentDvarMut> highlightedplayername{
+    0x157960B30, 0x1579DFA30, 0x14A30C4B8};
+WEAK symbol<EngineDependentDvarMut> hopper_playlist{0x0, 0x0, 0x1482936A8};
+WEAK symbol<EngineDependentDvarMut> juke_enabled{0x159BAB8B0, 0x159C2A830,
+                                                 0x14B34A388};
+WEAK symbol<EngineDependentDvarMut> keyarchivewritedelay{0x0, 0x15163FB58,
+                                                         0x148382868};
+WEAK symbol<EngineDependentDvarMut> killonlytrailfx{0x1456BC1D0, 0x14573B1D0,
+                                                    0x142C41D88};
+WEAK symbol<EngineDependentDvarMut> Lagometer_Pos{0x1449B2B18, 0x144A31B18,
+                                                  0x14222C050};
+WEAK symbol<EngineDependentDvarMut> lbtaskdelay{0x1511A83E8, 0x151227368,
+                                                0x1482F9810};
+WEAK symbol<EngineDependentDvarMut> minDelayForOtherPlayerStatsFetch{
+    0x1515C0C60, 0x15163FBD0, 0x1483828E8};
+WEAK symbol<EngineDependentDvarMut> miniscoreboardhide{0x15686EE18, 0x1568EDD98,
+                                                       0x14948DD38};
+WEAK symbol<EngineDependentDvarMut> missingcommandwillerror{
+    0x15686EE20, 0x1568EDDA0, 0x14948DD40};
+WEAK symbol<EngineDependentDvarMut> mods_enabled{0x15670DD00, 0x15678CC80,
+                                                 0x14933E5F0};
+WEAK symbol<EngineDependentDvarMut> mortarstrikesleft{0x0, 0x0, 0x1428AAEB8};
+WEAK symbol<EngineDependentDvarMut> mp_blackjack_consumable_wait{
+    0x159BAB7B0, 0x159C2A730, 0x14B349E08};
+WEAK symbol<EngineDependentDvarMut> msg_logpredictionpositionerrors{
+    0x156DCAB30, 0x0, 0x1498C1840};
+WEAK symbol<EngineDependentDvarMut> ms_netapop{0x0, 0x14A56D800, 0x1477FDD80};
+WEAK symbol<EngineDependentDvarMut> nextarena{0x15686EDF0, 0x1568EDD70,
+                                              0x14948DD10};
+WEAK symbol<EngineDependentDvarMut> nextmap{0x15686E900, 0x1568ED880,
+                                            0x14948EEA0};
+WEAK symbol<EngineDependentDvarMut> onlinegame{0x15686ED68, 0x1568EDCE8,
+                                               0x14948DC88};
+WEAK symbol<EngineDependentDvarMut> paintjobVersion{0x151274F48, 0x1512F3EB8,
+                                                    0x1483613E8};
+WEAK symbol<EngineDependentDvarMut> pclive_updateFriends{0x1512708D8, 0x0,
+                                                         0x148360268};
+WEAK symbol<EngineDependentDvarMut> pc_newversionavailable{
+    0x1512508A0, 0x1512CF7E0, 0x148340230};
+WEAK symbol<EngineDependentDvarMut> pickupprints{0x14A037970, 0x14A3D1690,
+                                                 0x147103050};
+WEAK symbol<EngineDependentDvarMut> popInLetterFXTime{0x1447854F8, 0x1448044F8,
+                                                      0x14201F090};
+WEAK symbol<EngineDependentDvarMut> prone_bipod_enable{0x159BAB1E8, 0x159C2A168,
+                                                       0x14B349B78};
+WEAK symbol<EngineDependentDvarMut> protocol{0x0, 0x0, 0x14A179898};
+WEAK symbol<EngineDependentDvarMut> purchasedClassSetCount{
+    0x151642E38, 0x1516C1DA8, 0x1483C2A48};
+WEAK symbol<EngineDependentDvarMut> quit_on_error{0x15686EDC0, 0x1568EDD40,
+                                                  0x14948DCE0};
+WEAK symbol<EngineDependentDvarMut> ragdoll_activationVelocitySq{
+    0x159BAB708, 0x159C2A688, 0x14B34A2B8};
+WEAK symbol<EngineDependentDvarMut> saved_gameskill{0x15686EE10, 0x1568EDD90,
+                                                    0x14948DD30};
+WEAK symbol<EngineDependentDvarMut> saveLocalMatchRecordBinaryFile{
+    0x149B358E0, 0x149BB48E0, 0x0};
+WEAK symbol<EngineDependentDvarMut> Settings_AllowGibbing{
+    0x14A00B5B0, 0x14A08A5B0, 0x1470D6DD0};
+WEAK symbol<EngineDependentDvarMut> Settings_DefaultSubtitles{0x0, 0x14A08A5B8,
+                                                              0x1470D6DD8};
+WEAK symbol<EngineDependentDvarMut> shortversion{0x0, 0x0, 0x14948EE98};
+WEAK symbol<EngineDependentDvarMut> shoutcastHighlightedClient{
+    0x1447854F0, 0x1448044F0, 0x14201F088};
+WEAK symbol<EngineDependentDvarMut> shoutcastSelectedClient{
+    0x1447854E8, 0x1448044E8, 0x14201F080};
+WEAK symbol<EngineDependentDvarMut> showmaperrors{0x15686EBD0, 0x1568EDB50,
+                                                  0x14948F1A8};
+WEAK symbol<EngineDependentDvarMut> stopspeed{0x159BAB390, 0x159C2A310,
+                                              0x14B34A0E8};
+WEAK symbol<EngineDependentDvarMut> streammbpersecond{0x0, 0x157500AF0,
+                                                      0x149F78950};
+WEAK symbol<EngineDependentDvarMut> total_paintjobs{0x151274F40, 0x1512F3EB0,
+                                                    0x1483613E0};
+WEAK symbol<EngineDependentDvarMut> tracer_debugdraw{0x14495A408, 0x1449D9408,
+                                                     0x1421E3768};
+WEAK symbol<EngineDependentDvarMut> turretPlayerAvoidScale{
+    0x14A037890, 0x14A3D15B0, 0x147836978};
+WEAK symbol<EngineDependentDvarMut> typeWriterCod7LetterFXTime{
+    0x1447854C0, 0x1448044C0, 0x14201F058};
+WEAK symbol<EngineDependentDvarMut> unsubscriptionCooloffTimer{
+    0x1511D1CB0, 0x151250C30, 0x14831F150};
+WEAK symbol<EngineDependentDvarMut> weaponrest_enabled{0x159BAB900, 0x159C2A880,
+                                                       0x14B34A3B0};
+WEAK symbol<EngineDependentDvarMut> xpGroups{0x1511A68D0, 0x151225850, 0x0};
 /*
   Name of dvar is unknown.
 
