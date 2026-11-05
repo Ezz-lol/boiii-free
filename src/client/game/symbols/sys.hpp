@@ -11,6 +11,7 @@ WEAK symbol<void(HINSTANCE h_instance)> Sys_CreateConsole{
 WEAK symbol<void()> Sys_ShowConsole{0x1422BA250, 0x1423333C0, 0x140597E40};
 WEAK symbol<void(const char *text)> Sys_Print{0x0, 0x0, 0x1405857A0};
 WEAK symbol<bool()> Sys_IsServerThread{0x14212B110, 0x0, 0x0};
+WEAK symbol<bool()> Sys_IsMainThread{0x14212AFF0, 0x0, 0x0};
 
 WEAK symbol<TLSData *()> Sys_GetTLS{0x14212AD10, 0x1421837B0, 0x140525EB0};
 inline int32_t Cmd_Argc() {

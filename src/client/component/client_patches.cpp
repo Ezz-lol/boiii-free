@@ -475,6 +475,20 @@ void CL_CompositeRender_stub() {
   CL_CompositeRender_hook.invoke<void>();
 }
 
+utils::hook::detour IN_SetActiveDevice_hook;
+void IN_SetActiveDevice_stub(const game::ControllerIndex_t controllerIndex,
+                             const int32_t device, const bool force) {
+  if (game::sys::Sys_IsMainThread()) {
+    IN_SetActiveDevice_hook.invoke<void>(controllerIndex, device, force);
+    return;
+  }
+  scheduler::once(
+      [=] {
+        IN_SetActiveDevice_hook.invoke<void>(controllerIndex, device, force);
+      },
+      scheduler::main);
+}
+
 utils::hook::detour Com_FPSLimit_hook;
 
 // The FPS limiter waits with Sleep(1), which can take up to 15 ms unless the
@@ -529,6 +543,10 @@ public:
     fix_mapswitch_crashes();
     CL_CompositeRender_hook.create(game::cl::CL_CompositeRender,
                                    CL_CompositeRender_stub);
+    if (game::is_new_client()) {
+      IN_SetActiveDevice_hook.create(game::in::IN_SetActiveDevice,
+                                     IN_SetActiveDevice_stub);
+    }
 
     fix_amd_cpu_stuttering();
 
