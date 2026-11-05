@@ -505,7 +505,7 @@ void join_lobby(const game::net::netadr_t &host,
   }
 
   if (!workshop::check_valid_mod_id(mod, {}) ||
-      (!map.empty() &&
+      (target == game::lobby::LobbyType::GAME && !map.empty() &&
        !workshop::check_valid_usermap_id(map, content[2], {}, {}))) {
     game_join_fallback = {};
     if (joining.friend_id) {
