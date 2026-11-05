@@ -15,7 +15,7 @@ if type(GetRankIconLarge) == "function" then
   local getRankIconLarge = GetRankIconLarge
   GetRankIconLarge = function(icon)
     if type(icon) == "string" and icon:match("^rank_prestige%d+$") then
-      return icon
+      return icon .. "_128"
     end
     return getRankIconLarge(icon)
   end
