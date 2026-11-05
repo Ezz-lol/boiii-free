@@ -15,5 +15,4 @@ WEAK symbol<EngineDependentDvarMut> orbisgame{0x0, 0x0, 0x14948F118};
 WEAK symbol<EngineDependentDvarMut> durangogame{0x0, 0x0, 0x14948F120};
 WEAK symbol<EngineDependentDvarMut> consolegame{0x0, 0x0, 0x14948F128};
 
-
 } // namespace game

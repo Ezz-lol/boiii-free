@@ -449,125 +449,6 @@ enum class DurangoWriteSessionStatus : int32_t {
   SESSIONDELETED = -1,
   UPDATED = -1,
 };
-enum class LobbyListComparisonType : int32_t {
-  EQUAL_TO_OR_LESS_THAN = -2,
-  LESS_THAN = -1,
-  EQUAL = 0,
-  GREATER_THAN = 1,
-  EQUAL_TO_OR_GREATER_THAN = 2,
-  NOT_EQUAL = 3,
-};
-
-enum class JoinResult : int32_t {
-  INVALID = 0,
-  SUCCESS = 1,
-  CONNECT_TO_HOST_FAILURE = 2,
-  PROBE_SEND_FAILURE = 3,
-  PROBE_TIMEOUT = 4,
-  PROBE_INVALID_LOBBY = 5,
-  PROBE_INVALID_INFO = 6,
-  PROBE_RESULT_INVALID = 7,
-  INVALID_LOBBY = 8,
-  SEND_AGREEMENT_REQUEST_FAILED = 9,
-  HANDSHAKE_WINDOW_EXPIRED = 10,
-  AGREEMENT_WINDOW_EXPIRED = 11,
-  JOIN_DISABLED = 12,
-  JOIN_ALREADY_IN_PROGRESS = 13,
-  NOT_JOINABLE_OFFLINE_MODE = 14,
-  NOT_JOINABLE_NOT_HOSTING = 15,
-  NOT_JOINABLE_NOT_IDLE = 16,
-  NOT_JOINABLE_CLOSED = 17,
-  NOT_JOINABLE_INVITE_ONLY = 18,
-  NOT_JOINABLE_FRIENDS_ONLY = 19,
-  NOT_JOINABLE_SOLO_MODE = 20,
-  NO_JOIN_IN_PROGRESS = 21,
-  GAME_PAUSED = 22,
-  CHUNK_MP_REQUIRED = 23,
-  CHUNK_ZM_REQUIRED = 24,
-  CHUNK_CP_REQUIRED = 25,
-  CHUNK_MP_REQUIRED_HOST = 26,
-  CHUNK_ZM_REQUIRED_HOST = 27,
-  CHUNK_CP_REQUIRED_HOST = 28,
-  SPLITSCREEN_NOT_ALLOWED = 29,
-  IN_PUBLIC_PROBATION = 30,
-  IN_ARENA_PROBATION = 31,
-  OVER_MAX_PARTY_LIMIT = 32,
-  NO_PARTIES = 33,
-  LOBBY_FULL = 34,
-  NETWORK_MODE_MISMATCH = 35,
-  MISMATCH_PLAYLISTID = 36,
-  MISMATCH_PLAYLIST_VERSION_TO_NEW = 37,
-  MISMATCH_PLAYLIST_VERSION_TO_OLD = 38,
-  MISMATCH_PROTOCOL_VERSION = 39,
-  MISMATCH_NETFIELD_CHECKSUM = 40,
-  MISMATCH_FFOTD_VERSION_TO_NEW = 41,
-  MISMATCH_FFOTD_VERSION_TO_OLD = 42,
-  MIGRATE_IN_PROGRESS = 43,
-  COULD_NOT_RESERVE = 44,
-  BAD_DLC_BITS = 45,
-  BAD_MPHD_BITS = 46,
-  VM_FAILURE_1 = 47,
-  VM_FAILURE_2 = 48,
-  VM_FAILURE_3 = 49,
-  VM_FAILURE_4 = 50,
-  STARTER_PACK_RESTRICT = 51,
-  INVALID_PASSWORD = 52,
-  BANNED = 53,
-  BANNED_MEMBER = 54,
-  UNDER_MIN_PARTY_LIMIT = 55,
-  COUNT = 56,
-};
-enum class LobbyTaskType : int32_t {
-  HOST_CREATE = 0,
-  HOST_ADDLOCAL = 1,
-  HOST_END = 2,
-  HOST_SEARCH = 3,
-  HOST_ADVERTISE = 4,
-  HOST_GAMERTAGSTOXUIDS = 5,
-  CLIENT_END = 6,
-  CLIENT_LAUNCH_GAME = 7,
-  COUNT = 8,
-};
-enum class LobbyTaskState : int32_t {
-  IDLE = 0,
-  HOSTCREATE_PENDING = 1,
-  HOSTCREATE_DWNET = 2,
-  HOSTCREATE_SESSION = 3,
-  HOSTEND_PENDING = 4,
-  HOSTEND_ONLINE = 5,
-  HOSTEND_DISCONNECT = 6,
-  HOSTEND_COOLOFF = 7,
-  HOSTEND_SHUTDOWN = 8,
-  HOSTSEARCH_PENDING = 9,
-  HOSTSEARCH_INPROGRESS = 10,
-  HOSTSEARCH_BEGINJOIN = 11,
-  HOSTSEARCH_JOINING = 12,
-  HOSTADVERTISE_PENDING = 13,
-  HOSTADVERTISE_INPROGRESS = 14,
-  HOSTPLATFORMSESSIONCREATE = 15,
-  HOSTPLATFORMSESSIONUPDATE = 16,
-  HOSTPLATFORMSESSIONINVITE = 17,
-  HOSTPLATFORMSESSIONGETSESSIONINFO = 18,
-  HOSTPLATFORMSESSIONGETINVITEINFO = 19,
-  HOSTPLATFORMSESSIONLEAVE = 20,
-  HOSTPLATFORMSESSIONSEARCH = 21,
-  HOSTPLATFORMSESSIONJOIN = 22,
-  HOSTPLATFORMSESSIONSETDURANGOJOINRESTRICTION = 23,
-  HOSTGAMERTAGSTOXUIDS = 24,
-  CLIENTEND_PENDING = 25,
-  CLIENTEND_DISCONNECT = 26,
-  CLIENTEND_COOLOFF = 27,
-  CLIENTEND_SHUTDOWN = 28,
-  HOSTLAUNCH_INIT = 29,
-  HOSTLAUNCH_PUMP = 30,
-  HOSTLAUNCH_PRELOAD = 31,
-  HOSTLAUNCH_GO = 32,
-  CLIENTLAUNCH_INIT = 33,
-  CLIENTLAUNCH_PUMP = 34,
-  CLIENTLAUNCH_GO = 35,
-  SUCCESS = 36,
-  FAILURE = 37,
-};
 
 enum class UIVisibilityBit : int32_t {
   BIT_HUD_VISIBLE = 0,
@@ -1516,6 +1397,55 @@ struct LuaUIElementFunction {
   const char *name;
   hks::lua_CFunction *func;
   LuaUIElementFunction *next;
+};
+
+struct LuaScopedEvent;
+typedef void(__fastcall *LUA_EVENT_FUNC)(LuaScopedEvent *eventBase);
+
+struct LuaScopedEvent {
+  hks::lua_State *_vm;
+  char _functionName[32];
+  int _argCount;
+  int _popCount;
+  int _returnCount;
+  bool _failed;
+  bool _finished;
+  bool _processed;
+  // Strongly-typed field preserved via anonymous union
+  // to bypass C++ implicit default-initialization requirements
+  union {
+    sys::ScopedCriticalSection _scopedCritSect;
+  };
+  LUA_EVENT_FUNC _pushFn;
+  LUA_EVENT_FUNC _returnFn;
+
+  struct syms {
+    static inline constexpr symbol<void(LuaScopedEvent *)> destructor{
+        0x141EF8370, 0x0, 0x1404B2600};
+    static inline constexpr symbol<LuaScopedEvent(
+        LuaScopedEvent *, hks::lua_State *luaVM, int32_t depth, ...)>
+        LuaScopedEvent{0x141EF8160, 0x0, 0x1404B23F0};
+  };
+
+  template <typename T> static constexpr decltype(auto) prepare_arg(T &&arg) {
+    if constexpr (std::is_same_v<std::decay_t<T>, std::string>) {
+      return arg.c_str();
+    } else {
+      return std::forward<T>(arg);
+    }
+  }
+
+  template <typename... Args>
+  LuaScopedEvent(hks::lua_State *luaVM, int32_t depth, Args &&...args) {
+    assert(std::cmp_equal(depth, sizeof...(Args)) &&
+           "LuaScopedEvent: depth parameter does not match the number of "
+           "provided arguments!");
+
+    syms::LuaScopedEvent(this, luaVM, depth,
+                         prepare_arg(std::forward<Args>(args))...);
+  }
+
+  ~LuaScopedEvent() { syms::destructor(this); }
 };
 
 } // namespace lua

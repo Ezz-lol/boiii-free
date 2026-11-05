@@ -73,6 +73,8 @@ WEAK symbol<void(level::gentity_t *ent)> SV_DObjDumpInfo{
     0x1421F1E50, 0x14224E980, 0x1405320C0};
 WEAK symbol<BoneIndex(const level::gentity_t *ent, scr::ScrString_t boneName)>
     SV_DObjGetBoneIndex{0x1421F1EB0, 0x14224E9E0, 0x140532120};
+WEAK symbol<void(XUID xuid, uint8_t *buffer, int32_t size)>
+    SV_ReceiveModifiedStats{0x1421EB200, 0x0, 0x14052D210};
 WEAK symbol<void(RestartMethod_t restartMethod)> SV_MapRestart{
     0x1421E9220, 0x142245D70, 0x14052B450};
 WEAK symbol<cmd::xcommandFunc_t> SV_MapRestart_f{0x1421E9400, 0x142245F50,

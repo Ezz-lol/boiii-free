@@ -16,7 +16,6 @@ WEAK symbol<EngineDependentDvarMut> dvar_cheats{0x157A47310, 0x157AC6210,
 WEAK symbol<EngineDependentDvarMut> mapname{0x157736848, 0x1577C57C8,
                                             0x14A179858};
 
-
 WEAK symbol<EngineDependentDvarMut> motd_enabled{0x15118D800, 0x15120C780,
                                                  0x1482DED80};
 WEAK symbol<EngineDependentDvarMut> motddelay{0x15118D7F8, 0x15120C778,
@@ -24,7 +23,6 @@ WEAK symbol<EngineDependentDvarMut> motddelay{0x15118D7F8, 0x15120C778,
 
 WEAK symbol<EngineDependentDvarMut> testmissingcontentpacks{
     0x15686EE70, 0x1568EDDF0, 0x14948DD90};
-
 
 WEAK symbol<EngineDependentDvarMut> selectedfriendindex{0x157960B20, 0x0,
                                                         0x14A30C4A8};

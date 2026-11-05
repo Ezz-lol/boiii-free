@@ -6,6 +6,20 @@
 
 namespace game {
 
+#ifndef IMPL_BOOL_DVAR_GETTER
+#define IMPL_BOOL_DVAR_GETTER(name)                                            \
+  [[nodiscard]] inline std::optional<bool> get_##name() {                      \
+    return *name ? std::optional(name->get_bool()) : std::nullopt;             \
+  }
+#endif
+
+#ifndef IMPL_INT32_DVAR_GETTER
+#define IMPL_INT32_DVAR_GETTER(name)                                           \
+  [[nodiscard]] inline std::optional<int32_t> get_##name() {                   \
+    return *name ? std::optional(name->get_int()) : std::nullopt;              \
+  }
+#endif
+
 alwaysinline EngineDependentDvarMut get_dvar(const char *name) {
   return Dvar_FindVar(name);
 }
@@ -343,6 +357,11 @@ constexpr uint16_t DEFAULT_PORT = 3074;
   return get_com_maxclients();
 }
 
+IMPL_INT32_DVAR_GETTER(join_completionWindow);
+IMPL_BOOL_DVAR_GETTER(lobby_hostJoinRequestReject);
+IMPL_INT32_DVAR_GETTER(join_retryCount);
+IMPL_INT32_DVAR_GETTER(join_retryDelay);
+
 typedef fastcall_t<void(
     const std::function<void(sv::client_s &cl, ClientNum_t client_num)>
         &callback)>
@@ -412,32 +431,6 @@ inline ClientNum_t available_client_count() {
                                   +connected_client_count());
 }
 
-template <typename E>
-concept EnumType = std::is_enum_v<E>;
-
-template <EnumType T, const T MinValue, const T MaxValue>
-constexpr bool valid(const T enum_val) {
-  using Underlying = std::underlying_type_t<T>;
-
-  const Underlying casted = static_cast<Underlying>(enum_val);
-  return casted >= static_cast<Underlying>(MinValue) &&
-         casted < static_cast<Underlying>(MaxValue);
-}
-
-constexpr bool valid_client_num(ClientNum_t client_num) {
-  return valid<ClientNum_t, CLIENT_INDEX_0, CLIENT_INDEX_COUNT>(client_num);
-}
-
-constexpr bool valid_controller_index(ControllerIndex_t controllerIndex) {
-  return valid<ControllerIndex_t, CONTROLLER_INDEX_0, CONTROLLER_INDEX_COUNT>(
-      controllerIndex);
-}
-
-constexpr bool valid_local_client_num(LocalClientNum_t localClientNum) {
-  return valid<LocalClientNum_t, LOCAL_CLIENT_0, LOCAL_CLIENT_COUNT>(
-      localClientNum);
-}
-
 inline bool valid_dvar(const EngineDependentDvar dvar) {
   const EngineDependentDvarPool pool = dvar_pool();
   return pool.contains(dvar);
@@ -449,7 +442,7 @@ template <typename T>
 inline level::gentity_t *client_ent(T index) {
   level::gentity_pool *pool = get_g_entities();
   ClientNum_t client_num = static_cast<game::ClientNum_t>(index);
-  return valid_client_num(client_num) ? &pool->pool[client_num] : nullptr;
+  return validate(client_num) ? &pool->pool[client_num] : nullptr;
 }
 } // namespace level
 

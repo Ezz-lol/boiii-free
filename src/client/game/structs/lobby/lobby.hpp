@@ -8,5 +8,7 @@
 #include "join.hpp"          // IWYU pragma: export
 #include "msg/msg.hpp"       // IWYU pragma: export
 #include "reservation.hpp"   // IWYU pragma: export
+#include "serverlist.hpp"    // IWYU pragma: export
 #include "session.hpp"       // IWYU pragma: export
+#include "spinner.hpp"       // IWYU pragma: export
 #include "voice.hpp"         // IWYU pragma: export

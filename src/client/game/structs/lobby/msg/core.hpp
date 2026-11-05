@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "game/structs/core.hpp"
+#include "game/structs/lobby/core.hpp"
 #include "game/structs/net/core.hpp"
 #include "game/structs/net/msg.hpp"
 namespace game {
@@ -11,8 +12,9 @@ namespace lobby {
 namespace msg {
 
 struct LobbyMsg;
-typedef fastcall_t<void(ControllerIndex_t controllerIndex, net::netadr_t *adr,
-                        XUID xuid, LobbyMsg *msg)>
+typedef fastcall_t<void(ControllerIndex_t controllerIndex,
+                        net::netadr_t *fromAdr, XUID fromXUID,
+                        LobbyMsg *lobbyMsg)>
     LobbyMsg_MsgHandleCallback;
 typedef LobbyMsg_MsgHandleCallback *LobbyMsg_MsgHandleCallbackPtr;
 
@@ -144,7 +146,7 @@ concept Packageable = requires(T t, LobbyMsg &msg) {
 
 template <typename T>
 concept TypedPacket = requires {
-  { T::MESSAGE_TYPE } -> std::same_as<MsgType>;
+  { T::MESSAGE_TYPE } -> std::same_as<const MsgType &>;
 };
 
 template <typename T>
@@ -157,7 +159,15 @@ struct LobbyMsg {
   PackageType packageType;
 
   bool package_int(const std::string_view &key, int32_t *val);
+  template <typename T>
+    requires(sizeof(T) == sizeof(int32_t) && !std::is_same_v<T, int32_t>)
+  bool package_int(const std::string_view &key, T *val) {
+    return package_int(key, reinterpret_cast<int32_t *>(val));
+  }
   bool package_bool(const std::string_view &key, bool *val);
+  bool package_bool(const std::string_view &key, qboolean *val) {
+    return package_bool(key, &val->value);
+  }
   bool package_char(const std::string_view &key, char *val);
   bool package_glob(const std::string_view &key, void *val, size_t numbytes);
   template <const size_t N>
@@ -178,6 +188,11 @@ struct LobbyMsg {
   }
 
   bool package_uint(const std::string_view &key, uint32_t *val);
+  template <typename T>
+    requires(sizeof(T) == sizeof(uint32_t) && !std::is_same_v<T, uint32_t>)
+  bool package_uint(const std::string_view &key, T *val) {
+    return package_uint(key, reinterpret_cast<uint32_t *>(val));
+  }
   bool package_xuid(const std::string_view &key, XUID *val);
   bool package_float(const std::string_view &key, float *val);
   bool package_short(const std::string_view &key, int16_t *val);
@@ -204,15 +219,25 @@ struct LobbyMsg {
   bool prep_writeMsg(uint8_t *data, size_t length, MsgType type);
   bool read_char(const std::string_view &expectedKey, char *val);
   bool read_int(const std::string_view &expectedKey, int32_t *val);
+  template <typename T>
+    requires(sizeof(T) == sizeof(int32_t) && !std::is_same_v<T, int32_t>)
+  bool read_int(const std::string_view &key, T *val) {
+    return read_int(key, reinterpret_cast<int32_t *>(val));
+  }
   bool read_bool(const std::string_view &expectedKey, bool *val);
   bool read_glob(const std::string_view &expectedKey, void *data,
                  size_t nBytes);
   template <const size_t N>
   alwaysinline bool read_glob(const std::string_view &expectedKey,
                               uint8_t (&arr)[N]) {
-    return package_glob(expectedKey, reinterpret_cast<void *>(arr), N);
+    return read_glob(expectedKey, reinterpret_cast<void *>(arr), N);
   }
   bool read_uint(const std::string_view &expectedKey, uint32_t *val);
+  template <typename T>
+    requires(sizeof(T) == sizeof(uint32_t) && !std::is_same_v<T, uint32_t>)
+  bool read_uint(const std::string_view &key, T *val) {
+    return read_uint(key, reinterpret_cast<uint32_t *>(val));
+  }
   bool read_xuid(const std::string_view &expectedKey, XUID *val);
   bool read_float(const std::string_view &expectedKey, float *val);
   bool read_short(const std::string_view &expectedKey, int16_t *val);
@@ -231,13 +256,23 @@ struct LobbyMsg {
   LobbyMsgElementType read_elementType();
   bool write_char(const std::string_view &key, char val);
   bool write_int(const std::string_view &key, int32_t val);
+  template <typename T>
+    requires(sizeof(T) == sizeof(int32_t) && !std::is_same_v<T, int32_t>)
+  bool write_int(const std::string_view &key, T val) {
+    return write_int(key, std::bit_cast<int32_t>(val));
+  }
   bool write_glob(const std::string_view &key, void *val, size_t numbytes);
   template <const size_t N>
   alwaysinline bool write_glob(const std::string_view &key, uint8_t (&arr)[N]) {
-    return package_glob(key, reinterpret_cast<void *>(arr), N);
+    return write_glob(key, reinterpret_cast<void *>(arr), N);
   }
 
   bool write_uint(const std::string_view &key, uint32_t val);
+  template <typename T>
+    requires(sizeof(T) == sizeof(uint32_t) && !std::is_same_v<T, uint32_t>)
+  bool write_uint(const std::string_view &key, T val) {
+    return write_uint(key, std::bit_cast<uint32_t>(val));
+  }
   bool write_xuid(const std::string_view &key, XUID val);
   bool write_float(const std::string_view &key, float val);
   bool write_short(const std::string_view &key, int16_t val);
@@ -273,6 +308,10 @@ struct LobbyMsg {
     return package(data, N);
   }
 
+  template <Packageable T> alwaysinline bool package(LobbyModulePool<T> &data) {
+    return package(data.pool, data.size());
+  }
+
   template <Packageable T, const size_t N>
   alwaysinline bool package(std::span<T, N> &data) {
     return package(data.data(), N);
@@ -291,14 +330,14 @@ struct LobbyMsg {
     return package(data.data(), data.size());
   }
 
-  static constexpr auto MESSAGE_BUF_LEN = 0x20000;
-  template <Packet P> alwaysinline bool write(P &packet) {
-    return prep_writeMsg(&packet, MESSAGE_BUF_LEN, P::MESSAGE_TYPE) &&
-           package(packet);
+  template <Packet P, const size_t N>
+  alwaysinline bool write(P &packet, uint8_t (&buf)[N]) {
+    return prep_writeMsg(buf, N, P::MESSAGE_TYPE) && package(packet);
   }
 
-  template <Packet P> alwaysinline bool read(P &packet) {
-    return prep_readMsg(&packet, MESSAGE_BUF_LEN) && package(packet);
+  template <Packet P, const size_t N>
+  alwaysinline bool read(P &packet, uint8_t (&buf)[N]) {
+    return prep_readMsg(buf, N) && package(packet);
   }
 };
 
@@ -308,8 +347,8 @@ enum class MsgState : uint32_t {
 };
 
 struct EVENT_HANDLE {
-  bool manualReset;
-  uint8_t _padding1[7];
+  bool manualReset = false;
+  uint8_t _padding1[7] = {0};
 };
 
 enum class netchanMessageState_e : uint32_t {
@@ -319,28 +358,28 @@ enum class netchanMessageState_e : uint32_t {
 };
 
 struct netchanMsgConfig_s {
-  EVENT_HANDLE completedEvent;
-  netchanMessageState_e status;
-  int32_t timeoutMS;
+  EVENT_HANDLE completedEvent = {};
+  netchanMessageState_e status = netchanMessageState_e::FAILED;
+  int32_t timeoutMS = 0;
 };
 
 typedef netchanMsgConfig_s netchanMsgConfig_t;
 
 // Verified
 struct NetChanMsg {
-  int32_t sentTime;
-  MsgState msgState;
-  MsgType msgType;
-  netchanMsgConfig_t config;
-  int32_t timeout;
-  XUID toXUID;
-  XUID clientXUID;
+  int32_t sentTime = 0;
+  MsgState msgState = MsgState::IDLE;
+  MsgType msgType = MsgType::NONE;
+  netchanMsgConfig_t config = {};
+  int32_t timeout = 0;
+  XUID toXUID = 0;
+  XUID clientXUID = 0;
 };
 ASSERT_SIZE(NetChanMsg, 0x30);
 
 struct LobbyMsgHandler {
   MsgType msgType;
-  LobbyMsg_MsgHandleCallback *function;
+  LobbyMsg_MsgHandleCallbackPtr function;
 };
 } // namespace msg
 } // namespace lobby

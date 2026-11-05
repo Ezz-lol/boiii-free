@@ -64,7 +64,7 @@ game::ClientNum_t get_client_num(game::sv::client_s *client) {
         const uintptr_t client_displacement = client_addr - svs_clients_addr;
         const game::ClientNum_t client_num = static_cast<game::ClientNum_t>(
             client_displacement / sizeof(game::sv::client_s_cl));
-        if (game::valid_client_num(client_num)) {
+        if (game::validate(client_num)) {
           return client_num;
         }
       }
@@ -77,7 +77,7 @@ game::ClientNum_t get_client_num(game::sv::client_s *client) {
         const uintptr_t client_displacement = client_addr - svs_clients_addr;
         const game::ClientNum_t client_num = static_cast<game::ClientNum_t>(
             client_displacement / sizeof(game::sv::client_s));
-        if (game::valid_client_num(client_num)) {
+        if (game::validate(client_num)) {
           return client_num;
         }
       }
@@ -87,7 +87,7 @@ game::ClientNum_t get_client_num(game::sv::client_s *client) {
 }
 
 game::sv::client_s *get_client(game::ClientNum_t clientNum) {
-  if (game::valid_client_num(clientNum)) {
+  if (game::validate(clientNum)) {
     if (game::is_client()) {
       game::sv::client_s_cl *svs_clients_cl = *game::sv::svs_clients_cl;
       return &svs_clients_cl[clientNum];

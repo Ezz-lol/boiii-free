@@ -64,15 +64,15 @@ std::filesystem::path tracing_logfile_path() {
   return tracing;
 }
 
-static std::ofstream logfile;
+static std::ofstream tracing_logfile_stream;
 static std::once_flag tracing_logfile_flag;
 void set_tracing_logfile() {
-  logfile = std::ofstream(tracing_logfile_path(), std::ios::app);
+  tracing_logfile_stream = std::ofstream(tracing_logfile_path(), std::ios::app);
 }
 
 std::ofstream &tracing_logfile() {
   std::call_once(tracing_logfile_flag, set_tracing_logfile);
-  return logfile;
+  return tracing_logfile_stream;
 }
 #endif
 

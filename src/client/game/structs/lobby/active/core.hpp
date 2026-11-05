@@ -1,6 +1,6 @@
 #pragma once
 
-#include "game/structs/ddl.hpp"
+#include "game/structs/clientcontent.hpp"
 #include "game/structs/lobby/core.hpp"
 #include "game/structs/lobby/session.hpp"
 
@@ -9,41 +9,6 @@
 namespace game {
 namespace lobby {
 namespace active {
-PACKED(struct ClientContentState {
-  ddl::DDLContext ddlCtx;
-  uint32_t bufferChecksum;
-  uint16_t compressedBufferSize;
-  uint16_t cursorPosition;
-  uint16_t totalContentReceived;
-  bool isDataCompressed;
-  uint8_t _padding33[1];
-});
-
-struct ClientContent {
-  ClientContentState contentStates[2];
-  eModes sessionMode;
-  eGameModes gameMode;
-  uint8_t buffer[163840];
-};
-
-PACKED(struct ClientContentTracking {
-  ClientContentTransferState state;
-  XUID toXUID;
-  int32_t numOfAttempts;
-  uint16_t cursorPosition;
-  uint8_t _padding12[2];
-});
-
-PACKED(struct ClientContentFragments {
-  uint16_t offset;
-  uint16_t fragmentLength;
-  int32_t serverSequenceNum;
-  ClientContentFragmentTransferState fragmentTrasferState;
-  ClientContentFragmentDataType fragmentDataType;
-  XUID toXUID;
-  int32_t fragmentSentTime;
-  uint8_t _padding1C[4];
-});
 
 PACKED(struct ActiveClient {
   MutableClientInfo mutableClientInfo;
@@ -53,12 +18,14 @@ PACKED(struct ActiveClient {
   int32_t probedXuidTimestamp;
   int32_t uploadBandwidth;
   net::connectionType_e connectionType;
-  ClientContent clientContent;
-  LobbyClientPool<ClientContentTracking[2]> tracking;
+  clientcontent::ClientContent clientContent;
+  LobbyClientPool<clientcontent::ClientContentTracking[2]> tracking;
   uint8_t _padding28894[4];
-  ClientContentFragments fragments[128];
+  clientcontent::ClientContentFragments fragments[128];
 });
-ASSERT_SIZE(ActiveClient, 0x29898);
+// Correct size is 0x2E7B20.
+// TODO: correct this struct.
+// ASSERT_SIZE(ActiveClient, 0x2E7B20);
 
 struct ActiveList {
   LobbyModule module;

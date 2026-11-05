@@ -37,7 +37,7 @@ WEAK symbol<bool(ControllerIndex_t controllerIndex,
     BuildAndSendVoicePacket{0x141EE4A20, 0x0, 0x1404A2340};
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
                  session::LobbySession *lobbySession, int routBits,
-                 ClientNum_t peerIndex, Msg_VoicePacket *voicePacket)>
+                 ClientNum_t peerIndex, msg::Msg_VoicePacket *voicePacket)>
     SendVoicePacket{0x141EE9370, 0x0, 0x1404A3940};
 WEAK symbol<bool(ControllerIndex_t controllerIndex, LobbyType lobbyType)>
     CanProcessVoiceData{0x141EE4CB0, 0x0, 0x1404A2580};
@@ -58,7 +58,8 @@ WEAK symbol<ClientNum_t(session::LobbySession *lobbySession, XUID ourXuid,
                         int *routeList, session::SessionClient *peer)>
     LobbyVoice_FindGoodRouteForClientNum{0x141EE5300, 0x0, 0x1404A2C00};
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
-                 session::LobbySession *lobbySession, Msg_VoicePacket *msgData)>
+                 session::LobbySession *lobbySession,
+                 msg::Msg_VoicePacket *msgData)>
     LobbyVoice_HandleVoicePacket{0x141EE54B0, 0x0, 0x1404A2DC0};
 WEAK symbol<bool(ControllerIndex_t controllerIndex, LobbyType lobbyType,
                  ClientNum_t clientNum)>
@@ -147,11 +148,11 @@ inline void LobbyVoice_ForEachLobbyClientNum() {
 }
 
 inline void UnMuteAllClients() {
-  return LobbyVoice_ForEachLobbyClientNum<LobbyVoice_UnMuteClient>();
+  LobbyVoice_ForEachLobbyClientNum<LobbyVoice_UnMuteClient>();
 }
 
 inline void MuteAllClients() {
-  return LobbyVoice_ForEachLobbyClientNum<LobbyVoice_MuteClient>();
+  LobbyVoice_ForEachLobbyClientNum<LobbyVoice_MuteClient>();
 }
 } // namespace voice
 } // namespace lobby

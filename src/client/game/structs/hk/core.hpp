@@ -27,7 +27,7 @@ struct hkHalf {
 };
 class hkBaseObject {
 public:
-  int32_t (**_vptr$hkBaseObject)(void);
+  int32_t (**_vptr$hkBaseObject)();
 };
 
 class hkReferencedObject : public hkBaseObject {

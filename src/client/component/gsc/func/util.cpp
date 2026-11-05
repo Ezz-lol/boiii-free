@@ -135,7 +135,7 @@ inline void impl(scriptInstance_t inst, const level::gentity_t *ent) {
   if (ent != nullptr) {
     const ClientNum_t clientNum =
         static_cast<ClientNum_t>(level::entity_index(ent));
-    if (valid_client_num(clientNum)) {
+    if (validate(clientNum)) {
       push(inst, clientNum);
     }
   }

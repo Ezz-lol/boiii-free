@@ -44,6 +44,8 @@ WEAK symbol<dw::TaskRecord *(const ControllerIndex_t controllerIndex,
 WEAK symbol<dw::TaskRecord *(const ControllerIndex_t controllerIndex,
                              dw::task::fs::dwFileOperationInfo *fileInfo)>
     LiveStorage_WriteDWUserFile{0x141EB4A50, 0x0, 0x0};
+WEAK symbol<int32_t()> LiveStorage_GetFFOTDVersion{0x141EB7680, 0x0,
+                                                   0x14047E580};
 
 } // namespace storage
 

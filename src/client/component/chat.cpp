@@ -32,7 +32,7 @@ std::optional<game::ClientNum_t> parse_client_num(const char *value) {
   const auto [ptr, error] =
       std::from_chars(text.data(), text.data() + text.size(), client_num);
 
-  return game::valid_client_num(static_cast<game::ClientNum_t>(client_num)) &&
+  return game::validate(static_cast<game::ClientNum_t>(client_num)) &&
                  error == std::errc() && ptr == text.data() + text.size()
              ? std::optional(static_cast<game::ClientNum_t>(client_num))
              : std::nullopt;
@@ -45,7 +45,7 @@ bool is_muted(const game::level::gentity_s *ent) {
 
   const game::ClientNum_t client_num =
       static_cast<game::ClientNum_t>(ent->s.number);
-  return game::valid_client_num(client_num) &&
+  return game::validate(client_num) &&
          muted_clients[client_num].load(std::memory_order_relaxed);
 }
 
@@ -59,7 +59,7 @@ template <const bool Toggle> void toggle_mute(const command::params &params) {
 
   const std::optional<game::ClientNum_t> client_num =
       parse_client_num(params[1]);
-  if (!client_num.has_value() || !game::valid_client_num(client_num.value())) {
+  if (!client_num.has_value() || !game::validate(client_num.value())) {
     printf("Invalid client number. Expected a value from 0 to %d.\n",
            game::CLIENT_INDEX_COUNT - 1);
     return;
@@ -244,7 +244,7 @@ public:
 
       sv::on_removeclient([](game::sv::client_s *client, const char *) {
         const game::ClientNum_t client_num = sv::get_client_num(client);
-        if (game::valid_client_num(client_num)) {
+        if (game::validate(client_num)) {
           muted_clients[client_num].store(false, std::memory_order_relaxed);
         }
       });

@@ -16,18 +16,6 @@ enum class eVoipStatus : int32_t {
   ENEMY_TALKING = 4,
 };
 
-PACKED(struct Msg_VoicePacket {
-  LobbyType lobbyType;
-  uint8_t talkerIndex;
-  uint8_t _padding05[3];
-  int32_t relayBits;
-  uint16_t sizeofVoiceData;
-  uint8_t numPacketsInData;
-  uint8_t voiceData[1198];
-  uint8_t _padding4BD[3];
-});
-ASSERT_SIZE(Msg_VoicePacket, 0x4C0);
-
 PACKED(struct SharedVoiceSessionData {
   uint32_t voiceOutPort;
   uint32_t microphonePort;

@@ -85,7 +85,7 @@ union LobbyClientHostMsgHandlersTable {
     LobbyMsgHandler LobbyClientContent;
   };
 
-  static inline constexpr auto COUNT = 12;
+  static constexpr auto COUNT = 12;
   LobbyMsgHandler handlers[COUNT];
 
   DEFINE_LOBBYMSGHANDLER_TABLE_METHODS();
@@ -108,7 +108,7 @@ union LobbyHostClientMsgHandlersTable {
     LobbyMsgHandler VoicePacket;
   };
 
-  static inline constexpr auto COUNT = 12;
+  static constexpr auto COUNT = 12;
   LobbyMsgHandler handlers[COUNT];
 
   DEFINE_LOBBYMSGHANDLER_TABLE_METHODS();
@@ -122,7 +122,7 @@ union LobbyP2PMsgHandlersTable {
     LobbyMsgHandler VoicePacket;
     LobbyMsgHandler DemoState;
   };
-  static inline constexpr auto COUNT = 5;
+  static constexpr auto COUNT = 5;
   LobbyMsgHandler handlers[COUNT];
 
   DEFINE_LOBBYMSGHANDLER_TABLE_METHODS();
@@ -130,11 +130,11 @@ union LobbyP2PMsgHandlersTable {
 
 // Verified
 PACKED(struct Msg_InfoResponse {
-  uint32_t nonce;
-  LobbyUIScreen uiScreen;
-  dw::net::bdNATType natType;
+  uint32_t nonce = 0;
+  LobbyUIScreen uiScreen = 0;
+  dw::net::bdNATType natType = dw::net::bdNATType::NAT_UNKNOWN;
   uint8_t _padding09[7];
-  info::InfoResponseLobby lobby[2];
+  info::InfoResponseLobby lobby[2] = {{}};
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::INFO_RESPONSE;
   bool package(LobbyMsg & lobbyMsg);
@@ -142,28 +142,28 @@ PACKED(struct Msg_InfoResponse {
 ASSERT_SIZE(Msg_InfoResponse, 0x150);
 
 PACKED(struct Msg_JoinParty {
-  LobbyType targetLobby;
-  LobbyType sourceLobby;
-  join::JoinType joinType;
+  LobbyType targetLobby = LobbyType::INVALID;
+  LobbyType sourceLobby = LobbyType::INVALID;
+  join::JoinType joinType = join::JoinType::COUNT;
   uint8_t _padding0C[4];
-  XUID probedXuid;
-  ClientNum_t memberCount;
+  XUID probedXuid = 0;
+  ClientNum_t memberCount = ClientNum_t::CLIENT_INDEX_0;
   uint8_t _padding1C[4];
-  LobbyClientPool<join::JoinPartyMember> members;
-  int32_t splitscreenClients;
-  int32_t playlistID;
-  int32_t playlistVersion;
-  int32_t ffotdVersion;
-  LobbyNetworkMode networkMode;
-  uint32_t netFieldChecksum;
-  int32_t protocolVersion;
-  int32_t changelist;
-  int32_t pingBand;
-  uint32_t dlcBits;
-  uint64_t joinNonce;
-  bool isStarterPack;
-  char password[32];
-  bool chunkStatus[3];
+  LobbyClientPool<join::JoinPartyMember> members = {{}};
+  LocalClientNum_t splitscreenClients = LocalClientNum_t::INVALID_LOCAL_CLIENT;
+  int32_t playlistID = 0;
+  int32_t playlistVersion = 0;
+  int32_t ffotdVersion = 0;
+  LobbyNetworkMode networkMode = LobbyNetworkMode::INVALID;
+  uint32_t netFieldChecksum = 0;
+  int32_t protocolVersion = 0;
+  int32_t changelist = 0;
+  int32_t pingBand = 0;
+  ContentFlags dlcBits = {};
+  uint64_t joinNonce = 0;
+  bool isStarterPack = false;
+  char password[32] = {0};
+  bool chunkStatus[3] = {false};
   uint8_t _padding2B4[4];
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::JOIN_LOBBY;
@@ -174,11 +174,9 @@ PACKED(struct Msg_JoinParty {
 });
 ASSERT_SIZE(Msg_JoinParty, 0x2B8);
 
-typedef int32_t LobbyLeaderActivity;
-
 // Verified
 struct MsgMutableClientInfo {
-  MutableClientInfo mutableClientInfo;
+  MutableClientInfo mutableClientInfo = {};
 
   bool package(LobbyMsg &lobbyMsg);
 };
@@ -186,65 +184,65 @@ ASSERT_SIZE(MsgMutableClientInfo, 0x410);
 
 // Verified
 PACKED(struct MsgClientLobbyInfo {
-  XUID xuid;
-  ClientNum8_t clientNum;
-  name_t gamertag;
-  bool isGuest;
+  XUID xuid = 0;
+  ClientNum8_t clientNum = ClientNum8_t::INVALID_CLIENT_INDEX_8;
+  name_t gamertag = {0};
+  bool isGuest = false;
   uint8_t _padding2A[6];
-  LobbyID lobbyID;
-  int32_t qport;
-  uint8_t latencyBand;
+  LobbyID lobbyID = 0;
+  int32_t qport = 0;
+  uint8_t latencyBand = 0;
   uint8_t _padding3D[3];
-  MsgMutableClientInfo mutableClientInfoMsg;
-  int32_t score;
-  int32_t connectivityBits;
-  net::SerializedAdr serializedAdr;
+  MsgMutableClientInfo mutableClientInfoMsg = {};
+  int32_t score = 0;
+  int32_t connectivityBits = 0;
+  net::SerializedAdr serializedAdr = {};
   uint8_t _padding47E[2];
-  net::netsrc_t localNetID;
-  uint32_t joinOrder;
-  uint32_t dlcBits;
+  net::netsrc_t localNetID = net::netsrc_t::NS_NULL;
+  uint32_t joinOrder = 0;
+  ContentFlags dlcBits = {};
   uint8_t _padding48C[4];
 });
 ASSERT_SIZE(MsgClientLobbyInfo, 0x490);
 
 // Verified
 PACKED(struct MsgHostMigrateInfo {
-  uint8_t indexBits;
+  uint8_t indexBits = 0;
   uint8_t _padding01[3];
-  int32_t lasthostTimeMS;
-  LobbyClientPool<XUID> migrateNominees;
+  int32_t lasthostTimeMS = 0;
+  LobbyClientPool<XUID> migrateNominees = {0};
 });
 ASSERT_SIZE(MsgHostMigrateInfo, 0x98);
 
 // Verified
 struct MsgPlatformSessionData {
-  session::PlatformSessionData platformSessionData;
+  session::PlatformSessionData platformSessionData = {};
 };
 
 // Verified
 PACKED(struct Msg_LobbyState {
-  int32_t stateNum;
-  LobbyNetworkMode lobbyNetworkMode;
-  LobbyMainMode lobbyMainMode;
-  PartyPrivacy partyPrivacy;
-  LobbyType lobbyType;
-  LobbyMode lobbyMode;
-  session::SessionStatus status;
-  int32_t uiScreen;
-  LobbyLeaderActivity uiLeaderActivity;
-  str32_t key;
+  int32_t stateNum = 0;
+  LobbyNetworkMode lobbyNetworkMode = LobbyNetworkMode::INVALID;
+  LobbyMainMode lobbyMainMode = LobbyMainMode::INVALID;
+  PartyPrivacy partyPrivacy = PartyPrivacy::CLOSED;
+  LobbyType lobbyType = LobbyType::INVALID;
+  LobbyMode lobbyMode = LobbyMode::INVALID;
+  session::SessionStatus status = session::SessionStatus::INVALID;
+  int32_t uiScreen = 0;
+  LobbyLeaderActivity uiLeaderActivity = 0;
+  str32_t key = {0};
   uint8_t _padding44[4];
-  XUID clientLeader;
-  XUID platformSessionID;
-  ClientNum_t maxClients;
-  bool isAdvertised;
+  XUID clientLeader = 0;
+  XUID platformSessionID = 0;
+  ClientNum_t maxClients = ClientNum_t::INVALID_CLIENT_INDEX;
+  bool isAdvertised = false;
   uint8_t _padding5D[3];
-  ClientNum_t clientCount;
+  ClientNum_t clientCount = ClientNum_t::INVALID_CLIENT_INDEX;
   uint8_t _padding64[4];
-  LobbyClientPool<MsgClientLobbyInfo> clientList;
-  MsgHostMigrateInfo migrateInfo;
-  MsgPlatformSessionData platformData;
-  info::LobbyUGCInfo ugcInfo;
+  LobbyClientPool<MsgClientLobbyInfo> clientList = {{}};
+  MsgHostMigrateInfo migrateInfo = {};
+  MsgPlatformSessionData platformData = {};
+  info::LobbyUGCInfo ugcInfo = {};
   uint8_t _padding53C4[4];
 
   bool package(LobbyMsg & lobbyMsg);
@@ -256,10 +254,10 @@ ASSERT_SIZE(Msg_LobbyState, 0x53C8);
 
 // Verified
 PACKED(struct Msg_LobbyStateGame {
-  Msg_LobbyState core;
-  session::GameData dataGame;
-  int32_t compressedBufferSize;
-  session::gametypesettings_t compressedBuffer;
+  Msg_LobbyState core = {};
+  session::GameData dataGame = {};
+  int32_t compressedBufferSize = 0;
+  session::gametypesettings_t compressedBuffer = {0};
   uint8_t _padding132DC[4];
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_STATE_GAME;
@@ -275,13 +273,13 @@ ASSERT_OFFSET(Msg_LobbyStateGame, compressedBufferSize, 0x72D8);
 ASSERT_OFFSET(Msg_LobbyStateGame, compressedBuffer, 0x72DC);
 
 struct PrivateData {
-  int32_t playlistId;
+  int32_t playlistId = 0;
 };
 
 // Verified
 PACKED(struct Msg_LobbyStatePrivate {
-  Msg_LobbyState core;
-  PrivateData dataPrivate;
+  Msg_LobbyState core = {};
+  PrivateData dataPrivate = {};
   uint8_t _padding53CC[4];
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_STATE_PRIVATE;
@@ -296,8 +294,8 @@ ASSERT_SIZE(Msg_LobbyStatePrivate, 0x53D0);
 
 // Verified
 PACKED(struct Msg_JoinAgreementResponse {
-  XUID xuid;
-  bool clientAgrees;
+  XUID xuid = 0;
+  bool clientAgrees = false;
   uint8_t _padding09[7];
 
   static inline constexpr MsgType MESSAGE_TYPE =
@@ -312,37 +310,38 @@ ASSERT_SIZE(Msg_JoinAgreementResponse, 0x10);
 
 // Verified
 PACKED(struct Msg_ModifiedStats {
-  int32_t statsSize;
-  uint8_t statsBuffer[0x80000];
+  int32_t statsSize = 0;
+  uint8_t statsBuffer[0x10000] = {0};
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_MODIFIED_STATS;
 
   inline bool package(LobbyMsg & lobbyMsg) {
     return lobbyMsg.package_int("statssize", &statsSize) &&
+           statsSize <= std::size(statsBuffer) &&
            lobbyMsg.package_glob("statsbuffer", statsBuffer, statsSize);
   }
 
   IMPL_SLICE_METHODS(statsBuffer, statsSize, StatsBuffer);
 });
-ASSERT_SIZE(Msg_ModifiedStats, 0x80004);
+ASSERT_SIZE(Msg_ModifiedStats, 0x10004);
 
 // Verified
 PACKED(struct Msg_ClientReliableData {
   // TODO: concretely define as bit-packed union
-  uint32_t dataMask;
-  LobbyType lobbyType;
-  XUID xuidNewLeader;
-  XUID disconnectClientXuid;
-  LobbyDisconnectClient disconnectClient;
-  LobbyLeaderActivity leaderActivity;
-  XUID platformSessionID;
-  team_t team;
-  LobbyMapVote mapVote;
-  bool readyUp;
+  uint32_t dataMask = 0;
+  LobbyType lobbyType = LobbyType::INVALID;
+  XUID xuidNewLeader = 0;
+  XUID disconnectClientXuid = 0;
+  LobbyDisconnectClient disconnectClient = LobbyDisconnectClient::INVALID;
+  LobbyLeaderActivity leaderActivity = 0;
+  XUID platformSessionID = 0;
+  team_t team = team_t::TEAM_FREE;
+  LobbyMapVote mapVote = LobbyMapVote::INVALID;
+  bool readyUp = false;
   uint8_t _padding31[7];
-  session::ItemVote itemVote;
-  session::CharacterSelection characterSelection;
-  bool editComplete;
+  session::ItemVote itemVote = {};
+  session::CharacterSelection characterSelection = {};
+  bool editComplete = false;
   uint8_t _padding61[7];
 
   static inline constexpr MsgType MESSAGE_TYPE =
@@ -354,23 +353,27 @@ ASSERT_SIZE(Msg_ClientReliableData, 0x68);
 
 // Verified
 PACKED(struct Msg_VoicePacket {
-  LobbyType lobbyType;
-  uint8_t talkerIndex;
+  LobbyType lobbyType = LobbyType::INVALID;
+  uint8_t talkerIndex = 0;
   uint8_t _padding05[3];
-  int32_t relayBits;
-  uint16_t sizeofVoiceData;
-  uint8_t numPacketsInData;
-  uint8_t voiceData[1198];
+  int32_t relayBits = 0;
+  uint16_t sizeofVoiceData = 0;
+  uint8_t numPacketsInData = 0;
+  // A buffer of contiguous voice packets with cumulative size <= 1198 bytes.
+  // Each packet contains its size as its first 4 bytes, little-endian encoded,
+  // followed by the specified number of packet bytes.
+  uint8_t voiceData[1198] = {0};
   uint8_t _padding4BD[3];
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::VOICE_PACKET;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) &&
            lobbyMsg.package_uchar("talker", &talkerIndex) &&
            lobbyMsg.package_int("relaybits", &relayBits) &&
            lobbyMsg.package_ushort("sizeofvoicedata", &sizeofVoiceData) &&
+           sizeofVoiceData <= std::size(voiceData) &&
            lobbyMsg.package_uchar("numpackets", &numPacketsInData) &&
            lobbyMsg.package_glob("voicedata", voiceData, sizeofVoiceData);
   }
@@ -383,7 +386,7 @@ ASSERT_SIZE(Msg_VoicePacket, 0x4C0);
 struct MsgFixedClientInfo {
   FixedClientInfo fixedClientInfo;
 
-  inline bool package(LobbyMsg &lobbyMsg) {
+  bool package(LobbyMsg &lobbyMsg) {
     return lobbyMsg.package_xuid("xuid", &fixedClientInfo.xuid) &&
            lobbyMsg.package_string("name", fixedClientInfo.gamertag) &&
            lobbyMsg.package_int("qport", &fixedClientInfo.qport) &&
@@ -408,14 +411,14 @@ struct MsgFixedClientInfo {
 
 // Verified
 PACKED(struct Msg_ClientContent {
-  uint32_t dataMask;
-  LobbyType lobbyType;
-  uint8_t clientContentData[0x27C00];
-  uint16_t compressedBufferSize;
+  uint32_t dataMask = 0;
+  LobbyType lobbyType = LobbyType::INVALID;
+  uint8_t clientContentData[0x27C00] = {0};
+  uint16_t compressedBufferSize = 0;
   uint8_t _padding27C0A[6];
-  XUID clientXUID;
-  eModes sessionMode;
-  eGameModes gameMode;
+  XUID clientXUID = 0;
+  eModes sessionMode = eModes::INVALID;
+  eGameModes gameMode = eGameModes::INVALID;
 
   IMPL_SLICE_METHODS(clientContentData, compressedBufferSize,
                      ClientContentData);
@@ -424,35 +427,37 @@ PACKED(struct Msg_ClientContent {
 
   inline bool package(LobbyMsg & lobbyMsg) {
     return lobbyMsg.package_uint("datamask", &dataMask) &&
-           lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
+           lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) &&
            lobbyMsg.package_xuid("clientxuid", &clientXUID) &&
            lobbyMsg.package_ushort("buffersize", &compressedBufferSize) &&
+           compressedBufferSize <= std::size(clientContentData) &&
            lobbyMsg.package_glob("buffer", getClientContentData()) &&
            lobbyMsg.package_uchar("sessionmode",
                                   reinterpret_cast<uint8_t *>(&sessionMode)) &&
+           validate(sessionMode) &&
            lobbyMsg.package_uchar("gamemode",
-                                  reinterpret_cast<uint8_t *>(&gameMode));
+                                  reinterpret_cast<uint8_t *>(&gameMode)) &&
+           validate(gameMode);
   }
 });
 ASSERT_SIZE(Msg_ClientContent, 0x27C20);
 
 // Verified
 PACKED(struct Msg_LobbyMigrateBandwidthTest {
-  LobbyType lobbyType;
+  LobbyType lobbyType = LobbyType::INVALID;
   uint8_t _padding04[4];
-  XUID peerXuid;
-  bool isAck;
-  uint8_t sentPacketCountOrSequence;
+  XUID peerXuid = 0;
+  bool isAck = false;
+  uint8_t sentPacketCountOrSequence = 0;
   uint8_t _padding11[2];
-  int32_t timeMS;
+  int32_t timeMS = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_MIGRATE_TEST;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
-           lobbyMsg.package_xuid("xuid", &peerXuid) &&
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) && lobbyMsg.package_xuid("xuid", &peerXuid) &&
            lobbyMsg.package_bool("isack", &isAck) &&
            lobbyMsg.package_int("timems", &timeMS) &&
            lobbyMsg.package_uchar("seqorcount", &sentPacketCountOrSequence);
@@ -461,65 +466,62 @@ PACKED(struct Msg_LobbyMigrateBandwidthTest {
 ASSERT_SIZE(Msg_LobbyMigrateBandwidthTest, 0x18);
 
 PACKED(struct Msg_LobbyDisconnectClient {
-  LobbyType lobbyType;
+  LobbyType lobbyType = LobbyType::INVALID;
   uint8_t _padding04[4];
-  XUID disconnectClientXuid;
-  LobbyDisconnectClient disconnectClient;
+  XUID disconnectClientXuid = 0;
+  LobbyDisconnectClient disconnectClient = LobbyDisconnectClient::INVALID;
   uint8_t _padding14[4];
 
   static inline constexpr MsgType MESSAGE_TYPE =
       MsgType::LOBBY_HOST_DISCONNECT_CLIENT;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) &&
            lobbyMsg.package_xuid("discclientxuid", &disconnectClientXuid) &&
-           lobbyMsg.package_int("discclient",
-                                reinterpret_cast<int32_t *>(&disconnectClient));
+           lobbyMsg.package_int("discclient", &disconnectClient) &&
+           validate(disconnectClient);
   }
 });
 ASSERT_SIZE(Msg_LobbyDisconnectClient, 0x18);
 
 // Verified
 PACKED(struct Msg_ConnectionTest {
-  LobbyType lobbyType;
-  ClientNum_t clientIndex;
+  LobbyType lobbyType = LobbyType::INVALID;
+  ClientNum_t clientIndex = ClientNum_t::INVALID_CLIENT_INDEX;
 
   static inline constexpr MsgType MESSAGE_TYPE =
       MsgType::PEER_TO_PEER_CONNECTIVITY_TEST;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
-           lobbyMsg.package_int("index",
-                                reinterpret_cast<int32_t *>(&clientIndex));
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) && lobbyMsg.package_int("index", &clientIndex) &&
+           validate(clientIndex);
   }
 });
 ASSERT_SIZE(Msg_ConnectionTest, 0x8);
 
 // Verified
 PACKED(struct Msg_DemoState {
-  LobbyType lobbyType;
-  bool paused;
+  LobbyType lobbyType = LobbyType::INVALID;
+  bool paused = false;
   uint8_t _padding05[3];
-  int32_t serverTime;
-  int32_t timeScale;
-  ClientNum_t client;
-  int32_t keyframeIndex;
-  int32_t lastJumpedKeyframe;
-  int32_t keyframeJumpCount;
-  int32_t lastKeyframeTime;
+  int32_t serverTime = 0;
+  int32_t timeScale = 0;
+  ClientNum_t client = ClientNum_t::INVALID_CLIENT_INDEX;
+  int32_t keyframeIndex = 0;
+  int32_t lastJumpedKeyframe = 0;
+  int32_t keyframeJumpCount = 0;
+  int32_t lastKeyframeTime = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::DEMO_STATE;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
-           lobbyMsg.package_bool("paused", &paused) &&
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) && lobbyMsg.package_bool("paused", &paused) &&
            lobbyMsg.package_int("servertime", &serverTime) &&
            lobbyMsg.package_int("timescale", &timeScale) &&
-           lobbyMsg.package_int("client",
-                                reinterpret_cast<int32_t *>(&client)) &&
+           lobbyMsg.package_int("client", &client) && validate(client) &&
            lobbyMsg.package_int("kframeindex", &keyframeIndex) &&
            lobbyMsg.package_int("lstjumpedkframe", &lastJumpedKeyframe) &&
            lobbyMsg.package_int("kframejumpcount", &keyframeJumpCount) &&
@@ -530,26 +532,25 @@ ASSERT_SIZE(Msg_DemoState, 0x24);
 
 // Verified
 PACKED(struct Msg_LobbyClientDisconnect {
-  LobbyType lobbyType;
+  LobbyType lobbyType = LobbyType::INVALID;
   uint8_t _padding04[4];
-  XUID xuid;
+  XUID xuid = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE =
       MsgType::LOBBY_CLIENT_DISCONNECT;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
-           lobbyMsg.package_xuid("xuid", &xuid);
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) && lobbyMsg.package_xuid("xuid", &xuid);
   }
 });
 ASSERT_SIZE(Msg_LobbyClientDisconnect, 0x10);
 
 // Verified
 PACKED(struct Msg_LobbyHostHeartbeat {
-  int32_t heartbeatNum;
-  LobbyType lobbyType;
-  MsgHostMigrateInfo migrateInfo;
+  int32_t heartbeatNum = 0;
+  LobbyType lobbyType = LobbyType::INVALID;
+  MsgHostMigrateInfo migrateInfo = {};
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_HOST_HEARTBEAT;
 
@@ -559,15 +560,15 @@ ASSERT_SIZE(Msg_LobbyHostHeartbeat, 0xA0);
 
 // Verified
 PACKED(struct Msg_LobbyIngameMigrateMigrateTo {
-  LobbyType lobbyType;
+  LobbyType lobbyType = LobbyType::INVALID;
   uint8_t _padding04[4];
-  XUID newHostXuid;
+  XUID newHostXuid = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::INGAME_MIGRATE_TO;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) &&
            lobbyMsg.package_xuid("newhost", &newHostXuid);
   }
 });
@@ -575,7 +576,7 @@ ASSERT_SIZE(Msg_LobbyIngameMigrateMigrateTo, 0x10);
 
 // Verified
 PACKED(struct Msg_InfoRequest {
-  uint32_t nonce;
+  uint32_t nonce = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::INFO_REQUEST;
 
@@ -586,19 +587,19 @@ PACKED(struct Msg_InfoRequest {
 ASSERT_SIZE(Msg_InfoRequest, 0x4);
 
 PACKED(struct Msg_InfoResponseLobbyServer {
-  clientplatform_t clientPlatform;
+  clientplatform_t clientPlatform = clientplatform_t::PC;
   uint8_t _padding04[4];
-  info::InfoResponseLobby lobby[2];
-  XUID xuid;
-  name_t gamertag;
-  eModes sessionMode;
-  name_t mapName;
-  name_t gameType;
-  bool isInGame;
+  LobbyModulePool<info::InfoResponseLobby> lobby = {{}};
+  XUID xuid = 0;
+  name_t gamertag = {0};
+  eModes sessionMode = eModes::INVALID;
+  name_t mapName = {0};
+  name_t gameType = {0};
+  bool isInGame = false;
   uint8_t _padding1B5[3];
-  ClientNum_t maxClients;
-  ClientNum_t clientCount;
-  LobbyClientPool<LANClientInfo> client;
+  ClientNum_t maxClients = ClientNum_t::INVALID_CLIENT_INDEX;
+  ClientNum_t clientCount = ClientNum_t::INVALID_CLIENT_INDEX;
+  LobbyClientPool<LANClientInfo> client = {{}};
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::SERVERLIST_INFO;
 
@@ -610,18 +611,18 @@ ASSERT_SIZE(Msg_InfoResponseLobbyServer, 0x490);
 
 // Verified
 PACKED(struct Msg_JoinAgreementRequest {
-  XUID hostXuid;
-  name_t hostName;
-  net::bdSecurityID secId;
-  net::bdSecurityKey secKey;
-  net::SerializedAdr serializedAdr;
+  XUID hostXuid = 0;
+  name_t hostName = {0};
+  net::bdSecurityID secId = {};
+  net::bdSecurityKey secKey = {};
+  net::SerializedAdr serializedAdr = {};
   uint8_t _padding66[2];
-  LobbyType sourceLobbyType;
-  LobbyType destinationLobbyType;
-  LobbyParams destinationLobbyParams;
-  uint64_t reservationKey;
-  int32_t agreementNonce;
-  int32_t serverLoc;
+  LobbyType sourceLobbyType = LobbyType::INVALID;
+  LobbyType destinationLobbyType = LobbyType::INVALID;
+  LobbyParams destinationLobbyParams = {};
+  uint64_t reservationKey = 0;
+  int32_t agreementNonce = 0;
+  int32_t serverLoc = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE =
       MsgType::JOIN_AGREEMENT_REQUEST;
@@ -634,16 +635,16 @@ PACKED(struct Msg_JoinAgreementRequest {
            lobbyMsg.package_glob("seckey", &secKey, sizeof(secKey)) &&
            lobbyMsg.package_glob("serializedadr", serializedAdr.addrBuff,
                                  sizeof(serializedAdr.addrBuff)) &&
-           lobbyMsg.package_int(
-               "srclobbytype", reinterpret_cast<int32_t *>(&sourceLobbyType)) &&
-           lobbyMsg.package_int("destlobbytype", reinterpret_cast<int32_t *>(
-                                                     &destinationLobbyType)) &&
-           lobbyMsg.package_int(
-               "destnetworkmode",
-               reinterpret_cast<int32_t *>(&destinationLobbyParams)) &&
-           lobbyMsg.package_int(
-               "destmainmode",
-               reinterpret_cast<int32_t *>(&destinationLobbyParams.mainMode)) &&
+           lobbyMsg.package_int("srclobbytype", &sourceLobbyType) &&
+           validate(sourceLobbyType) &&
+           lobbyMsg.package_int("destlobbytype", &destinationLobbyType) &&
+           validate(destinationLobbyType) &&
+           lobbyMsg.package_int("destnetworkmode",
+                                &destinationLobbyParams.networkMode) &&
+           validate(destinationLobbyParams.networkMode) &&
+           lobbyMsg.package_int("destmainmode",
+                                &destinationLobbyParams.mainMode) &&
+           validate(destinationLobbyParams.mainMode) &&
            lobbyMsg.package_int("nonce", &agreementNonce) &&
            lobbyMsg.package_int("serverloc", &serverLoc);
   }
@@ -653,7 +654,7 @@ ASSERT_SIZE(Msg_JoinAgreementRequest, 0x88);
 // Verified
 PACKED(struct Msg_JoinComplete {
   // Field name is serialized as "xuid" in lobby message
-  bool shouldCommit;
+  bool shouldCommit = false;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::JOIN_COMPLETE;
 
@@ -665,11 +666,11 @@ ASSERT_SIZE(Msg_JoinComplete, 0x1);
 
 // Verified
 PACKED(struct Msg_JoinMemberInfo {
-  MsgMutableClientInfo mutableClientInfoMsg;
-  MsgFixedClientInfo fixedClientInfoMsg;
-  uint64_t reservationKey;
-  LobbyType targetLobby;
-  net::SerializedAdr serializedAdr;
+  MsgMutableClientInfo mutableClientInfoMsg = {};
+  MsgFixedClientInfo fixedClientInfoMsg = {};
+  uint64_t reservationKey = 0;
+  LobbyType targetLobby = LobbyType::INVALID;
+  net::SerializedAdr serializedAdr = {};
   uint8_t _padding512[6];
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::JOIN_MEMBER_INFO;
@@ -677,9 +678,8 @@ PACKED(struct Msg_JoinMemberInfo {
   inline bool package(LobbyMsg & lobbyMsg) {
     return lobbyMsg.package_glob("serializedadr", serializedAdr.addrBuff, 37) &&
            lobbyMsg.package_uint64("reservationkey", &reservationKey) &&
-           lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&targetLobby)) &&
-           fixedClientInfoMsg.package(lobbyMsg) &&
+           lobbyMsg.package_int("lobbytype", &targetLobby) &&
+           validate(targetLobby) && fixedClientInfoMsg.package(lobbyMsg) &&
            mutableClientInfoMsg.package(lobbyMsg);
   }
 });
@@ -687,27 +687,26 @@ ASSERT_SIZE(Msg_JoinMemberInfo, 0x518);
 
 // Verified
 PACKED(struct Msg_JoinResponse {
-  join::JoinResult response;
-  name_t name;
-  uint32_t serverLocation;
-  LobbyType lobbyType;
-  LobbyParams lobbyParams;
+  join::JoinResult response = join::JoinResult::SUCCESS;
+  name_t name = {0};
+  uint32_t serverLocation = 0;
+  LobbyType lobbyType = LobbyType::INVALID;
+  LobbyParams lobbyParams = {};
   uint8_t _padding34[4];
-  uint64_t reservationKey;
+  uint64_t reservationKey = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::JOIN_RESPONSE;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("response",
-                                reinterpret_cast<int32_t *>(&response)) &&
+    return lobbyMsg.package_int("response", &response) &&
            lobbyMsg.package_string("name", name) &&
            lobbyMsg.package_uint("serverlocation", &serverLocation) &&
-           lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
-           lobbyMsg.package_int("networkmode",
-                                reinterpret_cast<int32_t *>(&lobbyParams)) &&
-           lobbyMsg.package_int("mainmode", reinterpret_cast<int32_t *>(
-                                                &lobbyParams.mainMode)) &&
+           lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) &&
+           lobbyMsg.package_int("networkmode", &lobbyParams.networkMode) &&
+           validate(lobbyParams.networkMode) &&
+           lobbyMsg.package_int("mainmode", &lobbyParams.mainMode) &&
+           validate(lobbyParams.mainMode) &&
            lobbyMsg.package_uint64("reservationkey", &reservationKey);
   }
 });
@@ -715,27 +714,27 @@ ASSERT_SIZE(Msg_JoinResponse, 0x40);
 
 // Verified
 PACKED(struct MsgClientMigrateInfo {
-  uint16_t totalLatencyMS;
+  uint16_t totalLatencyMS = 0;
   uint8_t _padding02[2];
-  uint32_t recievedPacketCount;
-  float m;
-  uint32_t uploadBandwidth;
+  uint32_t recievedPacketCount = 0;
+  float m = 0.0f;
+  uint32_t uploadBandwidth = 0;
 });
 ASSERT_SIZE(MsgClientMigrateInfo, 0x10);
 
 // Verified
 PACKED(struct Msg_LobbyClientHeartbeat {
-  LobbyType lobbyType;
+  LobbyType lobbyType = LobbyType::INVALID;
   uint8_t _padding04[4];
-  MsgMutableClientInfo mutableClientInfoMsg;
-  MsgClientMigrateInfo migrateInfo;
+  MsgMutableClientInfo mutableClientInfoMsg = {};
+  MsgClientMigrateInfo migrateInfo = {};
 
   static inline constexpr MsgType MESSAGE_TYPE =
       MsgType::LOBBY_CLIENT_HEARTBEAT;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) &&
            lobbyMsg.package_ushort("totallatencyms",
                                    &migrateInfo.totalLatencyMS) &&
            lobbyMsg.package_uint("recievedpackets",
@@ -750,76 +749,72 @@ ASSERT_SIZE(Msg_LobbyClientHeartbeat, 0x428);
 
 // Verified
 PACKED(struct Msg_LobbyHostDisconnect {
-  LobbyType lobbyType;
+  LobbyType lobbyType = LobbyType::INVALID;
   uint8_t _padding04[4];
-  XUID xuid;
+  XUID xuid = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_HOST_DISCONNECT;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
-           lobbyMsg.package_xuid("xuid", &xuid);
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) && lobbyMsg.package_xuid("xuid", &xuid);
   }
 });
 ASSERT_SIZE(Msg_LobbyHostDisconnect, 0x10);
 
 // Verified
 PACKED(struct Msg_LobbyHostLeaveWithParty {
-  LobbyType lobbyType;
+  LobbyType lobbyType = LobbyType::INVALID;
 
   static inline constexpr MsgType MESSAGE_TYPE =
       MsgType::LOBBY_HOST_LEAVE_WITH_PARTY;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType));
+    return lobbyMsg.package_int("lobbytype", &lobbyType) && validate(lobbyType);
   }
 });
 ASSERT_SIZE(Msg_LobbyHostLeaveWithParty, 0x4);
 
 // Verified
 PACKED(struct Msg_LobbyIngameMigrateNewHost {
-  LobbyType lobbyType;
+  LobbyType lobbyType = LobbyType::INVALID;
   uint8_t _padding04[4];
-  XUID hostXuid;
+  XUID hostXuid = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::MIGRATE_NEW_HOST;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
-           lobbyMsg.package_xuid("hostxuid", &hostXuid);
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) && lobbyMsg.package_xuid("hostxuid", &hostXuid);
   }
 });
 ASSERT_SIZE(Msg_LobbyIngameMigrateNewHost, 0x10);
 
 // Verified
 PACKED(struct Msg_LobbyMigrateAnnounceHost {
-  LobbyType lobbyType;
-  int32_t timeout;
+  LobbyType lobbyType = LobbyType::INVALID;
+  int32_t timeout = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::MIGRATE_ANNOUNCE_HOST;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
-           lobbyMsg.package_int("timeout", &timeout);
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) && lobbyMsg.package_int("timeout", &timeout);
   }
 });
 ASSERT_SIZE(Msg_LobbyMigrateAnnounceHost, 0x8);
 
 // Verified
 PACKED(struct Msg_LobbyMigrateStart {
-  LobbyType lobbyType;
+  LobbyType lobbyType = LobbyType::INVALID;
   uint8_t _padding04[4];
-  XUID migrateTo;
+  XUID migrateTo = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::MIGRATE_START;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) &&
            lobbyMsg.package_xuid("migrateTo", &migrateTo);
   }
 });
@@ -827,15 +822,15 @@ ASSERT_SIZE(Msg_LobbyMigrateStart, 0x10);
 
 // Verified
 PACKED(struct Msg_PeerToPeerInfo {
-  LobbyType lobbyType;
-  int32_t connectivityBits;
-  XUID clientXuid;
+  LobbyType lobbyType = LobbyType::INVALID;
+  int32_t connectivityBits = 0;
+  XUID clientXuid = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::PEER_TO_PEER_INFO;
 
   inline bool package(LobbyMsg & lobbyMsg) {
-    return lobbyMsg.package_int("lobbytype",
-                                reinterpret_cast<int32_t *>(&lobbyType)) &&
+    return lobbyMsg.package_int("lobbytype", &lobbyType) &&
+           validate(lobbyType) &&
            lobbyMsg.package_int("connectbit", &connectivityBits) &&
            lobbyMsg.package_xuid("xuid", &clientXuid);
   }

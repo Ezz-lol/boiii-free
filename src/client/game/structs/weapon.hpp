@@ -19,7 +19,7 @@ enum class GadgetTargetResult : uint32_t {
   MAX = 0x3,
 };
 
-inline constexpr const char *serialize(const GadgetTargetResult result) {
+constexpr const char *serialize(const GadgetTargetResult result) {
   switch (result) {
   case GadgetTargetResult::NONE:
     return "GADGETTARGET_NONE";
@@ -41,7 +41,7 @@ enum class gadgetPulseShareType_e : int32_t {
   COUNT = 0x5,
 };
 
-inline constexpr const char *serialize(const gadgetPulseShareType_e type) {
+constexpr const char *serialize(const gadgetPulseShareType_e type) {
   switch (type) {
   case gadgetPulseShareType_e::DEFAULT:
     return "GADGETPULSESHARE_DEFAULT";
@@ -73,7 +73,7 @@ union Weapon {
   };
 
   uint64_t weaponData;
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"weaponIdx\": {}, \"attachment1\": {}, \"attachment2\": {}, "
         "\"attachment3\": {}, \"attachment4\": {}, \"attachment5\": {}, "
@@ -97,7 +97,7 @@ union AttachmentCosmeticVariantIndexes {
   };
   uint32_t data;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"attachmentCosmeticVariantIndex1\": {}, "
         "\"attachmentCosmeticVariantIndex2\": {}, "
@@ -186,7 +186,7 @@ enum class gadgetType_e : int32_t {
   COUNT = 0x3A,
 };
 
-inline constexpr const char *serialize(const gadgetType_e type) {
+constexpr const char *serialize(const gadgetType_e type) {
   switch (type) {
   case gadgetType_e::NONE:
     return "GADGET_NONE";
@@ -318,7 +318,7 @@ enum class gadgetHoldMode_e : int32_t {
   COUNT = 0x5,
 };
 
-inline constexpr const char *serialize(const gadgetHoldMode_e mode) {
+constexpr const char *serialize(const gadgetHoldMode_e mode) {
   switch (mode) {
   case gadgetHoldMode_e::WIELD:
     return "HOLDMODE_WIELD";
@@ -342,7 +342,7 @@ enum class gadgetPowerUseType_e : int32_t {
   COUNT = 0x3,
 };
 
-inline constexpr const char *serialize(const gadgetPowerUseType_e type) {
+constexpr const char *serialize(const gadgetPowerUseType_e type) {
   switch (type) {
   case gadgetPowerUseType_e::AMMO:
     return "POWERUSE_AMMO";
@@ -368,7 +368,7 @@ enum class gadgetActivateMode_e : int32_t {
   COUNT = 0x9,
 };
 
-inline constexpr const char *serialize(const gadgetActivateMode_e mode) {
+constexpr const char *serialize(const gadgetActivateMode_e mode) {
   switch (mode) {
   case gadgetActivateMode_e::HOLD:
     return "ACTIVATE_HOLD";
@@ -399,7 +399,7 @@ enum class weapOverlayReticle_t : int32_t {
   COUNT = 0x2,
 };
 
-inline constexpr const char *serialize(const weapOverlayReticle_t reticle) {
+constexpr const char *serialize(const weapOverlayReticle_t reticle) {
   switch (reticle) {
   case weapOverlayReticle_t::NONE:
     return "RETICLE_NONE";
@@ -422,7 +422,7 @@ enum class WeapStickinessType : int32_t {
   COUNT = 0x8,
 };
 
-inline constexpr const char *serialize(const WeapStickinessType type) {
+constexpr const char *serialize(const WeapStickinessType type) {
   switch (type) {
   case WeapStickinessType::NONE:
     return "WEAPSTICKINESS_NONE";
@@ -498,7 +498,11 @@ enum class eAttachment : int32_t {
   INVALID = 0x2C,
 };
 
-inline constexpr const char *serialize(const eAttachment att) {
+constexpr bool validate(const eAttachment attachment) {
+  return attachment >= eAttachment::NONE &&
+         attachment < eAttachment::TYPE_COUNT;
+}
+constexpr const char *serialize(const eAttachment att) {
   switch (att) {
   case eAttachment::NOT_FOUND:
     return "ATTACHMENT_NOT_FOUND";
@@ -735,7 +739,7 @@ PACKED(struct gadgetProperties_t {
   bool activatesCast;
   qboolean targetedCast;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"activate_mode\": {}, \"gadget_type\": {}, \"weapon_hold_mode\": "
         "{}, "
@@ -912,7 +916,7 @@ struct WeaponAttachmentUniqueModelInfo {
   vec3_t offset;
   vec3_t rotation;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"model\": {}, \"modelADS\": {}, \"tag\": {}, "
                        "\"offset\": {}, \"rotation\": {} }}",
                        ::serialize(model), ::serialize(modelADS),
@@ -928,7 +932,7 @@ struct AttachmentCosmeticVariantModelInfo {
   vec3_t offset;
   vec3_t rotation;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"model\": {}, \"modelADS\": {}, \"tag\": {}, "
                        "\"offset\": {}, \"rotation\": {} }}",
                        ::serialize(model), ::serialize(modelADS),
@@ -945,7 +949,7 @@ struct AttachmentCosmeticVariantSet {
   const char *description;
   gfx::GfxImagePtr uiMaterial;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"viewModelInfo\": {}, \"worldModelInfo\": {}, "
         "\"displayNameShort\": {}, "
@@ -962,7 +966,7 @@ PACKED(struct AttachmentCosmeticVariant {
   int32_t numVariantSets;
   uint8_t _padding14[4];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"variantSets\": {}, \"numVariantSets\": {} }}",
         ::serialize(name), ::serialize(variantSets, numVariantSets),
@@ -981,7 +985,7 @@ struct WeaponAttachmentUniqueModelSet {
   const char *description;
   gfx::GfxImageHandle uiMaterial;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"attachmentModelAssociation\": {}, "
         "\"attachmentCosmeticVariantOverride\": {:p}, "
@@ -1013,7 +1017,7 @@ PACKED(struct CamoMaterialChannel {
   vec2_t detailScale;
   uint8_t _padding44[4];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"replaceFlags\": 0x{:04X}, \"camoMaterial\": {:p}, "
                        "\"translationX\": {}, "
                        "\"translationY\": {}, \"scaleX\": {}, \"scaleY\": {}, "
@@ -1034,7 +1038,7 @@ struct CamoBaseMaterial {
   db::xasset::MaterialDeferredHandle material;
   gfx::GfxImage *mask;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(R"({{ "material": {:p}, "mask": {:p} }})",
                        reinterpret_cast<const void *>(material),
                        reinterpret_cast<const void *>(mask));
@@ -1049,7 +1053,7 @@ PACKED(struct CamoMaterial {
   uint8_t _padding12[6];
   CamoMaterialChannel camoMaterialChannels[4];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"numBaseMaterials\": {}, \"baseMaterials\": {}, "
                        "\"activeChannels\": 0x{:04X}, "
                        "\"camoMaterialChannels\": {} }}",
@@ -1064,7 +1068,7 @@ PACKED(struct WeaponCamoMaterialSet {
   uint8_t _padding04[4];
   CamoMaterial *materials;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"numMaterials\": {}, \"materials\": {} }}",
                        numMaterials, ::serialize(materials, numMaterials));
   }
@@ -1076,7 +1080,7 @@ PACKED(struct WeaponCamo {
   uint32_t numCamoMaterials;
   uint8_t _padding014[4];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"camoMaterials\": {}, \"numCamoMaterials\": {} }}",
         ::serialize(name), ::serialize(camoMaterials, numCamoMaterials),
@@ -1229,7 +1233,7 @@ PACKED(struct WeaponAttachmentUnique {
   bool customBool5;
   uint8_t _padding832[6];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"szInternalName\": {}, \"szDisplayName\": {}, \"szDisplayDesc\": "
         "{}, "
@@ -1388,7 +1392,7 @@ enum class WeaponDobjInfoSlot : int32_t {
   OFFHAND = 0x4,
 };
 
-inline constexpr const char *serialize(const WeaponDobjInfoSlot slot) {
+constexpr const char *serialize(const WeaponDobjInfoSlot slot) {
   switch (slot) {
   case WeaponDobjInfoSlot::HELD:
     return "SLOT_HELD";
@@ -1408,7 +1412,7 @@ struct ExplosionDamage {
   int32_t height;
   int32_t damage;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(R"({{ "radius": {}, "height": {}, "damage": {} }})",
                        radius, height, damage);
   }
@@ -1422,7 +1426,7 @@ enum class weapLockType_t : int32_t {
   COUNT = 0x4,
 };
 
-inline constexpr const char *serialize(const weapLockType_t type) {
+constexpr const char *serialize(const weapLockType_t type) {
   switch (type) {
   case weapLockType_t::NONE:
     return "LOCKTYPE_NONE";
@@ -1444,7 +1448,7 @@ enum class WeapStickOrientation : int32_t {
   COUNT = 0x3,
 };
 
-inline constexpr const char *serialize(const WeapStickOrientation orient) {
+constexpr const char *serialize(const WeapStickOrientation orient) {
   switch (orient) {
   case WeapStickOrientation::NONE:
     return "STICKORIENT_NONE";
@@ -1484,7 +1488,7 @@ enum class DamageType : int32_t {
   COUNT = 0x13,
 };
 
-inline constexpr const char *serialize(const DamageType dtype) {
+constexpr const char *serialize(const DamageType dtype) {
   switch (dtype) {
   case DamageType::NORMAL:
     return "DAMAGETYPE_NORMAL";
@@ -1548,7 +1552,7 @@ enum class weapClass_t : int32_t {
   COUNT = 0xF,
 };
 
-inline constexpr const char *serialize(const weapClass_t wclass) {
+constexpr const char *serialize(const weapClass_t wclass) {
   switch (wclass) {
   case weapClass_t::RIFLE:
     return "WEAPCLASS_RIFLE";
@@ -1598,7 +1602,7 @@ enum class weapType_t : int32_t {
   COUNT = 0x9,
 };
 
-inline constexpr const char *serialize(const weapType_t wtype) {
+constexpr const char *serialize(const weapType_t wtype) {
   switch (wtype) {
   case weapType_t::BULLET:
     return "WEAPTYPE_BULLET";
@@ -1631,7 +1635,7 @@ enum class PenetrateType : int32_t {
   COUNT = 0x4,
 };
 
-inline constexpr const char *serialize(const PenetrateType ptype) {
+constexpr const char *serialize(const PenetrateType ptype) {
   switch (ptype) {
   case PenetrateType::NONE:
     return "PENTYPE_NONE";
@@ -1666,7 +1670,7 @@ enum class ImpactType : int32_t {
   COUNT = 0x10,
 };
 
-inline constexpr const char *serialize(const ImpactType itype) {
+constexpr const char *serialize(const ImpactType itype) {
   switch (itype) {
   case ImpactType::NONE:
     return "IMPACT_NONE";
@@ -1717,7 +1721,7 @@ enum class weapInventoryType_t : int32_t {
   COUNT = 0x8,
 };
 
-inline constexpr const char *serialize(const weapInventoryType_t inv) {
+constexpr const char *serialize(const weapInventoryType_t inv) {
   switch (inv) {
   case weapInventoryType_t::PRIMARY:
     return "INV_PRIMARY";
@@ -1757,7 +1761,7 @@ enum class weapFireType_t : int32_t {
   COUNT = 0xD,
 };
 
-inline constexpr const char *serialize(const weapFireType_t ftype) {
+constexpr const char *serialize(const weapFireType_t ftype) {
   switch (ftype) {
   case weapFireType_t::FULLAUTO:
     return "FIRETYPE_FULLAUTO";
@@ -1812,7 +1816,7 @@ enum class barrelType_t : int32_t {
   COUNT = 0x8,
 };
 
-inline constexpr const char *serialize(const barrelType_t btype) {
+constexpr const char *serialize(const barrelType_t btype) {
   switch (btype) {
   case barrelType_t::SINGLE:
     return "BARREL_SINGLE";
@@ -1846,7 +1850,7 @@ enum class OffhandClass : int32_t {
   COUNT = 0x7,
 };
 
-inline constexpr const char *serialize(const OffhandClass oclass) {
+constexpr const char *serialize(const OffhandClass oclass) {
   switch (oclass) {
   case OffhandClass::NONE:
     return "OFFHANDCLASS_NONE";
@@ -1878,7 +1882,7 @@ enum class OffhandSlot : int32_t {
   COUNT = 0x7,
 };
 
-inline constexpr const char *serialize(const OffhandSlot oslot) {
+constexpr const char *serialize(const OffhandSlot oslot) {
   switch (oslot) {
   case OffhandSlot::NONE:
     return "OFFHANDSLOT_NONE";
@@ -1906,7 +1910,7 @@ enum class weapStance_t : int32_t {
   NUM = 0x3,
 };
 
-inline constexpr const char *serialize(const weapStance_t stance) {
+constexpr const char *serialize(const weapStance_t stance) {
   switch (stance) {
   case weapStance_t::STAND:
     return "STANCE_STAND";
@@ -1927,7 +1931,7 @@ enum class activeReticleType_t : int32_t {
   COUNT = 0x4,
 };
 
-inline constexpr const char *serialize(const activeReticleType_t art) {
+constexpr const char *serialize(const activeReticleType_t art) {
   switch (art) {
   case activeReticleType_t::NONE:
     return "ACTIVERETICLE_NONE";
@@ -1949,7 +1953,7 @@ enum class weaponIconRatioType_t : int32_t {
   WEAPON_ICON_RATIO_COUNT = 0x3,
 };
 
-inline constexpr const char *serialize(const weaponIconRatioType_t ratio) {
+constexpr const char *serialize(const weaponIconRatioType_t ratio) {
   switch (ratio) {
   case weaponIconRatioType_t::WEAPON_ICON_RATIO_1TO1:
     return "RATIO_1TO1";
@@ -1973,7 +1977,7 @@ enum class ammoCounterClipType_t : int32_t {
   COUNT = 0x7,
 };
 
-inline constexpr const char *serialize(const ammoCounterClipType_t act) {
+constexpr const char *serialize(const ammoCounterClipType_t act) {
   switch (act) {
   case ammoCounterClipType_t::NONE:
     return "AMMOCOUNTER_NONE";
@@ -2002,7 +2006,7 @@ enum class WeapRotateType : int32_t {
   COUNT = 0x4,
 };
 
-inline constexpr const char *serialize(const WeapRotateType rtype) {
+constexpr const char *serialize(const WeapRotateType rtype) {
   switch (rtype) {
   case WeapRotateType::GRENADE:
     return "ROTATETYPE_GRENADE";
@@ -2032,7 +2036,7 @@ enum class weapProjExposion_t : int32_t {
   COUNT = 0xB,
 };
 
-inline constexpr const char *serialize(const weapProjExposion_t exp) {
+constexpr const char *serialize(const weapProjExposion_t exp) {
   switch (exp) {
   case weapProjExposion_t::NONE:
     return "PROJEXP_NONE";
@@ -2074,7 +2078,7 @@ enum class eAttachmentPoint : int32_t {
   INVALID = 0x7,
 };
 
-inline constexpr const char *serialize(const eAttachmentPoint pt) {
+constexpr const char *serialize(const eAttachmentPoint pt) {
   switch (pt) {
   case eAttachmentPoint::NONE:
     return "ATTACHMENTPOINT_NONE";
@@ -2090,8 +2094,6 @@ inline constexpr const char *serialize(const eAttachmentPoint pt) {
     return "ATTACHMENTPOINT_GUNPERK";
   case eAttachmentPoint::RIG:
     return "ATTACHMENTPOINT_RIG";
-  case eAttachmentPoint::INVALID:
-    return "ATTACHMENTPOINT_INVALID";
   default:
     return "ATTACHMENTPOINT_INVALID";
   }
@@ -2104,7 +2106,7 @@ enum class WeapOverlayInteface_t : int32_t {
   COUNT = 0x3,
 };
 
-inline constexpr const char *serialize(const WeapOverlayInteface_t iface) {
+constexpr const char *serialize(const WeapOverlayInteface_t iface) {
   switch (iface) {
   case WeapOverlayInteface_t::NONE:
     return "OVERLAYINT_NONE";
@@ -2233,7 +2235,7 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   bool customBool4;
   bool customBool5;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"szInternalName\": {}, \"szDisplayName\": {}, \"attachmentType\": "
         "{}, "
@@ -2363,7 +2365,7 @@ enum class guidedMissileType_t : int32_t {
   COUNT = 0xB,
 };
 
-inline constexpr const char *serialize(const guidedMissileType_t gtype) {
+constexpr const char *serialize(const guidedMissileType_t gtype) {
   switch (gtype) {
   case guidedMissileType_t::NONE:
     return "GUIDEDMISSILE_NONE";
@@ -3584,7 +3586,7 @@ PACKED(struct WeaponDobjInfo {
     uint32_t dobjModelMask;
     uint8_t _padding14[4];
 
-    [[nodiscard]] inline std::string serialize() const noexcept {
+    [[nodiscard]] std::string serialize() const noexcept {
       return std::format("{{ \"slot\": {}, \"weapon\": {}, \"target\": {:p}, "
                          "\"dobjModelMask\": 0x{:08X} }}",
                          WeaponDobjInfo::serialize(slot), weapon.serialize(),
@@ -3602,7 +3604,7 @@ PACKED(struct WeaponDobjInfo {
   uint8_t _padding0A[6];
   ModelMask modelMasks[32];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"numModelMasks\": {}, \"addingSlot\": {}, "
                        "\"lastAddedModel\": {}, \"modelMasks\": {} }}",
                        numModelMasks, serialize(addingSlot), lastAddedModel,
@@ -3615,7 +3617,7 @@ PACKED(struct DroppedWeaponDobjInfo {
   uint8_t _padding04[4];
   weapon::WeaponDobjInfo weaponDobjInfo;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"entnum\": {}, \"weaponDobjInfo\": {} }}", entnum,
                        weaponDobjInfo.serialize());
   }
@@ -3630,7 +3632,7 @@ enum class QueuedActionState : uint32_t {
   COUNT = 0x5,
 };
 
-inline constexpr const char *serialize(const QueuedActionState state) {
+constexpr const char *serialize(const QueuedActionState state) {
   switch (state) {
   case QueuedActionState::NONE:
     return "ACTION_NONE";
@@ -3657,7 +3659,7 @@ PACKED(struct PlayerWeaponHandState {
   int32_t weaponFrameTimeRemainder;
   QueuedActionState queuedActionState;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"weaponTime\": {}, \"weaponDelay\": {}, \"weaponState\": {}, "
         "\"weaponShotCount\": {}, \"weapAnim\": {}, "
@@ -3673,7 +3675,7 @@ ASSERT_SIZE(PlayerWeaponHandState, 0x1C);
 struct AmmoPool {
   int32_t count;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"count\": {} }}", count);
   }
 };
@@ -3682,7 +3684,7 @@ ASSERT_SIZE(AmmoPool, 0x4);
 struct AmmoClip {
   int32_t count;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"count\": {} }}", count);
   }
 };
@@ -3723,7 +3725,7 @@ PACKED(struct PlayerHeldWeapon {
   };
   uint8_t _padding29[7];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"weapon\": {}, \"options\": {}, "
         "\"attachmentCosmeticVariantIndexes\": {}, "
@@ -3752,7 +3754,7 @@ PACKED(struct visWeapon_s {
   int32_t streamerOptions;
   uint8_t _padding0C[4];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"weapon\": {}, \"streamerOptions\": 0x{:08X} }}",
                        weapon.serialize(), streamerOptions);
   }
@@ -3764,7 +3766,7 @@ struct visLoadOut_s {
   int32_t primaryGadgetIdx;
   int32_t secondaryGadgetIdx;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"primary\": {}, \"secondary\": {}, \"primaryGadgetIdx\": {}, "
         "\"secondaryGadgetIdx\": {} }}",
@@ -3778,7 +3780,7 @@ PACKED(struct DelayedWeaponFire {
   uint8_t _padding04[4];
   Weapon weapon;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"time\": {}, \"weapon\": {} }}", time,
                        weapon.serialize());
   }
@@ -3792,7 +3794,7 @@ enum class gadgetHeldSlot_e : uint32_t {
   GADGET_HELD_COUNT = 0x4,
 };
 
-inline constexpr const char *serialize(const gadgetHeldSlot_e slot) {
+constexpr const char *serialize(const gadgetHeldSlot_e slot) {
   switch (slot) {
   case gadgetHeldSlot_e::GADGET_HELD_0:
     return "GADGET_HELD_0";

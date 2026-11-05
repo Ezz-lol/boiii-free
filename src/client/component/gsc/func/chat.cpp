@@ -39,7 +39,7 @@ namespace gscr_tell {
 void send(scriptInstance_t inst, game::ClientNum_t client_num,
           uint32_t message_index) {
   const char *msg = Scr_GetString(inst, message_index);
-  if (game::valid_client_num(client_num) && msg) {
+  if (game::validate(client_num) && msg) {
     sv::SV_GameSendServerCommand(
         client_num, game::net::svscmd_type::CAN_IGNORE,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));

@@ -20,7 +20,7 @@ void live_presence_party_stub(void *context_array, void *data_buffer) {
     if (ptr) {
       const game::ClientNum_t party_count =
           static_cast<game::ClientNum_t>((*ptr >> 2) & 0x1F);
-      if (!game::valid_client_num(party_count)) {
+      if (!game::validate(party_count)) {
         // Zero the party count bits [6:2] to kill the overflow loop
         *ptr &= ~(0x1F << 2);
         printf("[Live][Presence] Blocked malicious party_count: %d (max %d)\n",

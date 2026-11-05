@@ -137,6 +137,8 @@ WEAK symbol<int32_t(BuildIntField field)> Com_GetBuildIntField{
     0x1420E2C10, 0x1420EF390, 0x1404FA8B0};
 WEAK symbol<const char *(BuildStringField field)> Com_GetBuildStringField{
     0x1420E2C80, 0x1420EF400, 0x1404FA910};
+WEAK symbol<uint32_t(const void *data, int32_t length, uint32_t initialCrc)>
+    Com_BlockChecksum32{0x1423F47D0, 0x0, 0x1405FD490};
 
 } // namespace com
 } // namespace game

@@ -842,18 +842,18 @@ struct component final : generic_component {
 
   void post_unpack() override {
     if (!game::is_legacy_client()) {
-      utils::hook::call(game::select(0x1412C84B2, 0x0, 0x1401566B7),
-                        Com_Error_ScriptNotFound);
-      utils::hook::call(game::select(0x1412CAC6D, 0x0, 0x140158EB2),
-                        Com_Error_LinkErrors);
-      utils::hook::call(game::select(0x1412C858C, 0x0, 0x140156796),
-                        Com_Error_LinkScript);
-      utils::hook::call(game::select(0x1412D5065, 0x0, 0x140161174),
-                        Com_Error_ScriptRuntime);
-      utils::hook::call(game::select(0x1412CAC09, 0x0, 0x140158E49),
-                        ignore_linker_message);
-      utils::hook::call(game::select(0x1412CAC18, 0x0, 0x140158E58),
-                        ignore_linker_message);
+      // utils::hook::call(game::select(0x1412C84B2, 0x0, 0x1401566B7),
+      //                   Com_Error_ScriptNotFound);
+      // utils::hook::call(game::select(0x1412CAC6D, 0x0, 0x140158EB2),
+      //                   Com_Error_LinkErrors);
+      // utils::hook::call(game::select(0x1412C858C, 0x0, 0x140156796),
+      //                   Com_Error_LinkScript);
+      // utils::hook::call(game::select(0x1412D5065, 0x0, 0x140161174),
+      //                   Com_Error_ScriptRuntime);
+      // utils::hook::call(game::select(0x1412CAC09, 0x0, 0x140158E49),
+      //                   ignore_linker_message);
+      // utils::hook::call(game::select(0x1412CAC18, 0x0, 0x140158E58),
+      //                   ignore_linker_message);
 
       Scr_LoadScript_hook.create(Scr_LoadScript, Scr_LoadScript_Scoped);
       GscObjResolve_hook.create(GscObjResolve, GscObjResolve_Scoped);

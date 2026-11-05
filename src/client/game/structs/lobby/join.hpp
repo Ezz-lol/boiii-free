@@ -20,6 +20,10 @@ enum class JoinType : int32_t {
 };
 IMPL_ENUM_OPERATORS(JoinType);
 
+constexpr bool validate(const JoinType joinType) {
+  return joinType >= JoinType::NORMAL && joinType < JoinType::COUNT;
+}
+
 enum class JoinSourceState : uint32_t {
   IDLE = 0x0,
   CONNECT_TO_NEXT_HOST = 0x1,
@@ -97,33 +101,33 @@ enum class JoinResult : uint32_t {
 IMPL_ENUM_OPERATORS(JoinResult);
 
 enum class JoinClientState : int32_t {
-  JOIN_CLIENT_STATE_IDLE = 0x0,
-  JOIN_CLIENT_STATE_CONNECT_TO_NEXT_HOST = 0x1,
-  JOIN_CLIENT_STATE_ASSOCIATING = 0x2,
+  IDLE = 0x0,
+  CONNECT_TO_NEXT_HOST = 0x1,
+  ASSOCIATING = 0x2,
 
-  JOIN_CLIENT_STATE_HANDSHAKING = 0x3,
-  JOIN_CLIENT_STATE_WAITING_FOR_AGREEMENT = 0x4,
-  JOIN_CLIENT_STATE_CONNECTED_FAILED = 0x5,
-  JOIN_CLIENT_STATE_CONNECTION_SUCCESS = 0x6,
-  JOIN_CLIENT_STATE_ENDING_HOST = 0x7,
-  JOIN_CLIENT_STATE_CLEANUP = 0x8,
-  JOIN_CLIENT_STATE_COUNT = 0x9,
+  HANDSHAKING = 0x3,
+  WAITING_FOR_AGREEMENT = 0x4,
+  CONNECTED_FAILED = 0x5,
+  CONNECTION_SUCCESS = 0x6,
+  ENDING_HOST = 0x7,
+  CLEANUP = 0x8,
+  COUNT = 0x9,
 };
 IMPL_ENUM_OPERATORS(JoinClientState);
 
 // Verified
 struct JoinPartyMember {
-  XUID xuid;
-  LobbyID lobbyID;
-  float skillRating;
-  float skillVariance;
+  XUID xuid = 0;
+  LobbyID lobbyID = 0;
+  float skillRating = 0.0f;
+  float skillVariance = 0.0f;
   union {
     uint32_t probationEndTime[2];
     struct {
       // Serialized as "pprobation" in lobby message packet
-      uint32_t publicProbationEndTime;
+      uint32_t publicProbationEndTime = 0;
       // Serialized as "aprobation" in lobby message packet
-      uint32_t arenaProbationEndTime;
+      uint32_t arenaProbationEndTime = 0;
     };
   };
 };
@@ -148,7 +152,7 @@ struct Join {
   Agreement agreement;
   Agreement debugAgreement;
   JoinType joinType;
-  uint8_t _unknown282C[0xC];
+  XUID probedXuid;
   JoinResult joinResult;
 
   IMPL_SLICE_METHODS(hostList, hostCount, HostList);
@@ -164,6 +168,72 @@ struct JoinClient {
 };
 // Verified
 ASSERT_SIZE(JoinClient, 0xB0);
+
+template <typename T> union JoinSourceStatePool {
+  typedef uint8_t index_t;
+
+  T pool[+JoinSourceState::COUNT];
+
+  struct {
+    T idle;
+    T connectToNextHost;
+    T associating;
+    T handshaking;
+    T waitingForAgreement;
+    T connectionFailed;
+    T connectionSuccess;
+    T endingHost;
+    T cleanup;
+  };
+
+  constexpr void assert_range([[maybe_unused]] index_t index) const {
+    assert(index < +JoinSourceState::COUNT &&
+           "index to JoinSourceStatePool must satisfy range "
+           "JoinSourceState::IDLE <= "
+           "index < JoinSourceState::COUNT");
+  }
+  template <IntegralLike<index_t> Index>
+  constexpr const T &get(Index index_arg) const noexcept {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+  template <IntegralLike<index_t> Index>
+  constexpr T &get(Index index_arg) noexcept {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike<index_t> Index>
+  constexpr const T &operator[](Index index) const noexcept {
+    return get(index);
+  }
+  template <IntegralLike<index_t> Index>
+  constexpr T &operator[](Index index) noexcept {
+    return get(index);
+  }
+
+  operator const T *() const noexcept { return pool; }
+  operator T *() noexcept { return pool; }
+
+  operator const void *() const noexcept { return pool; }
+  operator void *() noexcept { return pool; }
+
+  operator const array<T, +JoinSourceState::COUNT> &() const noexcept {
+    return pool;
+  }
+
+  operator array<T, +JoinSourceState::COUNT> &() noexcept { return pool; }
+
+  operator std::span<const T, +JoinSourceState::COUNT>() const noexcept {
+    return std::span<const T, +JoinSourceState::COUNT>(pool);
+  }
+
+  operator std::span<T, +JoinSourceState::COUNT>() noexcept {
+    return std::span<T, +JoinSourceState::COUNT>(pool);
+  }
+};
 
 } // namespace join
 } // namespace lobby

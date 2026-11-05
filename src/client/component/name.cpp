@@ -227,7 +227,7 @@ void enforce_overrides() {
 
 void update_override(const game::ClientNum_t client_num, const bool is_tag,
                      const std::optional<std::string> &value) {
-  if (!game::valid_client_num(client_num))
+  if (!game::validate(client_num))
     return;
   {
     std::lock_guard lock(overrides_mutex);
@@ -250,7 +250,7 @@ void clear_all() {
 
 void store_received(const game::ClientNum_t client_num, const bool is_tag,
                     std::optional<std::string> value) {
-  if (!game::valid_client_num(client_num) ||
+  if (!game::validate(client_num) ||
       (value && value->size() > max_override_length))
     return;
   std::lock_guard lock(overrides_mutex);
@@ -306,7 +306,7 @@ void on_enter_world(game::sv::client_s *cl, game::user::usercmd_t *) {
 
 void on_remove_client(game::sv::client_s *cl, const char *) {
   const game::ClientNum_t client_num = sv::get_client_num(cl);
-  if (!game::valid_client_num(client_num))
+  if (!game::validate(client_num))
     return;
   {
     std::lock_guard lock(overrides_mutex);
@@ -352,7 +352,7 @@ void clear_clan_abbrev_override(const game::ClientNum_t client_num) {
 }
 
 std::optional<std::string> get_name_override(game::ClientNum_t client_num) {
-  if (!game::valid_client_num(client_num))
+  if (!game::validate(client_num))
     return std::nullopt;
   std::lock_guard lock(overrides_mutex);
   return slot(client_num).name;
@@ -360,7 +360,7 @@ std::optional<std::string> get_name_override(game::ClientNum_t client_num) {
 
 std::optional<std::string>
 get_clan_abbrev_override(game::ClientNum_t client_num) {
-  if (!game::valid_client_num(client_num))
+  if (!game::validate(client_num))
     return std::nullopt;
   std::lock_guard lock(overrides_mutex);
   return slot(client_num).tag;

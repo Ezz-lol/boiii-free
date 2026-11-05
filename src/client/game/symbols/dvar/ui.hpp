@@ -66,9 +66,9 @@ WEAK symbol<EngineDependentDvarMut> ui_dsppromotioninterval{
     0x15118D848, 0x15120C7C8, 0x1482DEDC8};
 WEAK symbol<EngineDependentDvarMut> ui_emblemDisableGroups{0x157938C08,
                                                            0x1579B7B08, 0x0};
-WEAK symbol<EngineDependentDvarMut> ui_enableallheroes{0x157960A80, 0x1579DF948,
+WEAK symbol<EngineDependentDvarMut> ui_enableAllHeroes{0x157960A80, 0x1579DF948,
                                                        0x14A30C408};
-WEAK symbol<EngineDependentDvarMut> ui_enableconnectionmetricgraphs{
+WEAK symbol<EngineDependentDvarMut> ui_enableConnectionMetricGraphs{
     0x15118D798, 0x15120C718, 0x1482DEF28};
 WEAK symbol<EngineDependentDvarMut> ui_enabled{0x15686E890, 0x1568ED810,
                                                0x14948EE30};

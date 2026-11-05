@@ -50,10 +50,10 @@ typedef str<NET_IPV4_STR_BUF_LEN> netipv4_str_t;
 
 union netipv4_t {
   struct {
-    uint8_t a;
-    uint8_t b;
-    uint8_t c;
-    uint8_t d;
+    uint8_t a = 0;
+    uint8_t b = 0;
+    uint8_t c = 0;
+    uint8_t d = 0;
   };
   uint8_t parts[4];
 
@@ -153,13 +153,13 @@ typedef str<NETADR_STR_BUF_LEN> netadr_str_t;
 
 struct netadr_t {
   union {
-    netipv4_t ipv4;
+    netipv4_t ipv4 = {};
     uint32_t addr;
   };
 
-  uint16_t port;
-  netadrtype_t type;
-  netsrc_t localNetID;
+  uint16_t port = 0;
+  netadrtype_t type = netadrtype_t::INVALID;
+  netsrc_t localNetID = netsrc_t::NS_NULL;
 
   [[nodiscard]] inline std::string toString() const noexcept {
     return std::format("{}:{}", ipv4.toString(), port);
@@ -188,82 +188,78 @@ ASSERT_SIZE(netadr_t, 0x10);
 // `bdCommonAddr`, serialized using the `bdBytePacker`, which essentially just
 // appends each field's bytes, sequentially, in network (big endian) byte order
 struct XNADDR {
-  static inline constexpr size_t SIZE = 37;
+  static constexpr size_t SIZE = 37;
 
-  uint8_t addrBuff[SIZE];
+  uint8_t addrBuff[SIZE] = {0};
 
-  inline constexpr operator const decltype(addrBuff) & () const noexcept {
+  constexpr operator const decltype(addrBuff) & () const noexcept {
     return addrBuff;
   }
 
-  inline constexpr operator decltype(addrBuff) & () noexcept {
-    return addrBuff;
-  }
+  constexpr operator decltype(addrBuff) & () noexcept { return addrBuff; }
 
-  inline constexpr operator std::span<const uint8_t, SIZE>() const noexcept {
+  constexpr operator std::span<const uint8_t, SIZE>() const noexcept {
     return std::span<const uint8_t, SIZE>(addrBuff, SIZE);
   }
 
-  inline constexpr operator std::span<uint8_t, SIZE>() noexcept {
+  constexpr operator std::span<uint8_t, SIZE>() noexcept {
     return std::span<uint8_t, SIZE>(addrBuff, SIZE);
   }
 
-  inline constexpr operator const uint8_t *() const noexcept {
-    return addrBuff;
-  }
+  constexpr operator const uint8_t *() const noexcept { return addrBuff; }
 
-  inline constexpr operator uint8_t *() noexcept { return addrBuff; }
+  constexpr operator uint8_t *() noexcept { return addrBuff; }
 
-  inline constexpr operator const void *() const noexcept { return addrBuff; }
+  constexpr operator const void *() const noexcept { return addrBuff; }
 
-  inline constexpr operator void *() noexcept { return addrBuff; }
+  constexpr operator void *() noexcept { return addrBuff; }
 
-  inline static constexpr auto size() noexcept { return SIZE; }
+  static constexpr auto size() noexcept { return SIZE; }
 
   typedef uint8_t index_t;
-  inline constexpr void assert_range([[maybe_unused]] index_t index) const {
+  static constexpr void assert_range([[maybe_unused]] index_t index) {
     assert(index < static_cast<index_t>(SIZE) &&
            "index to XNADDR must be < addrBuff length");
   }
   template <IntegralLike<index_t> Index>
-  inline constexpr const uint8_t &get(Index index_arg) const noexcept {
+  constexpr const uint8_t &get(Index index_arg) const noexcept {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return addrBuff[index];
   }
   template <IntegralLike<index_t> Index>
-  inline constexpr uint8_t &get(Index index_arg) noexcept {
+  constexpr uint8_t &get(Index index_arg) noexcept {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return addrBuff[index];
   }
 
   template <IntegralLike<index_t> Index>
-  inline constexpr const uint8_t &operator[](Index index) const noexcept {
+  constexpr const uint8_t &operator[](Index index) const noexcept {
     return get(index);
   }
   template <IntegralLike<index_t> Index>
-  inline constexpr uint8_t &operator[](Index index) noexcept {
+  constexpr uint8_t &operator[](Index index) noexcept {
     return get(index);
   }
 };
 
 struct bdSecurityID {
-  uint8_t ab[8];
+  uint8_t ab[8] = {0};
 };
 
 typedef bdSecurityID XNKID;
 
 struct bdSecurityKey {
-  uint8_t ab[16];
+  uint8_t ab[16] = {0};
 };
 
 typedef bdSecurityKey XNKEY;
 
 // Verified
 struct SerializedAdr {
-  bool valid;
-  XNADDR addrBuff;
+  bool valid = false;
+  XNADDR addrBuff = {};
 };
 ASSERT_SIZE(SerializedAdr, 0x26);
 
@@ -305,14 +301,14 @@ struct PacketMode {
 
 // Verified
 PACKED(struct HostInfo {
-  XUID xuid;
-  name_t name;
-  netadr_t netAdr;
-  SerializedAdr serializedAdr;
-  bdSecurityID secId;
-  bdSecurityKey secKey;
+  XUID xuid = 0;
+  name_t name = {0};
+  netadr_t netAdr = {};
+  SerializedAdr serializedAdr = {};
+  bdSecurityID secId = {};
+  bdSecurityKey secKey = {};
   uint8_t _padding76[2];
-  uint32_t serverLocation;
+  uint32_t serverLocation = 0;
   uint8_t _padding7C[4];
 });
 ASSERT_SIZE(HostInfo, 0x80);
@@ -335,7 +331,7 @@ enum class clientState_t : int32_t {
   PRIMED = 0x4,    // gamestate has been sent, but client hasn't sent a usercmd
   ACTIVE = 0x5,    // client is fully in game
 };
-inline constexpr const char *serialize(const clientState_t state) {
+constexpr const char *serialize(const clientState_t state) {
   switch (state) {
   case clientState_t::FREE:
     return "CLIENT_STATE_FREE";

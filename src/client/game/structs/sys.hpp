@@ -168,5 +168,10 @@ public:
   }
 };
 
+struct FastCriticalSection {
+  volatile int32_t readCount;
+  volatile int32_t writeCount;
+};
+
 } // namespace sys
 } // namespace game

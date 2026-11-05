@@ -209,7 +209,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     info::Info_SetValueForKey(s, "protocol", utils::string::va("%i", 18532));
     info::Info_SetValueForKey(
         s, "netfieldchk",
-        utils::string::va("%i", net::msgcrc::MsgCRC_NetFieldChecksum()));
+        utils::string::va("%i", net::msg::crc::MsgCRC_NetFieldChecksum()));
     const char *modeAbbrev =
         com::Com_SessionMode_GetAbbreviationForCurrentMode();
     info::Info_SetValueForKey(s, "sessionmode",

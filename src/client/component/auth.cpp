@@ -297,7 +297,7 @@ bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,
 void distribute_player_xuid(const game::net::netadr_t &target,
                             const game::ClientNum_t player_index,
                             const game::XUID xuid) {
-  if (game::valid_client_num(player_index)) {
+  if (game::validate(player_index)) {
     utils::byte_buffer buffer{};
     buffer.write(player_index);
     buffer.write(xuid);
@@ -576,7 +576,7 @@ void handle_player_xuid_packet(const game::net::netadr_t &target,
 
     {
       std::scoped_lock lock(client_xuids_mutex);
-      if (game::valid_client_num(client_num)) {
+      if (game::validate(client_num)) {
         client_xuids[client_num] = xuid;
       }
     }
@@ -608,7 +608,7 @@ alwaysinline const game::LocalClientPool<game::XUID> &server_guids() {
 }
 
 game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
-  return client_guids()[game::valid_controller_index(controllerIndex)
+  return client_guids()[game::validate(controllerIndex)
                             ? controllerIndex
                             : game::CONTROLLER_INDEX_0];
 }
@@ -617,13 +617,12 @@ game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
   static const game::LocalClientPool<game::XUID> &guids =
       game::is_client() ? client_guids() : server_guids();
 
-  return guids[game::valid_controller_index(controllerIndex)
-                   ? controllerIndex
-                   : game::CONTROLLER_INDEX_0];
+  return guids[game::validate(controllerIndex) ? controllerIndex
+                                               : game::CONTROLLER_INDEX_0];
 }
 
 game::XUID get_guid(const game::ClientNum_t client_num) {
-  if (game::valid_client_num(client_num)) {
+  if (game::validate(client_num)) {
     if (game::server_running()) {
       game::XUID xuid = 0;
 
@@ -803,7 +802,7 @@ struct component final : generic_component {
         if (parse_result.has_value()) {
           const game::ControllerIndex_t parsed =
               static_cast<game::ControllerIndex_t>(parse_result.value());
-          if (game::valid_controller_index(parsed)) {
+          if (game::validate(parsed)) {
             controller_index = parsed;
           }
         }

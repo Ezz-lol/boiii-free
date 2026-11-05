@@ -59,13 +59,13 @@ inline constexpr const char CR = '\r';
 inline constexpr const char LF = '\n';
 inline constexpr const char CRLF[2] = {'\r', '\n'};
 
-inline constexpr size_t iw_asset_magic_len(const size_t ext_len) {
+constexpr size_t iw_asset_magic_len(const size_t ext_len) {
   return sizeof(IW_ASSET_SHEBANG) + ext_len + sizeof(CRLF) +
          sizeof(static_cast<char>(NULL)) + sizeof(char) /* latest version */;
 }
 
 template <const size_t ExtensionLen>
-inline constexpr std::array<char, iw_asset_magic_len(ExtensionLen)>
+constexpr std::array<char, iw_asset_magic_len(ExtensionLen)>
 iw_asset_magic(const char (&ext)[ExtensionLen], const uint8_t latest_version) {
   return concat_bytes<char>(IW_ASSET_SHEBANG, ext, CRLF, NULL, latest_version);
 }
@@ -98,7 +98,7 @@ enum class ContentFlagBits : uint32_t {
 IMPL_ENUM_OPERATORS(ContentFlagBits);
 
 union ContentFlags {
-  uint32_t mask;
+  uint32_t mask = 0;
 
   struct {
     // Explicitly used for unknown content by engine
@@ -121,57 +121,55 @@ union ContentFlags {
     uint32_t : 17;
   } bits;
 
-  template <IntegralLike T> inline constexpr operator T() const noexcept {
+  template <IntegralLike T> constexpr operator T() const noexcept {
     return static_cast<T>(mask);
   }
 
-  inline constexpr void set(ContentFlagBits bits) noexcept { mask |= +bits; }
+  constexpr void set(ContentFlagBits bits) noexcept { mask |= +bits; }
 
-  [[nodiscard]] inline constexpr ContentFlags
+  [[nodiscard]] constexpr ContentFlags
   set(ContentFlagBits bits) const noexcept {
     return ContentFlags{mask | +bits};
   }
 
-  inline constexpr void remove(ContentFlagBits bits) noexcept {
-    mask &= ~+bits;
-  }
+  constexpr void remove(ContentFlagBits bits) noexcept { mask &= ~+bits; }
 
-  [[nodiscard]] inline constexpr ContentFlags
+  [[nodiscard]] constexpr ContentFlags
   remove(ContentFlagBits bits) const noexcept {
     return ContentFlags{mask & ~+bits};
   }
 
-  inline constexpr void clear() noexcept { mask = 0; }
+  constexpr void clear() noexcept { mask = 0; }
 
-  [[nodiscard]] inline constexpr ContentFlags remove() const noexcept {
+  [[nodiscard]] static constexpr ContentFlags remove() noexcept {
     return ContentFlags{0};
   }
 
-  template <IntegralLike T> inline constexpr void operator|=(T rhs) noexcept {
+  template <IntegralLike T> constexpr void operator|=(T rhs) noexcept {
     set(rhs);
   }
   template <IntegralLike T>
-  inline constexpr ContentFlags operator|(T rhs) const noexcept {
+  constexpr ContentFlags operator|(T rhs) const noexcept {
     return set(rhs);
   }
 
-  template <IntegralLike T> inline constexpr void operator&=(T rhs) noexcept {
+  template <IntegralLike T> constexpr void operator&=(T rhs) noexcept {
     mask &= +rhs;
   }
   template <IntegralLike T>
-  inline constexpr ContentFlags operator&(T rhs) const noexcept {
+  constexpr ContentFlags operator&(T rhs) const noexcept {
     return ContentFlags{mask & +rhs};
   }
 
-  template <IntegralLike T> inline constexpr void operator^=(T rhs) noexcept {
+  template <IntegralLike T> constexpr void operator^=(T rhs) noexcept {
     mask ^= +rhs;
   }
   template <IntegralLike T>
-  inline constexpr ContentFlags operator^(T rhs) const noexcept {
+  constexpr ContentFlags operator^(T rhs) const noexcept {
     return ContentFlags{mask ^ +rhs};
   }
 
-  static inline constexpr ContentFlags allContent() noexcept {
+  static constexpr ContentFlags allContent() noexcept {
     return ContentFlags{.bits = {
                             .unknown = 0,
                             .originalMaps = 1,
@@ -220,6 +218,10 @@ enum class clientplatform_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(clientplatform_t);
 
+constexpr bool validate(const clientplatform_t platform) {
+  return platform >= clientplatform_t::PC && platform < clientplatform_t::COUNT;
+}
+
 enum class team_t : uint32_t {
   TEAM_FREE = 0x0,
   TEAM_BAD = 0x0,
@@ -252,7 +254,13 @@ enum class team_t : uint32_t {
 };
 IMPL_ENUM_OPERATORS(team_t);
 
-inline constexpr const char *serialize(const team_t team) {
+constexpr bool validate(const team_t team) {
+  // TODO: is TEAM_DEAD an invalid value or can this be a legitimate value sent
+  // in lobby messages?
+  return team >= team_t::TEAM_DEAD && team < team_t::TEAM_NUM_TEAMS;
+}
+
+constexpr const char *serialize(const team_t team) {
   switch (team) {
   case team_t::TEAM_DEAD:
     return "TEAM_DEAD";
@@ -341,7 +349,13 @@ enum ClientNum_t : int32_t {
   CLIENT_INDEX_COUNT = 0x12,
 };
 IMPL_ENUM_OPERATORS(ClientNum_t);
-inline constexpr const char *serialize(const ClientNum_t clientNum) {
+
+constexpr bool validate(const ClientNum_t clientNum) {
+  return clientNum >= ClientNum_t::CLIENT_INDEX_0 &&
+         clientNum < ClientNum_t::CLIENT_INDEX_COUNT;
+}
+
+constexpr const char *serialize(const ClientNum_t clientNum) {
   switch (clientNum) {
   case CLIENT_INDEX_0:
     return "CLIENT_INDEX_0";
@@ -450,7 +464,7 @@ enum ClientNum16_t : int16_t {
   CLIENT_INDEX_16_COUNT = 0x12,
 };
 IMPL_ENUM_OPERATORS(ClientNum16_t);
-inline constexpr const char *serialize(const ClientNum16_t clientNum) {
+constexpr const char *serialize(const ClientNum16_t clientNum) {
   return serialize(clientNum == INVALID_CLIENT_INDEX_16
                        ? INVALID_CLIENT_INDEX
                        : static_cast<ClientNum_t>(clientNum));
@@ -494,7 +508,7 @@ enum ClientNum8_t : int8_t {
   CLIENT_INDEX_8_COUNT = 0x12,
 };
 IMPL_ENUM_OPERATORS(ClientNum8_t);
-inline constexpr const char *serialize(const ClientNum8_t clientNum) {
+constexpr const char *serialize(const ClientNum8_t clientNum) {
   return serialize(clientNum == INVALID_CLIENT_INDEX_8
                        ? INVALID_CLIENT_INDEX
                        : static_cast<ClientNum_t>(clientNum));
@@ -509,8 +523,7 @@ enum ControllerIndex_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(ControllerIndex_t);
 
-inline constexpr const char *
-serialize(const ControllerIndex_t controllerIndex) {
+constexpr const char *serialize(const ControllerIndex_t controllerIndex) {
   switch (controllerIndex) {
   case CONTROLLER_INDEX_0:
     return "CONTROLLER_INDEX_0";
@@ -521,6 +534,11 @@ serialize(const ControllerIndex_t controllerIndex) {
   }
 }
 
+constexpr bool validate(const ControllerIndex_t controllerIndex) {
+  return controllerIndex >= ControllerIndex_t::CONTROLLER_INDEX_0 &&
+         controllerIndex < ControllerIndex_t::CONTROLLER_INDEX_COUNT;
+}
+
 enum LocalClientNum_t : int32_t {
   INVALID_LOCAL_CLIENT = -1,
   LOCAL_CLIENT_0 = 0x0,
@@ -529,9 +547,13 @@ enum LocalClientNum_t : int32_t {
   LOCAL_CLIENT_1 = 0x1,
   LOCAL_CLIENT_COUNT = 0x2,
 };
+constexpr bool validate(const LocalClientNum_t localClientNum) {
+  return localClientNum >= LocalClientNum_t::LOCAL_CLIENT_0 &&
+         localClientNum < LocalClientNum_t::LOCAL_CLIENT_COUNT;
+}
 IMPL_ENUM_OPERATORS(LocalClientNum_t);
 
-inline constexpr const char *serialize(LocalClientNum_t localClientNum) {
+constexpr const char *serialize(LocalClientNum_t localClientNum) {
   switch (localClientNum) {
   case LOCAL_CLIENT_0:
     return "LOCAL_CLIENT_0";
@@ -565,6 +587,10 @@ enum class eGameModes : int32_t {
   INVALID = 0x8,
 };
 IMPL_ENUM_OPERATORS(eGameModes);
+constexpr bool validate(const eGameModes gamemode) {
+  return gamemode >= eGameModes::MATCHMAKING_PLAYLIST &&
+         gamemode <= eGameModes::COUNT;
+}
 
 enum class eModes : uint32_t {
   ZOMBIES = 0x0,
@@ -575,9 +601,8 @@ enum class eModes : uint32_t {
   INVALID = 0x3
 };
 IMPL_ENUM_OPERATORS(eModes);
-
-inline constexpr bool valid_mode(eModes mode) noexcept {
-  return +mode < +eModes::INVALID && +mode >= +eModes::ZOMBIES;
+constexpr bool validate(const eModes mode) {
+  return mode >= eModes::ZOMBIES && mode < eModes::COUNT;
 }
 
 namespace com {
@@ -592,26 +617,22 @@ template <typename T> union SessionModePool {
     T campaign;
   };
 
-  inline constexpr T &get(eModes mode) noexcept { return pool[+mode]; }
-  inline constexpr volatile T &get(eModes mode) volatile noexcept {
+  constexpr T &get(eModes mode) noexcept { return pool[+mode]; }
+  constexpr volatile T &get(eModes mode) volatile noexcept {
     return pool[+mode];
   }
 
-  inline constexpr const T &get(eModes mode) const noexcept {
-    return pool[+mode];
-  }
-  inline T &get() noexcept { return get(com::Com_SessionMode_GetMode()); }
-  inline volatile T &get() volatile noexcept {
+  constexpr const T &get(eModes mode) const noexcept { return pool[+mode]; }
+  T &get() noexcept { return get(com::Com_SessionMode_GetMode()); }
+  volatile T &get() volatile noexcept {
     return get(com::Com_SessionMode_GetMode());
   }
-  inline const T &get() const noexcept {
-    return get(com::Com_SessionMode_GetMode());
-  }
-  inline constexpr T &operator[](eModes index) noexcept { return get(index); }
-  inline constexpr volatile T &operator[](eModes index) volatile noexcept {
+  const T &get() const noexcept { return get(com::Com_SessionMode_GetMode()); }
+  constexpr T &operator[](eModes index) noexcept { return get(index); }
+  constexpr volatile T &operator[](eModes index) volatile noexcept {
     return get(index);
   }
-  inline constexpr const T &operator[](eModes index) const noexcept {
+  constexpr const T &operator[](eModes index) const noexcept {
     return get(index);
   }
 };
@@ -677,27 +698,27 @@ public:
 
   const void *ptr;
 
-  inline constexpr operator const ServerType *() const noexcept { return sv; }
+  constexpr operator const ServerType *() const noexcept { return sv; }
 
-  inline constexpr operator const ClientType *() const noexcept { return cl; }
+  constexpr operator const ClientType *() const noexcept { return cl; }
 
-  inline constexpr operator const void *() const noexcept { return ptr; }
+  constexpr operator const void *() const noexcept { return ptr; }
 
-  inline constexpr operator bool() const noexcept { return sv != nullptr; }
+  constexpr operator bool() const noexcept { return sv != nullptr; }
 
   // Function-based constructors to allow usage without violating CPP 2003 PoD
   // conformance
-  static inline constexpr EngineDependent<ClientType, ServerType>
+  static constexpr EngineDependent<ClientType, ServerType>
   from(const ServerType *s) noexcept {
     return {.sv = s};
   }
 
-  static inline constexpr EngineDependent<ClientType, ServerType>
+  static constexpr EngineDependent<ClientType, ServerType>
   from(const ClientType *c) noexcept {
     return {.cl = c};
   }
 
-  static inline constexpr EngineDependent<ClientType, ServerType>
+  static constexpr EngineDependent<ClientType, ServerType>
   from(const void *v) noexcept {
     return {.ptr = v};
   }
@@ -715,38 +736,37 @@ public:
 
   void *ptr;
 
-  inline constexpr operator ServerType *() noexcept { return sv; }
+  constexpr operator ServerType *() noexcept { return sv; }
 
-  inline constexpr operator const ServerType *() const noexcept { return sv; }
+  constexpr operator const ServerType *() const noexcept { return sv; }
 
-  inline constexpr operator ClientType *() noexcept { return cl; }
+  constexpr operator ClientType *() noexcept { return cl; }
 
-  inline constexpr operator const ClientType *() const noexcept { return cl; }
+  constexpr operator const ClientType *() const noexcept { return cl; }
 
-  inline constexpr operator void *() noexcept { return ptr; }
+  constexpr operator void *() noexcept { return ptr; }
 
-  inline constexpr operator const void *() const noexcept { return ptr; }
+  constexpr operator const void *() const noexcept { return ptr; }
 
-  inline constexpr operator bool() const noexcept { return sv != nullptr; }
+  constexpr operator bool() const noexcept { return sv != nullptr; }
 
-  inline constexpr
-  operator EngineDependent<ClientType, ServerType>() const noexcept {
+  constexpr operator EngineDependent<ClientType, ServerType>() const noexcept {
     return {.sv = sv};
   }
 
   // Function-based constructors to allow usage without violating CPP 2003 PoD
   // conformance
-  static inline constexpr EngineDependentMut<ClientType, ServerType>
+  static constexpr EngineDependentMut<ClientType, ServerType>
   from(ServerType *s) noexcept {
     return {.sv = s};
   }
 
-  static inline constexpr EngineDependentMut<ClientType, ServerType>
+  static constexpr EngineDependentMut<ClientType, ServerType>
   from(ClientType *c) noexcept {
     return {.cl = c};
   }
 
-  static inline constexpr EngineDependentMut<ClientType, ServerType>
+  static constexpr EngineDependentMut<ClientType, ServerType>
   from(void *v) noexcept {
     return {.ptr = v};
   }
@@ -781,7 +801,7 @@ enum class ZoneType : uint32_t {
   USERMAP = 0x2,
   COUNT = 0x3
 };
-inline constexpr const char *serialize(ZoneType zoneType) {
+constexpr const char *serialize(ZoneType zoneType) {
   switch (zoneType) {
   case ZoneType::OFFICIAL:
     return "ZoneType::OFFICIAL";
@@ -794,7 +814,7 @@ inline constexpr const char *serialize(ZoneType zoneType) {
   }
 }
 
-inline constexpr const char *toString(ZoneType zoneType) {
+constexpr const char *toString(ZoneType zoneType) {
   switch (zoneType) {
   case ZoneType::OFFICIAL:
     return "official content";
@@ -807,7 +827,7 @@ inline constexpr const char *toString(ZoneType zoneType) {
   }
 }
 
-inline constexpr const char *toWorkshopKind(game::ZoneType type) {
+constexpr const char *toWorkshopKind(game::ZoneType type) {
   switch (type) {
   case game::ZoneType::MOD:
     return "Mod";
@@ -818,12 +838,12 @@ inline constexpr const char *toWorkshopKind(game::ZoneType type) {
   }
 }
 
-inline constexpr game::ZoneType fromWorkshopKind(const std::string_view &kind) {
+constexpr game::ZoneType fromWorkshopKind(const std::string_view &kind) {
   return kind == "Mod" ? game::ZoneType::MOD : game::ZoneType::USERMAP;
 }
 IMPL_ENUM_OPERATORS(ZoneType);
 
-inline constexpr const char *dirname(ZoneType zoneType) {
+constexpr const char *dirname(ZoneType zoneType) {
   switch (zoneType) {
   case ZoneType::MOD:
     return "mods";
@@ -873,7 +893,7 @@ enum class StorageFileType : int32_t {
 };
 IMPL_ENUM_OPERATORS(StorageFileType);
 
-inline constexpr const char *serialize(const StorageFileType type) {
+constexpr const char *serialize(const StorageFileType type) {
   switch (type) {
   case StorageFileType::COMMON_SETTINGS:
     return "STORAGE_COMMON_SETTINGS";
@@ -1007,7 +1027,7 @@ enum class consoleLabel : int32_t {
 IMPL_ENUM_OPERATORS(consoleLabel);
 typedef consoleLabel consoleLabel_e;
 
-inline constexpr const char *serialize(const consoleLabel label) {
+constexpr const char *serialize(const consoleLabel label) {
   switch (label) {
   case consoleLabel::DEFAULT:
     return "CONSOLE_LABEL_DEFAULT";
@@ -1145,7 +1165,7 @@ enum class errorCode : uint32_t {
 };
 IMPL_ENUM_OPERATORS(errorCode);
 
-inline constexpr const char *serialize(const errorCode code) {
+constexpr const char *serialize(const errorCode code) {
   switch (code) {
   case errorCode::NONE:
     return "ERROR_NONE";
@@ -1197,7 +1217,7 @@ enum class PMemStack : uint32_t {
 };
 IMPL_ENUM_OPERATORS(PMemStack);
 
-inline constexpr const char *serialize(const PMemStack stack) {
+constexpr const char *serialize(const PMemStack stack) {
   switch (stack) {
   case PMemStack::DB:
     return "PMEM_DB";
@@ -1232,7 +1252,7 @@ enum class PMemPool : uint32_t {
 };
 IMPL_ENUM_OPERATORS(PMemPool);
 
-inline constexpr const char *serialize(const PMemPool pool) {
+constexpr const char *serialize(const PMemPool pool) {
   switch (pool) {
   case PMemPool::MAIN:
     return "PMEMPOOL_MAIN";
@@ -1329,7 +1349,7 @@ enum class EMemTrack : uint32_t {
 };
 IMPL_ENUM_OPERATORS(EMemTrack);
 
-inline constexpr const char *serialize(const EMemTrack track) {
+constexpr const char *serialize(const EMemTrack track) {
   switch (track) {
   case EMemTrack::TRACK_BINARIES:
     return "TRACK_BINARIES";
@@ -1494,7 +1514,7 @@ enum class SwimStateType : int32_t {
 };
 IMPL_ENUM_OPERATORS(SwimStateType);
 
-inline constexpr const char *serialize(const SwimStateType type) {
+constexpr const char *serialize(const SwimStateType type) {
   switch (type) {
   case SwimStateType::NONE:
     return "SWIMSTATE_NONE";
@@ -1515,7 +1535,7 @@ enum class KillCamEntityRestState : int32_t {
 };
 IMPL_ENUM_OPERATORS(KillCamEntityRestState);
 
-inline constexpr const char *serialize(const KillCamEntityRestState state) {
+constexpr const char *serialize(const KillCamEntityRestState state) {
   switch (state) {
   case KillCamEntityRestState::MOVING:
     return "KC_REST_MOVING";
@@ -1546,7 +1566,7 @@ enum class KillCamEntityType : int32_t {
 };
 IMPL_ENUM_OPERATORS(KillCamEntityType);
 
-inline constexpr const char *serialize(const KillCamEntityType type) {
+constexpr const char *serialize(const KillCamEntityType type) {
   switch (type) {
   case KillCamEntityType::NO_ENTITY:
     return "KCENTITY_NO_ENTITY";
@@ -1607,7 +1627,7 @@ enum class InvalidCmdHintType : uint32_t {
 };
 IMPL_ENUM_OPERATORS(InvalidCmdHintType);
 
-inline constexpr const char *serialize(const InvalidCmdHintType type) {
+constexpr const char *serialize(const InvalidCmdHintType type) {
   switch (type) {
   case InvalidCmdHintType::NONE:
     return "HINT_NONE";
@@ -1674,7 +1694,7 @@ enum class SettingTeamIndicator : int32_t {
 };
 IMPL_ENUM_OPERATORS(SettingTeamIndicator);
 
-inline constexpr const char *serialize(const SettingTeamIndicator indicator) {
+constexpr const char *serialize(const SettingTeamIndicator indicator) {
   switch (indicator) {
   case SettingTeamIndicator::FULL:
     return "TEAMINDICATOR_FULL";
@@ -1699,7 +1719,7 @@ enum class CubemapShot : int32_t {
 };
 IMPL_ENUM_OPERATORS(CubemapShot);
 
-inline constexpr const char *serialize(const CubemapShot shot) {
+constexpr const char *serialize(const CubemapShot shot) {
   switch (shot) {
   case CubemapShot::NONE:
     return "CUBEMAP_NONE";
@@ -1728,7 +1748,7 @@ enum class DemoType : int32_t {
 };
 IMPL_ENUM_OPERATORS(DemoType);
 
-inline constexpr const char *serialize(const DemoType dtype) {
+constexpr const char *serialize(const DemoType dtype) {
   switch (dtype) {
   case DemoType::NONE:
     return "DEMOTYPE_NONE";
@@ -1749,7 +1769,7 @@ enum class TraceBrushType : uint32_t {
 };
 IMPL_ENUM_OPERATORS(TraceBrushType);
 
-inline constexpr const char *serialize(const TraceBrushType btype) {
+constexpr const char *serialize(const TraceBrushType btype) {
   switch (btype) {
   case TraceBrushType::NONE:
     return "TRACEBRUSH_NONE";
@@ -1769,7 +1789,7 @@ enum class TraceHitType : uint32_t {
 };
 IMPL_ENUM_OPERATORS(TraceHitType);
 
-inline constexpr const char *serialize(const TraceHitType htype) {
+constexpr const char *serialize(const TraceHitType htype) {
   switch (htype) {
   case TraceHitType::NONE:
     return "TRACEHIT_NONE";
@@ -1792,7 +1812,7 @@ enum class MissileFlightMode : int32_t {
 };
 IMPL_ENUM_OPERATORS(MissileFlightMode);
 
-inline constexpr const char *serialize(const MissileFlightMode mode) {
+constexpr const char *serialize(const MissileFlightMode mode) {
   switch (mode) {
   case MissileFlightMode::TOP:
     return "MISSILEFLIGHT_TOP";
@@ -1810,7 +1830,7 @@ enum class MissileStage : int32_t {
 };
 IMPL_ENUM_OPERATORS(MissileStage);
 
-inline constexpr const char *serialize(const MissileStage stage) {
+constexpr const char *serialize(const MissileStage stage) {
   switch (stage) {
   case MissileStage::SOFTLAUNCH:
     return "MISSILESTAGE_SOFTLAUNCH";
@@ -1841,7 +1861,7 @@ enum class CameraMode : int32_t {
 };
 IMPL_ENUM_OPERATORS(CameraMode);
 
-inline constexpr const char *serialize(const CameraMode mode) {
+constexpr const char *serialize(const CameraMode mode) {
   switch (mode) {
   case CameraMode::NORMAL:
     return "CAMMODE_NORMAL";
@@ -1880,7 +1900,7 @@ struct orientation_t {
   vec3_t origin;
   vec3<vec3_t> axis;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(R"({{ "origin": {}, "axis": {} }})", origin.serialize(),
                        axis.serialize());
   }
@@ -1899,7 +1919,7 @@ struct CmdArgs {
   int32_t totalUsedArgvPool;
   int32_t totalUsedTextPool;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
         "{{ \"nesting\": {}, \"localClientNum\": {}, \"controllerIndex\": {}, "
         "\"argshift\": {}, \"argc\": {}, \"argv\": {:p}, \"textPool\": \"{}\", "
@@ -1983,13 +2003,13 @@ template <const IntegralLike<size_t> auto B> struct bitarray {
                            BITARRAY_CHUNK_BITS>
       data;
 
-  inline constexpr void assert_range(size_t index) {
+  constexpr void assert_range(size_t index) {
     assert(index < static_cast<size_t>(B) &&
            "Index to bitarray must be within bounds 0 <= index < B");
   }
 
   template <IntegralLike<size_t> Index>
-  inline constexpr void set(Index index_arg) noexcept {
+  constexpr void set(Index index_arg) noexcept {
     const size_t index = static_cast<size_t>(index_arg);
     assert_range(index);
 
@@ -1998,7 +2018,7 @@ template <const IntegralLike<size_t> auto B> struct bitarray {
   }
 
   template <IntegralLike<size_t> Index>
-  inline constexpr void clear(Index index_arg) noexcept {
+  constexpr void clear(Index index_arg) noexcept {
     const size_t index = static_cast<size_t>(index_arg);
     assert_range(index);
 
@@ -2007,7 +2027,7 @@ template <const IntegralLike<size_t> auto B> struct bitarray {
   }
 
   template <IntegralLike<size_t> Index>
-  inline constexpr bool get(Index index_arg) const noexcept {
+  constexpr bool get(Index index_arg) const noexcept {
     const size_t index = static_cast<size_t>(index_arg);
     assert_range(index);
 
@@ -2017,39 +2037,37 @@ template <const IntegralLike<size_t> auto B> struct bitarray {
 
   // Bit indexing operator
   template <IntegralLike Index>
-  inline constexpr bool operator[](Index index) const noexcept {
+  constexpr bool operator[](Index index) const noexcept {
     return get(static_cast<size_t>(index));
   }
 
-  [[nodiscard]] inline constexpr const BitArrayChunk &begin() const noexcept {
+  [[nodiscard]] constexpr const BitArrayChunk &begin() const noexcept {
     return data[0];
   }
 
-  [[nodiscard]] inline constexpr const BitArrayChunk &end() const noexcept {
+  [[nodiscard]] constexpr const BitArrayChunk &end() const noexcept {
     return data[std::size(data) - 1];
   }
 
-  inline constexpr BitArrayChunk &begin() noexcept { return data[0]; }
+  constexpr BitArrayChunk &begin() noexcept { return data[0]; }
 
-  inline constexpr BitArrayChunk &end() noexcept {
-    return data[std::size(data) - 1];
-  }
+  constexpr BitArrayChunk &end() noexcept { return data[std::size(data) - 1]; }
 
   template <IntegralLike<BitArrayChunk> T>
-  inline constexpr void fill(const T val) noexcept {
+  constexpr void fill(const T val) noexcept {
     std::fill(&begin(), &end(), static_cast<BitArrayChunk>(val));
   }
 
-  inline constexpr void reset() noexcept { fill(0); }
+  constexpr void reset() noexcept { fill(0); }
 
   // Function name used by engine
-  inline constexpr void resetAllBits() noexcept { reset(); }
+  constexpr void resetAllBits() noexcept { reset(); }
 
-  [[nodiscard]] inline constexpr auto chunks() const noexcept {
+  [[nodiscard]] constexpr auto chunks() const noexcept {
     return std::size(data);
   }
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return ::serialize(data);
   }
 };
@@ -2121,7 +2139,7 @@ enum class objectiveState_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(objectiveState_t);
 
-inline constexpr const char *serialize(const objectiveState_t state) {
+constexpr const char *serialize(const objectiveState_t state) {
   switch (state) {
   case objectiveState_t::EMPTY:
     return "OBJSTATE_EMPTY";
@@ -2152,7 +2170,7 @@ struct UIModelData {
     int32_t functionRef;
   };
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     std::string valueStr;
     switch (dataType) {
     case UIModelDataType::BOOL:
@@ -2188,7 +2206,7 @@ struct objectiveUIModel_t {
   int32_t modelName;
   uint8_t _padding14[12];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(R"({{ "modelData": {}, "modelName": {} }})",
                        modelData.serialize(), modelName);
   }
@@ -2272,8 +2290,8 @@ enum class scoreboardColumnType_t : int32_t {
 IMPL_ENUM_OPERATORS(scoreboardColumnType_t);
 
 struct uint128_t {
-  uint64_t low;
-  uint64_t high;
+  uint64_t low = 0;
+  uint64_t high = 0;
 };
 ASSERT_SIZE(uint128_t, 0x10);
 
@@ -2323,9 +2341,7 @@ struct renderOptions_t {
   };
 
   // TODO: how do we determine which union member to serialize?
-  [[nodiscard]] inline std::string_view serialize() const noexcept {
-    return "TODO";
-  }
+  [[nodiscard]] std::string_view serialize() const noexcept { return "TODO"; }
 };
 ASSERT_SIZE(renderOptions_t, 0x10);
 
@@ -2336,7 +2352,7 @@ public:
   uint16_t number;
   uint16_t infoIndex;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(R"({{ "number": {}, "infoIndex": {} }})", number,
                        infoIndex);
   }
@@ -2356,7 +2372,7 @@ struct animationNumber_t {
     uint16_t packed;
   };
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(R"({{ "index": 0x{:04X}, "toggle": {} }})", index,
                        ::serialize(static_cast<bool>(toggle)));
   }

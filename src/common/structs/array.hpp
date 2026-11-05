@@ -36,31 +36,34 @@ inline constexpr size_t alignment_size(size_t size, size_t align) {
   return (align - (size % align)) % align;
 }
 
-template <typename T, const IntegralLike auto N, const IntegralLike auto Align>
+template <typename T, const IntegralLike<size_t> auto N,
+          const IntegralLike<size_t> auto Align>
 struct aligned_array {
   alignas(Align) array<T, N> items;
 
-  inline constexpr void assert_range([[maybe_unused]] size_t index) const {
+  typedef size_t index_t;
+
+  inline constexpr void assert_range([[maybe_unused]] index_t index) const {
     assert(index < N && "index to aligned_array must be < array length");
   }
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &get(Index index_arg) const noexcept {
-    const size_t index = static_cast<size_t>(index_arg);
+    const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return items[index];
   }
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr T &get(Index index_arg) noexcept {
-    const size_t index = static_cast<size_t>(index_arg);
+    const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return items[index];
   }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &operator[](Index index) const noexcept {
     return get(index);
   }
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr T &operator[](Index index) noexcept {
     return get(index);
   }

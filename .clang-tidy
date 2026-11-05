@@ -64,7 +64,7 @@ CheckOptions:
   - key: cppcoreguidelines-explicit-virtual-functions.IgnoreDestructors
     value: "true"
   - key: cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues
-    value: "1;2;4;8" # Common alignment and buffer sizes
+    value: "1;2;4;8;16" # Common alignment and buffer sizes
   - key: cppcoreguidelines-avoid-magic-numbers.IgnoreTypeAliases
     value: "true"
   - key: readability-magic-numbers.IgnorePowersOf2IntegerValues

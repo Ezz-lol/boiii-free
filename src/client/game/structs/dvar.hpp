@@ -239,8 +239,7 @@ ASSERT_CPP03_POD(DvarFlags);
   XYZ and LAB color types, as labeled by dvarType_t,
   seem to be legacy - unused in engine.
 */
-#pragma pack(push, 1)
-union DvarColor {
+PACKED(union DvarColor {
   // Linear RGB
   struct {
     uint8_t r;
@@ -266,18 +265,15 @@ union DvarColor {
   uint8_t raw[4];
 
   // operators for implicit conversion to uint8_t[4], array semantics
-  inline constexpr operator uint8_t *() noexcept { return raw; }
-  inline constexpr operator const uint8_t *() const noexcept { return raw; }
-  inline constexpr uint8_t &operator[](size_t index) noexcept {
+  constexpr operator uint8_t *() noexcept { return raw; }
+  constexpr operator const uint8_t *() const noexcept { return raw; }
+  constexpr uint8_t &operator[](size_t index) noexcept { return raw[index]; }
+  constexpr const uint8_t &operator[](size_t index) const noexcept {
     return raw[index];
   }
-  inline constexpr const uint8_t &operator[](size_t index) const noexcept {
-    return raw[index];
-  }
-};
+});
 ASSERT_CPP03_POD(DvarColor);
 ASSERT_SIZE(DvarColor, 4);
-#pragma pack(pop)
 
 namespace com {
 eModes Com_SessionMode_GetMode();
@@ -329,14 +325,14 @@ template <typename T_DvarValue> union TemplateDvarValue {
   inline constexpr DvarColor &color() { return _color; }
 
   inline const T_DvarValue *indirect(eModes mode) const {
-    return valid_mode(mode) ? _indirect[mode] : nullptr;
+    return validate(mode) ? _indirect[mode] : nullptr;
   }
   inline const SessionModePool<T_DvarValue *> &indirect() const {
     return _indirect;
   }
 
   inline T_DvarValue *indirect(eModes mode) {
-    return valid_mode(mode) ? _indirect[mode] : nullptr;
+    return validate(mode) ? _indirect[mode] : nullptr;
   }
   inline SessionModePool<T_DvarValue *> &indirect() { return _indirect; }
   inline const T_DvarValue *sessionModeSpecific(eModes mode) const {

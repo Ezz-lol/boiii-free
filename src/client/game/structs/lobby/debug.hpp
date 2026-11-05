@@ -87,112 +87,52 @@ ASSERT_SIZE(DebugHistory, 0xB80);
 template <const auto COUNT> union DebugHistoryPool {
   DebugHistory history[COUNT];
 
-  static inline constexpr auto size() noexcept { return COUNT; }
+  static constexpr auto size() noexcept { return COUNT; }
 
-  inline constexpr void assert_range([[maybe_unused]] size_t index) const {
+  constexpr void assert_range([[maybe_unused]] size_t index) const {
     assert(index < COUNT && "index to aligned_array must be < array length");
   }
   template <IntegralLike<size_t> Index>
-  inline constexpr const DebugHistory &get(Index index_arg) const noexcept {
+  constexpr const DebugHistory &get(Index index_arg) const noexcept {
     const size_t index = static_cast<size_t>(index_arg);
     assert_range(index);
     return history[index];
   }
   template <IntegralLike<size_t> Index>
-  inline constexpr DebugHistory &get(Index index_arg) noexcept {
+  constexpr DebugHistory &get(Index index_arg) noexcept {
     const size_t index = static_cast<size_t>(index_arg);
     assert_range(index);
     return history[index];
   }
 
   template <IntegralLike<size_t> Index>
-  inline constexpr const DebugHistory &operator[](Index index) const noexcept {
+  constexpr const DebugHistory &operator[](Index index) const noexcept {
     return get(index);
   }
   template <IntegralLike<size_t> Index>
-  inline constexpr DebugHistory &operator[](Index index) noexcept {
+  constexpr DebugHistory &operator[](Index index) noexcept {
     return get(index);
   }
 
-  inline operator const DebugHistory *() const noexcept { return history; }
-  inline operator DebugHistory *() noexcept { return history; }
+  operator const DebugHistory *() const noexcept { return history; }
+  operator DebugHistory *() noexcept { return history; }
 
-  inline operator const void *() const noexcept { return history; }
-  inline operator void *() noexcept { return history; }
+  operator const void *() const noexcept { return history; }
+  operator void *() noexcept { return history; }
 
-  inline operator const array<DebugHistory, COUNT> &() const noexcept {
+  operator const array<DebugHistory, COUNT> &() const noexcept {
     return history;
   }
-  inline operator array<DebugHistory, COUNT> &() noexcept { return history; }
-  inline operator const std::span<const DebugHistory, COUNT>() const noexcept {
+  operator array<DebugHistory, COUNT> &() noexcept { return history; }
+  operator const std::span<const DebugHistory, COUNT>() const noexcept {
     return std::span<const DebugHistory, COUNT>(history);
   }
-  inline operator std::span<DebugHistory, COUNT>() noexcept {
+  operator std::span<DebugHistory, COUNT>() noexcept {
     return std::span<DebugHistory, COUNT>(history);
   }
 
-  inline bool contains(const DebugHistory *item) const noexcept {
+  bool contains(const DebugHistory *item) const noexcept {
     return ::contains(history, sizeof(history), item);
-  }
-};
-
-typedef DebugHistoryPool<23> DebugHistoryPool_cl;
-typedef DebugHistoryPool<15> DebugHistoryPool_sv;
-
-union EngineDependentDebugHistoryPool {
-  DebugHistoryPool_sv *sv;
-  DebugHistoryPool_cl *cl;
-
-  inline const DebugHistory *get(size_t index) const {
-    return is_server() ? &sv->history[index] : &cl->history[index];
-  }
-  inline DebugHistory *get(size_t index) {
-    return is_server() ? &sv->history[index] : &cl->history[index];
-  }
-
-  inline const DebugHistory *operator[](size_t index) const {
-    return get(index);
-  }
-  inline DebugHistory *operator[](size_t index) { return get(index); }
-
-  inline bool contains(const DebugHistory *item) const noexcept {
-    return is_server() ? sv->contains(item) : cl->contains(item);
-  }
-
-  inline auto size() const noexcept {
-    return is_server() ? sv->size() : cl->size();
-  }
-
-  inline constexpr bool null() const noexcept { return sv == nullptr; }
-  inline constexpr bool nonnull() const noexcept { return sv != nullptr; }
-
-  inline constexpr EngineDependentDebugHistoryPool() noexcept = default;
-  inline constexpr EngineDependentDebugHistoryPool(
-      DebugHistoryPool_sv *pool) noexcept
-      : sv(pool) {}
-  inline constexpr EngineDependentDebugHistoryPool(
-      DebugHistoryPool_cl *pool) noexcept
-      : cl(pool) {}
-  inline constexpr EngineDependentDebugHistoryPool(std::nullptr_t pool) noexcept
-      : cl(pool) {}
-
-  inline constexpr bool operator!() const noexcept { return null(); }
-  inline constexpr operator bool() const noexcept { return nonnull(); }
-  template <typename T>
-  friend inline constexpr bool
-  operator==(const EngineDependentDebugHistoryPool &lhs, const T *&rhs) {
-    return lhs.cl == rhs;
-  }
-  template <PtrLike T>
-  friend inline constexpr bool
-  operator==(const EngineDependentDebugHistoryPool &lhs, const T &rhs) {
-    return reinterpret_cast<uintptr_t>(lhs.cl) == static_cast<uintptr_t>(rhs);
-  }
-
-  friend inline constexpr bool
-  operator==(const EngineDependentDebugHistoryPool &lhs,
-             const std::nullptr_t &rhs) {
-    return lhs.sv == rhs;
   }
 };
 

@@ -27,5 +27,7 @@ WEAK symbol<bool(const char *str, netadr_t *adr)> NET_StringToAdr{
 WEAK symbol<bool(netsrc_t sock, netadr_t *adr, const char *data)>
     NET_OutOfBandPrint{0x14211AC50, 0x142173710, 0x140515D90};
 WEAK symbol<uint16_t()> NET_GetDefaultPort{0x142119C60, 0x0, 0x0};
+WEAK symbol<bool(const netadr_t *a, const netadr_t *b)> NetAdr_Compare{
+    0x142119DB0, 0x0, 0x142119DB0};
 } // namespace net
 } // namespace game

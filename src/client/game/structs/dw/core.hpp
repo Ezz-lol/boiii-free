@@ -322,9 +322,9 @@ inline constexpr const char *serialize(const RecordEventType event) {
 
 template <typename T> class bdReference {
 public:
-  T *m_ptr;
+  T *m_ptr = nullptr;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"m_ptr\": {} }}", ::serialize(m_ptr));
   }
 };
@@ -332,9 +332,9 @@ public:
 class bdReferencable;
 class bdReferencableVTbl {
 public:
-  thiscallPtr_t<void(bdReferencable *_this, int64_t)> releaseFunc;
+  thiscallPtr_t<void(bdReferencable *, int64_t)> releaseFunc;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"releaseFunc\": {:p} }}",
                        reinterpret_cast<const void *>(releaseFunc));
   }

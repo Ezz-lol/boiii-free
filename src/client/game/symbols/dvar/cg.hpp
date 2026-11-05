@@ -168,23 +168,23 @@ WEAK symbol<EngineDependentDvarMut> cg_focallength{0x1449B2A50, 0x144A31A50,
                                                    0x14222BF88};
 WEAK symbol<EngineDependentDvarMut> cg_footprints{0x1449B29B8, 0x144A319B8,
                                                   0x14222BEF0};
-WEAK symbol<EngineDependentDvarMut> cg_footprintsdebug{0x1449B29C8, 0x144A319C8,
+WEAK symbol<EngineDependentDvarMut> cg_footprintsDebug{0x1449B29C8, 0x144A319C8,
                                                        0x14222BF00};
-WEAK symbol<EngineDependentDvarMut> cg_footprintsdistortwater{
+WEAK symbol<EngineDependentDvarMut> cg_footprintsDistortWater{
     0x1449B29C0, 0x144A319C0, 0x14222BEF8};
 WEAK symbol<EngineDependentDvarMut> cg_footsteps{0x1449B29B0, 0x144A319B0,
                                                  0x14222BEE8};
-WEAK symbol<EngineDependentDvarMut> cg_forceinfrared{0x14495A348, 0x1449D9348,
+WEAK symbol<EngineDependentDvarMut> cg_forceInfrared{0x14495A348, 0x1449D9348,
                                                      0x1421E36A8};
 WEAK symbol<EngineDependentDvarMut> cg_fov{0x1449B2A78, 0x144A31A78,
                                            0x14222BFB0};
 WEAK symbol<EngineDependentDvarMut> cg_fov_default{0x157A472F0, 0x157AC61F0,
                                                    0x14A3CB5E0};
-WEAK symbol<EngineDependentDvarMut> cg_fovextracam{0x1449B2A90, 0x144A31A90,
+WEAK symbol<EngineDependentDvarMut> cg_fovExtracam{0x1449B2A90, 0x144A31A90,
                                                    0x14222BFC8};
-WEAK symbol<EngineDependentDvarMut> cg_fovmin{0x1449B2A80, 0x144A31A80,
+WEAK symbol<EngineDependentDvarMut> cg_fovMin{0x1449B2A80, 0x144A31A80,
                                               0x14222BFB8};
-WEAK symbol<EngineDependentDvarMut> cg_fovscale{0x1449B2A88, 0x144A31A88,
+WEAK symbol<EngineDependentDvarMut> cg_fovScale{0x1449B2A88, 0x144A31A88,
                                                 0x14222BFC0};
 WEAK symbol<EngineDependentDvarMut> cg_friendlynamefadein{
     0x1449B2BB0, 0x144A31BB0, 0x14222C0E8};

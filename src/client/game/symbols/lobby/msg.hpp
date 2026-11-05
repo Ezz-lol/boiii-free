@@ -15,16 +15,21 @@ WEAK symbol<LobbyP2PMsgHandlersTable> p2p_messageHandlers{
 WEAK symbol<LobbyHostClientMsgHandlersTable> host_clientMessageHandlers{
     0x142FA0100, 0x14301F1F0, 0x140E5A5C0};
 
+WEAK symbol<bool(ControllerIndex_t controllerIndex,
+                 net::NetChanMsgType_e channel, LobbyModule destModule,
+                 net::netadr_t *adr, XUID toXuid, net::msg::msg_t *msg,
+                 MsgType msgType)>
+    LobbyMsgTransport_SendToAdr{0x141EEC080, 0x0, 0x1404A63B0};
+
 // Named `LobbyMsg_SendToHost` in engine - override
-WEAK
-    symbol<bool(const ControllerIndex_t controllerIndex,
-                session::LobbySession *lobbySession,
-                voice::Msg_VoicePacket *msgData, net::NetChanMsgType_e channel)>
-        LobbyMsg_SendToHost_Voice{0x141EE4970, 0x0, 0x1404A2290};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex,
+                 session::LobbySession *lobbySession,
+                 msg::Msg_VoicePacket *msgData, net::NetChanMsgType_e channel)>
+    LobbyMsg_SendToHost_Voice{0x141EE4970, 0x0, 0x1404A2290};
 
 inline bool LobbyMsg_SendToHost(ControllerIndex_t controllerIndex,
                                 session::LobbySession *lobbySession,
-                                voice::Msg_VoicePacket *msgData,
+                                msg::Msg_VoicePacket *msgData,
                                 net::NetChanMsgType_e channel) {
   return LobbyMsg_SendToHost_Voice(controllerIndex, lobbySession, msgData,
                                    channel);
@@ -59,7 +64,7 @@ inline LobbyMsgHandler *handler(LobbyModule module, MsgType msgType) {
     case LobbyModule::HOST:
       return &host_clientMessageHandlers->LobbyClientContent;
     default:
-      goto invalid;
+      return nullptr;
     }
   }
   case MsgType::LOBBY_MODIFIED_STATS:
@@ -72,7 +77,7 @@ inline LobbyMsgHandler *handler(LobbyModule module, MsgType msgType) {
     case LobbyModule::PEER_TO_PEER:
       return &p2p_messageHandlers->VoicePacket;
     default:
-      goto invalid;
+      return nullptr;
     }
   }
   case MsgType::LOBBY_STATE_PRIVATE:
@@ -106,7 +111,6 @@ inline LobbyMsgHandler *handler(LobbyModule module, MsgType msgType) {
   case MsgType::DEMO_STATE:
     return &p2p_messageHandlers->DemoState;
 
-  invalid:
   default:
     return nullptr;
   }

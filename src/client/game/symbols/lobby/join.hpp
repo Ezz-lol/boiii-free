@@ -9,6 +9,9 @@ namespace lobby {
 namespace join {
 
 WEAK symbol<lobby::join::Join> s_join{0x1556CB6D0, 0x15574A640, 0x14857E170};
+WEAK symbol<int32_t> s_successTimeout{0x1556CB6CC, 0x0, 0x14857E16C};
+WEAK symbol<JoinSourceStatePool<const char *>> s_joinNames{0x143390390, 0x0,
+                                                           0x141122260};
 
 WEAK symbol<bool(int32_t actionId, ControllerIndex_t controllerIndex,
                  LobbyType sourceLobbyType, LobbyType targetLobbyType,
@@ -19,7 +22,31 @@ WEAK symbol<bool(XUID xuid, const char *name, net::bdSecurityID *secId,
                  JoinType joinType, uint64_t reservationKey)>
     LobbyJoin_Add{0x141ED7B50, 0x0, 0x0};
 WEAK symbol<void()> LobbyJoin_Finalize{0x141ED7C50, 0x0, 0x0};
-} // namespace join
+WEAK symbol<void(Agreement *agreement, XUID xuid, bool agrees)>
+    Agreement_Update{0x141ED8CF0, 0x0, 0x140496B40};
+WEAK symbol<bool(Agreement *agreement, LobbyType sourceLobbyType)>
+    Agreement_Add{0x141ED8C10, 0x0, 0x140496A60};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex,
+                 LobbyType srcLobbyType, bool shouldCommit)>
+    LobbyHostMsg_SendJoinComplete{0x141ED4DA0, 0x0, 0x140492FB0};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex,
+                 net::HostInfo *hostInfo, uint64_t reservationKey, int nonce,
+                 LobbyType srcLobbyType, LobbyType targetLobbyType,
+                 LobbyParams params)>
+    LobbyHostMsg_SendAgreementRequest{0x141ED4BC0, 0x0, 0x140492DD0};
 
+WEAK symbol<void(join::Join *join)> LobbyTaskUpdate{0x141ED9F50, 0x0,
+                                                    0x140497DA0};
+WEAK symbol<void(LobbyType lobbyType)> ChangeState{0x141ED0800, 0x0,
+                                                   0x14048EB20};
+WEAK symbol<void(ControllerIndex_t controllerIndex, XUID fromXuid,
+                 msg::Msg_JoinParty *joinReq,
+                 msg::Msg_JoinResponse *joinResponse)>
+    JoinRequestLuaCheck{0x141ED4340, 0x0, 0x140492550};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex,
+                 JoinPartyMember *members, int memberCount,
+                 uint64_t clientJoinNonce, XUID probedXuid, uint64_t *outKey)>
+    LobbyJoin_Reserve{0x141ED7F90, 0x0, 0x140495EA0};
+} // namespace join
 } // namespace lobby
 } // namespace game

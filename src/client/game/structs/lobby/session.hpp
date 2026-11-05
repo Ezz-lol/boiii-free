@@ -52,6 +52,10 @@ enum class itemGroup_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(itemGroup_t);
 
+constexpr bool validate(const itemGroup_t group) {
+  return group >= itemGroup_t::SMG && group < itemGroup_t::COUNT;
+}
+
 enum class VoteType : uint32_t {
   INVALID = 0x0,
   BAN = 0x1,
@@ -59,6 +63,11 @@ enum class VoteType : uint32_t {
   COUNT = 0x3,
 };
 IMPL_ENUM_OPERATORS(VoteType);
+
+constexpr bool validate(const VoteType type) {
+  return type >= VoteType::BAN && type < VoteType::COUNT;
+}
+
 enum class VoteItemType : uint32_t {
   INVALID = 0x0,
   ITEM = 0x1,
@@ -68,6 +77,10 @@ enum class VoteItemType : uint32_t {
   COUNT = 0x5,
 };
 IMPL_ENUM_OPERATORS(VoteItemType);
+
+constexpr bool validate(const VoteItemType type) {
+  return type >= VoteItemType::ITEM && type < VoteItemType::COUNT;
+}
 
 enum class GameServerStatus : uint32_t {
   IDLE = 0x0,
@@ -79,6 +92,11 @@ enum class GameServerStatus : uint32_t {
 };
 IMPL_ENUM_OPERATORS(GameServerStatus);
 
+constexpr bool validate(const GameServerStatus status) {
+  return status >= GameServerStatus::IDLE &&
+         status <= GameServerStatus::RUNNING_DEMO;
+}
+
 enum class heroLoadoutTypes_e : int32_t {
   INVALID = -1,
   FIRST = 0x0,
@@ -87,6 +105,12 @@ enum class heroLoadoutTypes_e : int32_t {
   COUNT = 0x2,
 };
 IMPL_ENUM_OPERATORS(heroLoadoutTypes_e);
+
+constexpr bool validate(const heroLoadoutTypes_e type) {
+  return type >= heroLoadoutTypes_e::WEAPON && type < heroLoadoutTypes_e::COUNT;
+}
+
+static constexpr auto MAX_ITEM_VOTE_COUNT = 216;
 
 enum class LobbyPregameState : uint32_t {
   IDLE = 0x0,
@@ -98,6 +122,10 @@ enum class LobbyPregameState : uint32_t {
   COUNT = 0x6,
 };
 IMPL_ENUM_OPERATORS(LobbyPregameState);
+
+constexpr bool validate(const LobbyPregameState state) {
+  return state >= LobbyPregameState::IDLE && state < LobbyPregameState::COUNT;
+}
 
 enum class LobbyClientPregameState : uint32_t {
   IDLE = 0x0,
@@ -111,34 +139,39 @@ enum class LobbyClientPregameState : uint32_t {
 };
 IMPL_ENUM_OPERATORS(LobbyClientPregameState);
 
+constexpr bool validate(const LobbyClientPregameState state) {
+  return state >= LobbyClientPregameState::IDLE &&
+         state < LobbyClientPregameState::COUNT;
+}
+
 namespace session {
 PACKED(struct SessionInfo {
-  bool inSession;
+  bool inSession = false;
   uint8_t _padding01[3];
-  net::netadr_t netAdr;
+  net::netadr_t netAdr = {};
   uint8_t _padding14[4];
-  time_t lastMessageSentToPeer;
+  time_t lastMessageSentToPeer = 0;
 });
 
 struct MatchInfo {
-  uint32_t score;
+  uint32_t score = 0;
 };
 
 PACKED(struct VoiceChatInfo {
-  int32_t lastCaughtTalking;
-  int32_t connectivityBits;
-  bool isGameRestricted;
+  int32_t lastCaughtTalking = 0;
+  int32_t connectivityBits = 0;
+  bool isGameRestricted = false;
   uint8_t _padding09[3];
 });
 
 struct SessionClient {
-  XUID xuid;                          // Verified
-  active::ActiveClient *activeClient; // Verified
-  LobbyClientType clientType;
-  MatchInfo matchInfo;
-  VoiceChatInfo voiceInfo;
-  uint32_t joinOrder;
-  uint64_t joinNonce;
+  XUID xuid = 0;                                // Verified
+  active::ActiveClient *activeClient = nullptr; // Verified
+  LobbyClientType clientType = LobbyClientType::INVALID;
+  MatchInfo matchInfo = {};
+  VoiceChatInfo voiceInfo = {};
+  uint32_t joinOrder = 0;
+  uint64_t joinNonce = 0;
 };
 ASSERT_OFFSET(SessionClient, xuid, 0x0);
 // Verified
@@ -156,12 +189,17 @@ enum class SessionStatus : int32_t {
 };
 IMPL_ENUM_OPERATORS(SessionStatus);
 
+constexpr bool validate(const SessionStatus status) {
+  return status >= SessionStatus::IDLE && status < SessionStatus::COUNT;
+}
+
 enum class SessionActive : int32_t {
   INACTIVE = 0x0,
   KEEP_ALIVE = 0x1,
   ACTIVE = 0x2,
 };
 IMPL_ENUM_OPERATORS(SessionActive);
+
 enum class SessionDirty : int32_t {
   STATE = 0x1,
   UI = 0x2,
@@ -170,94 +208,94 @@ enum class SessionDirty : int32_t {
 IMPL_ENUM_OPERATORS(SessionDirty);
 
 PACKED(struct SessionHost {
-  net::HostInfo info; // Verified
-  ClientNum_t maxClients;
+  net::HostInfo info = {}; // Verified
+  ClientNum_t maxClients = ClientNum_t::INVALID_CLIENT_INDEX;
   uint8_t _padding7C[4];
 });
 ASSERT_SIZE(SessionHost, 0x88);
 
 struct SessionLeader {
-  XUID xuid;
+  XUID xuid = 0;
 };
 
 PACKED(struct SessionMigrateData {
-  uint8_t indexBits;
+  uint8_t indexBits = 0;
   uint8_t _padding[3];
-  int32_t startTime;
+  int32_t startTime = 0;
 });
 
 // Verified
 PACKED(struct CustomGameDetails {
-  str64_t name;
-  qboolean isOfficial;
+  str64_t name = {0};
+  qboolean isOfficial = qfalse;
 });
 ASSERT_SIZE(CustomGameDetails, 0x44);
 
 // Verified
 struct LobbyCustomData {
-  CustomGameDetails customGameDetails;
+  CustomGameDetails customGameDetails = {};
 };
 
 // Verified
 PACKED(struct LobbyTheaterData {
-  name_t demoName;
-  uint64_t fileId;
-  int32_t fileSize;
-  bool isUserFile;
-  bool isLiveStream;
+  name_t demoName = {0};
+  uint64_t fileId = 0;
+  int32_t fileSize = 0;
+  bool isUserFile = false;
+  bool isLiveStream = false;
   uint8_t _padding2E[2];
-  uint64_t authorXUID;
-  eModes mainMode;
-  name_t demoMode;
-  name_t fileCategory;
-  int32_t downloadPercent;
-  bool readyForPlayback;
-  bool retryDownload;
+  uint64_t authorXUID = 0;
+  eModes mainMode = eModes::INVALID;
+  name_t demoMode = {0};
+  name_t fileCategory = {0};
+  int32_t downloadPercent = 0;
+  bool readyForPlayback = false;
+  bool retryDownload = false;
   uint8_t _padding82[2];
-  int32_t lastHeartBeatTime;
+  int32_t lastHeartBeatTime = 0;
 });
 ASSERT_SIZE(LobbyTheaterData, 0x88);
 
 // Verified
 PACKED(struct LobbyPublicData {
-  int32_t playlistId;
-  int32_t playlistCurrentEntry;
-  uint8_t playlistLastEntries[8];
-  uint8_t playlistNext;
-  uint8_t playlistPrev;
-  uint8_t playlistPrevCount;
+  int32_t playlistId = 0;
+  int32_t playlistCurrentEntry = 0;
+  uint8_t playlistLastEntries[8] = {0};
+  uint8_t playlistNext = 0;
+  uint8_t playlistPrev = 0;
+  uint8_t playlistPrevCount = 0;
   uint8_t _padding13[1];
 });
 ASSERT_SIZE(LobbyPublicData, 0x14);
 
 struct CharacterSelection {
-  uint32_t characterIndex;
-  heroLoadoutTypes_e loadoutType;
+  uint32_t characterIndex = 0;
+  heroLoadoutTypes_e loadoutType = heroLoadoutTypes_e::INVALID;
 };
 
 // Verified
 PACKED(struct GameClientData {
-  team_t team;
-  LobbyMapVote mapVote;
-  bool readyUp;
+  team_t team = team_t::TEAM_BAD;
+  LobbyMapVote mapVote = LobbyMapVote::INVALID;
+  bool readyUp = false;
   uint8_t _padding09[3];
-  LobbyClientPregameState pregameState;
-  int32_t pregamePosition;
-  bool pregameEditComplete;
+  LobbyClientPregameState pregameState = LobbyClientPregameState::IDLE;
+  int32_t pregamePosition = 0;
+  bool pregameEditComplete = false;
   uint8_t _padding15[3];
-  uint32_t itemVoteCount;
-  CharacterSelection characterSelection;
+  uint32_t itemVoteCount = 0;
+  CharacterSelection characterSelection = {};
 });
 // Verified
 ASSERT_SIZE(GameClientData, 0x24);
 
 PACKED(struct ItemVote {
-  XUID clientXuid;
-  VoteItemType itemType;
-  uint32_t itemIndex;
-  itemGroup_t itemGroup;
-  weapon::eAttachment attachment;
-  VoteType voteType;
+  XUID clientXuid = 0;
+  VoteItemType itemType = VoteItemType::INVALID;
+  uint32_t itemIndex = 0;
+  itemGroup_t itemGroup = itemGroup_t::INVALID;
+  weapon::eAttachment attachment = weapon::eAttachment::NONE;
+  VoteType voteType = VoteType::INVALID;
   /*
     Note: this is a new field, used only where
     `ItemVote` is stored in the local `LobbySession`, under
@@ -269,82 +307,83 @@ PACKED(struct ItemVote {
     structure size however, as there were previously four bytes
     (`4 == sizeof(uint32_t)`) of padding here.
   */
-  uint32_t pregameVoteCount;
+  uint32_t pregameVoteCount = 0;
 });
 
 PACKED(struct LobbyGameData {
-  ControllerIndex_t controllerIndex;
-  GameServerStatus serverStatus;
-  int32_t launchNonce;
+  ControllerIndex_t controllerIndex =
+      ControllerIndex_t::INVALID_CONTROLLER_PORT;
+  GameServerStatus serverStatus = GameServerStatus::IDLE;
+  int32_t launchNonce = 0;
   uint8_t _padding0C[4];
-  uint128_t matchHash;
-  bool preLoaded;
-  name_t gameType;
-  name_t mapName;
+  uint128_t matchHash = {};
+  bool preLoaded = false;
+  name_t gameType = {0};
+  name_t mapName = {0};
   uint8_t _padding61[3];
-  info::LobbyUGCInfo ugcInfo;
-  int32_t status;
-  int32_t statusValue;
-  LobbyPregameState pregameState;
-  uint32_t pregameVoteCount;
-  ItemVote pregameVotes[216];
-  LobbyClientPool<GameClientData> client;
-  LobbyPublicData publicData; // Verified
-  LobbyCustomData customData; // Verified
+  info::LobbyUGCInfo ugcInfo = {};
+  int32_t status = 0;
+  int32_t statusValue = 0;
+  LobbyPregameState pregameState = LobbyPregameState::IDLE;
+  uint32_t pregameVoteCount = 0;
+  ItemVote pregameVotes[216] = {{}};
+  LobbyClientPool<GameClientData> client = {{}};
+  LobbyPublicData publicData = {}; // Verified
+  LobbyCustomData customData = {}; // Verified
   // TODO: the data structure is correct, but why is there a separate field for
   // this? This is duplicative of publicData, and does not exist in BO4 or BO3
   // alpha engines.
-  LobbyPublicData playlistData; // Verified
+  LobbyPublicData playlistData = {}; // Verified
   uint8_t _padding1E8C[4];
-  LobbyTheaterData theaterData; //  Verified
+  LobbyTheaterData theaterData = {}; //  Verified
 });
 ASSERT_SIZE(LobbyGameData, 0x1F18);
 
 // Verified
 struct LobbyPrivateData {
-  int32_t playlistId;
+  int32_t playlistId = 0;
 };
 
 PACKED(struct LobbyData {
   // This actually acts more like bitflags representing lobby session state -
   // `dirty` is a misleading struct field name.
-  uint8_t dirty; // Verified
+  uint8_t dirty = 0; // Verified
   uint8_t _padding01[3];
-  eGameModes gameMode;    // Verified
-  XUID platformSessionID; // Verified
-  const LobbyType *type;
-  const LobbyMode *mode;         // Verified
-  LobbyPrivateData lobbyPrivate; // Verified
+  eGameModes gameMode = eGameModes::INVALID; // Verified
+  XUID platformSessionID = 0;                // Verified
+  const LobbyType *type = nullptr;
+  const LobbyMode *mode = nullptr;    // Verified
+  LobbyPrivateData lobbyPrivate = {}; // Verified
   uint8_t _padding24[4];
-  LobbyGameData lobbyGame; // Verified
+  LobbyGameData lobbyGame = {}; // Verified
 });
 
 PACKED(struct LobbySession {
-  LobbyModule module;   // Verified
-  LobbyType type;       // Verified
-  LobbyMode mode;       // Verified
-  SessionStatus status; // Verified
-  void *_unknown10;
-  const char *name;       // Verified
-  str32_t key;            // Verified
-  SessionActive active;   // Verified
-  qboolean dirty;         // Verified
-  uint64_t flags;         // Verified
-  bool sessionAdvertised; // Verified
-  bool qosListenEnabled;
+  LobbyModule module = LobbyModule::INVALID;     // Verified
+  LobbyType type = LobbyType::INVALID;           // Verified
+  LobbyMode mode = LobbyMode::INVALID;           // Verified
+  SessionStatus status = SessionStatus::INVALID; // Verified
+  void *_unknown10 = nullptr;
+  const char *name = nullptr;                     // Verified
+  str32_t key = {0};                              // Verified
+  SessionActive active = SessionActive::INACTIVE; // Verified
+  qboolean dirty = qfalse;                        // Verified
+  uint64_t flags = 0;                             // Verified
+  bool sessionAdvertised = false;                 // Verified
+  bool qosListenEnabled = false;
   uint8_t _padding52[6];
-  active::ActiveList *activeList; // Verified
-  SessionHost host;               // Verified
-  SessionLeader leader;
-  uint32_t joinCount;
+  active::ActiveList *activeList = nullptr; // Verified
+  SessionHost host = {};                    // Verified
+  SessionLeader leader = {};
+  uint32_t joinCount = 0;
   uint8_t _paddingF4[4];
-  LobbyClientPool<SessionClient> client; // Verified
-  bool inRecovery;                       // Verified
+  LobbyClientPool<SessionClient> client = {{}}; // Verified
+  bool inRecovery = false;                      // Verified
   uint8_t _padding459[3];
-  SessionMigrateData migrateData;
+  SessionMigrateData migrateData = {};
   uint8_t _padding464[4];
-  LobbyData lobbyData; // Verified
-  info::LobbyUGCInfo ugcInfo;
+  LobbyData lobbyData = {}; // Verified
+  info::LobbyUGCInfo ugcInfo = {};
   uint8_t _padding23CC[4];
 });
 ASSERT_OFFSET(LobbySession, inRecovery, 0x458);
@@ -353,46 +392,46 @@ ASSERT_OFFSET(LobbySession, host, 0x60);
 ASSERT_SIZE(LobbySession, 0x23D0);
 
 struct PlatformSessionData {
-  str64_t sessionId;
-  str64_t sessionInfo;
+  str64_t sessionId = {0};
+  str64_t sessionInfo = {0};
 };
 
 // Verified
 PACKED(struct GameData {
-  GameServerStatus serverStatus;
-  int32_t launchNonce;
-  uint128_t matchHash;
-  eGameModes gameMode;
-  name_t gameType;
-  name_t mapName;
-  info::LobbyUGCInfo ugcInfo;
-  int32_t status;
-  int32_t statusValue;
-  LobbyPregameState pregameState;
-  uint32_t pregameVoteCount;
-  ItemVote pregameVotes[216];
-  int32_t playlistId;
-  int32_t playlistCurrentEntry;
-  uint8_t playlistLastEntries[8];
-  uint8_t playlistNext;
-  uint8_t playlistPrev;
-  uint8_t playlistPrevCount;
+  GameServerStatus serverStatus = GameServerStatus::IDLE;
+  int32_t launchNonce = 0;
+  uint128_t matchHash = {};
+  eGameModes gameMode = eGameModes::INVALID;
+  name_t gameType = {0};
+  name_t mapName = {0};
+  info::LobbyUGCInfo ugcInfo = {};
+  int32_t status = 0;
+  int32_t statusValue = 0;
+  LobbyPregameState pregameState = LobbyPregameState::IDLE;
+  uint32_t pregameVoteCount = 0;
+  ItemVote pregameVotes[MAX_ITEM_VOTE_COUNT] = {{}};
+  int32_t playlistId = 0;
+  int32_t playlistCurrentEntry = 0;
+  uint8_t playlistLastEntries[8] = {0};
+  uint8_t playlistNext = 0;
+  uint8_t playlistPrev = 0;
+  uint8_t playlistPrevCount = 0;
   uint8_t _padding1BA3[1];
-  LobbyClientPool<GameClientData> client;
-  name_t cpQueuedLevel;
-  bool loadingMovieSkipped;
-  name_t demoName;
+  LobbyClientPool<GameClientData> client = {{}};
+  name_t cpQueuedLevel = {0};
+  bool loadingMovieSkipped = false;
+  name_t demoName = {0};
   uint8_t _padding1E6D[3];
-  uint64_t fileId;
-  int32_t fileSize;
-  bool isUserFile;
-  bool isLiveStream;
+  uint64_t fileId = 0;
+  int32_t fileSize = 0;
+  bool isUserFile = false;
+  bool isLiveStream = false;
   uint8_t _padding1E7E[2];
-  XUID authorXUID;
-  eModes mainMode;
-  name_t demoMode;
-  name_t fileCategory;
-  CustomGameDetails customGameDetails;
+  XUID authorXUID = 0;
+  eModes mainMode = eModes::INVALID;
+  name_t demoMode = {0};
+  name_t fileCategory = {0};
+  CustomGameDetails customGameDetails = {};
 });
 // Verified
 ASSERT_SIZE(GameData, 0x1F10);
@@ -406,23 +445,23 @@ enum class ServerStatus : uint32_t {
 };
 
 struct PeerToPeerInfo {
-  int32_t connectivityBits;
-  LobbyClientPool<msg::NetChanMsg> netMsg;
+  int32_t connectivityBits = 0;
+  LobbyClientPool<msg::NetChanMsg> netMsg = {{}};
 };
 
 struct SharedVoiceSessionData {
-  uint32_t voiceOutPort;
-  uint32_t microphonePort;
-  uint32_t headsetPort;
-  bool microphoneAttached;
-  uint32_t lastCaughtTalking;
+  uint32_t voiceOutPort = 0;
+  uint32_t microphonePort = 0;
+  uint32_t headsetPort = 0;
+  bool microphoneAttached = false;
+  uint32_t lastCaughtTalking = 0;
 };
 
 struct LobbyPeerResults {
-  uint32_t receivedPacketCount;
-  uint32_t totalLatencyMS;
-  float m;
-  float s;
+  uint32_t receivedPacketCount = 0;
+  uint32_t totalLatencyMS = 0;
+  float m = 0.0f;
+  float s = 0.0f;
 };
 
 enum class LobbyMigrateClientState : uint32_t {
@@ -436,35 +475,35 @@ enum class LobbyMigrateClientState : uint32_t {
 };
 
 struct LobbyMigrateClientData {
-  LobbyClientPool<LobbyPeerResults> peerResults;
-  LobbyClientPool<XUID> nominees;
-  LobbyMigrateClientState clientState;
-  uint32_t sentPacketCount;
-  int32_t lastPacketSendMs;
-  int32_t currentNominee;
-  int32_t migrateStartMs;
-  int32_t lasthostTimeMS;
-  int32_t hostStartMS;
-  int32_t lastCalcTime;
-  int32_t nextTestPacketSendMS;
-  XUID peerXor;
+  LobbyClientPool<LobbyPeerResults> peerResults = {{}};
+  LobbyClientPool<XUID> nominees = {0};
+  LobbyMigrateClientState clientState = LobbyMigrateClientState::CLIENT_IDLE;
+  uint32_t sentPacketCount = 0;
+  int32_t lastPacketSendMs = 0;
+  int32_t currentNominee = 0;
+  int32_t migrateStartMs = 0;
+  int32_t lasthostTimeMS = 0;
+  int32_t hostStartMS = 0;
+  int32_t lastCalcTime = 0;
+  int32_t nextTestPacketSendMS = 0;
+  XUID peerXor = 0;
 };
 
 PACKED(struct ClientSession {
-  LobbySession lobbySession; // Verified
-  uint32_t stateNum;
-  int32_t lastHostMsgTimestamp; // Verified
-  ServerStatus serverStatus;    // Verified
+  LobbySession lobbySession = {}; // Verified
+  uint32_t stateNum = 0;
+  int32_t lastHostMsgTimestamp = 0;                  // Verified
+  ServerStatus serverStatus = ServerStatus::MISSING; // Verified
   uint8_t _padding23DC[4];
-  PeerToPeerInfo peerToPeerInfo;
-  LocalClientPool<msg::NetChanMsg> channel;
-  LocalClientPool<msg::NetChanMsg> clientContentMsg;
-  LocalClientPool<msg::NetChanMsg> modifiedStatsMsgCfg; // Verified
-  LobbyMigrateClientData clientMigrateData;
-  LocalClientPool<bool> voiceCommunicationActive;
-  LocalClientPool<bool> paintshopDataDirty;
+  PeerToPeerInfo peerToPeerInfo = {};
+  LocalClientPool<msg::NetChanMsg> channel = {{}};
+  LocalClientPool<msg::NetChanMsg> clientContentMsg = {{}};
+  LocalClientPool<msg::NetChanMsg> modifiedStatsMsgCfg = {{}}; // Verified
+  LobbyMigrateClientData clientMigrateData = {};
+  LocalClientPool<bool> voiceCommunicationActive = {false};
+  LocalClientPool<bool> paintshopDataDirty = {false};
   uint8_t _padding2A4C[4];
-  SharedVoiceSessionData *platformVoiceData;
+  SharedVoiceSessionData *platformVoiceData = nullptr;
 });
 
 ASSERT_OFFSET(ClientSession, lobbySession, 0x0);

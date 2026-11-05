@@ -90,7 +90,7 @@ void reset_tracked_client_dvars() {
     const game::ClientNum_t &client_num = pair.first;
     const std::unordered_set<std::string> &dvars = pair.second;
 
-    if (game::valid_client_num(client_num)) {
+    if (game::validate(client_num)) {
 
       for (const std::string &dvar_name : dvars) {
         sv::SV_GameSendServerCommand(
@@ -109,7 +109,7 @@ namespace gscr_setname {
 void set(scriptInstance_t inst, game::ClientNum_t client_num,
          uint32_t name_index) {
   const char *player_name = game::scr::Scr_GetString(inst, name_index);
-  if (game::valid_client_num(client_num) && player_name) {
+  if (game::validate(client_num) && player_name) {
     ::name::set_name_override(client_num, player_name);
   } else {
     Scr_ParamError(inst, name_index, "^1[setname] Invalid arguments\n");
@@ -145,7 +145,7 @@ namespace gscr_settag {
 void set(scriptInstance_t inst, game::ClientNum_t client_num,
          uint32_t tag_index) {
   const char *tag = game::scr::Scr_GetString(inst, tag_index);
-  if (!game::valid_client_num(client_num) || !tag) {
+  if (!game::validate(client_num) || !tag) {
     Scr_ParamError(inst, tag_index, "^1[settag] Invalid arguments\n");
     return;
   }
@@ -165,7 +165,7 @@ void func(scriptInstance_t inst) {
 
 namespace gscr_resetname {
 void reset(scriptInstance_t inst, game::ClientNum_t client_num) {
-  if (!game::valid_client_num(client_num)) {
+  if (!game::validate(client_num)) {
     Scr_ParamError(inst, 0, "^1[resetname] Invalid arguments\n");
     return;
   }
@@ -185,7 +185,7 @@ void func(scriptInstance_t inst) {
 
 namespace gscr_resettag {
 void reset(scriptInstance_t inst, game::ClientNum_t client_num) {
-  if (!game::valid_client_num(client_num)) {
+  if (!game::validate(client_num)) {
     Scr_ParamError(inst, 0, "^1[resettag] Invalid arguments\n");
     return;
   }
@@ -207,7 +207,7 @@ namespace gscr_setclientdvar {
 void set(scriptInstance_t inst, game::ClientNum_t client_num,
          uint32_t command_index) {
   const char *dvar_cmd = game::scr::Scr_GetString(inst, command_index);
-  if (game::valid_client_num(client_num) && dvar_cmd) {
+  if (game::validate(client_num) && dvar_cmd) {
     const std::optional<std::string> dvar_name =
         dvar_cmd ? extract_dvar_name(dvar_cmd) : std::nullopt;
     if (dvar_name.has_value()) {

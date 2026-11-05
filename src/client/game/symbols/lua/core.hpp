@@ -11,6 +11,8 @@ namespace lua {
 // elsewhere; symbols cannot be overloaded.
 WEAK symbol<void(const char *key, hks::hksInt32 value, hks::lua_State *luaVM)>
     _Lua_SetTableInt{0x141EF9F60, 0x141F066E0, 0x1404B4540};
+WEAK symbol<void(const char *key, hks::hksUint64 value, hks::lua_State *luaVM)>
+    _Lua_SetTableID64{0x141EF9E40, 0x141F065C0, 0x1404B4450};
 WEAK symbol<void(const char *key, bool value, hks::lua_State *luaVM)>
     _Lua_SetTableBool{0x141EF9D60, 0x141F064E0, 0x1404B4410};
 WEAK symbol<void(const char *key, const char *value, hks::lua_State *luaVM)>
@@ -412,6 +414,11 @@ alwaysinline void Lua_SetTableNumber(hks::lua_Integer key,
 alwaysinline void Lua_SetTableNumber(const char *key, hks::lua_Number value,
                                      hks::lua_State *luaVM) {
   return _Lua_SetTableNumber(key, value, luaVM);
+}
+
+alwaysinline void Lua_SetTableID64(const char *key, hks::hksUint64 value,
+                                   hks::lua_State *luaVM) {
+  return _Lua_SetTableID64(key, value, luaVM);
 }
 
 alwaysinline void Lua_SetTableInt(const char *key, hks::hksInt32 value,

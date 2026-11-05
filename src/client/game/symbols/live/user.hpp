@@ -58,8 +58,8 @@ WEAK symbol<bool(ControllerIndex_t controllerIndex,
     LiveUser_IsUserGuest2{0x141EBA630, 0x141EC70C0, 0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
     LiveUser_IsUserSignedInToLive{0x141EBA680, 0x141EC7110, 0x0};
-WEAK symbol<bool(const XUID xuid)> LiveUser_IsXUIDLocalPlayer{0x141EBA6A0,
-                                                              0x141EC7130, 0x0};
+WEAK symbol<bool(const XUID xuid)> LiveUser_IsXUIDLocalPlayer{
+    0x141EBA6A0, 0x141EC7130, 0x14047F2E0};
 WEAK symbol<void()> LiveUser_SetPrimaryActive{0x141EBA330, 0x141EC6DC0, 0x0};
 WEAK symbol<void(const ControllerIndex_t controllerIndex, EUserTier tier)>
     LiveUser_SetTier{0x141EBA6D0, 0x141EC7160, 0x0};
@@ -72,6 +72,9 @@ WEAK symbol<bool(ControllerIndex_t controllerIndex,
 WEAK symbol<PartyMemberTalkingState(ControllerIndex_t controllerIndex,
                                     const XUID xuid)>
     LiveUser_GetPartyMemberTalkingState{0x141EBA870, 0x0, 0x0};
+
+WEAK symbol<bool(XUID userXuid)> LiveUser_IsPermaBanned{0x1421EC160, 0x0,
+                                                        0x14052E150};
 } // namespace user
 
 } // namespace live
