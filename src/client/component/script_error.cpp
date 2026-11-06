@@ -135,13 +135,6 @@ std::vector<known_script> collect_scripts(const scriptInstance_t inst) {
     }
   };
 
-  for (uint32_t i = 0; i < gObjFileInfoCount->instance[inst]; ++i) {
-    const GSC_OBJ *obj = gObjFileInfo->instance[inst][i].activeVersion;
-    if (valid_object(obj)) {
-      add(obj->get_name(), obj);
-    }
-  }
-
   script::for_each_loaded_script(
       [&](const ScriptParseTree &tree) { add(tree.name, tree.buffer); });
 
