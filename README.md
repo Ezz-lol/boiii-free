@@ -35,13 +35,10 @@
 ## About BOIII
 
 BOIII is a free, community-driven modification for Call of Duty: Black Ops III
-that removes Steam ownership verification and enhances the multiplayer and
-zombies experience. Whether you own the game or not, BOIII lets you jump in and
-play!
+that enhances the multiplayer and zombies experience.
 
 **Key Features:**
 
-- ✅ No Steam ownership required
 - 🌐 Cross-platform server browser
 - 🎮 Full multiplayer & zombies support
 - 🗺️ Custom maps and mods support
