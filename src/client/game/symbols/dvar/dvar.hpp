@@ -15,7 +15,7 @@
 #include "cl.hpp"            // IWYU pragma: export
 #include "com.hpp"           // IWYU pragma: export
 #include "compass.hpp"       // IWYU pragma: export
-#include "con.hpp"           // IWYU pragma: export
+#include "console.hpp"       // IWYU pragma: export
 #include "constbaseline.hpp" // IWYU pragma: export
 #include "contracts.hpp"     // IWYU pragma: export
 #include "core.hpp"          // IWYU pragma: export
