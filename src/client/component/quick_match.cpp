@@ -10,6 +10,7 @@
 
 #include <utils/concurrency.hpp>
 #include <utils/info_string.hpp>
+#include <utils/string.hpp>
 
 namespace quick_match {
 namespace {
@@ -20,8 +21,11 @@ struct candidate {
 
 struct search {
   game::eModes mode{};
+  std::string gametype;
+  std::optional<bool> hardcore;
   int32_t party_size{};
   size_t pending{};
+  bool mode_found{};
   std::optional<candidate> best;
 };
 
@@ -31,18 +35,20 @@ int32_t to_int(const std::string &value) { return std::atoi(value.c_str()); }
 
 void finish() {
   std::optional<candidate> best;
+  bool mode_found = false;
   current.access([&](std::optional<search> &s) {
     if (s) {
       best = s->best;
+      mode_found = s->mode_found;
     }
     s.reset();
   });
 
   scheduler::once(
-      [best] {
+      [best, mode_found] {
         if (!best) {
           toast::error("Find Match",
-                       "No server has enough free slots for your party.");
+                       mode_found ? "All servers are full" : "No server found");
           return;
         }
         party::connect(best->address);
@@ -57,13 +63,21 @@ void handle_response(const bool success, const game::net::netadr_t &host,
     if (!s) {
       return;
     }
-    const int32_t free_slots =
-        to_int(info.get("sv_maxclients")) - to_int(info.get("clients"));
-    if (success && info.get("dedicated") == "1" &&
+    // Servers drop bots to make room for players
+    const int32_t players =
+        to_int(info.get("clients")) - to_int(info.get("bots"));
+    const int32_t free_slots = to_int(info.get("sv_maxclients")) - players;
+    const bool mode_matches =
+        success && info.get("dedicated") == "1" &&
         info.get("isPrivate") != "1" &&
         to_int(info.get("protocol")) == PROTOCOL &&
         to_int(info.get("playmode")) == static_cast<int32_t>(s->mode) &&
-        free_slots >= s->party_size && (!s->best || ping < s->best->ping)) {
+        (s->gametype.empty() ||
+         utils::string::to_lower(info.get("gametype")) == s->gametype) &&
+        (!s->hardcore || (to_int(info.get("hc")) != 0) == *s->hardcore);
+    s->mode_found |= mode_matches;
+    if (mode_matches && free_slots >= s->party_size &&
+        (!s->best || ping < s->best->ping)) {
       s->best = candidate{host, ping};
     }
     done = --s->pending == 0;
@@ -74,7 +88,9 @@ void handle_response(const bool success, const game::net::netadr_t &host,
   }
 }
 
-void start() {
+// The gametype and hardcore come from the playlist picked for Find Match. "any"
+// or leaving them out matches every server
+void start(const command::params &params) {
   const game::eModes mode = game::com::Com_SessionMode_GetMode();
   if (mode != game::eModes::MULTIPLAYER && mode != game::eModes::ZOMBIES) {
     return;
@@ -86,6 +102,12 @@ void start() {
     if (!searching) {
       s.emplace();
       s->mode = mode;
+      if (params.size() > 1 && params.get(1) != std::string_view("any")) {
+        s->gametype = utils::string::to_lower(params.get(1));
+      }
+      if (params.size() > 2) {
+        s->hardcore = to_int(params.get(2)) != 0;
+      }
       s->party_size = std::max(1, game::lobby::LobbyHost_GetClientCount(
                                       game::lobby::LobbyType::PRIVATE,
                                       game::lobby::LobbyClientType::ALL));
@@ -121,7 +143,8 @@ struct component final : client_component {
   DEFINE_COMPONENT_NAME("quick_match");
 
   void post_unpack() override {
-    command::add("quickmatch", [](const command::params &) { start(); });
+    command::add("quickmatch",
+                 [](const command::params &params) { start(params); });
   }
 };
 } // namespace quick_match
