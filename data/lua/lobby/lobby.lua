@@ -20,6 +20,19 @@ require("lua.Lobby.LobbyTimer")
 require("lua.Lobby.LobbyEvents")
 require("lua.Lobby.UserGeneratedContent")
 
+local function QuickMatch(controller)
+  return {
+    head = Lobby.Actions.ExecuteScript(function()
+      Engine.Exec(controller, "quickmatch")
+    end),
+    interrupt = Lobby.Interrupt.NONE,
+    force = false,
+    cancellable = false,
+  }
+end
+Lobby.ProcessNavigate.CreatePublicGameLobby = QuickMatch
+Lobby.ProcessNavigate.ChangeToPublicGameLobby = QuickMatch
+
 -- Teams are never split within a party, and split-screen players are one, so on their own they can never be balanced
 -- and the lobby waits for more players forever. With only local players there's nobody to balance against, so start
 -- like a single player can and let the game pick teams when they spawn
