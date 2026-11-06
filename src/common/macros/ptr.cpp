@@ -70,7 +70,7 @@ bool readable_ptr(uintptr_t ptr) {
              mbi.State == MEM_COMMIT && (mbi.Protect & PROTECT_FLAGS) == 0 &&
              (mbi.Protect & READ_FLAGS) != 0;
     }
-  } else {
+
     __try {
       [[maybe_unused]] const char _c = *reinterpret_cast<const char *>(ptr);
       return true;
