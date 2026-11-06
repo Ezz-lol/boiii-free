@@ -405,7 +405,7 @@ if isPrivateGame then
     local list = LUI.UIList.new(self, controller, 2, 0, nil, false, false, 0, 0, false, true)
     list:makeFocusable()
     list:setLeftRight(true, false, -30, 640)
-    list:setTopBottom(true, false, 90, 658)
+    list:setTopBottom(true, false, 135, 703)
     list:setScale(0.72)
     list:setWidgetType(CoD.StartMenu_Options_Slider)
     list:setVerticalCount(10)
