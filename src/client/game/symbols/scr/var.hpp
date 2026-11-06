@@ -48,6 +48,8 @@ WEAK symbol<ScrVarValue_t *(ScrVarValue_t *retstr, scriptInstance_t inst,
     ScrVar_EvalEntityField{0x1412DCB50, 0x1412DCB30, 0x140168FC0};
 WEAK symbol<qboolean(scriptInstance_t inst, volatile ScrVarValue_t *value)>
     Scr_IsTrue{0x1412CCE30, 0x1412CCE10, 0x14015AEE0};
+WEAK symbol<uint8_t> VM_OP_JumpOnTrue_IsTrueCall{0x1412CD95D, 0x0,
+                                                0x14015BA3D};
 WEAK symbol<qboolean(scriptInstance_t inst, volatile ScrVarValue_t *value)>
     ScrVar_CastBool_NonInteger{0x1412DAD10, 0x1412DACF0, 0x140167170};
 

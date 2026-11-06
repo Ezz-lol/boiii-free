@@ -139,9 +139,13 @@ inline void handle_invalid_scrvars() {
   // launching usermap in private match
   ScrVar_CastBool_NonInteger_hook.create(
       game::scr::var::ScrVar_CastBool_NonInteger.get(),
-      game::scr::var::Scr_IsTrue_Impl);
+      game::scr::var::ScrVar_CastBool_NonInteger_Impl);
   Scr_IsTrue_hook.create(game::scr::var::Scr_IsTrue.get(),
                          game::scr::var::Scr_IsTrue_Impl);
+  if (!game::is_legacy_client()) {
+    utils::hook::call(game::scr::var::VM_OP_JumpOnTrue_IsTrueCall.get(),
+                      game::scr::var::Scr_IsTrue_JumpOnTrue_Impl);
+  }
 }
 
 inline void handle_invalid_mt_allocs() {

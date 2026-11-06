@@ -10,6 +10,10 @@ inline const char *Scr_TypeName(ScrVarType type) {
   return var_typename->pool[+type];
 }
 qboolean Scr_IsTrue_Impl(scriptInstance_t inst, volatile ScrVarValue_t *value);
+qboolean Scr_IsTrue_JumpOnTrue_Impl(scriptInstance_t inst,
+                                    volatile ScrVarValue_t *value);
+qboolean ScrVar_CastBool_NonInteger_Impl(scriptInstance_t inst,
+                                         volatile ScrVarValue_t *value);
 
 inline bool ScrVar_ArrayLike(scriptInstance_t inst,
                              volatile ScrVarValue_t *array) {
