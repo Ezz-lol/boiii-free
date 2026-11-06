@@ -19,7 +19,7 @@ WEAK symbol<EngineDependentDvarMut> loot_sixPack_consumable_id{
 WEAK symbol<EngineDependentDvarMut> loot_dailyDouble_cryptoCost{
     0x151271540, 0x1512F04B0, 0x0};
 WEAK symbol<EngineDependentDvarMut> loot_dailyDouble_cooloffSeconds{
-    -0x151271578, 0x1512F04E8, 0x0};
+    0x151271578, 0x1512F04E8, 0x0};
 
 // Registered by `LootConfig_Init`. Cryptokeys refunded per burned duplicate.
 WEAK symbol<EngineDependentDvarMut> loot_burnCommonRefund{0x1512727E8,
