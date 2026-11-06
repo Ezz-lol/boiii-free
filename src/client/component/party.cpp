@@ -366,10 +366,12 @@ void with_party_lobby(const std::function<void()> &callback) {
 
 void update_server_lobby() {
   static bool requested = false;
+  static bool party_sent = false;
   const game::connstate_t state =
       game::cg::clientUIActives->actives[0].connectionState;
   if (state != game::connstate_t::ACTIVE || !game::com::Com_IsInGame()) {
     requested = false;
+    party_sent = false;
     nat::leave_server_lobby();
     return;
   }
@@ -377,10 +379,18 @@ void update_server_lobby() {
   if (cl_connected_to_dedi.get_bool() != on_dedi) {
     cl_connected_to_dedi.set(on_dedi);
   }
-  if (!requested && on_dedi && !game::server_running() &&
-      nat::has_party_lobby() && !nat::has_party_members()) {
+  if (!on_dedi || game::server_running() || !nat::has_party_lobby()) {
+    return;
+  }
+  const game::net::netadr_t server = get_connected_server(game::LOCAL_CLIENT_0);
+  if (nat::has_party_members()) {
+    if (!party_sent) {
+      party_sent = true;
+      nat::send_party_to_server(server);
+    }
+  } else if (!requested) {
     requested = true;
-    nat::join_server_lobby(get_connected_server(game::LOCAL_CLIENT_0));
+    nat::join_server_lobby(server);
   }
 }
 
@@ -456,9 +466,6 @@ void handle_connect_query_response(const bool success,
 
   is_connecting_to_dedi = info.get("dedicated") == "1";
   update_dedi_dvar(is_connecting_to_dedi.load());
-  if (is_connecting_to_dedi) {
-    nat::send_party_to_server(target);
-  }
 
   {
     std::scoped_lock lock(hostname_mutex);

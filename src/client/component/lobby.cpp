@@ -92,6 +92,25 @@ void build_route_list_stub(ControllerIndex_t controllerIndex,
                                      ourXuid, routeList);
 }
 
+utils::hook::detour build_host_route_list_hook;
+void build_host_route_list_stub(ControllerIndex_t controllerIndex,
+                                session::LobbySession *lobbySession,
+                                session::SessionClient *outClient, XUID ourXuid,
+                                int32_t *routeList) {
+  if (!party::cl_connected_to_dedi.get_bool() ||
+      lobbySession->type != LobbyType::GAME) {
+    build_host_route_list_hook.invoke<void>(controllerIndex, lobbySession,
+                                            outClient, ourXuid, routeList);
+    return;
+  }
+  for (int32_t i = 0; i < MAX_PLAYERS; ++i) {
+    const session::SessionClient &client = lobbySession->client[i];
+    if (client.activeClient && client.xuid != ourXuid) {
+      *routeList |= 1 << i;
+    }
+  }
+}
+
 utils::hook::detour server_status_not_running_hook;
 void server_status_not_running_stub(session::LobbyGameData *gameData) {
   if (!party::cl_connected_to_dedi.get_bool()) {
@@ -171,6 +190,9 @@ public:
       build_route_list_hook.create(
           game::lobby::voice::LobbyVoice_BuildRouteList.get(),
           build_route_list_stub);
+      build_host_route_list_hook.create(
+          game::lobby::voice::LobbyVoice_BuildHostRouteList.get(),
+          build_host_route_list_stub);
       server_status_not_running_hook.create(
           client::ServerStatusNotRunning.get(), server_status_not_running_stub);
       connect_from_lobby_hook.create(cl::CL_ConnectFromLobby.get(),
