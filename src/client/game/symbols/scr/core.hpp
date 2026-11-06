@@ -78,9 +78,15 @@ WEAK symbol<void(level::gentity_s *ent, ScrVarCanonicalName_t stringValue,
     Scr_Notify_Canon{0x141B3A130, 0x141B46500, 0x1402F5FF0};
 WEAK symbol<uint32_t(scriptInstance_t inst, const char *filename)>
     Scr_LoadScript{0x1412C8410, 0x1412C83F0, 0x140156610};
+WEAK symbol<uint8_t> Scr_LoadScript_ScriptNotFoundCall{0x1412C84B2, 0x0,
+                                                       0x1401566B7};
+WEAK symbol<uint8_t> Scr_LoadScript_LinkScriptCall{0x1412C858C, 0x0,
+                                                   0x140156796};
 WEAK symbol<void(scriptInstance_t inst, uint8_t *pos, uint32_t errorCode,
                  const char *message, const char *detail)>
     VM_RuntimeError{0x1412D4E40, 0x0, 0x140160F50};
+WEAK symbol<uint8_t> VM_RuntimeError_ComErrorCall{0x1412D5065, 0x0,
+                                                  0x140161174};
 WEAK symbol<var::ScrVarIndex_t(
     scriptInstance_t inst, const uint8_t *pos, uint32_t numParams,
     var::ScrVarValue_t *returnValue, var::ScrVarIndex_t self)>
@@ -183,6 +189,12 @@ WEAK symbol<void(scriptInstance_t inst, GSC_OBJ *prime_obj,
 WEAK symbol<int32_t(scriptInstance_t inst, GSC_OBJ *obj,
                     objFileInfo_t *fileInfo)>
     GscObjResolve{0x1412CA2D0, 0x0, 0x140158510};
+WEAK symbol<uint8_t> GscObjResolve_LinkErrorsCall{0x1412CAC6D, 0x0,
+                                                  0x140158EB2};
+WEAK symbol<uint8_t> GscObjResolve_LinkerMessageCall{0x1412CAC09, 0x0,
+                                                     0x140158E49};
+WEAK symbol<uint8_t> GscObjResolve_LinkerMessageCall2{0x1412CAC18, 0x0,
+                                                      0x140158E58};
 WEAK symbol<bool(scriptInstance_t inst, GSC_OBJ *obj, GSC_IMPORT_ITEM *import,
                  uint16_t index, bool isThreaded)>
     Scr_ResolveScriptFunction{0x1412CC770, 0x0, 0x14015A7D0};

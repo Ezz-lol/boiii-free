@@ -685,6 +685,15 @@ void show_error_popup(const std::string &text) {
       scheduler::pipeline::main);
 }
 
+void notify_players(const std::string &message) {
+  if (!game::is_server() || !game::log_script_errors()) {
+    return;
+  }
+  game::foreach_connected_client([&](game::sv::client_s &client) {
+    network::send(client.address, "serverError", message);
+  });
+}
+
 namespace {
 void drop_with_report(const char *file, const int32_t line,
                       const report &report) {
@@ -693,6 +702,7 @@ void drop_with_report(const char *file, const int32_t line,
       !game::is_server() || game::log_script_errors()
           ? report_text(report, {})
           : "The server stopped because of a script error.";
+  notify_players(reason);
   game::com::Com_Error_(file, line, game::errorParm::DROP, "\x15%s",
                         reason.c_str());
 }
@@ -826,6 +836,19 @@ struct component final : generic_component {
 
   void post_unpack() override {
     if (!game::is_legacy_client()) {
+      utils::hook::call(game::scr::Scr_LoadScript_ScriptNotFoundCall.get(),
+                        Com_Error_ScriptNotFound);
+      utils::hook::call(game::scr::Scr_LoadScript_LinkScriptCall.get(),
+                        Com_Error_LinkScript);
+      utils::hook::call(game::scr::GscObjResolve_LinkErrorsCall.get(),
+                        Com_Error_LinkErrors);
+      utils::hook::call(game::scr::GscObjResolve_LinkerMessageCall.get(),
+                        ignore_linker_message);
+      utils::hook::call(game::scr::GscObjResolve_LinkerMessageCall2.get(),
+                        ignore_linker_message);
+      utils::hook::call(game::scr::VM_RuntimeError_ComErrorCall.get(),
+                        Com_Error_ScriptRuntime);
+
       Scr_LoadScript_hook.create(Scr_LoadScript, Scr_LoadScript_Scoped);
       GscObjResolve_hook.create(GscObjResolve, GscObjResolve_Scoped);
       VM_RuntimeError_hook.create(VM_RuntimeError, VM_RuntimeError_Scoped);
@@ -836,6 +859,14 @@ struct component final : generic_component {
     if (game::is_client()) {
       ReportObjLinkError2_hook.create(ReportObjLinkError2,
                                       ReportObjLinkError_Report);
+      network::on("serverError",
+                  [](const game::net::netadr_t &from,
+                     const network::data_view &data,
+                     const game::LocalClientNum_t localClientNum) {
+                    if (from == party::get_connected_server(localClientNum)) {
+                      show_error_popup(std::string(data.begin(), data.end()));
+                    }
+                  });
     }
   }
 };
