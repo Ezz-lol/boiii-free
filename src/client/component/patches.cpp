@@ -220,6 +220,9 @@ void clear_sent_configstrings() {
   sent_configstrings_by_client.clear();
 }
 
+void hkVisualDebugger_serve_stub(
+    game::hk::hkVisualDebugger * /*visualDebugger*/, int32_t /*listenPort*/) {}
+
 utils::hook::detour Sys_WaitForSingleObject_Safe_hook;
 void Sys_WaitForSingleObject_Safe(HANDLE *event) {
   if (event != nullptr) {
@@ -395,6 +398,13 @@ struct component final : generic_component {
       game_event::on_any(clear_sent_configstrings);
     }
     Sys_Error_hook.create(game::sys::Sys_Error, Sys_Error_LogCaller);
+
+    // Havok AI starts its Visual Debugger with every local or dedicated server.
+    // It listens on port 25001, and anything connecting to it crashes the game
+    if (!game::is_legacy_client()) {
+      utils::hook::jump(game::hk::hkVisualDebugger_serve.get(),
+                        hkVisualDebugger_serve_stub);
+    }
 
     tlAtomicMutex_Lock_hook.create(game::tlAtomicMutex::syms::Lock.get(),
                                    game::tlAtomicMutex::Lock);
