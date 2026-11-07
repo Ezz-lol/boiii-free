@@ -111,6 +111,11 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Launch in borderless fullscreen mode")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-noflipmodel", "--noflipmodel")
+      .help("Keep the game's original presentation in windowed and borderless "
+            "mode")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-safe", "--safe")
       .help("Launch in safe mode (disable mods)")
       .default_value(false)
