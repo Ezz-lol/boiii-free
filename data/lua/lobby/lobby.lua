@@ -20,19 +20,48 @@ require("lua.Lobby.LobbyTimer")
 require("lua.Lobby.LobbyEvents")
 require("lua.Lobby.UserGeneratedContent")
 
-local function QuickMatch(controller)
-  return {
-    head = Lobby.Actions.ExecuteScript(function()
-      Engine.Exec(controller, "quickmatch")
-    end),
-    interrupt = Lobby.Interrupt.NONE,
-    force = false,
-    cancellable = false,
-  }
+local changeToPublicGameLobby = Lobby.ProcessNavigate.ChangeToPublicGameLobby
+Lobby.ProcessNavigate.ChangeToPublicGameLobby = function(controller, ...)
+  Engine.Exec(controller, "quickmatch")
+  return changeToPublicGameLobby(controller, ...)
 end
--- Zombies' Join Public Game is the only way into its public game lobby. Multiplayer's public game lobby is Combat
--- Training, so Find Match has its own button there
-Lobby.ProcessNavigate.ChangeToPublicGameLobby = QuickMatch
+
+local MP_READY_UP_PERCENT = 0.5
+
+local function playersToReadyUp()
+  if
+    Engine.GetLobbyUIScreen() ~= LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
+    or not Engine.DvarBool(nil, "quickmatch_active")
+  then
+    return 0
+  end
+  local clients = Engine.GetLobbyClientCount(
+    Enum.LobbyModule.LOBBY_MODULE_HOST,
+    Enum.LobbyType.LOBBY_TYPE_GAME,
+    Enum.LobbyClientType.LOBBY_CLIENT_TYPE_ALL
+  )
+  local ready = 0
+  for _, client in pairs(Engine.GetLobbySessionGameData(Enum.LobbyModule.LOBBY_MODULE_HOST).clients) do
+    if client.readyUp == true then
+      ready = ready + 1
+    end
+  end
+  return math.ceil(MP_READY_UP_PERCENT * math.max(clients, Dvar.party_minplayers:get())) - ready
+end
+
+local autoMPPump = Lobby.Timer.AutoMPPump
+Lobby.Timer.AutoMPPump = function()
+  local timer = Lobby.Timer.lobbyTimer
+  if timer and timer.status == Lobby.Timer.LOBBY_STATUS.STARTING then
+    local count = playersToReadyUp()
+    if count > 0 then
+      timer.endTime = Lobby.Timer.MATCH_START_INVALID
+      Engine.SetGameLobbyStatusInfo(Lobby.Timer.LOBBY_STATUS.NEED_READYUP, count)
+      return
+    end
+  end
+  return autoMPPump()
+end
 
 -- Teams are never split within a party, and split-screen players are one, so on their own they can never be balanced
 -- and the lobby waits for more players forever. With only local players there's nobody to balance against, so start

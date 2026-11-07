@@ -205,8 +205,8 @@ PlaylistSelected = function(self, element, controller)
   CoD.perController[controller].findMatch = false
 
   local gametype, hardcore = playlistGametype(controller, element.playlist.index)
-  GoBack(self, controller)
   Engine.Exec(controller, string.format("quickmatch %s %d", gametype or "any", hardcore and 1 or 0))
+  return playlistSelected(self, element, controller)
 end
 
 CoD.LobbyButtons.STEAM_STORE = {
@@ -295,6 +295,34 @@ local function addFriendsPartyButton(controller, menuId, buttonTable, isLeader)
   end
 end
 
+local function isQuickMatchLobby()
+  return LobbyData.GetLobbyNav() == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id
+    and Engine.DvarBool(nil, "quickmatch_active")
+end
+
+local isReadyUpVisible = IsReadyUpVisible
+IsReadyUpVisible = function(element, controller)
+  return isReadyUpVisible(element, controller) or isQuickMatchLobby()
+end
+
+if CoD.LobbyMember then
+  local lobbyMemberNew = CoD.LobbyMember.new
+  CoD.LobbyMember.new = function(menu, controller)
+    local self = lobbyMemberNew(menu, controller)
+    for _, state in ipairs({ "DefaultState", "IsSelf" }) do
+      for name, clip in pairs(self.clipsPerState[state] or {}) do
+        self.clipsPerState[state][name] = function(...)
+          clip(...)
+          if isQuickMatchLobby() then
+            self.LobbyMemberReady:setAlpha(1)
+          end
+        end
+      end
+    end
+    return self
+  end
+end
+
 local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   if menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id then
     utils.RemoveSpaces(buttonTable)
@@ -355,6 +383,21 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     if enableLargeServerBrowserButton then
       utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.SERVER_BROWSER, 1)
     end
+  elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id and Engine.DvarBool(nil, "quickmatch_active") then
+    for i = #buttonTable, 1, -1 do
+      table.remove(buttonTable, i)
+    end
+    for _, button in ipairs({
+      CoD.LobbyButtons.ZM_READY_UP,
+      CoD.LobbyButtons.MP_CAC,
+      CoD.LobbyButtons.MP_SPECIALISTS,
+      CoD.LobbyButtons.MP_SCORESTREAKS,
+    }) do
+      utils.AddSmallButton(controller, buttonTable, button)
+    end
+
+    lobbyMapVote(shouldShowMapVote)
+    shouldShowMapVote = false
   elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id then
     utils.RemoveButton(buttonTable, CoD.LobbyButtons.MP_PUBLIC_LOBBY_LEADERBOARD)
 
