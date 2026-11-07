@@ -43,6 +43,10 @@ WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
 WEAK symbol<uint32_t(ControllerIndex_t controllerIndex)>
     Live_DoubleXPGetGroupMaskForController{0x141E04640, 0x141E110D0, 0x0};
 WEAK symbol<uint32_t[2]> g_oldDoubleXPMask{0x145359BB0, 0x1453D8BB0, 0x0};
+WEAK symbol<float(ControllerIndex_t controllerIndex)> Live_GetXPScale{
+    0x141E05860, 0x141E122F0, 0x0};
+WEAK symbol<float(ControllerIndex_t controllerIndex)> Live_GetGunXPScale{
+    0x141E05770, 0x141E12200, 0x0};
 
 WEAK symbol<EngineDependentDvar> live_insyncddlsrequired{0x15118D818,
                                                          0x15120C798, 0x0};

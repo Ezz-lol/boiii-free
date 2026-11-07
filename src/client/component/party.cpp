@@ -40,6 +40,11 @@ game::net::netadr_t connect_host{{}, {}, game::net::netadrtype_t::BAD, {}};
 std::mutex hostname_mutex;
 std::string cached_server_hostname;
 int cached_server_max_clients = 0;
+std::optional<float> cached_server_xp_scale;
+std::optional<float> cached_server_gun_xp_scale;
+
+utils::hook::detour live_get_xp_scale_hook;
+utils::hook::detour live_get_gun_xp_scale_hook;
 
 std::string normalize_connect_address(std::string address) {
   utils::string::trim(address);
@@ -62,6 +67,14 @@ std::optional<game::net::netadr_t> dedi_server;
 void update_dedi_dvar(bool on_dedi) {
   cl_connected_to_dedi.set(on_dedi);
   dedi_server = on_dedi ? std::optional(connect_host) : std::nullopt;
+}
+
+// Servers from before the XP scale was sent leave it out
+std::optional<float> parse_scale(const std::string &value) {
+  if (value.empty()) {
+    return std::nullopt;
+  }
+  return std::strtof(value.c_str(), nullptr);
 }
 
 bool direct_connect = false;
@@ -364,20 +377,40 @@ void with_party_lobby(const std::function<void()> &callback) {
       scheduler::main, 100ms);
 }
 
+// A map restart or rotation keeps players connected, so the XP scales they got
+// when joining can be out of date
+void refresh_server_xp_scales(const game::net::netadr_t &server) {
+  query_server(server, [](const bool success, const game::net::netadr_t &,
+                          const utils::info_string &info, uint32_t) {
+    if (!success) {
+      return;
+    }
+    std::scoped_lock lock(hostname_mutex);
+    cached_server_xp_scale = parse_scale(info.get("xpscale"));
+    cached_server_gun_xp_scale = parse_scale(info.get("gunxpscale"));
+  });
+}
+
 void update_server_lobby() {
   static bool requested = false;
   static bool party_sent = false;
+  static bool xp_scales_refreshed = false;
   const game::connstate_t state =
       game::cg::clientUIActives->actives[0].connectionState;
   if (state != game::connstate_t::ACTIVE || !game::com::Com_IsInGame()) {
     requested = false;
     party_sent = false;
+    xp_scales_refreshed = false;
     nat::leave_server_lobby();
     return;
   }
   const bool on_dedi = is_dedi_server(get_connected_server());
   if (cl_connected_to_dedi.get_bool() != on_dedi) {
     cl_connected_to_dedi.set(on_dedi);
+  }
+  if (on_dedi && !xp_scales_refreshed) {
+    xp_scales_refreshed = true;
+    refresh_server_xp_scales(get_connected_server());
   }
   if (!on_dedi || game::server_running() || !nat::has_party_lobby()) {
     return;
@@ -473,6 +506,8 @@ void handle_connect_query_response(const bool success,
     const std::string max_clients_str = info.get("sv_maxclients");
     cached_server_max_clients =
         max_clients_str.empty() ? 0 : atoi(max_clients_str.data());
+    cached_server_xp_scale = parse_scale(info.get("xpscale"));
+    cached_server_gun_xp_scale = parse_scale(info.get("gunxpscale"));
   }
 
   if (atoi(info.get("protocol").data()) != PROTOCOL) {
@@ -787,7 +822,38 @@ void clear_server_info() {
   std::scoped_lock lock(hostname_mutex);
   cached_server_hostname.clear();
   cached_server_max_clients = 0;
+  cached_server_xp_scale.reset();
+  cached_server_gun_xp_scale.reset();
 }
+
+namespace {
+std::optional<float> dedicated_server_scale(const std::optional<float> &scale) {
+  if (game::server_running() || !is_dedi_server(get_connected_server())) {
+    return std::nullopt;
+  }
+  std::scoped_lock lock(hostname_mutex);
+  return scale;
+}
+
+// The HUD's 2XP badges check the player's own XP scale dvars, not the scale the
+// dedicated server gives out
+float live_get_xp_scale_stub(const game::ControllerIndex_t controller_index) {
+  if (const std::optional<float> scale =
+          dedicated_server_scale(cached_server_xp_scale)) {
+    return *scale;
+  }
+  return live_get_xp_scale_hook.invoke<float>(controller_index);
+}
+
+float live_get_gun_xp_scale_stub(
+    const game::ControllerIndex_t controller_index) {
+  if (const std::optional<float> scale =
+          dedicated_server_scale(cached_server_gun_xp_scale)) {
+    return *scale;
+  }
+  return live_get_gun_xp_scale_hook.invoke<float>(controller_index);
+}
+} // namespace
 
 struct component final : client_component {
   DEFINE_COMPONENT_NAME("party");
@@ -796,6 +862,11 @@ struct component final : client_component {
     cl_connected_to_dedi = game::register_dvar_bool(
         "cl_connected_to_dedi", false, game::dvarFlags_e::NONE,
         "True when connected to a dedicated server");
+
+    live_get_xp_scale_hook.create(game::live::Live_GetXPScale.get(),
+                                  live_get_xp_scale_stub);
+    live_get_gun_xp_scale_hook.create(game::live::Live_GetGunXPScale.get(),
+                                      live_get_gun_xp_scale_stub);
 
     utils::hook::jump(game::select(0x141ED9670, 0x141EE5FE0, 0x0),
                       &connect_stub);

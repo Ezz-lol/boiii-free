@@ -310,30 +310,14 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
   }
 }
 
-float Com_GetXPScale_Impl(EngineDependentDvarMut zm, EngineDependentDvarMut mp,
-                          EngineDependentDvarMut cp) {
-  switch (com::Com_SessionMode_GetMode()) {
-  case eModes::ZOMBIES:
-    return Dvar_GetFloat(zm);
-  case eModes::MULTIPLAYER:
-    return Dvar_GetFloat(mp);
-  case eModes::CAMPAIGN:
-    return Dvar_GetFloat(cp);
-  default:
-    return 1.0f;
-  }
-}
-
 float GetXPScale_Server([[maybe_unused]] ClientNum_t clientNum) {
-  return Com_GetXPScale_Impl(*scr_xpscalezm, *scr_xpscalemp, *scr_xpscalecp);
+  return xp_scale();
 }
 
 ddl::statValue_t
 GScr_GetGunXPScaled_Server([[maybe_unused]] ClientNum_t clientNum,
                            ddl::statValue_t value) {
-  const float scale = Com_GetXPScale_Impl(*scr_gunxpscalezm, *scr_gunxpscalemp,
-                                          *scr_gunxpscalecp);
-  value.intValue = static_cast<int32_t>(value.intValue * scale + 0.5f);
+  value.intValue = static_cast<int32_t>(value.intValue * gun_xp_scale() + 0.5f);
   return value;
 }
 
