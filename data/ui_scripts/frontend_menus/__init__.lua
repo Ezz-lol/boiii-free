@@ -158,11 +158,56 @@ CoD.LobbyButtons.MP_PUBLIC_MATCH = {
   customId = "btnPublicMatch",
 }
 
+-- Combat Training is the stock Find Match button, so both use the same playlist picker. Remember which one opened it
+local function openPlaylists(findMatch)
+  return function(self, element, controller, param, menu)
+    CoD.perController[controller].findMatch = findMatch
+    OpenFindMatch(self, element, controller, param, menu)
+  end
+end
+
 CoD.LobbyButtons.MP_FIND_MATCH = {
   stringRef = "MPUI_BASICTRAINING_CAPS",
-  action = OpenFindMatch,
+  action = openPlaylists(false),
   customId = "btnFindMatch",
 }
+
+CoD.LobbyButtons.MP_QUICK_MATCH = {
+  stringRef = "MPUI_FIND_MATCH_CAPS",
+  action = openPlaylists(true),
+  customId = "btnQuickMatch",
+}
+
+-- Playlist entries name their gametype with an hs_ or hc_ (hardcore) prefix, and Free-for-All by another name than its
+-- gametype's
+local PLAYLIST_GAMETYPES = {
+  ffa = "dm",
+}
+
+local function playlistGametype(controller, index)
+  local value = Engine.GetPlaylistGameType(controller, index)
+  if not value then
+    return nil
+  end
+  local prefix, entry = value:match("^(%w+)_(.+)$")
+  local name = PLAYLIST_GAMETYPES[entry] or entry
+  if not name or Engine.StructTableLookupString(CoDShared.gametypesStructTable, "name", name, "name") ~= name then
+    return nil
+  end
+  return name, prefix == "hc"
+end
+
+local playlistSelected = PlaylistSelected
+PlaylistSelected = function(self, element, controller)
+  if not CoD.perController[controller].findMatch or not element.playlist then
+    return playlistSelected(self, element, controller)
+  end
+  CoD.perController[controller].findMatch = false
+
+  local gametype, hardcore = playlistGametype(controller, element.playlist.index)
+  GoBack(self, controller)
+  Engine.Exec(controller, string.format("quickmatch %s %d", gametype or "any", hardcore and 1 or 0))
+end
 
 CoD.LobbyButtons.STEAM_STORE = {
   stringRef = "MENU_STORE_CAPS",
@@ -300,6 +345,12 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   end
 
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id then
+    utils.AddSmallButton(
+      controller,
+      buttonTable,
+      CoD.LobbyButtons.MP_QUICK_MATCH,
+      utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.MP_FIND_MATCH)
+    )
     shouldShowMapVote = enableLobbyMapVote
     if enableLargeServerBrowserButton then
       utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.SERVER_BROWSER, 1)

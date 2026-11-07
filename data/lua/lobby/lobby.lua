@@ -30,7 +30,8 @@ local function QuickMatch(controller)
     cancellable = false,
   }
 end
-Lobby.ProcessNavigate.CreatePublicGameLobby = QuickMatch
+-- Zombies' Join Public Game is the only way into its public game lobby. Multiplayer's public game lobby is Combat
+-- Training, so Find Match has its own button there
 Lobby.ProcessNavigate.ChangeToPublicGameLobby = QuickMatch
 
 -- Teams are never split within a party, and split-screen players are one, so on their own they can never be balanced
