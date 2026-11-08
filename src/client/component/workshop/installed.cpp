@@ -123,6 +123,28 @@ void scan_root(const std::filesystem::path &root,
   }
 }
 
+void recover_misplaced() {
+  const std::filesystem::path misplaced = root_for(game::ZoneType::OFFICIAL);
+  std::error_code ec;
+  if (!std::filesystem::is_directory(misplaced, ec))
+    return;
+  for (const std::filesystem::directory_entry &entry :
+       std::filesystem::directory_iterator(misplaced, ec)) {
+    const std::optional<game::ZoneType> kind = detect_kind(entry.path());
+    if (!kind)
+      continue;
+    const std::filesystem::path target =
+        root_for(*kind) / entry.path().filename();
+    std::error_code move_ec;
+    if (std::filesystem::exists(target, move_ec))
+      continue;
+    std::filesystem::create_directories(target.parent_path(), move_ec);
+    std::filesystem::rename(entry.path(), target, move_ec);
+  }
+  if (std::filesystem::is_empty(misplaced, ec))
+    std::filesystem::remove(misplaced, ec);
+}
+
 void invalidate_cache() {
   std::lock_guard lock(cache_mutex);
   cache_valid = false;
@@ -164,6 +186,7 @@ std::vector<installed_item> list_installed() {
   if (!cache_valid ||
       std::chrono::steady_clock::now() - cache_time > CACHE_TTL) {
     cache.clear();
+    recover_misplaced();
     scan_root(root_for(game::ZoneType::MOD), game::ZoneType::MOD, cache);
     scan_root(root_for(game::ZoneType::USERMAP), game::ZoneType::USERMAP,
               cache);
@@ -211,19 +234,42 @@ std::filesystem::path install_folder(const std::filesystem::path &download,
                                      const std::string_view &id,
                                      game::ZoneType type) {
   const std::filesystem::path existing = find_installed(id);
+  const bool replaces_map =
+      existing.parent_path() == root_for(game::ZoneType::USERMAP);
   const bool replaces =
-      existing.parent_path() == root_for(game::ZoneType::USERMAP) ||
-      existing.parent_path() == root_for(game::ZoneType::MOD);
-  const std::filesystem::path root = root_for(type);
+      replaces_map || existing.parent_path() == root_for(game::ZoneType::MOD);
+
+  std::optional<game::ZoneType> kind;
+  if (type == game::ZoneType::MOD || type == game::ZoneType::USERMAP)
+    kind = type;
+  else if (const std::optional<game::ZoneType> detected = detect_kind(download))
+    kind = detected;
+  else if (replaces)
+    kind = replaces_map ? game::ZoneType::USERMAP : game::ZoneType::MOD;
+  if (!kind) {
+    printf("[ Workshop ] Could not tell whether %s is a mod or a map\n",
+           id.data());
+    return {};
+  }
+
+  const std::filesystem::path root = root_for(*kind);
   const std::filesystem::path target =
       root / (replaces ? existing.filename() : std::filesystem::path(id));
+  const std::filesystem::path previous = replaces ? existing : target;
+  std::filesystem::path backup = previous;
+  backup += ".deleting";
 
   std::error_code ec;
-  if (replaces && existing != target) {
-    std::filesystem::remove_all(existing, ec);
+  std::filesystem::remove_all(backup, ec);
+  std::filesystem::rename(previous, backup, ec);
+  const bool backed_up = !ec;
+  if (!backed_up && std::filesystem::exists(previous, ec)) {
+    printf("[ Workshop ] Could not replace %s: files are in use\n", id.data());
+    return {};
   }
-  std::filesystem::remove_all(target, ec);
+
   std::filesystem::create_directories(root, ec);
+  ec.clear();
   std::filesystem::rename(download, target, ec);
   if (ec) {
     ec.clear();
@@ -232,10 +278,17 @@ std::filesystem::path install_folder(const std::filesystem::path &download,
     if (ec) {
       printf("[ Workshop ] Could not install %s: %s\n", id.data(),
              ec.message().c_str());
+      std::error_code restore_ec;
+      std::filesystem::remove_all(target, restore_ec);
+      if (backed_up)
+        std::filesystem::rename(backup, previous, restore_ec);
+      invalidate_cache();
       return {};
     }
     std::filesystem::remove_all(download, ec);
   }
+  if (backed_up)
+    std::filesystem::remove_all(backup, ec);
 
   const std::filesystem::file_time_type::clock::time_point now =
       std::filesystem::file_time_type::clock::now();

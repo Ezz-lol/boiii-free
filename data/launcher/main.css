@@ -3587,6 +3587,15 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
 
 #workshopPage .workshop-browse-container,
 #workshopPage .workshop-browse-grid {
-  flex: none;
+  flex: 1 0 auto;
   overflow: visible;
+}
+
+#workshopPage .workshop-browse-grid:has(> .workshop-loading, > .workshop-browse-empty) {
+  align-content: center;
+}
+
+#workshopPage .workshop-loading,
+#workshopPage .workshop-browse-empty {
+  grid-column: 1 / -1;
 }
