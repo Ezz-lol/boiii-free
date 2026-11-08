@@ -874,16 +874,22 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
   return true;
 }
 
-void notify_vials_earned(ControllerIndex_t controller, uint32_t balance) {
+void update_vials_balance(ControllerIndex_t controller, uint32_t balance) {
   using namespace game::ui;
   const uint16_t root = UI_Model_GetModelForController(controller);
   const uint16_t tokens = UI_Model_CreateModelFromPath(root, "MegaChewTokens");
   UI_Model_SetInt(UI_Model_CreateModelFromPath(tokens, "remainingTokens"),
                   static_cast<int32_t>(balance));
+}
+
+void notify_vials_earned(ControllerIndex_t controller, uint32_t balance) {
+  update_vials_balance(controller, balance);
+  using namespace game::ui;
+  const uint16_t root = UI_Model_GetModelForController(controller);
   const uint16_t notify = UI_Model_CreateModelFromPath(root, "scriptNotify");
   UI_Model_SetInt(UI_Model_CreateModelFromPath(notify, "numArgs"), 0);
+  UI_Model_SetString(notify, "");
   UI_Model_SetString(notify, "zombie_bgb_token_notification");
-  UI_Model_ForceNotify(notify);
 }
 
 bool increment_currency(ControllerIndex_t controller, int32_t kind,
@@ -908,7 +914,7 @@ bool increment_currency(ControllerIndex_t controller, int32_t kind,
     return false;
   }
   LiveInventory_UpdatePlayerBalance(controller, 3, *balance);
-  notify_vials_earned(controller, *balance);
+  update_vials_balance(controller, *balance);
   return true;
 }
 
