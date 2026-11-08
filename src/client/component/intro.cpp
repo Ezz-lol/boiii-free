@@ -28,6 +28,17 @@ void cinematic_start_playback_stub(const char *name, const char *key,
                                          callback_info, id);
   }
 }
+
+bool ugc_video_loaded() {
+  return game::ugc::active_usermap->publisherId[0] ||
+         game::ugc::active_mod->publisherId[0];
+}
+
+const char *ugc_video_root() {
+  return game::ugc::active_usermap->publisherId[0]
+             ? game::ugc::active_usermap->absolutePathZoneFiles
+             : game::ugc::active_mod->absolutePathZoneFiles;
+}
 } // namespace
 
 class component final : public client_component {
@@ -38,6 +49,21 @@ public:
     cinematic_start_playback_hook.create(
         game::cinematic::Cinematic_StartPlayback,
         cinematic_start_playback_stub);
+
+    if (!game::is_legacy_client()) {
+      utils::hook::call(
+          game::cinematic::Cinematic_ResolvePaths_UsermapLoadedCall.get(),
+          ugc_video_loaded);
+      utils::hook::call(
+          game::cinematic::Cinematic_ResolvePaths_UsermapPathCall.get(),
+          ugc_video_root);
+      utils::hook::call(
+          game::cinematic::Cinematic_ResolvePath_UsermapLoadedCall.get(),
+          ugc_video_loaded);
+      utils::hook::call(
+          game::cinematic::Cinematic_ResolvePath_UsermapPathCall.get(),
+          ugc_video_root);
+    }
   }
 };
 } // namespace intro
