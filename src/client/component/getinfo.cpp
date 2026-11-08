@@ -117,6 +117,8 @@ struct component final : generic_component {
       info.set("gamemode", std::to_string(static_cast<int32_t>(
                                game::com::Com_SessionMode_GetGameMode())));
       info.set("sv_running", game::server_running() ? "1" : "0");
+      info.set("xpscale", std::format("{}", game::xp_scale()));
+      info.set("gunxpscale", std::format("{}", game::gun_xp_scale()));
       info.set("dedicated", game::is_server() ? "1" : "0");
       info.set("lobby", nat::joinable_lobby());
       info.set("hc",

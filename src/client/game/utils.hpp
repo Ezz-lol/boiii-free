@@ -325,6 +325,34 @@ constexpr uint16_t DEFAULT_PORT = 3074;
 [[nodiscard]] inline std::optional<std::string_view> fastdl_uri() {
   return get_sv_wwwBaseURL();
 }
+// The client's Dvar_GetFloat never returns when it's called from outside the
+// game's own code, so the value is read directly
+[[nodiscard]] inline float session_mode_xp_scale(EngineDependentDvarMut zm,
+                                                 EngineDependentDvarMut mp,
+                                                 EngineDependentDvarMut cp) {
+  EngineDependentDvarMut dvar{};
+  switch (com::Com_SessionMode_GetMode()) {
+  case eModes::ZOMBIES:
+    dvar = zm;
+    break;
+  case eModes::MULTIPLAYER:
+    dvar = mp;
+    break;
+  case eModes::CAMPAIGN:
+    dvar = cp;
+    break;
+  default:
+    break;
+  }
+  return dvar ? dvar.get_float() : 1.0f;
+}
+[[nodiscard]] inline float xp_scale() {
+  return session_mode_xp_scale(*scr_xpscalezm, *scr_xpscalemp, *scr_xpscalecp);
+}
+[[nodiscard]] inline float gun_xp_scale() {
+  return session_mode_xp_scale(*scr_gunxpscalezm, *scr_gunxpscalemp,
+                               *scr_gunxpscalecp);
+}
 [[nodiscard]] inline std::optional<bool> get_sv_wwwDownload() {
   return sv_wwwDownload ? std::optional(sv_wwwDownload.get_bool())
                         : std::nullopt;
