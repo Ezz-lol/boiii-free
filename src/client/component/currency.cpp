@@ -874,6 +874,18 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
   return true;
 }
 
+void notify_vials_earned(ControllerIndex_t controller, uint32_t balance) {
+  using namespace game::ui;
+  const uint16_t root = UI_Model_GetModelForController(controller);
+  const uint16_t tokens = UI_Model_CreateModelFromPath(root, "MegaChewTokens");
+  UI_Model_SetInt(UI_Model_CreateModelFromPath(tokens, "remainingTokens"),
+                  static_cast<int32_t>(balance));
+  const uint16_t notify = UI_Model_CreateModelFromPath(root, "scriptNotify");
+  UI_Model_SetInt(UI_Model_CreateModelFromPath(notify, "numArgs"), 0);
+  UI_Model_SetString(notify, "zombie_bgb_token_notification");
+  UI_Model_ForceNotify(notify);
+}
+
 bool increment_currency(ControllerIndex_t controller, int32_t kind,
                         uint32_t amount) {
   if (kind == LOOT_XP_CURRENCY) {
@@ -896,18 +908,7 @@ bool increment_currency(ControllerIndex_t controller, int32_t kind,
     return false;
   }
   LiveInventory_UpdatePlayerBalance(controller, 3, *balance);
-  using namespace game::ui;
-  const uint16_t root = UI_Model_GetModelForController(controller);
-  const uint16_t tokens = UI_Model_CreateModelFromPath(root, "MegaChewTokens");
-  UI_Model_SetInt(UI_Model_CreateModelFromPath(tokens, "remainingTokens"),
-                  *balance);
-  const uint16_t aar = UI_Model_CreateModelFromPath(
-      root, "aarStats.performanceTabStats.bgbTokensGainedThisGame");
-  UI_Model_SetInt(aar, amount);
-  const uint16_t notify = UI_Model_CreateModelFromPath(root, "scriptNotify");
-  UI_Model_SetInt(UI_Model_CreateModelFromPath(notify, "numArgs"), 0);
-  UI_Model_SetString(notify, "zombie_bgb_token_notification");
-  UI_Model_ForceNotify(notify);
+  notify_vials_earned(controller, *balance);
   return true;
 }
 
@@ -1138,11 +1139,14 @@ void award_match_points() {
     StorageFileType file;
     bool zombies;
     clock::time_point started;
+    uint32_t vials_at_start;
+    uint32_t vials_seen;
   };
   struct match_reward {
     match session;
     uint32_t points;
     uint32_t vials;
+    uint32_t vials_in_match;
     bool points_saved;
     bool vials_saved;
   };
@@ -1167,6 +1171,24 @@ void award_match_points() {
   const bool zombies = mode == game::eModes::ZOMBIES || map.starts_with("zm_");
   const bool in_game =
       game::com::Com_IsInGame() && !game::com::Com_IsRunningUILevel();
+  const auto vials_gained = [controller]() -> uint32_t {
+    const stats data(controller, true);
+    const std::optional<DDLState> gained =
+        player_stat(data, "BGB_TOKENS_GAINED");
+    return gained ? data.get(*gained) : 0;
+  };
+  const auto match_reward_vials = [&](const match &session) -> uint32_t {
+    const int64_t seconds =
+        std::chrono::duration_cast<std::chrono::seconds>(now - session.started)
+            .count();
+    return session.zombies && seconds >= 300 ? divinium_per_match.get_uint()
+                                             : 0;
+  };
+  const auto vials_in_match = [](const match &session,
+                                 uint32_t gained) -> uint32_t {
+    return gained > session.vials_at_start ? gained - session.vials_at_start
+                                           : 0;
+  };
   if (playing && !same_user(*playing)) {
     playing.reset();
   }
@@ -1175,20 +1197,31 @@ void award_match_points() {
   }
   if (in_game && !playing &&
       (mode == game::eModes::MULTIPLAYER || mode == game::eModes::ZOMBIES)) {
-    playing = match{controller, xuid, file, zombies, now};
+    const uint32_t gained = vials_gained();
+    playing = match{controller, xuid, file, zombies, now, gained, gained};
     last_divinium_award.set(0);
   } else if (in_game && playing && zombies) {
     playing->zombies = true;
+    const uint32_t gained = vials_gained();
+    if (gained > playing->vials_seen) {
+      playing->vials_seen = gained;
+      const stats data(controller, true);
+      notify_vials_earned(controller, vials(data).value_or(0));
+    }
+    last_divinium_award.set(vials_in_match(*playing, gained) +
+                            match_reward_vials(*playing));
   } else if (!in_game && playing) {
     const int64_t seconds =
         std::chrono::duration_cast<std::chrono::seconds>(now - playing->started)
             .count();
     const uint32_t earned_points = accounting::match_reward(
         seconds, points_per_minute.get_uint(), points_per_match_cap.get_uint());
-    const uint32_t earned_vials =
-        playing->zombies && seconds >= 300 ? divinium_per_match.get_uint() : 0;
-    pending = match_reward{*playing, earned_points, earned_vials,
-                           earned_points == 0, earned_vials == 0};
+    pending = match_reward{*playing,
+                           earned_points,
+                           match_reward_vials(*playing),
+                           vials_in_match(*playing, vials_gained()),
+                           earned_points == 0,
+                           !playing->zombies};
     pending->session.started = now;
     playing.reset();
   }
@@ -1224,9 +1257,14 @@ void award_match_points() {
           std::min(accounting::max_balance, gained->member->rangeLimit);
       pending->vials = std::min(pending->vials, limit - before);
       data.set(*gained, before + pending->vials);
-      if (!pending->vials || data.commit()) {
+      const uint32_t vials_this_game = pending->vials_in_match + pending->vials;
+      if (const std::optional<DDLState> this_game =
+              player_stat(data, "BGB_TOKENS_GAINED_THIS_GAME")) {
+        data.set(*this_game, vials_this_game);
+      }
+      if (data.commit()) {
         pending->vials_saved = true;
-        last_divinium_award.set(pending->vials);
+        last_divinium_award.set(vials_this_game);
         LiveInventory_UpdatePlayerBalance(controller, 3,
                                           *balance + pending->vials);
         using namespace game::ui;
@@ -1235,9 +1273,6 @@ void award_match_points() {
             UI_Model_CreateModelFromPath(root, "MegaChewTokens");
         UI_Model_SetInt(UI_Model_CreateModelFromPath(tokens, "remainingTokens"),
                         *balance + pending->vials);
-        const uint16_t aar = UI_Model_CreateModelFromPath(
-            root, "aarStats.performanceTabStats.bgbTokensGainedThisGame");
-        UI_Model_SetInt(aar, pending->vials);
       }
     }
   }
