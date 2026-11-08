@@ -77,6 +77,14 @@ template <const bool Toggle> void toggle_mute(const command::params &params) {
   printf("Client %d is now %s.\n", *client_num, STATUS_STR);
 }
 
+void notify_chat(game::level::gentity_s *ent, const char *text) {
+  if (static_cast<unsigned char>(text[0]) < 0x20 && text[0] != '\0') {
+    ++text;
+  }
+  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, text);
+  game::scr::Scr_Notify_Canon(ent, game::CanonHash("chat"), 1);
+}
+
 void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   if (params.size() <= 1) {
     return;
@@ -88,17 +96,29 @@ void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   }
 
   const std::string p = params.join(1);
-  const char *notify_text = p.data();
-  if (!p.empty() && static_cast<unsigned char>(p.front()) < 0x20) {
-    ++notify_text;
-  }
-  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, notify_text);
-  game::scr::Scr_Notify_Canon(ent, game::CanonHash("chat"), 1);
+  notify_chat(ent, p.data());
 
   if (!is_muted(ent)) {
     const std::string chat_message = std::to_string(mode) + " " + p;
     game::G_Chat(ent, chat_message.data());
   }
+}
+
+utils::hook::detour g_say_hook;
+void g_say_stub(game::level::gentity_s *ent, game::level::gentity_s *target,
+                const int32_t mode, const char *text) {
+  if (ent && text) {
+    notify_chat(ent, text);
+  }
+  g_say_hook.invoke(ent, target, mode, text);
+}
+
+utils::hook::detour g_chat_hook;
+void g_chat_stub(game::level::gentity_s *ent, const char *text) {
+  if (ent && text && text[0] && text[1] == ' ') {
+    notify_chat(ent, text + 2);
+  }
+  g_chat_hook.invoke(ent, text);
 }
 
 void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
@@ -273,6 +293,9 @@ public:
 
       utils::hook::call(game::select(0x141DDDF7F, 0x141DEAA0F, 0x0),
                         cl_handle_chat);
+
+      g_say_hook.create(game::G_Say.get(), g_say_stub);
+      g_chat_hook.create(game::G_Chat.get(), g_chat_stub);
     }
   }
 };
