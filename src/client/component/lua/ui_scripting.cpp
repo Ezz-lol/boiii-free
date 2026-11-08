@@ -660,6 +660,16 @@ void setup_lua_globals() {
   lua["T7Overcharged"] = true;
 }
 
+void register_t7overcharged_dvars() {
+  game::register_dvar_float("t7o_strafe_speed_scale", 1.0f, 0.0f, 10.0f,
+                            game::dvarFlags_e::NONE, "Strafe speed scale");
+  game::register_dvar_bool("t7o_omnimovement", false, game::dvarFlags_e::NONE,
+                           "Move in any direction while sprinting");
+  game::register_dvar_float("t7o_perk_fastads_multiplier", 1.0f, 0.0f, 10.0f,
+                            game::dvarFlags_e::NONE,
+                            "Aim down sights speed multiplier for Quick Draw");
+}
+
 void start() {
   setup_lua_globals();
 
@@ -2639,6 +2649,7 @@ public:
     utils::hook::call(game::select(0x141D3CD0A, 0x141D4979A, 0x1403F233A),
                       hks_load_stub);
     load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
+    scheduler::once(register_t7overcharged_dvars, scheduler::pipeline::main);
 
     hks_package_require_hook.create(package_require.get(),
                                     hks_package_require_stub);
