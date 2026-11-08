@@ -32,7 +32,6 @@ using namespace game::ddl;
 using namespace game::live::storage;
 using namespace game::loot;
 
-game::EngineDependentDvarMut local_currency;
 game::EngineDependentDvarMut points_per_minute, points_per_match_cap;
 game::EngineDependentDvarMut divinium_per_match, last_divinium_award;
 game::EngineDependentDvarMut free_distills, paid_distills, free_distill_expiry;
@@ -40,8 +39,6 @@ game::EngineDependentDvarMut loot_duplicates;
 utils::hook::detour currency_hook, spend_hook, increment_hook, consume_hook;
 utils::hook::detour inventory_update_hook, buy_crate_hook, purchase_hook,
     get_item_hook, burn_duplicates_hook;
-
-inline bool enabled() { return local_currency && local_currency.get_bool(); }
 
 inline bool duplicates_allowed() {
   return loot_duplicates && loot_duplicates.get_bool();
@@ -231,6 +228,12 @@ const std::vector<gum> &gum_pool() {
     }
   }
   return pool;
+}
+
+const gum *find_gum(uint32_t inventory_id) {
+  const std::vector<gum> &pool = gum_pool();
+  const auto found = std::ranges::find(pool, inventory_id, &gum::id);
+  return found == pool.end() ? nullptr : &*found;
 }
 
 std::optional<DDLState> gum_stat(const stats &data, const gum &item,
@@ -426,9 +429,6 @@ bool mirror_duplicate(ControllerIndex_t controller, uint32_t item_id) {
 }
 
 bool buy_crate(ControllerIndex_t controller, int32_t crate, int32_t currency) {
-  if (!enabled()) {
-    return buy_crate_hook.invoke<bool>(controller, crate, currency);
-  }
   const bool with_keys = currency == CRYPTOKEYS_CURRENCY;
   const bool with_points =
       currency ==
@@ -665,7 +665,7 @@ void *purchase_skus(ControllerIndex_t controller, uint32_t *skus, int32_t count,
                     uint32_t *quantities, int32_t currency, bool consume,
                     void *on_success, void *on_failure) {
   const bundle *bought = nullptr;
-  if (enabled() && validate(controller) && skus != nullptr && count == 1) {
+  if (validate(controller) && skus != nullptr && count == 1) {
     for (const bundle *candidate : {&six_pack, &daily_double}) {
       const uint32_t sku = dvar_value(candidate->sku);
       if (sku != 0u && skus[0] == sku) {
@@ -718,7 +718,7 @@ bool burn_duplicates(ControllerIndex_t controller,
   const auto find = [&pool](uint32_t id) {
     return std::ranges::find(pool, id, &loot_item::id);
   };
-  if (!enabled() || !validate(controller) || items == nullptr || count <= 0 ||
+  if (!validate(controller) || items == nullptr || count <= 0 ||
       !std::all_of(items, items + count,
                    [&](const bdMarketplaceItemToPawn &item) {
                      return find(item.itemId) != pool.end();
@@ -762,7 +762,7 @@ bool burn_duplicates(ControllerIndex_t controller,
 // consumable inventory item.
 const InventoryItem *get_inventory_item(ControllerIndex_t controller,
                                         uint32_t item_id) {
-  if (enabled() && item_id) {
+  if (item_id) {
     const std::optional<local_db::item> item = local_db::get_item(item_id);
     if (item && item->expire_time) {
       const uint32_t cooldown_seconds =
@@ -782,10 +782,10 @@ const InventoryItem *get_inventory_item(ControllerIndex_t controller,
 bool accept_server_loot_xp() { return true; }
 
 uint32_t get_currency(ControllerIndex_t controller, int32_t kind) {
-  if (enabled() && (kind == CRYPTOKEYS_CURRENCY || kind == LOOT_XP_CURRENCY)) {
+  if (kind == CRYPTOKEYS_CURRENCY || kind == LOOT_XP_CURRENCY) {
     return local_db::balance(kind);
   }
-  if (!enabled() || (kind != 0 && kind != 3)) {
+  if (kind != 0 && kind != 3) {
     return currency_hook.invoke<int32_t>(controller, kind);
   }
   const stats data(controller, kind == 3);
@@ -798,9 +798,6 @@ uint32_t get_currency(ControllerIndex_t controller, int32_t kind) {
 
 constexpr uint32_t ROLL_SELECTION_POOL_SIZE = 3;
 bool spend_vials(ControllerIndex_t controller, uint32_t count) {
-  if (!enabled()) {
-    return spend_hook.invoke<bool>(controller, count);
-  }
 
   if (!validate(controller) || count < 1 || count > 3 ||
       !engine_dvar("loot_enabled").get_bool() ||
@@ -879,11 +876,11 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
 
 bool increment_currency(ControllerIndex_t controller, int32_t kind,
                         uint32_t amount) {
-  if (enabled() && kind == LOOT_XP_CURRENCY) {
+  if (kind == LOOT_XP_CURRENCY) {
     server_loot_xp = server_loot_xp.value_or(0) + amount;
     return true;
   }
-  if (!enabled() || kind != 3) {
+  if (kind != 3) {
     return increment_hook.invoke<bool>(controller, kind, amount);
   }
   stats data(controller, true);
@@ -916,7 +913,7 @@ bool increment_currency(ControllerIndex_t controller, int32_t kind,
 
 bool increment_from_lua(ControllerIndex_t controller, int32_t kind,
                         uint32_t amount) {
-  if (!enabled() || kind != 3) {
+  if (kind != 3) {
     return increment_currency(controller, kind, amount);
   }
   // Unlike ReportLootReward, the Lua increment has not credited the earned
@@ -943,8 +940,8 @@ bool increment_from_lua(ControllerIndex_t controller, int32_t kind,
 
 void *consume_items(ControllerIndex_t controller, uint32_t *ids, int32_t count,
                     uint32_t *amounts) {
-  if (!enabled()) {
-    return consume_hook.invoke<void *>(controller, ids, count, amounts);
+  if (loot::unlockall_gobblegums() && ids && count == 1 && find_gum(ids[0])) {
+    return nullptr;
   }
   if (!validate(controller) || !ids || !amounts || count < 1 || count > 4000) {
     return nullptr;
@@ -961,9 +958,6 @@ void *consume_items(ControllerIndex_t controller, uint32_t *ids, int32_t count,
                            [&](const gum &item) { return item.id == ids[0]; });
   if (found == pool.end()) {
     return consume_hook.invoke<void *>(controller, ids, count, amounts);
-  }
-  if (loot::unlockall_gobblegums()) {
-    return nullptr;
   }
   stats data(controller, true);
   const std::optional<DDLState> gained =
@@ -993,7 +987,7 @@ void inventory_update(ControllerIndex_t controller) {
   inventory_update_hook.invoke<void>(controller);
   static game::LocalClientPool<bool> keys_restored{};
   static game::LocalClientPool<bool> duplicates_restored{};
-  if (!enabled() || !LiveInventory_IsValid(controller)) {
+  if (!LiveInventory_IsValid(controller)) {
     keys_restored[controller] = false;
     duplicates_restored[controller] = false;
   } else {
@@ -1013,7 +1007,7 @@ void inventory_update(ControllerIndex_t controller) {
   static game::LocalClientPool<bool> points_restored{};
   static game::LocalClientPool<StorageFileType> restored_file{};
   static game::LocalClientPool<game::XUID> restored_user{};
-  if (!enabled() || !LiveInventory_IsValid(controller)) {
+  if (!LiveInventory_IsValid(controller)) {
     restored[controller] = false;
     points_restored[controller] = false;
     return;
@@ -1059,7 +1053,7 @@ void inventory_update(ControllerIndex_t controller) {
 
 void balance_command(const char *name, bool zombies) {
   command::add(name, [zombies](const command::params &args) {
-    if (!enabled() || game::com::Com_IsInGame()) {
+    if (game::com::Com_IsInGame()) {
       toast::error("Currency",
                    "Return to the menu with local currency enabled.");
       return;
@@ -1108,11 +1102,6 @@ void award_loot_xp() {
   const game::eModes mode = game::com::Com_SessionMode_GetMode();
   const bool in_game =
       game::com::Com_IsInGame() && !game::com::Com_IsRunningUILevel();
-  if (!enabled()) {
-    started.reset();
-    server_loot_xp.reset();
-    return;
-  }
   if (in_game) {
     if (!started && mode == game::eModes::MULTIPLAYER) {
       started = now;
@@ -1162,7 +1151,7 @@ void award_match_points() {
   const std::chrono::steady_clock::time_point now = clock::now();
   const game::ControllerIndex_t controller =
       game::com::Com_ControllerIndexes_GetPrimary();
-  if (!enabled() || !validate(controller)) {
+  if (!validate(controller)) {
     playing.reset();
     pending.reset();
     return;
@@ -1283,8 +1272,7 @@ void award_match_points() {
 
 std::optional<uint32_t> add_cod_points(ControllerIndex_t controller,
                                        uint32_t amount) {
-  if (!enabled() || !validate(controller) || !amount ||
-      game::com::Com_IsInGame()) {
+  if (!validate(controller) || !amount || game::com::Com_IsInGame()) {
     return std::nullopt;
   }
 
@@ -1319,8 +1307,7 @@ bool set_store_price(uint32_t sku, uint32_t cost) {
 
 bool purchase_vials(ControllerIndex_t controller, uint32_t cost,
                     uint32_t amount) {
-  if (!enabled() || !validate(controller) || !cost || !amount ||
-      game::com::Com_IsInGame()) {
+  if (!validate(controller) || !cost || !amount || game::com::Com_IsInGame()) {
     return false;
   }
 
@@ -1367,7 +1354,7 @@ bool purchase_vials(ControllerIndex_t controller, uint32_t cost,
 
 bool purchase_distills(ControllerIndex_t controller, std::string_view kind,
                        uint32_t currency) {
-  if (!enabled() || !validate(controller) || game::com::Com_IsInGame()) {
+  if (!validate(controller) || game::com::Com_IsInGame()) {
     return false;
   }
 
@@ -1456,9 +1443,6 @@ uint32_t free_distill_cooldown() {
 }
 
 uint32_t distill_balance(bool free) {
-  if (!enabled()) {
-    return -1;
-  }
   return (free ? free_distills : paid_distills).get_int();
 }
 
@@ -1482,7 +1466,7 @@ const gum *find_gum_by_name(const std::vector<gum> &pool,
 
 bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
                  bool use_free_distills) {
-  if (!enabled() || !validate(controller) || game::com::Com_IsInGame() ||
+  if (!validate(controller) || game::com::Com_IsInGame() ||
       game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES) {
     return false;
   }
@@ -1598,9 +1582,45 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
   return true;
 }
 
+bool is_gum(uint32_t inventory_id) { return find_gum(inventory_id); }
+
+namespace {
+constexpr uint32_t UNLIMITED_GUMS = 999;
+
+std::optional<uint32_t> gum_quantity(ControllerIndex_t controller,
+                                     uint32_t inventory_id) {
+  const gum *item = find_gum(inventory_id);
+  if (!item || !validate(controller)) {
+    return std::nullopt;
+  }
+  if (loot::unlockall_gobblegums()) {
+    return UNLIMITED_GUMS;
+  }
+  const stats data(controller, true);
+  return quantity(data, *item).value_or(0);
+}
+
+void refresh_gums() {
+  const ControllerIndex_t controller =
+      game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0);
+  if (!validate(controller) || !LiveInventory_IsValid(controller)) {
+    return;
+  }
+  for (const gum &item : gum_pool()) {
+    LiveInventory_UpdateItemQuantity(
+        controller, item.id, gum_quantity(controller, item.id).value_or(0), 0,
+        0, 0);
+  }
+}
+} // namespace
+
 std::optional<uint32_t> item_quantity(ControllerIndex_t controller,
                                       uint32_t inventory_id) {
-  if (!enabled() || !validate(controller)) {
+  if (const std::optional<uint32_t> count =
+          gum_quantity(controller, inventory_id)) {
+    return count;
+  }
+  if (!validate(controller)) {
     return std::nullopt;
   }
   if (const std::optional<local_db::item> item =
@@ -1624,21 +1644,11 @@ std::optional<uint32_t> item_quantity(ControllerIndex_t controller,
   if (paid_id && inventory_id == paid_id.get_uint()) {
     return paid_distills.get_uint();
   }
-  const std::vector<gum> &pool = gum_pool();
-  for (const gum &item : pool) {
-    if (item.id == inventory_id) {
-      if (loot::unlockall_gobblegums()) {
-        return 999;
-      }
-      const stats data(controller, true);
-      return quantity(data, item).value_or(0);
-    }
-  }
   return std::nullopt;
 }
 
 bool reset_gobblegums(ControllerIndex_t controller) {
-  if (!enabled() || !validate(controller) || game::com::Com_IsInGame()) {
+  if (!validate(controller) || game::com::Com_IsInGame()) {
     return false;
   }
 
@@ -1670,7 +1680,7 @@ bool reset_gobblegums(ControllerIndex_t controller) {
 
 // Cryptokeys and bundles are kept.
 bool reset_black_market(ControllerIndex_t controller) {
-  if (!enabled() || !validate(controller) || game::com::Com_IsInGame()) {
+  if (!validate(controller) || game::com::Com_IsInGame()) {
     return false;
   }
   // The game reads owned loot from the database, so only duplicates are in the
@@ -1695,9 +1705,6 @@ bool reset_black_market(ControllerIndex_t controller) {
 
 std::vector<loot_drop> black_market_drops() {
   std::vector<loot_drop> drops;
-  if (!enabled()) {
-    return drops;
-  }
   for (const loot_item &item : mp_loot_pool()) {
     const std::optional<local_db::item> owned = local_db::get_item(item.id);
     if (owned && owned->quantity && owned->obtained_time) {
@@ -1784,9 +1791,13 @@ struct component final : client_component {
   DEFINE_COMPONENT_NAME("currency");
 
   void post_unpack() override {
-    local_currency = game::register_dvar_bool(
-        "cg_local_currency", true, game::DvarFlags{.archive = 1},
-        "Use native stats for local currency and GobbleGum inventory");
+    scheduler::once(
+        [] {
+          game::Dvar_SetModifiedCallback(
+              engine_dvar("cg_unlockall_gobblegums"),
+              [](game::EngineDependentDvarMut) { refresh_gums(); });
+        },
+        scheduler::pipeline::dvars_loaded);
     com::on_level_load(invalidate_gum_pool);
     com::on_level_unload(invalidate_gum_pool);
     points_per_minute = game::register_dvar_int(

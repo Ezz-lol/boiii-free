@@ -49,7 +49,7 @@ int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index,
     }
   }
 
-  if (!dvar_cg_unlockall_loot.get_bool()) {
+  if (!dvar_cg_unlockall_loot.get_bool() || currency::is_gum(item_id)) {
     return loot_getitemquantity_hook.invoke<uint32_t>(controller_index, mode,
                                                       item_id);
   }

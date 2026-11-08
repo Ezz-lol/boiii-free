@@ -3,6 +3,7 @@
 #include <std_include.hpp>
 
 namespace currency {
+bool is_gum(uint32_t inventory_id);
 std::optional<uint32_t> item_quantity(game::ControllerIndex_t controller,
                                       uint32_t inventory_id);
 std::optional<uint32_t> add_cod_points(game::ControllerIndex_t controller,

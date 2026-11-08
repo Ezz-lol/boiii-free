@@ -131,12 +131,6 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       local blackjack = Dvar.cg_unlockall_loot:get() == true or Dvar.cg_unlockall_blackjack:get() == true
       Engine.SetDvar("ui_enableAllHeroes", blackjack and 1 or 0)
     end
-    if dvarName == "cg_unlockall_loot" and itemModel.value == 1 then
-      Engine.SetDvar("cg_unlockall_gobblegums", 1)
-    end
-    if dvarName == "cg_local_currency" then
-      refreshCurrencyModels(controllerIndex)
-    end
     if dvarName == "all_ee_completed" then
       for _, stat in ipairs(easterEggStats) do
         Engine.ExecNow(controllerIndex, "statsetbyname " .. stat .. " " .. itemModel.value)
@@ -204,13 +198,6 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
   addToggle("Unlock All Loot", "Unlocks all Black Market loot.", "MPStatsSettings_unlock_loot", "cg_unlockall_loot")
   if isZM and type(game.resetgobblegums) == "function" and type(game.setcurrencymaxed) == "function" then
     addToggle(
-      "Local Currency",
-      "Uses locally saved COD Points, Liquid Divinium, GobbleGums, and Cookbook Distills.",
-      "MPStatsSettings_local_currency",
-      "cg_local_currency",
-      true
-    )
-    addToggle(
       "Unlimited GobbleGums",
       "Uses unlimited GobbleGums without replacing your earned inventory.",
       "MPStatsSettings_unlimited_gobblegums",
@@ -229,13 +216,6 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
   end
   if isMP then
     if type(game.setcurrencymaxed) == "function" then
-      addToggle(
-        "Local Currency",
-        "Uses locally saved COD Points and Cryptokeys.",
-        "MPStatsSettings_local_currency",
-        "cg_local_currency",
-        true
-      )
       addCurrencyToggle(
         "Max COD Points",
         "Sets COD Points to maximum or zero.",
