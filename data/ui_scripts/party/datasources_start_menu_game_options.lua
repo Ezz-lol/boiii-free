@@ -5,8 +5,7 @@ local function getServerDiscord()
 
   local mode = Engine.CurrentSessionMode()
 
-  if mode ~= Enum.eModes.MODE_MULTIPLAYER
-      and mode ~= Enum.eModes.MODE_ZOMBIES
+  if mode ~= Enum.eModes.MODE_MULTIPLAYER and mode ~= Enum.eModes.MODE_ZOMBIES then
   then
     return nil
   end
@@ -250,10 +249,7 @@ local function appendHostOptions(dataSource)
       end
 
       if not exists then
-        local root = Engine.CreateModel(
-          Engine.GetModelForController(controller),
-          list.customDataSourceHelper
-        )
+        local root = Engine.CreateModel(Engine.GetModelForController(controller), list.customDataSourceHelper)
 
         local modelIndex = #items + 1
         local model = Engine.GetModel(root, modelIndex)
@@ -264,15 +260,9 @@ local function appendHostOptions(dataSource)
 
         model = Engine.CreateModel(root, modelIndex)
 
-        Engine.SetModelValue(
-          Engine.CreateModel(model, "displayText"),
-          "^5SERVER DISCORD"
-        )
+        Engine.SetModelValue(Engine.CreateModel(model, "displayText"), "^5SERVER DISCORD")
 
-        Engine.SetModelValue(
-          Engine.CreateModel(model, "action"),
-          openServerDiscord
-        )
+        Engine.SetModelValue(Engine.CreateModel(model, "action"), openServerDiscord)
 
         table.insert(items, { model = model })
       end
