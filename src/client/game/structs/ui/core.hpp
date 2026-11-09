@@ -222,7 +222,7 @@ ASSERT_SIZE(UIModelNode, 0x28);
 template <typename T> struct UIModelNodePool {
   typedef UIModelIndex index_t;
 
-  static inline constexpr auto SIZE = 0xF000;
+  static inline constexpr auto SIZE = 0x9000;
   volatile T nodes[SIZE];
 
   inline static constexpr auto size() noexcept { return SIZE; }
@@ -249,7 +249,7 @@ template <typename T> struct UIModelNodePool {
   static inline constexpr void
   assert_index([[maybe_unused]] Index index) noexcept {
     assert(valid_index(index) &&
-           "Index to UIModelNodePool must be within range 0 <= index < 0xF000");
+           "Index to UIModelNodePool must be within range 0 <= index < 0x9000");
   }
 
   template <IntegralLike<index_t> Index>
