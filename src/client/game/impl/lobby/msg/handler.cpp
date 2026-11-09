@@ -900,49 +900,54 @@ void HandleClientReliableData(ControllerIndex_t controllerIndex,
               clientData.readyUp = msgData.readyUp;
             }
 
-            const bool hasVoteFlag = (msgData.dataMask & (1ul << 24)) != 0;
+            const bool hasItemVote = (msgData.dataMask & (1ul << 8)) != 0;
             const bool hasCharacterSelection =
                 (msgData.dataMask & (1ul << 9)) != 0;
-            const bool isByteDataZero = (msgData.dataMask & 0xFFul) == 0;
+            const bool hasEditComplete = (msgData.dataMask & (1ul << 10)) != 0;
 
-            if (((msgData.dataMask & (1ul << 8)) == 0 &&
-                 !hasCharacterSelection && isByteDataZero) ||
+            if ((!hasItemVote && !hasCharacterSelection && !hasEditComplete) ||
                 (clientData.pregameState ==
                      LobbyClientPregameState::SELECTION_FORCED ||
                  clientData.pregameState ==
                      LobbyClientPregameState::SELECTION_COMPLETE)) {
               session::LobbySession_DirtySet(session, 1);
             } else {
+              clientData.pregameState = LobbyClientPregameState::SELECTED;
 
-              VoteType itemVoteType = VoteType::INVALID;
-              switch (msgData.itemVote.itemType) {
-              case VoteItemType::ITEM:
-                itemVoteType =
-                    data::LobbyData_GetItemVoteType(msgData.itemVote.itemIndex);
-                break;
-              case VoteItemType::ATTACHMENT:
-                itemVoteType = data::LobbyData_GetAttachmentVoteType(
-                    msgData.itemVote.attachment);
-                break;
-              case VoteItemType::ITEM_ATTACHMENT:
-                itemVoteType = data::LobbyData_GetItemAttachmentVoteType(
-                    msgData.itemVote.itemIndex, msgData.itemVote.attachment);
-                break;
-              case VoteItemType::ATTACHMENT_GROUP:
-                itemVoteType = data::LobbyData_GetAttachmentGroupVoteType(
-                    msgData.itemVote.itemGroup, msgData.itemVote.attachment);
-                break;
-              default:
-                break;
-              }
+              uint32_t voteIndex = 0;
+              if (hasItemVote) {
+                VoteType itemVoteType = VoteType::INVALID;
+                switch (msgData.itemVote.itemType) {
+                case VoteItemType::ITEM:
+                  itemVoteType = data::LobbyData_GetItemVoteType(
+                      msgData.itemVote.itemIndex);
+                  break;
+                case VoteItemType::ATTACHMENT:
+                  itemVoteType = data::LobbyData_GetAttachmentVoteType(
+                      msgData.itemVote.attachment);
+                  break;
+                case VoteItemType::ITEM_ATTACHMENT:
+                  itemVoteType = data::LobbyData_GetItemAttachmentVoteType(
+                      msgData.itemVote.itemIndex, msgData.itemVote.attachment);
+                  break;
+                case VoteItemType::ATTACHMENT_GROUP:
+                  itemVoteType = data::LobbyData_GetAttachmentGroupVoteType(
+                      msgData.itemVote.itemGroup, msgData.itemVote.attachment);
+                  break;
+                default:
+                  break;
+                }
 
-              if (!validate(itemVoteType)) {
                 const uint32_t maxVotes =
                     com::gts::Com_GametypeSettings_GetUInt(
                         "pregameItemMaxVotes", false);
+                voteIndex = clientData.itemVoteCount;
                 if (clientData.itemVoteCount < maxVotes &&
                     clientData.itemVoteCount < 12) {
-                  if (msgData.itemVote.voteType != VoteType::INVALID) {
+                  if (validate(itemVoteType)) {
+                    clientData.pregameState =
+                        LobbyClientPregameState::SELECTING;
+                  } else if (msgData.itemVote.voteType != VoteType::INVALID) {
                     ++clientData.itemVoteCount;
                     lobbyGame.pregameVotes[lobbyGame.pregameVoteCount] =
                         msgData.itemVote;
@@ -958,13 +963,11 @@ void HandleClientReliableData(ControllerIndex_t controllerIndex,
                 }
               }
 
-              clientData.pregameState = LobbyClientPregameState::SELECTED;
-
               if (hasCharacterSelection) {
                 clientData.characterSelection = msgData.characterSelection;
               }
 
-              if (isByteDataZero) {
+              if (hasEditComplete) {
                 clientData.pregameEditComplete = msgData.editComplete;
                 if (!msgData.editComplete) {
                   clientData.pregameState = LobbyClientPregameState::SELECTING;
@@ -994,8 +997,10 @@ void HandleClientReliableData(ControllerIndex_t controllerIndex,
                   lua::Lua_SetTableInt("position", clientData.pregamePosition,
                                        luaVM._vm);
 
-                  if (hasVoteFlag) {
-                    lua::Lua_SetTableInt("voteIndex", 0, luaVM._vm);
+                  if (hasItemVote) {
+                    lua::Lua_SetTableInt("voteIndex",
+                                         static_cast<int32_t>(voteIndex),
+                                         luaVM._vm);
                     lua::Lua_SetTableInt(
                         "voteCount",
                         static_cast<int32_t>(clientData.itemVoteCount),
