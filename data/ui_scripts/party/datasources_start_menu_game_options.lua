@@ -1,3 +1,35 @@
+local function getServerDiscord()
+  if not Engine.IsInGame() then
+    return nil
+  end
+
+  local mode = Engine.CurrentSessionMode()
+
+  if mode ~= Enum.eModes.MODE_MULTIPLAYER
+      and mode ~= Enum.eModes.MODE_ZOMBIES
+  then
+    return nil
+  end
+
+  local discord = nil
+
+  pcall(function()
+    if Dvar.cl_server_discord then
+      discord = Dvar.cl_server_discord:get()
+    end
+  end)
+
+  if type(discord) == "string" and discord ~= "" then
+    return discord
+  end
+
+  return nil
+end
+
+local function openServerDiscord(self, element, controller)
+  Engine.ExecNow(controller, "openServerDiscord")
+end
+
 local function isLocalGameHost()
   if game and game.ishost then
     return game.ishost()
@@ -148,6 +180,15 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
     table.insert(options, endGameOption)
   end
   table.insert(options, { models = { displayText = "QUIT TO DESKTOP", action = OpenPCQuit } })
+  -- Server Discord invite
+  if getServerDiscord() then
+    table.insert(options, {
+      models = {
+        displayText = "^5SERVER DISCORD",
+        action = openServerDiscord,
+      },
+    })
+  end
   BoiiiStartMenuOptionCount = #options
   return options
 end, true)
@@ -192,6 +233,48 @@ local function appendHostOptions(dataSource)
           end
           table.insert(items, { model = model, properties = option.properties })
         end
+      end
+    end
+    -- Server Discord: compatible with modded pause menus.
+    if getServerDiscord() then
+      local exists = false
+
+      for _, item in ipairs(items) do
+        local textModel = item.model and Engine.GetModel(item.model, "displayText")
+        local displayText = textModel and Engine.GetModelValue(textModel)
+
+        if displayText == "^5SERVER DISCORD" then
+          exists = true
+          break
+        end
+      end
+
+      if not exists then
+        local root = Engine.CreateModel(
+          Engine.GetModelForController(controller),
+          list.customDataSourceHelper
+        )
+
+        local modelIndex = #items + 1
+        local model = Engine.GetModel(root, modelIndex)
+
+        if model then
+          Engine.UnsubscribeAndFreeModel(model)
+        end
+
+        model = Engine.CreateModel(root, modelIndex)
+
+        Engine.SetModelValue(
+          Engine.CreateModel(model, "displayText"),
+          "^5SERVER DISCORD"
+        )
+
+        Engine.SetModelValue(
+          Engine.CreateModel(model, "action"),
+          openServerDiscord
+        )
+
+        table.insert(items, { model = model })
       end
     end
     BoiiiStartMenuOptionCount = #items

@@ -43,6 +43,9 @@ template <typename T> int get_client_count(T *client_states) {
 
   return count;
 }
+namespace {
+game::EngineDependentDvarMut sv_discord;
+}
 
 bool is_host() { return game::server_running(); }
 
@@ -54,9 +57,12 @@ struct component final : generic_component {
     game::sv_wwwDownload = game::register_dvar_bool("sv_wwwDownload", false,
                                                     game::dvarFlags_e::NONE,
                                                     "Enable http downloads");
+
     game::sv_wwwDlDisconnected = game::register_dvar_bool(
         "sv_wwwDlDisconnected", true, game::dvarFlags_e::NONE,
         "Should clients stay connected while downloading?");
+
+    // FastDL dvar
     scheduler::once(
         []() {
           const std::string configured =
@@ -64,6 +70,21 @@ struct component final : generic_component {
           game::sv_wwwBaseURL = game::register_dvar_string(
               "sv_wwwBaseURL", configured.c_str(), game::dvarFlags_e::NONE,
               "The base url for files downloaded via http");
+        },
+        scheduler::pipeline::main);
+
+    // Discord invite dvar
+    scheduler::once(
+        [] {
+          const std::string configured{
+              game::get_dvar_string("sv_discord").value_or("")
+          };
+
+          sv_discord = game::register_dvar_string(
+              "sv_discord",
+              configured.c_str(),
+              game::dvarFlags_e::NONE,
+              "Discord invite URL for this server");
         },
         scheduler::pipeline::main);
 
@@ -75,6 +96,11 @@ struct component final : generic_component {
       info.set("gamename", "T7");
       info.set("hostname", game::hostname().value_or(""));
       info.set("gametype", game::gametype().value_or(""));
+      info.set(
+          "discord",
+          game::is_server() && sv_discord
+              ? sv_discord.get_string().value_or("")
+              : "");
       /*
          Unsure why this is commented out, but important notes in case of
         future restoration:
