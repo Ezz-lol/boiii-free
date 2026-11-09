@@ -89,37 +89,39 @@ void scan_root(const std::filesystem::path &root,
   std::error_code ec;
   for (const std::filesystem::directory_entry &entry :
        std::filesystem::directory_iterator(root, ec)) {
-    if (!entry.is_directory(ec) || entry.path().extension() == ".deleting" ||
-        entry.path().filename() == "usermaps")
-      continue;
-    const std::optional<rapidjson::Document> doc =
-        read_workshop_json(entry.path());
-    const std::optional<game::ZoneType> detected =
-        doc && type ? type : detect_kind(entry.path());
-    const std::optional<game::ZoneType> kind =
-        type && detected ? type : detected;
-    if (!kind)
-      continue;
-
-    installed_item item{};
-    item.folder = entry.path().filename().string();
-    item.type = *kind;
-    item.path = entry.path().generic_string();
-    if (doc) {
-      item.id = json_string(*doc, {"PublisherID", "PublishedFileId"});
-      item.title = json_string(*doc, {"Title", "FolderName"});
-      item.description = clean_description(json_string(*doc, {"Description"}));
+    if (entry.is_directory(ec) && entry.path().extension() != ".deleting" &&
+        entry.path().filename() != "usermaps") {
+      const std::optional<rapidjson::Document> doc =
+          read_workshop_json(entry.path());
+      const std::optional<game::ZoneType> detected =
+          doc && type ? type : detect_kind(entry.path());
+      const std::optional<game::ZoneType> kind =
+          type && detected ? type : detected;
+      if (kind) {
+        installed_item item{};
+        item.folder = entry.path().filename().string();
+        item.type = *kind;
+        item.path = entry.path().generic_string();
+        if (doc) {
+          item.id = json_string(*doc, {"PublisherID", "PublishedFileId"});
+          item.title = json_string(*doc, {"Title", "FolderName"});
+          item.description =
+              clean_description(json_string(*doc, {"Description"}));
+        }
+        if (!std::ranges::all_of(items, [&](const installed_item &existing) {
+              return existing.id == (item.id.empty() ? item.folder : item.id);
+            })) {
+          if (item.id.empty()) {
+            item.id = item.folder;
+          }
+          if (item.title.empty()) {
+            item.title = item.folder;
+          }
+          item.file_size = compute_folder_size_bytes(entry.path());
+          items.push_back(std::move(item));
+        }
+      }
     }
-    if (std::ranges::any_of(items, [&](const installed_item &existing) {
-          return existing.id == (item.id.empty() ? item.folder : item.id);
-        }))
-      continue;
-    if (item.id.empty())
-      item.id = item.folder;
-    if (item.title.empty())
-      item.title = item.folder;
-    item.file_size = compute_folder_size_bytes(entry.path());
-    items.push_back(std::move(item));
   }
 }
 

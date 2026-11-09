@@ -16,6 +16,7 @@
 #include <component/fastdl.hpp>
 #include <component/network.hpp>
 #include <component/party.hpp>
+#include <component/path.hpp>
 #include <component/scheduler.hpp>
 #include <component/toast.hpp>
 
@@ -98,7 +99,7 @@ void dlc_popup_thread_func() {
 }
 
 void queue_dlc_popup(const std::string_view &mapname) {
-  std::lock_guard lock(dlc_mutex);
+  std::scoped_lock lock(dlc_mutex);
   pending_dlc_map = mapname;
   dlc_cv.notify_one();
 }
@@ -848,19 +849,19 @@ static std::string pending_mod_reconnect_address;
 static std::string pending_download_reconnect_address;
 
 void set_pending_mod_reconnect(const std::string_view &address) {
-  std::lock_guard lock(reconnect_mutex);
+  std::scoped_lock lock(reconnect_mutex);
   pending_mod_reconnect_address = address;
 }
 
 std::string get_pending_mod_reconnect() {
-  std::lock_guard lock(reconnect_mutex);
+  std::scoped_lock lock(reconnect_mutex);
   std::string addr = std::move(pending_mod_reconnect_address);
   pending_mod_reconnect_address.clear();
   return addr;
 }
 
 void set_pending_download_reconnect(const std::string_view &address) {
-  std::lock_guard lock(reconnect_mutex);
+  std::scoped_lock lock(reconnect_mutex);
   // Don't overwrite if a download is already active, preserve the original
   // server
   if (pending_download_reconnect_address.empty() || !is_any_download_active()) {
@@ -869,7 +870,7 @@ void set_pending_download_reconnect(const std::string_view &address) {
 }
 
 std::string get_pending_download_reconnect() {
-  std::lock_guard lock(reconnect_mutex);
+  std::scoped_lock lock(reconnect_mutex);
   const std::string addr = std::move(pending_download_reconnect_address);
   pending_download_reconnect_address.clear();
   return addr;
@@ -877,21 +878,31 @@ std::string get_pending_download_reconnect() {
 
 uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
   std::error_code ec;
-  if (!std::filesystem::exists(folder, ec))
-    return 0;
+
   uint64_t total = 0;
-  for (const std::filesystem::directory_entry &entry :
-       std::filesystem::recursive_directory_iterator(
-           folder, std::filesystem::directory_options::skip_permission_denied,
-           ec)) {
-    if (ec)
-      break;
-    if (!entry.is_regular_file(ec))
-      continue;
-    total +=
-        static_cast<uint64_t>(std::filesystem::file_size(entry.path(), ec));
-    if (ec)
-      break;
+
+  const std::filesystem::path resolved_directory = path::resolve(folder, ec);
+  if (!ec && std::filesystem::is_directory(resolved_directory)) {
+    for (const std::filesystem::directory_entry &entry :
+         std::filesystem::recursive_directory_iterator(
+             resolved_directory,
+             std::filesystem::directory_options::skip_permission_denied |
+                 std::filesystem::directory_options::follow_directory_symlink,
+             ec)) {
+      if (ec) {
+        break;
+      }
+
+      std::filesystem::path resolved_entry = path::resolve(entry.path(), ec);
+
+      if (!ec && std::filesystem::is_regular_file(resolved_entry, ec) && !ec) {
+        total += static_cast<uint64_t>(
+            std::filesystem::file_size(resolved_entry, ec));
+        if (ec) {
+          break;
+        }
+      }
+    }
   }
   return total;
 }
@@ -911,27 +922,30 @@ uint64_t parse_human_size_to_bytes(const std::string_view &text) {
   std::smatch m;
   std::regex re(R"((\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB))", std::regex::icase);
   const std::string text_copy = std::string(text);
-  if (!std::regex_search(text_copy, m, re) || m.size() < 3)
-    return 0;
-  const double value = std::stod(m[1].str());
-  std::string unit = m[2].str();
-  for (char &c : unit)
-    c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+  if (std::regex_search(text_copy, m, re) && m.size() > 2) {
+    const double value = std::stod(m[1].str());
+    std::string unit = m[2].str();
+    for (char &c : unit) {
+      c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    }
 
-  double mul = 1.0;
-  if (unit == "KB")
-    mul = 1024.0;
-  else if (unit == "MB")
-    mul = 1024.0 * 1024.0;
-  else if (unit == "GB")
-    mul = 1024.0 * 1024.0 * 1024.0;
-  else if (unit == "TB")
-    mul = 1024.0 * 1024.0 * 1024.0 * 1024.0;
+    double mul = 1.0;
+    if (unit == "KB")
+      mul = 1024.0;
+    else if (unit == "MB")
+      mul = 1024.0 * 1024.0;
+    else if (unit == "GB")
+      mul = 1024.0 * 1024.0 * 1024.0;
+    else if (unit == "TB")
+      mul = 1024.0 * 1024.0 * 1024.0 * 1024.0;
 
-  const double bytes = value * mul;
-  if (bytes <= 0.0)
-    return 0;
-  return static_cast<uint64_t>(bytes);
+    const double bytes = value * mul;
+    if (bytes > 0.0) {
+      return static_cast<uint64_t>(bytes);
+    }
+  }
+
+  return 0;
 }
 
 uint64_t scrape_workshop_file_size_bytes(const std::string_view &workshop_id) {
@@ -1429,7 +1443,7 @@ void com_error_missing_map_stub(const char *file, int line,
                           target.ipv4.c, target.ipv4.d, target.port);
 
     {
-      std::lock_guard lock(reconnect_guard_mutex);
+      std::scoped_lock lock(reconnect_guard_mutex);
       if (last_auto_reconnect_target == addr_str) {
         last_auto_reconnect_target.clear();
         game::com::Com_Error_(file, line, code, "%s", "Missing map!");

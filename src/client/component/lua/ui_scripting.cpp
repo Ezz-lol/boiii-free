@@ -2160,31 +2160,32 @@ inline void register_lui_commands() {
 utils::hook::detour Lua_CoD_FFReader_hook;
 inline const uint8_t *
 Lua_CoD_FFReader_EnforceOverride(lua_State *luaVM, RawFile *ud, size_t *size) {
-  if (ud == nullptr) {
-    return nullptr;
-  }
-  if (ud->name && ud->name[0]) {
-    RawFile *override = script::get_loaded_rawfile(ud->name);
-    if (override && override->buffer != ud->buffer) {
+  if (ud != nullptr) {
+    if (ud->name != nullptr && ud->name[0] != NULL) {
+      RawFile *override = script::get_loaded_rawfile(ud->name);
+      if (override != nullptr && override->buffer != ud->buffer) {
 // TODO: how and why does this happen? How do scripts arrive here if not fetched
 // with `DB_FindXAssetHeader`?
 #ifndef NDEBUG
-      game::trace("[Lua][Load][FF] WARNING: rawfile header override failed for "
-                  "Lua script \"{}\". Override buffer: {:p}, original buffer: "
-                  "{:p}, override len: 0x{:016X}, original len: "
-                  "0x{:016X}. Overriding in Lua_CoD_FFReader instead.",
-                  ud->name, static_cast<void *>(override->buffer),
-                  static_cast<void *>(ud->buffer), override->len, ud->len);
+        game::trace(
+            "[Lua][Load][FF] WARNING: rawfile header override failed for "
+            "Lua script \"{}\". Override buffer: {:p}, original buffer: "
+            "{:p}, override len: 0x{:016X}, original len: "
+            "0x{:016X}. Overriding in Lua_CoD_FFReader instead.",
+            ud->name, static_cast<void *>(override->buffer),
+            static_cast<void *>(ud->buffer), override->len, ud->len);
 #endif
-      ud->buffer = override->buffer;
-      ud->len = override->len;
+        ud->buffer = override->buffer;
+        ud->len = override->len;
+      }
+    }
+    *size = ud->len;
+    if (*size != 0) {
+      return ud->buffer;
     }
   }
-  *size = ud->len;
-  if (*size == 0) {
-    return nullptr;
-  }
-  return ud->buffer;
+
+  return nullptr;
 }
 
 utils::hook::detour R_CopyTextureRegionMips_hook;
@@ -2283,9 +2284,6 @@ luaReturnCount_e Lua_CoD_LuaCall_PrintWarning_AllOutputs(lua_State *s) {
 }
 #endif
 
-utils::hook::detour Com_GetBuildIntField_hook;
-utils::hook::detour Com_GetBuildStringField_hook;
-utils::hook::detour Lua_CoD_LuaCall_Mods_SetMod_hook;
 luaReturnCount_e Lua_CoD_LuaCall_Mods_SetMod_LoadImmediately(lua_State *luaVM) {
   if (lua_gettop(luaVM) > 0 && lua_isstring(luaVM, 1)) {
     const char *publisherId = lua_tostring(luaVM, 1);
@@ -2294,7 +2292,7 @@ luaReturnCount_e Lua_CoD_LuaCall_Mods_SetMod_LoadImmediately(lua_State *luaVM) {
                 publisherId);
 #endif
     static bool pending = false;
-    if (publisherId && !pending &&
+    if (publisherId != nullptr && !pending &&
         game::ugc::active_mod->loadState != game::ugc::ModLoadState::LOADING) {
       pending = true;
       scheduler::once(
@@ -2630,14 +2628,12 @@ public:
        circumvent build info checks in mod scripts intended to disable usage
        of boiii
     */
-    Com_GetBuildIntField_hook.create(game::com::Com_GetBuildIntField,
-                                     game::com::Com_GetBuildIntField_Impl);
-    Com_GetBuildStringField_hook.create(
-        game::com::Com_GetBuildStringField,
-        game::com::Com_GetBuildStringField_Impl);
-    Lua_CoD_LuaCall_Mods_SetMod_hook.create(
-        api::Lua_CoD_LuaCall_Mods_SetMod,
-        Lua_CoD_LuaCall_Mods_SetMod_LoadImmediately);
+    utils::hook::jump(game::com::Com_GetBuildIntField,
+                      game::com::Com_GetBuildIntField_Impl);
+    utils::hook::jump(game::com::Com_GetBuildStringField,
+                      game::com::Com_GetBuildStringField_Impl);
+    utils::hook::jump(api::Lua_CoD_LuaCall_Mods_SetMod,
+                      Lua_CoD_LuaCall_Mods_SetMod_LoadImmediately);
     LobbyVM_CallFunc_hook.create(api::Lua_CoD_LuaCall_LobbyVM_CallFunc,
                                  LobbyVM_CallFunc_Redirect);
 

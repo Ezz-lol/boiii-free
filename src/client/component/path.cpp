@@ -8,6 +8,15 @@
 
 namespace path {
 
+std::filesystem::path resolve(std::filesystem::path path, std::error_code &ec) {
+  while (!ec && std::filesystem::exists(path, ec) && !ec &&
+         std::filesystem::is_symlink(path, ec) && !ec) {
+    path = std::filesystem::weakly_canonical(path, ec);
+  }
+
+  return path;
+}
+
 const std::filesystem::path &cwd() {
   static const std::filesystem::path path = std::filesystem::current_path();
   return path;

@@ -3,6 +3,12 @@
 #include <filesystem>
 namespace path {
 
+std::filesystem::path resolve(std::filesystem::path path, std::error_code &ec);
+inline std::filesystem::path resolve(std::filesystem::path path) {
+  std::error_code ec{};
+  return resolve(std::move(path), ec);
+}
+
 struct ParentMatch {
   std::filesystem::path parent;
   std::filesystem::path replacement;
