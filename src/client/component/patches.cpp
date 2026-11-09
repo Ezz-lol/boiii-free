@@ -223,6 +223,16 @@ void clear_sent_configstrings() {
 void hkVisualDebugger_serve_stub(
     game::hk::hkVisualDebugger * /*visualDebugger*/, int32_t /*listenPort*/) {}
 
+// The demo keeps the XAnims used during a match in a fixed list and never
+// checks its size. Custom maps can use more, which overwrites the list after it
+// and crashes the host the next time the demo writes the list out
+utils::hook::detour Demo_AddXAnim_hook;
+void Demo_AddXAnim_stub(const game::scr::ScrString_t name, const int32_t type) {
+  if (*game::demo::demo_xanimCount < game::demo::DEMO_MAX_XANIMS) {
+    Demo_AddXAnim_hook.invoke<void>(name, type);
+  }
+}
+
 utils::hook::detour Sys_WaitForSingleObject_Safe_hook;
 void Sys_WaitForSingleObject_Safe(HANDLE *event) {
   if (event != nullptr) {
@@ -405,6 +415,8 @@ struct component final : generic_component {
       utils::hook::jump(game::hk::hkVisualDebugger_serve.get(),
                         hkVisualDebugger_serve_stub);
     }
+    Demo_AddXAnim_hook.create(game::demo::Demo_AddXAnim.get(),
+                              Demo_AddXAnim_stub);
 
     tlAtomicMutex_Lock_hook.create(game::tlAtomicMutex::syms::Lock.get(),
                                    game::tlAtomicMutex::Lock);
