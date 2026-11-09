@@ -79,7 +79,7 @@ class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lobby/msg/handler");
 
 public:
-  void post_unpack() override {}
+  void post_unpack() override { replace_message_handlers(); }
 };
 } // namespace msg
 } // namespace lobby
