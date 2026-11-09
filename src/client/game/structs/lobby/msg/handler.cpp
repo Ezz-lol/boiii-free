@@ -199,7 +199,7 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
 
   if (result) {
     for (ClientNum_t nomineeIdx = CLIENT_INDEX_0;
-         result && lobbyMsg.package_element(
+         result && lobbyMsg.validated_package_element(
                        nomineeIdx < std::size(migrateInfo.migrateNominees));
          ++nomineeIdx) {
       result &= lobbyMsg.package_xuid(
@@ -423,7 +423,7 @@ bool Msg_LobbyHostHeartbeat::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package_arrayStart("nomineelist");
 
   for (ClientNum_t nomineeIdx = ClientNum_t::CLIENT_INDEX_0;
-       result && lobbyMsg.package_element(
+       result && lobbyMsg.validated_package_element(
                      nomineeIdx < std::size(migrateInfo.migrateNominees) &&
                      migrateInfo.migrateNominees[nomineeIdx] == 0);
        ++nomineeIdx) {
