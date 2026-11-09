@@ -6,7 +6,6 @@ local function getServerDiscord()
   local mode = Engine.CurrentSessionMode()
 
   if mode ~= Enum.eModes.MODE_MULTIPLAYER and mode ~= Enum.eModes.MODE_ZOMBIES then
-  then
     return nil
   end
 
