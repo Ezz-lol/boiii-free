@@ -271,6 +271,13 @@ PACKED(union DvarColor {
   constexpr const uint8_t &operator[](size_t index) const noexcept {
     return raw[index];
   }
+
+  inline constexpr vec4<float> to_rgba_float() const noexcept {
+    return {.r = math::to_rgba_float(r),
+            .g = math::to_rgba_float(g),
+            .b = math::to_rgba_float(b),
+            .a = math::to_rgba_float(a)};
+  }
 });
 ASSERT_CPP03_POD(DvarColor);
 ASSERT_SIZE(DvarColor, 4);
@@ -287,6 +294,8 @@ template <typename T_DvarValue> union TemplateDvarValue {
   int64_t _integer64;
   uint64_t _unsignedInt64;
   float _value;
+  vec2_t _vec2;
+  vec3_t _vec3;
   vec4_t _vector;
   const char *_string;
   DvarColor _color;
@@ -304,7 +313,9 @@ template <typename T_DvarValue> union TemplateDvarValue {
 
   inline constexpr float value() const { return _value; }
 
-  inline constexpr vec4_t vector() const { return _vector; }
+  inline constexpr const vec4_t &vector() const { return _vector; }
+  inline constexpr const vec2_t &vec2() const { return _vec2; }
+  inline constexpr const vec3_t &vec3() const { return _vec3; }
   inline constexpr const char *string() const { return _string; }
   inline constexpr DvarColor color() const { return _color; }
 
@@ -321,6 +332,8 @@ template <typename T_DvarValue> union TemplateDvarValue {
   inline constexpr float &value() { return _value; }
 
   inline constexpr vec4_t &vector() { return _vector; }
+  inline constexpr vec2_t &vec2() { return _vec2; }
+  inline constexpr vec3_t &vec3() { return _vec3; }
   inline constexpr const char *&string() { return _string; }
   inline constexpr DvarColor &color() { return _color; }
 
@@ -490,7 +503,12 @@ struct EncryptionCapableDvarValue {
 
   inline constexpr float value() const noexcept { return _value.value(); }
 
-  inline constexpr vec4_t vector() const noexcept { return _value.vector(); }
+  inline constexpr const vec4_t &vector() const noexcept {
+    return _value.vector();
+  }
+  inline constexpr const vec2_t &vec2() const noexcept { return _value.vec2(); }
+  inline constexpr const vec3_t &vec3() const noexcept { return _value.vec3(); }
+
   inline constexpr const char *string() const noexcept {
     return _value.string();
   }
@@ -509,6 +527,8 @@ struct EncryptionCapableDvarValue {
   inline constexpr float &value() { return _value.value(); }
 
   inline constexpr vec4_t &vector() { return _value.vector(); }
+  inline constexpr vec2_t &vec2() noexcept { return _value.vec2(); }
+  inline constexpr vec3_t &vec3() noexcept { return _value.vec3(); }
   inline constexpr const char *&string() { return _value.string(); }
   inline constexpr DvarColor &color() { return _value.color(); }
 
@@ -863,7 +883,7 @@ union DvarLimits {
     const char **strings;
 
     inline constexpr std::span<const char *> enumerations() const noexcept {
-      return std::span(strings, stringCount);
+      return {strings, static_cast<size_t>(stringCount)};
     }
   } enumeration;
 
@@ -1050,6 +1070,21 @@ public:
   inline DvarFlags flags() const noexcept { return resolve()->_flags; }
   inline DvarFlags &flags() noexcept { return resolve()->_flags; }
 
+  inline const vec4_t &get_vector() const noexcept {
+    return resolve()->current().vector();
+  }
+  inline vec4_t &get_vector() noexcept { return resolve()->current().vector(); }
+
+  inline const vec2_t &get_vec2() const noexcept {
+    return resolve()->current().vec2();
+  }
+  inline vec2_t &get_vec2() noexcept { return resolve()->current().vec2(); }
+
+  inline const vec3_t &get_vec3() const noexcept {
+    return resolve()->current().vec3();
+  }
+  inline vec3_t &get_vec3() noexcept { return resolve()->current().vec3(); }
+
   inline int32_t get_int() const noexcept {
     return resolve()->current().integer();
   }
@@ -1108,6 +1143,19 @@ public:
     if constexpr (std::is_same_v<T, std::optional<std::string_view>>) {
       return get_string();
     }
+    if constexpr (std::is_same_v<T, vec2_t> ||
+                  std::is_same_v<T, const vec2_t &>) {
+      return get_vec2();
+    }
+    if constexpr (std::is_same_v<T, vec3_t> ||
+                  std::is_same_v<T, const vec3_t &>) {
+      return get_vec3();
+    }
+    if constexpr (std::is_same_v<T, vec4_t> ||
+                  std::is_same_v<T, const vec4_t &>) {
+      return get_vector();
+    }
+
     if constexpr (std::is_same_v<T, std::optional<std::string>>) {
       const std::optional<std::string_view> val = get_string();
       return val.has_value() ? std::optional(std::string(val.value()))
@@ -1177,6 +1225,67 @@ public:
   }
 
   constexpr operator EngineDependentDvar() noexcept;
+
+  inline std::string to_string() const noexcept {
+    const dvar<T_DvarValue> *resolved = resolve();
+    switch (resolved->type()) {
+    case dvarType_t::BOOL: {
+      return resolved->current().enabled() ? "1" : "0";
+    }
+    case dvarType_t::FLOAT: {
+      return std::format("{:g}", resolved->current().value());
+    }
+
+    case dvarType_t::FLOAT_2: {
+      const vec2_t &val = resolved->current().vec2();
+      return std::format("{:g} {:g}", val.x, val.y);
+    }
+
+    case dvarType_t::FLOAT_3:
+    case dvarType_t::LINEAR_COLOR_RGB:
+    case dvarType_t::COLOR_XYZ:
+    case dvarType_t::COLOR_LAB: {
+      const vec3_t &val = resolved->current().vec3();
+      return std::format("{:g} {:g} {:g}", val.x, val.y, val.z);
+    }
+
+    case dvarType_t::FLOAT_4: {
+      const vec4_t &val = resolved->current().vector();
+      return std::format("{:g} {:g} {:g} {:g}", val.x, val.y, val.z, val.w);
+    }
+    case dvarType_t::INT: {
+      return std::format("{}", resolved->current().integer());
+    }
+    case dvarType_t::ENUM: {
+      const uint32_t enumeration = resolved->current().unsignedInt();
+      const std::span<const char *> enumerations =
+          resolved->domain().enumeration.enumerations();
+      return enumeration < enumerations.size() &&
+                     enumerations[enumeration] != nullptr
+                 ? enumerations[enumeration]
+                 : "";
+    }
+    case dvarType_t::STRING: {
+      const char *cstr = resolved->current().string();
+      return cstr == nullptr ? "" : cstr;
+    }
+    case dvarType_t::COLOR: {
+      const DvarColor &color = resolved->current().color();
+      const vec4_t fp_color = color.to_rgba_float();
+      return std::format("{:g} {:g} {:g} {:g}", fp_color.r, fp_color.g,
+                         fp_color.b, fp_color.a);
+    }
+    case dvarType_t::INT64: {
+      return std::format("{}", resolved->current().integer64());
+    }
+    case dvarType_t::UINT64: {
+      return std::format("{}", resolved->current().unsignedInt64());
+    }
+    default: {
+      return "";
+    }
+    }
+  }
 };
 #pragma pack(pop)
 
@@ -1265,6 +1374,15 @@ union EngineDependentDvarMut {
   [[nodiscard]] inline float get_float() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_float());
   }
+  [[nodiscard]] inline const vec4_t &get_vector() const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_vector());
+  }
+  [[nodiscard]] inline const vec2_t &get_vec2() const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_vec2());
+  }
+  [[nodiscard]] inline const vec3_t &get_vec3() const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_vec3());
+  }
   [[nodiscard]] inline std::optional<std::string_view> get_string() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_string());
   }
@@ -1311,6 +1429,10 @@ union EngineDependentDvarMut {
 
   [[nodiscard]] inline DvarFlags flags() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(flags());
+  }
+
+  [[nodiscard]] inline std::string to_string() const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(to_string());
   }
 
   template <DvarFlagLike T> inline void removeFlags(T flags) noexcept {
@@ -1494,6 +1616,15 @@ union EngineDependentDvar {
   [[nodiscard]] inline float get_float() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_float());
   }
+  [[nodiscard]] inline const vec4_t &get_vector() const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_vector());
+  }
+  [[nodiscard]] inline const vec2_t &get_vec2() const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_vec2());
+  }
+  [[nodiscard]] inline const vec3_t &get_vec3() const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_vec3());
+  }
   [[nodiscard]] inline std::optional<std::string_view>
   get_string() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_string());
@@ -1526,6 +1657,10 @@ union EngineDependentDvar {
   }
   [[nodiscard]] inline dvarType_t type() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(type());
+  }
+
+  [[nodiscard]] inline std::string to_string() const noexcept {
+    return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(to_string());
   }
 
   [[nodiscard]] inline const SessionModePool<EngineDependentDvar> &

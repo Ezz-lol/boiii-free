@@ -90,7 +90,7 @@ void copy_dvar_names_to_pool() {
   }
 }
 
-inline bool is_archive_dvar(game::EngineDependentDvar dvar) {
+inline bool is_archive_dvar(const game::EngineDependentDvar dvar) {
   return dvar.debugName() && dvar.flags().archive && !dvar.flags().cheat;
 }
 
@@ -98,14 +98,16 @@ void write_archive_dvars() {
   std::string config_buffer;
   game::EngineDependentDvarPool pool = game::dvar_pool();
 
-  for (int i = 0; i < *game::g_dvarCount; ++i) {
+  for (size_t i = 0;
+       i < std::min<size_t>(*game::g_dvarCount, game::DVAR_POOL_LEN); ++i) {
     const game::EngineDependentDvarMut dvar = pool[i];
-    if (is_archive_dvar(dvar)) {
+    if (dvar.nonnull() && is_archive_dvar(dvar)) {
 
       const char *name = dvar.debugName();
-      const char *value = game::Dvar_DisplayableValue(dvar);
+      const std::string value = dvar.to_string();
 
-      config_buffer.append(utils::string::va("set %s \"%s\"\n", name, value));
+      config_buffer.append(
+          utils::string::va("set %s \"%s\"\n", name, value.c_str()));
     }
   }
 

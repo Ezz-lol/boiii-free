@@ -74,7 +74,7 @@ void __trace_impl(FormatFunc<Args...> &formatter, const std::string_view &fmt,
 
     // Trace location/category formatting
     if (!buffer.empty() && buffer[0] != '[') {
-      out_buffer += " ";
+      out_buffer += ' ';
     }
 
     for (const char c : buffer) {
@@ -90,7 +90,7 @@ void __trace_impl(FormatFunc<Args...> &formatter, const std::string_view &fmt,
 
   out_buffer += '\n';
 
-  log::enqueue(std::move(out_buffer));
+  log::enqueue(out_buffer);
 }
 
 template <typename... Args>
