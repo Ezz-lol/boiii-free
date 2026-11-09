@@ -29,8 +29,6 @@
 #include <frozen/string.h>
 #include <frozen/unordered_map.h>
 
-#include <shellapi.h>
-
 namespace party {
 game::EngineDependentDvarMut cl_connected_to_dedi;
 game::EngineDependentDvarMut cl_server_discord;
