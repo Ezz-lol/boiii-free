@@ -7,6 +7,21 @@ namespace lobby {
 
 namespace msg {
 
+bool package_nominees(LobbyMsg &lobbyMsg, LobbyClientPool<XUID> &nominees) {
+  bool result = lobbyMsg.package_arrayStart("nomineelist");
+  for (ClientNum_t nomineeIdx = ClientNum_t::CLIENT_INDEX_0; result;
+       ++nomineeIdx) {
+    const bool nomineeIdxValid = nomineeIdx < std::size(nominees);
+    const bool hasNominee = nomineeIdxValid && nominees[nomineeIdx] != 0;
+    if (!lobbyMsg.package_element(hasNominee)) {
+      break;
+    }
+    result =
+        nomineeIdxValid && lobbyMsg.package_xuid("xuid", &nominees[nomineeIdx]);
+  }
+  return result;
+}
+
 bool MsgMutableClientInfo::package(LobbyMsg &lobbyMsg) {
   bool result =
       lobbyMsg.package_uint64("lobbyid", &mutableClientInfo.lobbyID) &&
@@ -186,27 +201,11 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
         lobbyMsg.package_uint("dlcBits", &client.dlcBits) &&
         client.mutableClientInfoMsg.package(lobbyMsg);
   }
-  if (!result) {
-    return false;
-  }
-  result &=
-      lobbyMsg.package_uchar("migratebits", &migrateInfo.indexBits) &&
-      lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS) &&
-      lobbyMsg.package_arrayStart("nomineelist");
-  if (!result) {
-    return false;
-  }
 
-  if (result) {
-    for (ClientNum_t nomineeIdx = CLIENT_INDEX_0;
-         result && lobbyMsg.validated_package_element(
-                       nomineeIdx < std::size(migrateInfo.migrateNominees));
-         ++nomineeIdx) {
-      result &= lobbyMsg.package_xuid(
-          "xuid", &migrateInfo.migrateNominees[+nomineeIdx]);
-    }
-  }
-  return result;
+  return result &&
+         lobbyMsg.package_uchar("migratebits", &migrateInfo.indexBits) &&
+         lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS) &&
+         package_nominees(lobbyMsg, migrateInfo.migrateNominees);
 }
 
 bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
@@ -416,21 +415,11 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
 }
 
 bool Msg_LobbyHostHeartbeat::package(LobbyMsg &lobbyMsg) {
-  bool result =
-      lobbyMsg.package_int("heartbeatnum", &heartbeatNum) &&
-      lobbyMsg.package_int("lobbytype", &lobbyType) && validate(lobbyType) &&
-      lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS) &&
-      lobbyMsg.package_arrayStart("nomineelist");
 
-  for (ClientNum_t nomineeIdx = ClientNum_t::CLIENT_INDEX_0;
-       result && lobbyMsg.validated_package_element(
-                     nomineeIdx < std::size(migrateInfo.migrateNominees) &&
-                     migrateInfo.migrateNominees[nomineeIdx] == 0);
-       ++nomineeIdx) {
-    result &=
-        lobbyMsg.package_xuid("xuid", &migrateInfo.migrateNominees[nomineeIdx]);
-  }
-  return result;
+  return lobbyMsg.package_int("heartbeatnum", &heartbeatNum) &&
+         lobbyMsg.package_int("lobbytype", &lobbyType) && validate(lobbyType) &&
+         lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS) &&
+         package_nominees(lobbyMsg, migrateInfo.migrateNominees);
 }
 
 bool Msg_JoinParty::package(LobbyMsg &lobbyMsg) {
