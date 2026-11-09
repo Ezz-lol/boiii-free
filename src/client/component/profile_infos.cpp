@@ -117,9 +117,9 @@ void refresh_cached_profile(const game::XUID xuid) {
 
         PCacheComponent *profile = game::pcache::PCache_GetComponent(
             game::CONTROLLER_INDEX_FIRST, xuid,
-            PCACHE_COMPONENT_PUBLIC_PROFILE);
+            pcacheComponent_t::PUBLIC_PROFILE);
         if (profile) {
-          profile->state |= PCACHE_STATE_STALE;
+          profile->state |= PCacheComponentState::STATE_STALE;
         }
         game::pcache::PCache_InvalidatePlayerEmblem(
             game::CONTROLLER_INDEX_FIRST, xuid);
@@ -150,13 +150,15 @@ void refresh_missed_profiles() {
         for (const game::XUID xuid : xuids) {
           PCacheComponent *profile = game::pcache::PCache_GetComponent(
               game::CONTROLLER_INDEX_FIRST, xuid,
-              PCACHE_COMPONENT_PUBLIC_PROFILE);
+              pcacheComponent_t::PUBLIC_PROFILE);
           // The game never clears NO_DATA, even after a later fetch finds the
           // profile, so leaving it would refetch them after every fetch
-          if (profile && (profile->state & PCACHE_STATE_NO_DATA) &&
-              !(profile->state & PCACHE_STATE_STALE)) {
+          if (profile &&
+              +(profile->state & PCacheComponentState::STATE_NO_DATA) &&
+              !+(profile->state & PCacheComponentState::STATE_STALE)) {
             profile->state =
-                (profile->state & ~PCACHE_STATE_NO_DATA) | PCACHE_STATE_STALE;
+                (profile->state & ~PCacheComponentState::STATE_NO_DATA) |
+                PCacheComponentState::STATE_STALE;
             game::pcache::PCache_InvalidatePlayerEmblem(
                 game::CONTROLLER_INDEX_FIRST, xuid);
           }
@@ -166,14 +168,16 @@ void refresh_missed_profiles() {
 }
 
 utils::hook::detour PCache_GetPublicProfilesSuccess_hook;
-bool PCache_GetPublicProfilesSuccess_stub(game::dw::TaskRecord *task) {
+bool PCache_GetPublicProfilesSuccess_RefreshMissing(
+    game::dw::TaskRecord *task) {
   const bool result = PCache_GetPublicProfilesSuccess_hook.invoke<bool>(task);
   refresh_missed_profiles();
   return result;
 }
 
 utils::hook::detour PCache_GetPublicProfilesFailure_hook;
-bool PCache_GetPublicProfilesFailure_stub(game::dw::TaskRecord *task) {
+bool PCache_GetPublicProfilesFailure_RefreshMissing(
+    game::dw::TaskRecord *task) {
   const bool result = PCache_GetPublicProfilesFailure_hook.invoke<bool>(task);
   refresh_missed_profiles();
   return result;
@@ -183,8 +187,8 @@ bool PCache_GetPublicProfilesFailure_stub(game::dw::TaskRecord *task) {
 // a player who joins mid-match would have no emblem or calling card until the
 // map changed
 utils::hook::detour PCache_Update_hook;
-void PCache_Update_stub(const game::ControllerIndex_t controllerIndex,
-                        [[maybe_unused]] const bool inMatch) {
+void PCache_Update_AlwaysInMatch(const game::ControllerIndex_t controllerIndex,
+                                 [[maybe_unused]] const bool inMatch) {
   PCache_Update_hook.invoke<void>(controllerIndex, false);
 }
 
@@ -197,10 +201,8 @@ bool is_connected_client(const game::net::netadr_t &address) {
 }
 } // namespace
 
-profile_info::profile_info(utils::byte_buffer &buffer) {
-  this->version = buffer.read<int32_t>();
-  this->ddl = buffer.read_string();
-}
+profile_info::profile_info(utils::byte_buffer &buffer)
+    : version(buffer.read<int32_t>()), ddl(buffer.read_string()) {}
 
 void profile_info::serialize(utils::byte_buffer &buffer) const {
   buffer.write(this->version);
@@ -223,27 +225,25 @@ void add_profile_info(const game::XUID xuid, const profile_info &info) {
   }
 }
 
-void request_profile_infos(std::vector<game::XUID> xuids) {
+void request_profile_infos(std::vector<game::XUID> &xuids) {
   const game::XUID own_xuid = steam::SteamUser()->GetSteamID().bits;
   std::erase(xuids, own_xuid);
-  if (xuids.empty() || !game::is_client()) {
-    return;
+  if (!xuids.empty() && game::is_client()) {
+    // Each profile is sent once when its player joins, so one lost on the way
+    // never arrives. Ask the server again for the ones the game is missing.
+    scheduler::once(
+        [xuids = std::move(xuids)] {
+          const game::net::netadr_t server = party::get_connected_server();
+          if (game::server_running() || !network::is_ip_address(server)) {
+            return;
+          }
+
+          utils::byte_buffer buffer{};
+          buffer.write_vector(xuids);
+          network::send(server, "profileInfoRequest", buffer.get_buffer());
+        },
+        scheduler::main);
   }
-
-  // Each profile is sent once when its player joins, so one lost on the way
-  // never arrives. Ask the server again for the ones the game is missing.
-  scheduler::once(
-      [xuids = std::move(xuids)] {
-        const game::net::netadr_t server = party::get_connected_server();
-        if (game::server_running() || !network::is_ip_address(server)) {
-          return;
-        }
-
-        utils::byte_buffer buffer{};
-        buffer.write_vector(xuids);
-        network::send(server, "profileInfoRequest", buffer.get_buffer());
-      },
-      scheduler::main);
 }
 
 void distribute_profile_info_to_user(const game::net::netadr_t &addr,
@@ -340,12 +340,12 @@ struct component final : generic_component {
     if (game::is_client()) {
       PCache_GetPublicProfilesSuccess_hook.create(
           game::pcache::PCache_GetPublicProfilesSuccess.get(),
-          PCache_GetPublicProfilesSuccess_stub);
+          PCache_GetPublicProfilesSuccess_RefreshMissing);
       PCache_GetPublicProfilesFailure_hook.create(
           game::pcache::PCache_GetPublicProfilesFailure.get(),
-          PCache_GetPublicProfilesFailure_stub);
+          PCache_GetPublicProfilesFailure_RefreshMissing);
       PCache_Update_hook.create(game::pcache::PCache_Update.get(),
-                                PCache_Update_stub);
+                                PCache_Update_AlwaysInMatch);
     }
 
     network::on("profileInfoRequest", [](const game::net::netadr_t &address,

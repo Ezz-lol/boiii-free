@@ -1,6 +1,7 @@
 #include "http.hpp"
-#include "finally.hpp"
+
 #include <curl/curl.h>
+#include <gsl-lite/gsl-lite.hpp>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -95,7 +96,7 @@ std::optional<std::string> get_data(const std::string_view &url,
     return {};
   }
 
-  auto _ = finally([&]() {
+  auto _ = gsl_lite::finally([&]() {
     curl_slist_free_all(header_list);
     curl_easy_cleanup(curl);
   });
@@ -172,7 +173,7 @@ std::optional<std::string> post_data(const std::string_view &url,
 
   curl_slist *header_list = curl_slist_append(
       nullptr, "Content-Type: application/x-www-form-urlencoded");
-  auto _ = finally([&]() {
+  auto _ = gsl_lite::finally([&]() {
     curl_slist_free_all(header_list);
     curl_easy_cleanup(curl);
   });
@@ -221,7 +222,7 @@ int get_data_stream(const std::string_view &url, const headers &headers,
   header_list =
       curl_slist_append(header_list, "Accept: application/octet-stream");
 
-  auto _ = finally([&]() {
+  auto _ = gsl_lite::finally([&]() {
     curl_slist_free_all(header_list);
     curl_easy_cleanup(curl);
   });

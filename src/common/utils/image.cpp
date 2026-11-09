@@ -12,12 +12,12 @@
 #include <stb_image.h>
 #pragma warning(pop)
 
-#include "finally.hpp"
+#include <gsl-lite/gsl-lite.hpp>
 
 namespace utils::image {
 image load_image(const std::string &data) {
   stbi_uc *buffer{};
-  const auto _ = finally([&] {
+  const auto _ = gsl_lite::finally([&] {
     if (buffer) {
       stbi_image_free(buffer);
     }

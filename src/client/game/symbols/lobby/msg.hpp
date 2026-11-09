@@ -15,6 +15,10 @@ WEAK symbol<LobbyP2PMsgHandlersTable> p2p_messageHandlers{
 WEAK symbol<LobbyHostClientMsgHandlersTable> host_clientMessageHandlers{
     0x142FA0100, 0x14301F1F0, 0x140E5A5C0};
 
+WEAK symbol<void(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
+                 XUID fromXUID, msg::Msg_LobbyState *msgData)>
+    HandleLobbyStateCore{0x141EC6A50, 0x0, 0x140485230};
+
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
                  net::NetChanMsgType_e channel, LobbyModule destModule,
                  net::netadr_t *adr, XUID toXuid, net::msg::msg_t *msg,

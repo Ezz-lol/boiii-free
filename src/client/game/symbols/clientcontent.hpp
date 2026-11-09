@@ -18,5 +18,11 @@ WEAK symbol<void(ClientContentType contentType, ClientContent *clientContent,
 WEAK symbol<void(ClientContentType contentType, ClientContent *clientContent,
                  uint32_t newChecksum)>
     ClientContent_SetChecksum{0x141EDF120, 0x0, 0x14049CD10};
+WEAK symbol<void(ClientContentType contentType, ClientContent *clientContent)>
+    ClientContent_ClearData{0x141EDEE80, 0x0, 0x14049CAE0};
+WEAK symbol<void(ClientContentType contentType, ClientContent *clientContent,
+                 bool isCompressed)>
+    ClientContent_SetDataCompressed{0x141EDF1C0, 0x0, 0x14049CDA0};
+
 } // namespace clientcontent
 } // namespace game

@@ -41,7 +41,6 @@ WEAK symbol<void(bool setupViewport)> CL_InitRenderer{0x141359710, 0x1413596F0,
                                                       0x0};
 WEAK symbol<void()> CL_StartHunkUsers{0x14135D1B0, 0x14135D190, 0x0};
 WEAK symbol<CLMapSwitch> cl_switch{0x1452C4A00, 0x145343A00, 0x142850830};
-WEAK symbol<int32_t> g_qport{0x156DCAB3C, 0x156E49AAC, 0x0};
 
 WEAK symbol<void(int64_t localClientNum, int32_t msec)> CL_Frame{
     0x141351400, 0x1413513E0, 0x0};

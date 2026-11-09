@@ -7,7 +7,6 @@
 
 #include <utils/com.hpp>
 #include <utils/cryptography.hpp>
-#include <utils/finally.hpp>
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/http.hpp>
@@ -214,7 +213,7 @@ std::vector<uint32_t> get_running_client_binary_process_ids() {
     return pids;
   }
 
-  auto _ = utils::finally([&]() { CloseHandle(snapshot); });
+  auto _ = gsl_lite::finally([&]() { CloseHandle(snapshot); });
 
   PROCESSENTRY32W process_entry{};
   process_entry.dwSize = sizeof(process_entry);
@@ -247,7 +246,7 @@ void close_running_client_binary_processes() {
           "installing the patch.");
     }
 
-    auto _ = utils::finally([&]() { CloseHandle(process); });
+    auto _ = gsl_lite::finally([&]() { CloseHandle(process); });
 
     if (TerminateProcess(process, 0) == 0) {
       const DWORD error = GetLastError();
@@ -338,7 +337,7 @@ void install_supported_client_binary(
       std::filesystem::path(client_binary.string() + ".boiii_backup");
 
   auto cleanup_temp =
-      utils::finally([&]() { utils::io::remove_file(temp_binary); });
+      gsl_lite::finally([&]() { utils::io::remove_file(temp_binary); });
 
   std::ofstream temp_stream(temp_binary, std::ios::binary | std::ios::trunc);
   if (!temp_stream.is_open()) {
@@ -438,7 +437,7 @@ void install_supported_client_binary(
   }
 
   bool installed = false;
-  const auto restore_backup = utils::finally([&]() {
+  const auto restore_backup = gsl_lite::finally([&]() {
     if (!installed) {
       MoveFileExW(backup_binary.wstring().c_str(),
                   client_binary.wstring().c_str(),
@@ -1009,7 +1008,7 @@ int main(int argc, char *argv[]) {
 
   {
     bool premature_shutdown = true;
-    const auto _ = utils::finally([&premature_shutdown] {
+    const auto _ = gsl_lite::finally([&premature_shutdown] {
       if (premature_shutdown) {
         component_loader::pre_destroy();
       }

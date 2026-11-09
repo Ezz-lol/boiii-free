@@ -2,7 +2,7 @@
 
 #include "bdProfiles.hpp"
 
-#include "../../../component/profile_infos.hpp"
+#include "component/profile_infos.hpp"
 
 namespace demonware {
 bdProfiles::bdProfiles() : service(8, "bdProfiles") {
@@ -21,9 +21,10 @@ void bdProfiles::getPublicInfos(service_server *server,
   std::vector<std::pair<uint64_t, profile_infos::profile_info>> profile_infos{};
   std::vector<game::XUID> missing{};
 
-  uint64_t entity_id;
+  uint64_t entity_id = 0;
   while (buffer->read_uint64(&entity_id)) {
-    auto profile = profile_infos::get_profile_info(entity_id);
+    std::optional<profile_infos::profile_info> profile =
+        profile_infos::get_profile_info(entity_id);
     if (profile) {
       profile_infos.emplace_back(entity_id, std::move(*profile));
     } else {
@@ -31,15 +32,16 @@ void bdProfiles::getPublicInfos(service_server *server,
     }
   }
 
-  profile_infos::request_profile_infos(std::move(missing));
+  profile_infos::request_profile_infos(missing);
 
-  auto reply = server->create_reply(
+  service_reply reply = server->create_reply(
       this->task_id(), profile_infos.empty()
                            ? game::dw::bdLobbyErrorCode::NO_PROFILE_INFO_EXISTS
                            : game::dw::bdLobbyErrorCode::BD_NO_ERROR);
 
-  for (auto &info : profile_infos) {
-    auto result = std::make_unique<bdPublicProfileInfo>();
+  for (std::pair<uint64_t, profile_infos::profile_info> &info : profile_infos) {
+    std::unique_ptr<bdPublicProfileInfo> result =
+        std::make_unique<bdPublicProfileInfo>();
     result->m_entityID = info.first;
     result->m_VERSION = info.second.version;
     result->m_ddl = std::move(info.second.ddl);
@@ -59,49 +61,49 @@ void bdProfiles::setPublicInfo(service_server *server,
 
   profile_infos::update_profile_info(info);
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
 void bdProfiles::getPrivateInfo(service_server *server,
                                 byte_buffer * /*buffer*/) const {
   // TODO:
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
 void bdProfiles::setPrivateInfo(service_server *server,
                                 byte_buffer * /*buffer*/) const {
   // TODO:
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
 void bdProfiles::deleteProfile(service_server *server,
                                byte_buffer * /*buffer*/) const {
   // TODO:
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
 void bdProfiles::setPrivateInfoByUserID(service_server *server,
                                         byte_buffer * /*buffer*/) const {
   // TODO:
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
 void bdProfiles::getPrivateInfoByUserID(service_server *server,
                                         byte_buffer * /*buffer*/) const {
   // TODO:
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
 void bdProfiles::setPublicInfoByUserID(service_server *server,
                                        byte_buffer * /*buffer*/) const {
   // TODO:
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 } // namespace demonware

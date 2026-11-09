@@ -3,7 +3,6 @@
 #include "game.hpp"
 #include "log.hpp"
 
-#include <utils/finally.hpp>
 #include <utils/flags.hpp>
 #include <utils/io.hpp>
 #include <utils/properties.hpp>
@@ -38,7 +37,7 @@ const std::filesystem::path &get_appdata_path() {
       throw std::runtime_error("Failed to read APPDATA path!");
     }
 
-    auto _ = utils::finally([&path] { CoTaskMemFree(path); });
+    auto _ = gsl_lite::finally([&path] { CoTaskMemFree(path); });
 
     // Ensure proper handling of wide character paths
     return std::filesystem::path(path) / L"boiii";

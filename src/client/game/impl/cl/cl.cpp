@@ -194,7 +194,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     //       if (eventObj.m_ptr) {
     //
     //         if (InterlockedDecrement(&eventObj.m_ptr->m_refCount) == 1) {
-    //           eventObj.m_ptr->vtbl->releaseFunc(eventObj.m_ptr, 1);
+    //           eventObj.m_ptr->release(1);
     //         }
     //         eventObj.m_ptr = nullptr;
     //       }

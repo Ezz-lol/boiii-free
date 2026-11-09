@@ -5,7 +5,6 @@
 
 #include <component/scheduler.hpp>
 
-#include <utils/finally.hpp>
 #include <utils/http.hpp>
 #include <utils/image.hpp>
 #include <utils/io.hpp>
@@ -449,7 +448,7 @@ void request_preview(const std::string_view &id, const std::string_view &url) {
     if (!saved) {
       std::counting_semaphore<> &slots = selected ? cover_slots : preview_slots;
       slots.acquire();
-      const auto _ = utils::finally([&slots] { slots.release(); });
+      const auto _ = gsl_lite::finally([&slots] { slots.release(); });
       saved = download_preview(id, url);
     }
 

@@ -336,6 +336,8 @@ PACKED(struct LobbyGameData {
   LobbyPublicData playlistData = {}; // Verified
   uint8_t _padding1E8C[4];
   LobbyTheaterData theaterData = {}; //  Verified
+
+  IMPL_SLICE_METHODS(pregameVotes, pregameVoteCount, PregameVotes);
 });
 ASSERT_SIZE(LobbyGameData, 0x1F18);
 

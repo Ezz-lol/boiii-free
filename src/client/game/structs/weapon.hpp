@@ -497,6 +497,7 @@ enum class eAttachment : int32_t {
   TYPE_COUNT = 0x2C,
   INVALID = 0x2C,
 };
+IMPL_ENUM_OPERATORS(eAttachment);
 
 constexpr bool validate(const eAttachment attachment) {
   return attachment >= eAttachment::NONE &&

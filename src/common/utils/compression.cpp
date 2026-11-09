@@ -4,8 +4,8 @@
 #include <zip.h>
 #include <zlib.h>
 
-#include "finally.hpp"
 #include "io.hpp"
+#include <gsl-lite/gsl-lite.hpp>
 
 namespace utils::compression {
 namespace zlib {
@@ -103,7 +103,8 @@ bool add_file(zipFile &zip_file, const std::string &filename,
     return false;
   }
 
-  const auto _ = finally([&zip_file]() { zipCloseFileInZip(zip_file); });
+  const auto _ =
+      gsl_lite::finally([&zip_file]() { zipCloseFileInZip(zip_file); });
 
   size_t offset = 0;
   while (offset < data.size()) {
@@ -134,12 +135,13 @@ bool archive::write(const std::string &filename, const std::string &comment) {
   }
 
   bool success = true;
-  const auto _ = finally([&zip_file, &comment, &filename, &success]() {
-    zipClose(zip_file, comment.empty() ? nullptr : comment.data());
-    if (!success) {
-      io::remove_file(filename);
-    }
-  });
+  const auto _ =
+      gsl_lite::finally([&zip_file, &comment, &filename, &success]() {
+        zipClose(zip_file, comment.empty() ? nullptr : comment.data());
+        if (!success) {
+          io::remove_file(filename);
+        }
+      });
 
   for (const auto &file : this->files_) {
     if (!add_file(zip_file, file.first, file.second)) {
@@ -165,7 +167,7 @@ read_zip_file_entry(unzFile &zip_file) {
     return {};
   }
 
-  auto _ = finally([&zip_file] { unzCloseCurrentFile(zip_file); });
+  auto _ = gsl_lite::finally([&zip_file] { unzCloseCurrentFile(zip_file); });
 
   int len = UNZ_OK;
   std::vector<uint8_t> out_buffer{};
@@ -301,7 +303,7 @@ extract(const std::string &data) {
   memory_file mem_file(data);
 
   auto zip_file = unzOpen2_64(mem_file.get_name(), mem_file.get_func_def());
-  auto _ = finally([&zip_file] {
+  auto _ = gsl_lite::finally([&zip_file] {
     if (zip_file) {
       unzClose(zip_file);
     }

@@ -1,7 +1,5 @@
 #include "properties.hpp"
 
-#include "finally.hpp"
-
 #include "rapidjson/encodedstream.h"
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/filewritestream.h"
@@ -12,6 +10,7 @@
 
 #include <windows.h>
 
+#include <gsl-lite/gsl-lite.hpp>
 #include <knownfolders.h>
 #include <shlobj_core.h>
 
@@ -59,7 +58,7 @@ rapidjson::Document load_properties() {
     return default_doc;
   }
 
-  const auto _ = finally([&fp] {
+  const auto _ = gsl_lite::finally([&fp] {
     if (fp) {
       fclose(fp);
     }
@@ -92,7 +91,7 @@ void store_properties(const rapidjson::Document &doc) {
     return;
   }
 
-  const auto _ = finally([&] {
+  const auto _ = gsl_lite::finally([&] {
     if (fp) {
       fclose(fp);
     }

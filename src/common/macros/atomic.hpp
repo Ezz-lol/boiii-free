@@ -15,7 +15,7 @@ concept UnderlyingAtomicIntegral =
 
 template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_load(volatile T *ptr) {
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_load_n(ptr, __ATOMIC_SEQ_CST);
 #else
   return *ptr;
@@ -24,7 +24,7 @@ alwaysinline T atomic_load(volatile T *ptr) {
 
 template <UnderlyingAtomicIntegral T>
 alwaysinline void atomic_store(volatile T *ptr, T desired) {
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   __atomic_store_n(ptr, desired, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
   if constexpr (sizeof(T) == 1) {
@@ -48,7 +48,7 @@ alwaysinline void atomic_store(volatile T *ptr, T desired) {
 template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_inc(volatile T *ptr) {
   constexpr T ONE = 1;
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_add_fetch(ptr, ONE, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
   if constexpr (sizeof(T) == 1) {

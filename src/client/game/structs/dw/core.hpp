@@ -327,16 +327,24 @@ public:
   [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"m_ptr\": {} }}", ::serialize(m_ptr));
   }
+
+  constexpr T &operator*() { return m_ptr; }
+
+  constexpr const T &operator*() const { return m_ptr; }
+
+  constexpr T *operator->() { return &m_ptr; }
+
+  constexpr const T *operator->() const { return &m_ptr; }
 };
 
 class bdReferencable;
 class bdReferencableVTbl {
 public:
-  thiscallPtr_t<void(bdReferencable *, int64_t)> releaseFunc;
+  thiscallPtr_t<void(bdReferencable *, int64_t decrement_count)> release;
 
   [[nodiscard]] std::string serialize() const noexcept {
-    return std::format("{{ \"releaseFunc\": {:p} }}",
-                       reinterpret_cast<const void *>(releaseFunc));
+    return std::format("{{ \"release\": {:p} }}",
+                       reinterpret_cast<const void *>(release));
   }
 };
 
@@ -347,20 +355,45 @@ public:
   volatile bdInt m_refCount;
   uint8_t _padding[4];
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  uint32_t ref_count() volatile noexcept { return atomic_load(m_refCount); }
+
+  void set_ref_count(uint8_t count) volatile noexcept {
+    return atomic_store(m_refCount, count);
+  }
+
+  uint32_t remove_ref() volatile noexcept { return atomic_dec(m_refCount); }
+
+  bool ensure_ref() volatile noexcept {
+    uint8_t zero = 0;
+    constexpr uint8_t ONE = 1;
+    return atomic_compare_exchange(m_refCount, zero, ONE);
+  }
+
+  uint32_t add_ref() volatile noexcept { return atomic_inc(m_refCount); }
+
+  [[nodiscard]] std::string serialize() const noexcept {
     const bdInt m_refCountCopy = m_refCount;
     return std::format(R"({{ "vtbl": {:p}, "m_refCount": {} }})",
                        reinterpret_cast<const void *>(vtbl), m_refCountCopy);
   }
 };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 class bdReferencable : public _bdReferencable<bdReferencableVTbl> {
-  [[nodiscard]] inline std::string serialize() const noexcept {
+public:
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format(R"({{ "base": {} }})",
                        _bdReferencable<bdReferencableVTbl>::serialize());
   }
+  void release(int64_t decrement_count) noexcept {
+    if (vtbl != nullptr && vtbl->release != nullptr) {
+      vtbl->release(this, decrement_count);
+    }
+  }
 };
-ASSERT_SIZE(bdReferencable, 0x10);
 #pragma pack(pop)
+ASSERT_SIZE(bdReferencable, 0x10);
 
 PACKED(class bdByteBuffer : public bdReferencable {
 public:
@@ -393,7 +426,7 @@ class bdStopwatch {
 public:
   bdUInt64 m_start;
 
-  [[nodiscard]] inline std::string serialize() const noexcept {
+  [[nodiscard]] std::string serialize() const noexcept {
     return std::format("{{ \"m_start\": {} }}", m_start);
   }
 };

@@ -232,16 +232,19 @@ constexpr uint32_t GAMESTATE_T_SIZE = 0xB8C80; // Correct
    TODO: correct this when needed.
 */
 partial_def(GAMESTATE_T_SIZE, struct, gameState_t, {
-  int32_t stringOffsets[3635];
-  uint32_t stringChecksums[3635];
-  char stringData[65536];
-  int32_t dataCount;
+  int32_t stringOffsets[3630]; // Verified
+  uint32_t stringChecksums[3630];
+  char stringData[65536]; // Verified
+  int32_t dataCount;      // Verified
   int32_t stringUpdateFrameNumber;
-  int32_t matchUIVisibilityFlags;
+  int32_t matchUIVisibilityFlags; // Verified
   scr::scrChecksum_t scr_checksum;
   uint32_t clientfield_hash;
   uint32_t server_highest_clientfield_version;
 });
+ASSERT_OFFSET(gameState_t, dataCount, 0x17170);
+ASSERT_OFFSET(gameState_t, stringData, 0x7170);
+ASSERT_OFFSET(gameState_t, matchUIVisibilityFlags, 0x17178);
 ASSERT_SIZE(gameState_t, GAMESTATE_T_SIZE);
 
 #pragma pack(push, 1)

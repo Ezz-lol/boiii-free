@@ -9,7 +9,6 @@
 
 #include <utils/concurrency.hpp>
 #include <utils/cryptography.hpp>
-#include <utils/finally.hpp>
 #include <utils/http.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
@@ -205,7 +204,7 @@ void download_file(const updater::file_info &file,
       throw std::runtime_error("Failed to initialize curl");
     }
 
-    auto curl_cleanup = utils::finally([&]() { curl_easy_cleanup(curl); });
+    auto curl_cleanup = gsl_lite::finally([&]() { curl_easy_cleanup(curl); });
 
     curl_easy_setopt(curl, CURLOPT_URL, file_url.data());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);

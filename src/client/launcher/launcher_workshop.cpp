@@ -18,7 +18,6 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#include <utils/finally.hpp>
 #include <utils/http.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
@@ -778,7 +777,7 @@ void workshop_download_thread(const std::string &workshop_id,
 
   ::workshop::launcher_downloading = true;
   const auto reset_downloading =
-      utils::finally([]() { ::workshop::launcher_downloading = false; });
+      gsl_lite::finally([]() { ::workshop::launcher_downloading = false; });
   reset_workshop_status();
   workshop_paused = false;
   set_workshop_status("Initializing...", -1.0, "Workshop ID: " + workshop_id);

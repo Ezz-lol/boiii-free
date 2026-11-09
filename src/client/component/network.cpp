@@ -11,7 +11,6 @@
 
 #include <str.hpp>
 
-#include <utils/finally.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
@@ -105,7 +104,7 @@ uint16_t first_free_port() {
   constexpr uint16_t BASE_PORT = 27017;
   WSADATA wsa_data{};
   WSAStartup(MAKEWORD(2, 2), &wsa_data);
-  const auto _ = utils::finally([] { WSACleanup(); });
+  const auto _ = gsl_lite::finally([] { WSACleanup(); });
   for (uint16_t port = BASE_PORT; port < BASE_PORT + 10; ++port) {
     const SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     sockaddr_in addr{};
@@ -192,7 +191,7 @@ uint8_t read_socket_byte_stub(game::net::msg::msg_t *msg) {
     return +game::net::netsrc_t::SERVER | (+game::net::netsrc_t::SERVER << 4);
   }
 
-  const auto _ = utils::finally([msg] { ++msg->data; });
+  const auto _ = gsl_lite::finally([msg] { ++msg->data; });
 
   return game::net::msg::MSG_ReadByte(msg);
 }

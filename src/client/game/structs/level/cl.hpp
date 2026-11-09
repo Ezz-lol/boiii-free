@@ -549,11 +549,10 @@ enum class FaceNotifyEvent : uint64_t {
   NONE = 0xC
 };
 
-#pragma pack(push, 1)
-struct centity_t {
+PACKED(struct centity_t {
   cpose_t pose;
   LerpEntityState prevState;
-  entityState_t nextState;
+  entityState_t nextState; // Verified
   union {
     int32_t miscTime;
     int32_t nameVisTime;
@@ -595,8 +594,8 @@ struct centity_t {
   scr::ScrString_t classname;
   uint32_t stepSound;
   uint8_t footstepSurfaceOverride;
-  char tmodeVisibilityEntity;
-  int16_t tmodeFlags;
+  char tmodeVisibilityEntity; // Verified
+  int16_t tmodeFlags;         // Verified
   int16_t tmodeTacscanTime;
   uint16_t duplicateRenderIndex;
   anim::AnimScriptedState animScripted;
@@ -608,11 +607,11 @@ struct centity_t {
   centity_overheadName_t *overheadName;
   ArmPulse armPulse;
   IdentitySightState identitySight;
-  ClientLoopSoundInfo loopSounds[4];
-  int32_t lastAimTargetVisCheckTime;
+  ClientLoopSoundInfo loopSounds[4]; // Verified
+  int32_t lastAimTargetVisCheckTime; // Verified
   int32_t lastMeleeTargetClearanceCheckTime;
   union {
-    uint32_t packed_bits[3];
+    uint32_t packed_bits[3]; // Verified
     struct {
       uint32_t applyLeftHandIK : 1;
       uint32_t nextValid : 1;
@@ -663,15 +662,19 @@ struct centity_t {
       uint32_t bHiddenFromRadarOutsideVisionCircle : 1;
     };
   };
-};
+});
 ASSERT_SIZE(centity_t, 0x900); // correct
 ASSERT_OFFSET(centity_t, tmodeVisibilityEntity, 0x821);
 ASSERT_OFFSET(centity_t, tmodeFlags, 0x822);
 ASSERT_OFFSET(centity_t, miscTime, 0x5F0);
 ASSERT_OFFSET(centity_t, loopSounds, 0x8BC);
 ASSERT_OFFSET(centity_t, lastAimTargetVisCheckTime, 0x8EC);
+// TODO: these offsets are correct. This struct needs to be corrected such that
+// these constraints are verified.
+// ASSERT_OFFSET(centity_t, clientCache, 0x628);
+// ASSERT_OFFSET(centity_t, aimTargetInfo, 0x638);
 ASSERT_OFFSET(centity_t, nextState, 0x400);
-#pragma pack(pop)
+ASSERT_OFFSET(centity_t, packed_bits, 0x8F4);
 
 struct ExtentBounds {
   vec3_t mins;
@@ -681,10 +684,12 @@ struct ExtentBounds {
 struct OrientedExtentBounds {
   ExtentBounds bounds;
   vec3_t origin;
-  vec3_t axis[3];
+  vec3<vec3_t> axis;
 };
 
 struct __attribute__((aligned(16))) snapshot_s {
+  static constexpr auto ENTITY_COUNT = 0x400;
+
   int32_t snapFlags;
   int32_t ping;
   int32_t serverTime;
@@ -693,13 +698,13 @@ struct __attribute__((aligned(16))) snapshot_s {
   int32_t numEntities;
   int32_t numClients;
   int32_t numActors;
-  entityState_t entities[1024];
+  entityState_t entities[ENTITY_COUNT];
   lobby::LobbyClientPool<clientState_t> clients;
   actorState_t actors[64];
   MatchState matchState;
   CasterState casterState;
   lobby::LobbyClientPool<CasterClientState> casterClients;
-  uint16_t entIndices[1024];
+  uint16_t entIndices[ENTITY_COUNT];
   int32_t serverCommandSequence;
 };
 

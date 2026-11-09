@@ -83,6 +83,10 @@ union netipv4_t {
     }
     return ToStringResult{.buf = buf, .ptr = ptr};
   }
+
+  [[nodiscard]] constexpr bool is_zero() const noexcept {
+    return a == 0 && b == 0 && c == 0 && d == 0;
+  }
 };
 
 enum class netadrtype_t : int32_t {
@@ -182,6 +186,10 @@ struct netadr_t {
 
     return {.buf = buf, .ptr = ptr};
   }
+
+  [[nodiscard]] constexpr bool is_zero_ip() const noexcept {
+    return ipv4.is_zero();
+  }
 };
 ASSERT_SIZE(netadr_t, 0x10);
 
@@ -244,14 +252,58 @@ struct XNADDR {
   }
 };
 
+// ID constant always used by engine during construction.
+constexpr size_t BD_SECURITY_ID_KEY = 0x101010101010101ULL;
 struct bdSecurityID {
-  uint8_t ab[8] = {0};
+  size_t ab = BD_SECURITY_ID_KEY;
+
+  constexpr operator const size_t &() const noexcept { return ab; }
+  constexpr operator const volatile size_t &() const volatile noexcept {
+    return ab;
+  }
+  constexpr operator volatile size_t &() volatile noexcept { return ab; }
+  constexpr operator size_t &() noexcept { return ab; }
 };
 
 typedef bdSecurityID XNKID;
 
-struct bdSecurityKey {
-  uint8_t ab[16] = {0};
+union bdSecurityKey {
+  static constexpr auto SIZE = 2;
+  bdSecurityID ab[SIZE];
+  struct {
+    bdSecurityID a = {};
+    bdSecurityID b = {};
+  };
+
+  typedef uint8_t index_t;
+
+  static constexpr void assert_range([[maybe_unused]] const index_t index) {
+    assert(index < SIZE &&
+           "index to bdSecurityKey must be within range 0 <= index < 2");
+  }
+  template <IntegralLike<index_t> Index>
+  constexpr const bdSecurityID &get(const Index index_arg) const noexcept {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return ab[index];
+  }
+  template <IntegralLike<index_t> Index>
+  constexpr bdSecurityID &get(const Index index_arg) noexcept {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return ab[index];
+  }
+
+  template <IntegralLike<index_t> Index>
+  constexpr const bdSecurityID &operator[](const Index index) const noexcept {
+    return get(index);
+  }
+  template <IntegralLike<index_t> Index>
+  constexpr bdSecurityID &operator[](const Index index) noexcept {
+    return get(index);
+  }
+
+  static constexpr auto size() noexcept { return SIZE; }
 };
 
 typedef bdSecurityKey XNKEY;
@@ -313,7 +365,7 @@ PACKED(struct HostInfo {
 });
 ASSERT_SIZE(HostInfo, 0x80);
 
-enum svscmd_type {
+enum class svscmd_type {
   CAN_IGNORE = 0x0,
   RELIABLE = 0x1,
 };

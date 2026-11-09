@@ -20,7 +20,6 @@
 #include <component/workshop/workshop.hpp>
 
 #include "utils/pe.hpp"
-#include <utils/finally.hpp>
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
@@ -497,7 +496,7 @@ int load_buffer(const std::string &name, const std::string &data) {
       state->m_global->m_bytecodeSharingMode;
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
 
-  auto _0 = utils::finally([state, sharing_mode] {
+  auto _0 = gsl_lite::finally([state, sharing_mode] {
     state->m_global->m_bytecodeSharingMode = sharing_mode;
   });
 

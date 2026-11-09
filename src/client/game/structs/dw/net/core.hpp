@@ -1,6 +1,7 @@
 #pragma once
 
 #include <game/structs/dw/core.hpp>
+#include <game/structs/net/core.hpp>
 
 namespace game {
 namespace dw {
@@ -57,14 +58,23 @@ public:
   uint8_t _padding86[2];
 });
 
-PACKED(class bdCommonAddr : bdReferencable {
+PACKED(class bdCommonAddr : public bdReferencable {
 public:
+  struct syms {
+    static inline constexpr symbol<void(const bdCommonAddr *, bdUByte8 *buffer)>
+        serialize{0x142887830, 0x1407BB770, 0x1429009A0};
+  };
+
   bdArray<bdAddr> m_localAddrs;
   bdAddr m_publicAddr;
   bdNATType m_natType;
   bdUInt m_hash;
   bdBool m_isLoopback;
   uint8_t _paddingB1[7];
+
+  inline void serialize(game::net::XNADDR & buf) const {
+    return syms::serialize(this, reinterpret_cast<bdUByte8 *>(&buf));
+  }
 });
 
 typedef bdReference<bdCommonAddr> bdCommonAddrRef;

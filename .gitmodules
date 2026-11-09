@@ -78,3 +78,6 @@
 [submodule "deps/stb_image_resize"]
 	path = deps/stb_image_resize
 	url = https://github.com/nothings/stb_image_resize
+[submodule "deps/gsl-lite"]
+	path = deps/gsl-lite
+	url = https://github.com/gsl-lite/gsl-lite

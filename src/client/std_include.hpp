@@ -126,6 +126,8 @@ inline constexpr auto BINARY_PAYLOAD_SIZE = 0x14000000;
 #include <rapidjson/prettywriter.h> // IWYU pragma: export
 #include <rapidjson/stringbuffer.h> // IWYU pragma: export
 
+#include <gsl-lite/gsl-lite.hpp>
+
 #pragma warning(pop)
 #pragma warning(disable : 4100)
 

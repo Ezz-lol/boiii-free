@@ -8,6 +8,7 @@
 #include "lpc.hpp"                 // IWYU pragma: export
 #include "metplayer.hpp"           // IWYU pragma: export
 #include "publisher/publisher.hpp" // IWYU pragma: export
+#include "qos.hpp"                 // IWYU pragma: export
 #include "settings.hpp"            // IWYU pragma: export
 #include "stats.hpp"               // IWYU pragma: export
 #include "steam/steam.hpp"         // IWYU pragma: export

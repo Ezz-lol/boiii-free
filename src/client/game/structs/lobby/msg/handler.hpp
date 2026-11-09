@@ -417,8 +417,8 @@ PACKED(struct Msg_ClientContent {
   uint16_t compressedBufferSize = 0;
   uint8_t _padding27C0A[6];
   XUID clientXUID = 0;
-  eModes sessionMode = eModes::INVALID;
-  eGameModes gameMode = eGameModes::INVALID;
+  eModes sessionMode = eModes::COUNT;
+  eGameModes gameMode = eGameModes::COUNT;
 
   IMPL_SLICE_METHODS(clientContentData, compressedBufferSize,
                      ClientContentData);
@@ -592,7 +592,7 @@ PACKED(struct Msg_InfoResponseLobbyServer {
   LobbyModulePool<info::InfoResponseLobby> lobby = {{}};
   XUID xuid = 0;
   name_t gamertag = {0};
-  eModes sessionMode = eModes::INVALID;
+  eModes sessionMode = eModes::COUNT;
   name_t mapName = {0};
   name_t gameType = {0};
   bool isInGame = false;

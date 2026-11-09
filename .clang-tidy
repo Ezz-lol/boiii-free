@@ -16,6 +16,7 @@ Checks:
   - "-bugprone-suspicious-stringview-data-usage"
   - "-bugprone-tagged-union-member-count"
   - "-bugprone-throwing-static-initialization"
+  - "-bugprone-derived-method-shadowing-base-method"
   - "-cppcoreguidelines-pro-type-vararg"
   - "-cppcoreguidelines-avoid-c-arrays"
   - "-cppcoreguidelines-avoid-non-const-global-variables"

@@ -4,7 +4,7 @@
 #include <random>
 #include <windows.h>
 
-#include "finally.hpp"
+#include <gsl-lite/gsl-lite.hpp>
 
 #undef max
 using namespace std::string_literals;
@@ -372,7 +372,7 @@ std::string rsa::encrypt(const std::string &data, const std::string &hash,
                          const std::string &key) {
   rsa_key new_key;
   rsa_import(cs(key.data()), ul(key.size()), &new_key);
-  const auto _ = finally([&]() { rsa_free(&new_key); });
+  const auto _ = gsl_lite::finally([&]() { rsa_free(&new_key); });
 
   std::string out_data{};
   out_data.resize(std::max(ul(data.size() * 3), ul(0x100)));

@@ -21,6 +21,22 @@ WEAK symbol<void(const char *gametype, bool loadDefaultSettings)>
 WEAK symbol<uint32_t(const char *settingName, bool getDefault)>
     Com_GametypeSettings_GetUInt{0x1420E8680, 0x1420F4E00, 0x1404FE5C0};
 
+WEAK symbol<bool(lobby::session::gametypesettings_t *compressedBuffer,
+                 int32_t compressedBufferSize)>
+    _Com_GametypeSettings_Read{0x1420E8C30, 0x0, 0x1404FEB50};
+
+WEAK symbol<bool(net::msg::msg_t *msg)> _Com_GametypeSettings_Read2{
+    0x1420E8A60, 0x0, 0x1404FE980};
+
+alwaysinline bool
+Com_GametypeSettings_Read(lobby::session::gametypesettings_t &compressedBuffer,
+                          int32_t compressedBufferSize) {
+  return _Com_GametypeSettings_Read(&compressedBuffer, compressedBufferSize);
+}
+
+alwaysinline bool Com_GametypeSettings_Read(net::msg::msg_t &msg) {
+  return _Com_GametypeSettings_Read2(&msg);
+}
 } // namespace gts
 } // namespace com
 } // namespace game

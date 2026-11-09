@@ -15,6 +15,8 @@ inline constexpr auto SUB_PROTOCOL = 1;
 
 namespace game {
 
+typedef int32_t ErrorCode;
+
 typedef void *UnknownPtr;
 
 typedef uint32_t contents_t;

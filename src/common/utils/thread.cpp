@@ -1,7 +1,7 @@
 #include "thread.hpp"
-#include "finally.hpp"
 #include "string.hpp"
 
+#include <gsl-lite/gsl-lite.hpp>
 #include <tlhelp32.h>
 
 namespace utils::thread {
@@ -26,7 +26,7 @@ bool set_name(const DWORD id, const std::string &name) {
   if (!t)
     return false;
 
-  const auto _ = finally([t]() { CloseHandle(t); });
+  const auto _ = gsl_lite::finally([t]() { CloseHandle(t); });
 
   return set_name(t, name);
 }

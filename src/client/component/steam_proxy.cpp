@@ -3,7 +3,6 @@
 #include <loader/component_loader.hpp>
 
 #include <utils/concurrency.hpp>
-#include <utils/finally.hpp>
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/nt.hpp>
@@ -277,7 +276,7 @@ ownership_state start_mod_unsafe(const std::string &title, size_t app_id) {
   }
 
   set_pipe_app_id(static_cast<uint32_t>(app_id));
-  const auto _0 = utils::finally([] { set_pipe_app_id(workshop_app_id); });
+  const auto _0 = gsl_lite::finally([] { set_pipe_app_id(workshop_app_id); });
 
   char our_directory[MAX_PATH] = {0};
   GetCurrentDirectoryA(sizeof(our_directory), our_directory);
@@ -496,7 +495,7 @@ void update_map_steam(subscribed_item_map &map) {
 void update_subscribed_items() {
   subscribed_item_map map{};
 
-  const auto _ = utils::finally([&] {
+  const auto _ = gsl_lite::finally([&] {
     subscribed_items.access(
         [&](subscribed_item_map &items) { items = std::move(map); });
   });

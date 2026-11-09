@@ -61,7 +61,7 @@ WEAK symbol<bool()> Com_IsRunningUILevel{0x1420EF8F0, 0x142148350, 0x140504BD0};
 WEAK symbol<bool()> Com_IsInGame{0x1420EF860, 0x1421482C0, 0x140504B90};
 WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode,
                  uint32_t flags)>
-    Com_SwitchMode{0x1420F1A10, 0x14214A4D0, 0x0};
+    Com_SwitchMode{0x1420F1A10, 0x14214A4D0, 0x140506960};
 WEAK symbol<void(const char *level)> Com_LoadLevelFastFiles{
     0x1420EFA80, 0x1421484E0, 0x140504C30};
 WEAK symbol<void()> Com_UnloadLevelFastFiles{0x1420F2000, 0x14214AAC0,
@@ -139,6 +139,8 @@ WEAK symbol<const char *(BuildStringField field)> Com_GetBuildStringField{
     0x1420E2C80, 0x1420EF400, 0x1404FA910};
 WEAK symbol<uint32_t(const void *data, int32_t length, uint32_t initialCrc)>
     Com_BlockChecksum32{0x1423F47D0, 0x0, 0x1405FD490};
+WEAK symbol<void(ControllerIndex_t controllerIndex)>
+    Com_UpdateScriptBunkCollectibles{0x1420E4940, 0x0, 0x1404FC210};
 
 } // namespace com
 } // namespace game
