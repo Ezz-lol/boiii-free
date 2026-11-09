@@ -24,6 +24,11 @@ WEAK symbol<bool(ControllerIndex_t controllerIndex,
                  net::netadr_t *adr, XUID toXuid, net::msg::msg_t *msg,
                  MsgType msgType)>
     LobbyMsgTransport_SendToAdr{0x141EEC080, 0x0, 0x1404A63B0};
+WEAK symbol<uint32_t(ControllerIndex_t controllerIndex,
+                     session::LobbySession *lobbySession,
+                     LobbyModule destModule, net::msg::msg_t *msg,
+                     MsgType msgType, net::NetChanMsgType_e channel)>
+    LobbyMsgTransport_SendTo{0x141EEBDB0, 0x0, 0x1404A60E0};
 
 // Named `LobbyMsg_SendToHost` in engine - override
 WEAK symbol<bool(const ControllerIndex_t controllerIndex,

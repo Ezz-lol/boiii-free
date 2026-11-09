@@ -31,25 +31,7 @@ std::string address_to_string(const game::net::netadr_t &addr);
 uint16_t get_bound_port();
 } // namespace network
 
-inline bool operator==(const game::net::netadr_t &a,
-                       const game::net::netadr_t &b) {
-  return network::are_addresses_equal(a, b); //
-}
-
-inline bool operator!=(const game::net::netadr_t &a,
-                       const game::net::netadr_t &b) {
-  return !(a == b); //
-}
-
 namespace std {
-template <> struct equal_to<game::net::netadr_t> {
-  using result_type = bool;
-
-  bool operator()(const game::net::netadr_t &lhs,
-                  const game::net::netadr_t &rhs) const {
-    return network::are_addresses_equal(lhs, rhs);
-  }
-};
 
 template <> struct hash<game::net::netadr_t> {
   size_t operator()(const game::net::netadr_t &x) const noexcept {

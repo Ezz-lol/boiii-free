@@ -135,7 +135,7 @@ enum class CriticalSection : int32_t {
 };
 IMPL_ENUM_OPERATORS(CriticalSection);
 
-class ScopedCriticalSection {
+class ScopedCriticalSectionBase {
 public:
   enum class ScopedCriticalSectionType : uint32_t {
     NORMAL = 0x0,
@@ -144,11 +144,16 @@ public:
     TRY = 0x3,
   };
 
-  CriticalSection _s;
-  bool _hasOwnership;
-  bool _isScopedRelease;
-  uint8_t _padding06[2];
-  ScopedCriticalSection *_next;
+  CriticalSection _s = CriticalSection::ALLOC_MARK;
+  bool _hasOwnership = false;
+  bool _isScopedRelease = false;
+  uint8_t _padding06[2] = {0};
+  ScopedCriticalSectionBase *_next = nullptr;
+};
+
+class ScopedCriticalSection : public ScopedCriticalSectionBase {
+public:
+  ScopedCriticalSection() = default;
 
   ScopedCriticalSection(CriticalSection s, ScopedCriticalSectionType type) {
     static const thiscallPtr_t<void(ScopedCriticalSection *, CriticalSection,

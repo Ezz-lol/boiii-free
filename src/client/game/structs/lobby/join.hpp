@@ -378,6 +378,7 @@ struct Join {
 };
 ASSERT_OFFSET(Join, potentialHost, 0x1F78);
 ASSERT_OFFSET(Join, joinResult, 0x2838);
+ASSERT_SIZE(Join, 0x2840);
 
 struct JoinClient {
   JoinClientState state;

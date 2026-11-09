@@ -1,9 +1,11 @@
 #include <std_include.hpp>
 
 #include "game/impl/lobby/data.hpp"
+#include "game/impl/lobby/msg/host.hpp"
 #include "game/impl/lobby/msg/msg.hpp"
 #include "game/impl/lobby/reservation.hpp"
 #include "game/impl/lobby/serverlist.hpp"
+#include "game/impl/lobby/spinner.hpp"
 #include "utils/string.hpp"
 
 #include "game/utils.hpp"
@@ -49,10 +51,8 @@ void HandleAgreementResponse(ControllerIndex_t controllerIndex,
             sys::Sys_Milliseconds() + get_join_completionWindow().value_or(0);
         debug::LobbyDebug_JoinStateChanged(join::s_joinNames->connectionSuccess,
                                            "clients agree");
-        if (game::is_client()) {
-          spinner::LobbySpinner_Update(spinner::SpinnerSystem::JOIN_PROGRESS,
-                                       6);
-        }
+        spinner::LobbySpinner_Update_Impl(spinner::SpinnerSystem::JOIN_PROGRESS,
+                                          6);
         join::s_join->state = join::JoinSourceState::CONNECTION_SUCCESS;
       } else {
         join::s_join->joinResult =
@@ -77,8 +77,9 @@ void HandleAgreementResponse(ControllerIndex_t controllerIndex,
   else {
     game::trace(
         "[Lobby][Message][{}] Host received invalid join agreement response "
-        "from client ({:016X} @ {})",
-        game::serialize(controllerIndex), fromXUID, fromAdr->serialize());
+        "from client ({:016X} @ {}): {}. s_join->state: {}",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+        msgData.serialize(), join::serialize(join::s_join->state));
   }
 #endif
 }
@@ -174,8 +175,8 @@ void HandleMemberInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
       if (status != nullptr) {
         probedXuid = status->probedXuid;
       }
-      host::LobbyHost_AddJoiningClient(controllerIndex, fromAdr, joinNonce,
-                                       &msgData, probedXuid);
+      lobby::host::LobbyHost_AddJoiningClient(controllerIndex, fromAdr,
+                                              joinNonce, &msgData, probedXuid);
       // Join completed
       reservation::ReservationRemove(
           *reservation::s_reservation,
@@ -286,9 +287,9 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
       activeControllerIndex = controllerIndex;
     }
 
-    bool joinable = host::LobbyHost_IsJoinable(lobbyType, isXUIDLocalPlayer,
-                                               &joinResponse.response);
-    bool privacyAllowsJoin = host::LobbyHost_PartyPrivacyCheck(
+    const bool joinable = lobby::host::LobbyHost_IsJoinable(
+        lobbyType, isXUIDLocalPlayer, &joinResponse.response);
+    bool privacyAllowsJoin = lobby::host::LobbyHost_PartyPrivacyCheck(
         activeControllerIndex, lobbyType,
         static_cast<const join::JoinType>(msgData.joinType), fromXUID,
         &joinResponse);
@@ -339,10 +340,11 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
           if (!skipFurtherChecks) {
             if (msgData.netFieldChecksum ==
                 net::msg::crc::MsgCRC_NetFieldChecksum()) {
-              joinResponse.response = host::party::LobbyHost_IsPartyAllowed(
-                  activeControllerIndex, lobbyType, msgData.memberCount);
+              joinResponse.response =
+                  lobby::host::party::LobbyHost_IsPartyAllowed(
+                      activeControllerIndex, lobbyType, msgData.memberCount);
               if (joinResponse.response == join::JoinResult::SUCCESS) {
-                joinResponse.response = host::LobbyHost_CanFit(
+                joinResponse.response = lobby::host::LobbyHost_CanFit(
                     activeControllerIndex, lobbyType, msgData.members,
                     msgData.memberCount, fromXUID, msgData.probedXuid);
               }
@@ -460,21 +462,35 @@ void HandleHostClientVoicePacket(ControllerIndex_t controllerIndex,
 void HandleJoinResponse(ControllerIndex_t controllerIndex,
                         net::netadr_t *fromAdr, XUID fromXUID,
                         LobbyMsg *lobbyMsg) {
-  const char *failReason = nullptr;
   Msg_JoinResponse msgData{};
 
   if (msgData.package(*lobbyMsg) &&
       join::s_join->state == join::JoinSourceState::HANDSHAKING) {
+    const char *failReason = nullptr;
 #ifndef NDEBUG
     game::trace("[Lobby][Message][{}] Host received join response "
                 "from client ({:016X} @ {}): {}",
                 game::serialize(controllerIndex), fromXUID,
                 fromAdr->serialize(), msgData.serialize());
+
+    game::trace(
+        "HandleJoinResponse: fromAdr == "
+        "join::s_join->potentialHost.info.netAdr: {}. fromAdr: {}, "
+        "join::s_join->potentialHost.info.netAdr: {}",
+        ::serialize(*fromAdr == join::s_join->potentialHost.info.netAdr),
+        fromAdr->serialize(),
+        join::s_join->potentialHost.info.netAdr.serialize());
 #endif
 
-    if (net::NetAdr_Compare(fromAdr,
-                            &join::s_join->potentialHost.info.netAdr)) {
-      if (msgData.lobbyType > LobbyType::GAME) {
+    if (join::s_join->potentialHost.info.netAdr.is_invalid()) {
+      game::trace("Join potentialHost was invalid. s_join: {}",
+                  join::s_join->serialize());
+      join::s_join->potentialHost.info.netAdr = *fromAdr;
+    }
+
+    if (*fromAdr == join::s_join->potentialHost.info.netAdr) {
+      if (static_cast<uint32_t>(msgData.lobbyType) >
+          static_cast<uint32_t>(LobbyType::GAME)) {
         join::s_join->joinResult = join::JoinResult::INVALID_LOBBY;
         failReason = "host response invalid";
       } else {
@@ -486,8 +502,8 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
             msgData.serverLocation;
         join::s_join->potentialHost.lobbyParams = msgData.lobbyParams;
         switch (msgData.response) {
-        case join::JoinResult::SUCCESS:
-          if (join::LobbyHostMsg_SendAgreementRequest(
+        case join::JoinResult::SUCCESS: {
+          if (host::LobbyHostMsg_SendAgreementRequest_Impl(
                   join::s_join->controllerIndex,
                   &join::s_join->potentialHost.info, msgData.reservationKey,
                   join::s_join->agreement.nonce, join::s_join->sourceLobbyType,
@@ -499,10 +515,8 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
                 utils::string::va(
                     "reservation key %lu",
                     static_cast<uint32_t>(msgData.reservationKey)));
-            if (game::is_client()) {
-              spinner::LobbySpinner_Update(
-                  spinner::SpinnerSystem::JOIN_PROGRESS, 4);
-            }
+            spinner::LobbySpinner_Update_Impl(
+                spinner::SpinnerSystem::JOIN_PROGRESS, 4);
             join::s_join->state = join::JoinSourceState::WAITING_FOR_AGREEMENT;
             join::Host_ChangeState(join::s_join->sourceLobbyType);
             return;
@@ -511,6 +525,7 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
               join::JoinResult::SEND_AGREEMENT_REQUEST_FAILED;
           failReason = "MENU_JOIN_RESULT_NOT_JOINABLE";
           break;
+        }
         case join::JoinResult::OVER_MAX_PARTY_LIMIT:
           failReason = "EXE_TO_MANY_LOCAL_PLAYERS";
           break;
@@ -540,7 +555,7 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
         case join::JoinResult::MIGRATE_IN_PROGRESS:
           failReason = "MENU_JOIN_RESULT_MIGRATE_IN_PROGRESS";
           break;
-        case join::JoinResult::COULD_NOT_RESERVE:
+        case join::JoinResult::COULD_NOT_RESERVE: {
           if (join::s_join->potentialHost.retryCount <
               get_join_retryCount().value_or(0)) {
             ++join::s_join->potentialHost.retryCount;
@@ -550,16 +565,15 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
                 join::s_joinNames->associating,
                 "host is temporarily unavailable but may be active "
                 "later. retrying..");
-            if (game::is_client()) {
-              spinner::LobbySpinner_Update(
-                  spinner::SpinnerSystem::JOIN_PROGRESS, 2);
-            }
+            spinner::LobbySpinner_Update_Impl(
+                spinner::SpinnerSystem::JOIN_PROGRESS, 2);
             join::s_join->state = join::JoinSourceState::ASSOCIATING;
             join::Host_ChangeState(join::s_join->sourceLobbyType);
             return;
           }
           failReason = "MENU_JOIN_RESULT_COULD_NOT_RESERVE";
           break;
+        }
         default:
           failReason = "MENU_JOIN_RESULT_NOT_JOINABLE";
           break;
@@ -635,22 +649,23 @@ void Host_HandleClientContent(ControllerIndex_t controllerIndex,
       session::LobbySession *const session =
           LobbyHostData_GetSession(msgData.lobbyType);
       session::SessionClient *const sessionLobbyList =
-          host::LobbyHostData_GetSessionLobbyList(msgData.lobbyType);
+          lobby::host::LobbyHostData_GetSessionLobbyList(msgData.lobbyType);
       session::SessionClient *const clientByXuid =
           session::LobbySession_GetClientByXuid(session, fromXUID);
 
-      if (clientByXuid != nullptr) {
-        active::ActiveClient *activeClient = clientByXuid->activeClient;
+      if (clientByXuid != nullptr && clientByXuid->activeClient != nullptr) {
         clientcontent::ClientContent *clientContent =
-            active::LobbyActiveList_GetClientContent(activeClient);
+            active::LobbyActiveList_GetClientContent(
+                clientByXuid->activeClient);
         const uint32_t currentCACPSBufferCrc = com::Com_BlockChecksum32(
             msgData.clientContentData, sizeof(msgData.clientContentData), 0);
 
-        if (clientcontent::ClientContent_GetChecksum(
+        if (clientContent != nullptr &&
+            clientcontent::ClientContent_GetChecksum(
                 contentType, clientContent) != currentCACPSBufferCrc) {
           if (com::Com_IsInGame()) {
             active::LobbyActiveList_ClearClientContentForClient(
-                activeClient, contentType, fromXUID);
+                clientByXuid->activeClient, contentType, fromXUID);
           }
 
           clientcontent::ClientContent_SetData(contentType, clientContent,
@@ -673,7 +688,8 @@ void Host_HandleClientContent(ControllerIndex_t controllerIndex,
               clientcontent::ClientContentTracking *const
                   contentTrackingByIndex =
                       active::LobbyActiveList_GetClientContentTrackingByIndex(
-                          activeClient, contentType, trackingIndex);
+                          clientByXuid->activeClient, contentType,
+                          trackingIndex);
               contentTrackingByIndex->state =
                   clientcontent::ClientContentTransferState::DIRTY;
               contentTrackingByIndex->toXUID = currentClient->xuid;
@@ -790,8 +806,8 @@ void HandleClientDisconnect(ControllerIndex_t controllerIndex,
     session::SessionClient *const client =
         session::LobbySession_GetClientByXuid(session, msgData.xuid);
     if (client != nullptr && client->activeClient != nullptr) {
-      host::LobbyHost_RemoveClient(msgData.lobbyType, msgData.xuid,
-                                   "received client disconnect message");
+      lobby::host::LobbyHost_RemoveClient(msgData.lobbyType, msgData.xuid,
+                                          "received client disconnect message");
     }
   }
 #ifndef NDEBUG
@@ -871,7 +887,7 @@ void HandleClientReliableData(ControllerIndex_t controllerIndex,
                                                    msgData.platformSessionID);
       }
       if ((msgData.dataMask & (1ul << 2)) != 0) {
-        host::LobbyHostMsg_SendDisconnectClient(
+        lobby::host::LobbyHostMsg_SendDisconnectClient(
             controllerIndex, msgData.lobbyType, msgData.disconnectClientXuid,
             msgData.disconnectClient);
       }
@@ -1348,7 +1364,7 @@ void HandleHostDisconnect(ControllerIndex_t controllerIndex,
                 fromAdr->serialize(), msgData.serialize());
 #endif
 
-    if (!host::LobbyHost_IsHost(msgData.lobbyType)) {
+    if (!lobby::host::LobbyHost_IsHost(msgData.lobbyType)) {
       session::LobbySession *const session =
           client::LobbyClientData_GetSession(msgData.lobbyType);
       if (!migrate::LobbyMigrateClient_MigrateActive(session) &&
@@ -1429,7 +1445,7 @@ void HandleHostLeaveWithParty(ControllerIndex_t controllerIndex,
                 fromAdr->serialize(), msgData.serialize());
 #endif
 
-    if (!host::LobbyHost_IsHost(msgData.lobbyType)) {
+    if (!lobby::host::LobbyHost_IsHost(msgData.lobbyType)) {
       session::LobbySession *const session =
           client::LobbyClientData_GetSession(msgData.lobbyType);
       if (!migrate::LobbyMigrateClient_MigrateActive(session) &&
@@ -1461,9 +1477,10 @@ void HandleAgreementRequest(ControllerIndex_t controllerIndex,
     if (msgData.package(*lobbyMsg)) {
 #ifndef NDEBUG
       game::trace("[Lobby][Message][{}] Client received join agreement request "
-                  "from host ({:016X} @ {}): {}",
+                  "from host ({:016X} @ {}): {}. joinClient: {}",
                   game::serialize(controllerIndex), fromXUID,
-                  fromAdr->serialize(), msgData.serialize());
+                  fromAdr->serialize(), msgData.serialize(),
+                  joinClient.serialize());
 #endif
 
       joinClient.potentialHost.info.xuid = msgData.hostXuid;

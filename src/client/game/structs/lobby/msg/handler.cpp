@@ -6,31 +6,13 @@ namespace game {
 namespace lobby {
 
 namespace msg {
-namespace {
-// The engine writes nominees up to the first empty slot, but its read keeps
-// going until the sender ends the array
-bool package_nominees(LobbyMsg &lobbyMsg, LobbyClientPool<XUID> &nominees) {
-  bool result = lobbyMsg.package_arrayStart("nomineelist");
-  for (size_t nomineeIdx = 0; result; ++nomineeIdx) {
-    const bool hasNominee =
-        nomineeIdx < std::size(nominees) && nominees[nomineeIdx] != 0;
-    if (!lobbyMsg.package_element(hasNominee)) {
-      break;
-    }
-    result = nomineeIdx < std::size(nominees) &&
-             lobbyMsg.package_xuid("xuid", &nominees[nomineeIdx]);
-  }
-  return result;
-}
-} // namespace
 
 bool MsgMutableClientInfo::package(LobbyMsg &lobbyMsg) {
   bool result =
       lobbyMsg.package_uint64("lobbyid", &mutableClientInfo.lobbyID) &&
-      lobbyMsg.package_string("clantag", mutableClientInfo.clantag,
-                              std::size(mutableClientInfo.clantag));
-
-  for (size_t progIdx = 0; progIdx < std::size(mutableClientInfo.progression);
+      lobbyMsg.package_string("clantag", mutableClientInfo.clantag);
+  for (size_t progIdx = 0;
+       result && progIdx < std::size(mutableClientInfo.progression);
        ++progIdx) {
     ClientProgression &prog = mutableClientInfo.progression[progIdx];
     result &= lobbyMsg.package_uchar("rank", &prog.rank) &&
@@ -43,7 +25,9 @@ bool MsgMutableClientInfo::package(LobbyMsg &lobbyMsg) {
   }
   return result &&
          lobbyMsg.package_bool("isStarterPack",
-                               &mutableClientInfo.isStarterPack) &&
+                               &mutableClientInfo.isStarterPack)
+
+         &&
          lobbyMsg.package_int("arenapoints", &mutableClientInfo.arenaPoints) &&
          lobbyMsg.package_float("arenaskill", &mutableClientInfo.arenaSkill) &&
          lobbyMsg.package_float("arenavar", &mutableClientInfo.arenaVariance) &&
@@ -51,7 +35,6 @@ bool MsgMutableClientInfo::package(LobbyMsg &lobbyMsg) {
              "bubblegumbuffs", &mutableClientInfo.bubbleGumInfo.bubbleGumBuffs,
              sizeof(mutableClientInfo.bubbleGumInfo.bubbleGumBuffs)) &&
          lobbyMsg.package_glob(
-
              "bgbcount",
              mutableClientInfo.bubbleGumInfo.bubbleGumBuffConsumableCount,
              sizeof(mutableClientInfo.bubbleGumInfo
@@ -140,17 +123,16 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package_int("networkmode", &lobbyNetworkMode) &&
       validate(lobbyNetworkMode) &&
       lobbyMsg.package_int("mainmode", &lobbyMainMode) &&
-      (lobbyMainMode == LobbyMainMode::INVALID || validate(lobbyMainMode)) &&
+      (validate(lobbyMainMode) || lobbyMainMode == LobbyMainMode::INVALID) &&
       lobbyMsg.package_int("partyprivacy", &partyPrivacy) &&
       validate(partyPrivacy) && lobbyMsg.package_int("lobbytype", &lobbyType) &&
       validate(lobbyType) && lobbyMsg.package_int("lobbymode", &lobbyMode) &&
-      (lobbyMode == LobbyMode::INVALID || validate(lobbyMode)) &&
+      (validate(lobbyMode) || lobbyMode == LobbyMode::INVALID) &&
       lobbyMsg.package_int("sessionstatus", &status) && validate(status) &&
       lobbyMsg.package_int("uiscreen", &uiScreen) &&
       lobbyMsg.package_uchar("leaderactivity",
                              reinterpret_cast<uint8_t *>(&uiLeaderActivity)) &&
-      lobbyMsg.package_string("key", key,
-                              static_cast<int32_t>(std::size(key))) &&
+      lobbyMsg.package_string("key", key) &&
       lobbyMsg.package_xuid("leader", &clientLeader) &&
       lobbyMsg.package_xuid("platformsession", &platformSessionID) &&
       lobbyMsg.package_int("maxclients", &maxClients) &&
@@ -158,6 +140,7 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package_bool("isadvertised", &isAdvertised) &&
       lobbyMsg.package_int("clientcount", &clientCount) &&
       validate_count(clientCount);
+
   // PATCH: validate enum values
   if (!result) {
     return false;
@@ -175,37 +158,55 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
             lobbyMsg.package_string(
                 "ugcName", ugcInfo.publisherId,
                 static_cast<int32_t>(std::size(ugcInfo.publisherId))) &&
-            lobbyMsg.package_uint("ugcVersion", &ugcInfo.version);
-  result &= lobbyMsg.package_arrayStart("clientlist");
+            lobbyMsg.package_uint("ugcVersion", &ugcInfo.version) &&
+            lobbyMsg.package_arrayStart("clientlist");
   for (ClientNum_t clientIdx = ClientNum_t::CLIENT_INDEX_FIRST;
-       lobbyMsg.package_next_element(clientIdx < clientCount, result);
+       lobbyMsg.validated_package_element(clientIdx < clientCount, result);
        ++clientIdx) {
     MsgClientLobbyInfo &client = clientList[+clientIdx];
-    result &= lobbyMsg.package_xuid("xuid", &client.xuid) &&
-              lobbyMsg.package_uchar("clientNum", reinterpret_cast<uint8_t *>(
-                                                      &client.clientNum)) &&
-              lobbyMsg.package_string(
-                  "gamertag", client.gamertag,
-                  static_cast<int32_t>(std::size(client.gamertag))) &&
-              lobbyMsg.package_bool("isGuest", &client.isGuest) &&
-              lobbyMsg.package_uint64("lobbyid", &client.lobbyID) &&
-              lobbyMsg.package_int("connectbit", &client.connectivityBits) &&
-              lobbyMsg.package_int("score", &client.score) &&
-              lobbyMsg.package_glob("address", client.serializedAdr.addrBuff,
-                                    sizeof(client.serializedAdr.addrBuff)) &&
-              lobbyMsg.package_int("qport", &client.qport) &&
-              lobbyMsg.package_uchar("band", &client.latencyBand) &&
-              lobbyMsg.package_uint("netsrc", &client.localNetID) &&
-              lobbyMsg.package_uint("joinorder", &client.joinOrder) &&
-              lobbyMsg.package_uint("dlcBits", &client.dlcBits.mask) &&
-              client.mutableClientInfoMsg.package(lobbyMsg);
+    result &=
+        lobbyMsg.package_xuid("xuid", &client.xuid)
+
+        && lobbyMsg.package_uchar(
+               "clientNum", reinterpret_cast<uint8_t *>(&client.clientNum)) &&
+        lobbyMsg.package_string("gamertag", client.gamertag)
+
+        && lobbyMsg.package_bool("isGuest", &client.isGuest) &&
+        lobbyMsg.package_uint64("lobbyid", &client.lobbyID) &&
+        lobbyMsg.package_int("connectbit", &client.connectivityBits) &&
+        lobbyMsg.package_int("score", &client.score)
+
+        && lobbyMsg.package_glob("address", client.serializedAdr.addrBuff,
+                                 sizeof(client.serializedAdr.addrBuff))
+
+        && lobbyMsg.package_int("qport", &client.qport) &&
+        lobbyMsg.package_uchar("band", &client.latencyBand) &&
+        lobbyMsg.package_uint("netsrc", &client.localNetID) &&
+        lobbyMsg.package_uint("joinorder", &client.joinOrder) &&
+        lobbyMsg.package_uint("dlcBits", &client.dlcBits) &&
+        client.mutableClientInfoMsg.package(lobbyMsg);
   }
   if (!result) {
     return false;
   }
-  result &= lobbyMsg.package_uchar("migratebits", &migrateInfo.indexBits) &&
-            lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS);
-  return result && package_nominees(lobbyMsg, migrateInfo.migrateNominees);
+  result &=
+      lobbyMsg.package_uchar("migratebits", &migrateInfo.indexBits) &&
+      lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS) &&
+      lobbyMsg.package_arrayStart("nomineelist");
+  if (!result) {
+    return false;
+  }
+
+  if (result) {
+    for (ClientNum_t nomineeIdx = CLIENT_INDEX_0;
+         result && lobbyMsg.package_element(
+                       nomineeIdx < std::size(migrateInfo.migrateNominees));
+         ++nomineeIdx) {
+      result &= lobbyMsg.package_xuid(
+          "xuid", &migrateInfo.migrateNominees[+nomineeIdx]);
+    }
+  }
+  return result;
 }
 
 bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
@@ -220,27 +221,19 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package_int("statusvalue", &dataGame.statusValue) &&
       lobbyMsg.package_int("gamemode", &dataGame.gameMode) &&
       validate(dataGame.gameMode) &&
-      lobbyMsg.package_string(
-          "gametype", dataGame.gameType,
-          static_cast<int32_t>(std::size(dataGame.gameType))) &&
-      lobbyMsg.package_string(
-          "map", dataGame.mapName,
-          static_cast<int32_t>(std::size(dataGame.mapName))) &&
-      lobbyMsg.package_string(
-          "ugcName", dataGame.ugcInfo.publisherId,
-          static_cast<int32_t>(std::size(dataGame.ugcInfo.publisherId))) &&
+      lobbyMsg.package_string("gametype", dataGame.gameType) &&
+      lobbyMsg.package_string("map", dataGame.mapName) &&
+      lobbyMsg.package_string("ugcName", dataGame.ugcInfo.publisherId) &&
       lobbyMsg.package_uint("ugcVersion", &dataGame.ugcInfo.version);
   if (core.lobbyMainMode == LobbyMainMode::CP) {
     result &=
-        lobbyMsg.package_string(
-            "cpqueuedlevel", dataGame.cpQueuedLevel,
-            static_cast<int32_t>(std::size(dataGame.cpQueuedLevel))) &&
+        lobbyMsg.package_string("cpqueuedlevel", dataGame.cpQueuedLevel) &&
         lobbyMsg.package_bool("movieskipped", &dataGame.loadingMovieSkipped);
   }
   switch (core.lobbyMode) {
   case LobbyMode::PUBLIC: {
     result &= lobbyMsg.package_arrayStart("clientlist");
-    for (size_t clientIdx = 0; lobbyMsg.package_next_element(
+    for (size_t clientIdx = 0; lobbyMsg.validated_package_element(
              clientIdx < std::size(dataGame.client), result);
 
          ++clientIdx) {
@@ -269,7 +262,7 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
     }
     result &= lobbyMsg.package_arrayStart("votes");
 
-    for (uint32_t voteIdx = 0; lobbyMsg.package_next_element(
+    for (uint32_t voteIdx = 0; lobbyMsg.validated_package_element(
              voteIdx < dataGame.pregameVoteCount, result);
          ++voteIdx) {
       session::ItemVote &vote = dataGame.pregameVotes[voteIdx];
@@ -294,8 +287,8 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
     }
     result &= lobbyMsg.package_arrayStart("clientlist");
     for (ClientNum_t clientIdx = ClientNum_t::CLIENT_INDEX_0;
-         lobbyMsg.package_next_element(clientIdx < std::size(dataGame.client),
-                                       result);
+         lobbyMsg.validated_package_element(
+             clientIdx < std::size(dataGame.client), result);
          ++clientIdx) {
 
       session::GameClientData &client = dataGame.client[clientIdx];
@@ -309,9 +302,9 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
                                 &client.characterSelection.characterIndex) &&
           lobbyMsg.package_uint("loadout",
                                 &client.characterSelection.loadoutType) &&
-          (client.characterSelection.loadoutType ==
-               heroLoadoutTypes_e::INVALID ||
-           validate(client.characterSelection.loadoutType));
+          (validate(client.characterSelection.loadoutType) ||
+           client.characterSelection.loadoutType ==
+               heroLoadoutTypes_e::INVALID);
     }
 
     if (!result) {
@@ -363,7 +356,7 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
       return false;
     }
     result &= lobbyMsg.package_arrayStart("votes");
-    for (size_t voteIdx = 0; lobbyMsg.package_next_element(
+    for (size_t voteIdx = 0; lobbyMsg.validated_package_element(
              voteIdx < dataGame.pregameVoteCount, result);
          ++voteIdx) {
       session::ItemVote &vote = dataGame.pregameVotes[voteIdx];
@@ -389,8 +382,8 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
 
     result &= lobbyMsg.package_arrayStart("clientlist");
     for (ClientNum_t clientIdx = ClientNum_t::CLIENT_INDEX_0;
-         lobbyMsg.package_next_element(clientIdx < std::size(dataGame.client),
-                                       result);
+         lobbyMsg.validated_package_element(
+             clientIdx < std::size(dataGame.client), result);
          ++clientIdx) {
 
       session::GameClientData &client = dataGame.client[clientIdx];
@@ -406,9 +399,10 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
                                 &client.characterSelection.characterIndex) &&
           lobbyMsg.package_uint("loadout",
                                 &client.characterSelection.loadoutType) &&
-          (client.characterSelection.loadoutType ==
-               heroLoadoutTypes_e::INVALID ||
-           validate(client.characterSelection.loadoutType));
+
+          (validate(client.characterSelection.loadoutType) ||
+           client.characterSelection.loadoutType ==
+               heroLoadoutTypes_e::INVALID);
     }
     return result && lobbyMsg.package_int("plistid", &dataGame.playlistId) &&
            lobbyMsg.package_int("plistcurr", &dataGame.playlistCurrentEntry) &&
@@ -426,7 +420,16 @@ bool Msg_LobbyHostHeartbeat::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package_int("heartbeatnum", &heartbeatNum) &&
       lobbyMsg.package_int("lobbytype", &lobbyType) && validate(lobbyType) &&
       lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS) &&
-      package_nominees(lobbyMsg, migrateInfo.migrateNominees);
+      lobbyMsg.package_arrayStart("nomineelist");
+
+  for (ClientNum_t nomineeIdx = ClientNum_t::CLIENT_INDEX_0;
+       result && lobbyMsg.package_element(
+                     nomineeIdx < std::size(migrateInfo.migrateNominees) &&
+                     migrateInfo.migrateNominees[nomineeIdx] == 0);
+       ++nomineeIdx) {
+    result &=
+        lobbyMsg.package_xuid("xuid", &migrateInfo.migrateNominees[nomineeIdx]);
+  }
   return result;
 }
 
@@ -459,14 +462,14 @@ bool Msg_JoinParty::package(LobbyMsg &lobbyMsg) {
                bit silly. */
             lobbyMsg.package_string("password", password) &&
             lobbyMsg.package_int("membercount", &memberCount) &&
-            validate(memberCount);
+            validate_count(memberCount);
   // PATCH: ensure valid member count
   if (!result) {
     return false;
   }
   result &= lobbyMsg.package_arrayStart("members");
   for (ClientNum_t partyMemberIdx = ClientNum_t::CLIENT_INDEX_FIRST;
-       lobbyMsg.package_next_element(partyMemberIdx < memberCount, result);
+       lobbyMsg.validated_package_element(partyMemberIdx < memberCount, result);
        ++partyMemberIdx) {
     join::JoinPartyMember &partyMember = members[partyMemberIdx];
     result &=
@@ -503,7 +506,7 @@ bool Msg_InfoResponseLobbyServer::package(LobbyMsg &lobbyMsg) {
   }
 
   for (size_t lanClientIdx = 0;
-       lobbyMsg.package_next_element(lanClientIdx < clientCount, result);
+       lobbyMsg.validated_package_element(lanClientIdx < clientCount, result);
        ++lanClientIdx) {
     LANClientInfo &lanClient = client[lanClientIdx];
     result &= lobbyMsg.package_xuid("xuid", &lanClient.xuid) &&
@@ -585,7 +588,8 @@ bool Msg_ClientReliableData::package(LobbyMsg &lobbyMsg) {
           lobbyMsg.package_uint("character",
                                 &characterSelection.characterIndex) &&
           lobbyMsg.package_uint("loadout", &characterSelection.loadoutType) &&
-          validate(characterSelection.loadoutType);
+          (validate(characterSelection.loadoutType) ||
+           characterSelection.loadoutType == heroLoadoutTypes_e::INVALID);
     }
 
     // TODO: define as bitpacked union

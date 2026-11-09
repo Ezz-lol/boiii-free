@@ -2,6 +2,7 @@
 
 #include "game/structs/quake/vec.hpp"
 
+#include "core.hpp"
 #include "hks.hpp"
 
 namespace game {
@@ -187,6 +188,29 @@ struct __declspec(align(4)) LUIElementPool {
 };
 
 ASSERT_SIZE(LUIElementPool, 0x7EF408);
+
+struct LUIScopedEvent : public LuaScopedEventBase {
+  bool _initializedWithElement;
+  uint8_t _padding59[7];
+
+  struct syms {
+    static inline constexpr symbol<void(LUIScopedEvent *)> destructor{
+        0x142685850, 0x0, 0x0};
+
+    static inline constexpr symbol<void(LUIScopedEvent *, hks::lua_State *luaVM,
+                                        const char *rootName,
+                                        const char *eventName)>
+        LUIScopedEvent{0x142685620, 0x0, 0x0};
+  };
+
+  LUIScopedEvent(hks::lua_State *luaVM, const char *rootName,
+                 const char *eventName) {
+    syms::LUIScopedEvent(this, luaVM, rootName, eventName);
+  }
+
+  ~LUIScopedEvent() { syms::destructor(this); }
+};
+ASSERT_SIZE(LUIScopedEvent, 0x60);
 
 } // namespace lui
 } // namespace lua

@@ -1400,24 +1400,23 @@ struct LuaUIElementFunction {
 };
 
 struct LuaScopedEvent;
-typedef void(__fastcall *LUA_EVENT_FUNC)(LuaScopedEvent *eventBase);
+typedef fastcall_t<void(LuaScopedEvent *eventBase)> LUA_EVENT_FUNC;
 
-struct LuaScopedEvent {
+struct LuaScopedEventBase {
   hks::lua_State *_vm;
-  char _functionName[32];
+  str32_t _functionName;
   int _argCount;
   int _popCount;
   int _returnCount;
   bool _failed;
   bool _finished;
   bool _processed;
-  // Strongly-typed field preserved via anonymous union
-  // to bypass C++ implicit default-initialization requirements
-  union {
-    sys::ScopedCriticalSection _scopedCritSect;
-  };
-  LUA_EVENT_FUNC _pushFn;
-  LUA_EVENT_FUNC _returnFn;
+  sys::ScopedCriticalSectionBase _scopedCritSect;
+  LUA_EVENT_FUNC *_pushFn;
+  LUA_EVENT_FUNC *_returnFn;
+};
+
+struct LuaScopedEvent : public LuaScopedEventBase {
 
   struct syms {
     static inline constexpr symbol<void(LuaScopedEvent *)> destructor{

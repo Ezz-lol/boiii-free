@@ -233,7 +233,7 @@ enum class LobbyType : int32_t {
   LAST = 1,
 };
 constexpr bool validate(const LobbyType lobbyType) {
-  return lobbyType == LobbyType::PRIVATE || lobbyType == LobbyType::GAME;
+  return lobbyType >= LobbyType::PRIVATE && lobbyType <= LobbyType::COUNT;
 }
 IMPL_ENUM_OPERATORS(LobbyType);
 
@@ -310,8 +310,8 @@ serialize(const LobbyNetworkMode mode) {
 }
 
 constexpr bool validate(const LobbyNetworkMode networkMode) {
-  return networkMode > LobbyNetworkMode::UNKNOWN &&
-         networkMode < LobbyNetworkMode::COUNT;
+  return networkMode >= LobbyNetworkMode::UNKNOWN &&
+         networkMode <= LobbyNetworkMode::COUNT;
 }
 
 enum class LobbyMainMode : int32_t {
@@ -341,7 +341,7 @@ IMPL_ENUM_OPERATORS(LobbyMainMode);
 }
 
 constexpr bool validate(const LobbyMainMode mainMode) {
-  return mainMode >= LobbyMainMode::CP && mainMode < LobbyMainMode::COUNT;
+  return mainMode >= LobbyMainMode::CP && mainMode <= LobbyMainMode::COUNT;
 }
 
 enum class LobbyModule : int32_t {
@@ -405,7 +405,7 @@ IMPL_ENUM_OPERATORS(LobbyMode);
 }
 
 constexpr bool validate(const LobbyMode mode) {
-  return mode >= LobbyMode::PUBLIC && mode < LobbyMode::COUNT;
+  return mode >= LobbyMode::PUBLIC && mode <= LobbyMode::COUNT;
 }
 
 enum class PartyPrivacy : int32_t {

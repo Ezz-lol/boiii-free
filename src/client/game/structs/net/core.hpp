@@ -152,6 +152,16 @@ union netipv4_t {
   [[nodiscard]] constexpr bool is_zero() const noexcept {
     return a == 0 && b == 0 && c == 0 && d == 0;
   }
+
+  [[nodiscard]] constexpr int32_t cmp(const netipv4_t &other) const noexcept {
+    for (int32_t i = 0; i < std::size(parts); ++i) {
+      if (parts[i] != other.parts[i]) {
+        return static_cast<int32_t>(parts[i]) -
+               static_cast<int32_t>(other.parts[i]);
+      }
+    }
+    return 0;
+  }
 };
 
 enum class netadrtype_t : int32_t {
@@ -164,6 +174,11 @@ enum class netadrtype_t : int32_t {
   INVALID = -1
 };
 IMPL_ENUM_OPERATORS(netadrtype_t);
+
+[[nodiscard]] constexpr bool validate(const netadrtype_t type) {
+  return type == netadrtype_t::BOT || type == netadrtype_t::LOOPBACK ||
+         type == netadrtype_t::RAWIP || type == netadrtype_t::IP;
+}
 
 inline constexpr const char *serialize(netadrtype_t type) {
   switch (type) {
@@ -193,6 +208,10 @@ enum class netsrc_t : int32_t {
   PACKET = 0x5,
 };
 IMPL_ENUM_OPERATORS(netsrc_t);
+
+[[nodiscard]] constexpr bool validate(const netsrc_t src) {
+  return src >= netsrc_t::CLIENT1 && src <= netsrc_t::PACKET;
+}
 
 inline constexpr const char *serialize(netsrc_t src) {
   switch (src) {
@@ -227,8 +246,8 @@ struct netadr_t {
   };
 
   uint16_t port = 0;
-  netadrtype_t type = netadrtype_t::INVALID;
-  netsrc_t localNetID = netsrc_t::NS_NULL;
+  netadrtype_t type = netadrtype_t::LOOPBACK;
+  netsrc_t localNetID = netsrc_t::CLIENT1;
 
   [[nodiscard]] inline std::string toString() const noexcept {
     return std::format("{}:{}", ipv4.toString(), port);
@@ -257,6 +276,58 @@ struct netadr_t {
 
   [[nodiscard]] constexpr bool is_zero_ip() const noexcept {
     return ipv4.is_zero();
+  }
+
+  [[nodiscard]] constexpr bool is_invalid() const noexcept {
+    return is_zero_ip() && port == 0 && !validate(type) &&
+           !validate(localNetID);
+  }
+
+  [[nodiscard]] constexpr int32_t cmp(const netadr_t &other) const noexcept {
+    if (type != other.type) {
+      return static_cast<int32_t>(type) - static_cast<int32_t>(other.type);
+    }
+
+    if (localNetID == other.localNetID || localNetID == netsrc_t::SERVER ||
+        other.localNetID == netsrc_t::SERVER) {
+
+      if (type == netadrtype_t::IP) {
+        if (port == other.port) {
+          return ipv4.cmp(other.ipv4);
+        }
+        return static_cast<int32_t>(port) - static_cast<int32_t>(other.port);
+      }
+      return 0;
+    }
+    return static_cast<int32_t>(localNetID) -
+           static_cast<int32_t>(other.localNetID);
+  }
+
+  [[nodiscard]] constexpr int32_t cmpBase(const netadr_t &other,
+                                          bool skipLocalClient) const noexcept {
+    if (type != other.type) {
+      return static_cast<int32_t>(type) - static_cast<int32_t>(other.type);
+    }
+
+    if (type != netadrtype_t::LOOPBACK && type != netadrtype_t::BOT) {
+      if (skipLocalClient || localNetID == other.localNetID ||
+          localNetID == netsrc_t::SERVER ||
+          other.localNetID == netsrc_t::SERVER) {
+
+        if (type == netadrtype_t::IP || type == netadrtype_t::RAWIP) {
+          return ipv4.cmp(other.ipv4);
+        }
+        return 0;
+      }
+      return static_cast<int32_t>(localNetID) -
+             static_cast<int32_t>(other.localNetID);
+    }
+
+    return static_cast<int32_t>(port) - static_cast<int32_t>(other.port);
+  }
+
+  constexpr bool operator==(const netadr_t &other) const noexcept {
+    return cmp(other) == 0;
   }
 };
 ASSERT_SIZE(netadr_t, 0x10);

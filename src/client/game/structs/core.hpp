@@ -476,13 +476,13 @@ enum ClientNum_t : int32_t {
 IMPL_ENUM_OPERATORS(ClientNum_t);
 
 constexpr bool validate(const ClientNum_t clientNum) {
-  return clientNum >= ClientNum_t::CLIENT_INDEX_0 &&
-         clientNum < ClientNum_t::CLIENT_INDEX_COUNT;
+  return (clientNum >= ClientNum_t::CLIENT_INDEX_0 &&
+          clientNum < ClientNum_t::CLIENT_INDEX_COUNT);
 }
 
-constexpr bool validate_count(const ClientNum_t count) {
-  return count >= ClientNum_t::CLIENT_INDEX_0 &&
-         count <= ClientNum_t::CLIENT_INDEX_COUNT;
+constexpr bool validate_count(const ClientNum_t clientNum) {
+  return (clientNum >= ClientNum_t::CLIENT_INDEX_0 &&
+          clientNum <= ClientNum_t::CLIENT_INDEX_COUNT);
 }
 
 constexpr const char *serialize(const ClientNum_t clientNum) {
@@ -730,6 +730,8 @@ enum class eGameModes : int32_t {
   RTS = 0x7,
   COUNT = 0x8,
   INVALID = 0x8,
+
+  MASK = 0xF
 };
 IMPL_ENUM_OPERATORS(eGameModes);
 constexpr bool validate(const eGameModes gamemode) {
@@ -772,7 +774,7 @@ enum class eModes : uint32_t {
 };
 IMPL_ENUM_OPERATORS(eModes);
 constexpr bool validate(const eModes mode) {
-  return mode >= eModes::ZOMBIES && mode < eModes::COUNT;
+  return mode >= eModes::ZOMBIES && mode <= eModes::COUNT;
 }
 
 inline constexpr const char *serialize(const eModes mode) {

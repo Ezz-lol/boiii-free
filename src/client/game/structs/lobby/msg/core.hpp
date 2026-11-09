@@ -347,10 +347,15 @@ struct LobbyMsg {
 
   // If we're expecting array to be terminated here, validate termination is
   // received. Otherwise, validate array element has been received.
-  bool package_next_element(const bool hasElement, bool &result) {
-    result &= package_element(hasElement) == hasElement;
-    return result && hasElement;
+  bool validated_package_element(bool addElement) {
+    return package_element(addElement) == addElement;
   }
+
+  bool validated_package_element(bool addElement, bool &result) {
+    result &= validated_package_element(addElement);
+    return addElement;
+  }
+
   bool package_arrayStart(const std::string_view &key);
   bool prep_readMsg();
   bool prep_readMsg(net::msg::msg_t *msg);
@@ -435,7 +440,7 @@ struct LobbyMsg {
   template <Packageable T>
   alwaysinline bool package(T *data, const size_t count) {
     bool result = true;
-    for (size_t i = 0; package_next_element(i < count, result); ++i) {
+    for (size_t i = 0; validated_package_element(i < count, result); ++i) {
       result &= package(data[i]);
     }
 

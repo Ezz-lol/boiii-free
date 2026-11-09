@@ -383,6 +383,7 @@ struct SessionClient {
   }
 };
 ASSERT_OFFSET(SessionClient, xuid, 0x0);
+ASSERT_OFFSET(SessionClient, activeClient, 0x8);
 // Verified
 ASSERT_SIZE(SessionClient, 0x30);
 
