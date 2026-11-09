@@ -345,6 +345,8 @@ struct Join {
   int32_t hostCount;
   int32_t processedCount;
   bool isFinalized;
+  // JoinHost is packed, so it isn't aligned on its own
+  uint8_t _padding1F71[7];
   JoinHost potentialHost;
   Agreement agreement;
   Agreement debugAgreement;
@@ -374,6 +376,7 @@ struct Join {
         join::serialize(joinType), probedXuid, join::serialize(joinResult));
   }
 };
+ASSERT_OFFSET(Join, potentialHost, 0x1F78);
 ASSERT_OFFSET(Join, joinResult, 0x2838);
 
 struct JoinClient {

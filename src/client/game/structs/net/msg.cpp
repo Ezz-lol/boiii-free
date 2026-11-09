@@ -256,7 +256,6 @@ void msg_t::write_float(float f) {
     overflowed = qtrue;
   } else {
     write_long(std::bit_cast<int32_t>(f));
-    cursize += sizeof(float);
   }
 }
 

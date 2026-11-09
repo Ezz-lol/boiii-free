@@ -14,7 +14,7 @@ WEAK symbol<BuiltinUGCPool> builtinUsermapsPool{0x156734600, 0x1567B3580,
                                                 0x149364EE8};
 extern ExtendedUGCPool usermapsPool;
 
-WEAK symbol<bool()> UGC_ActiveMod_Loaded{0x1420C88A0, 0x1420D5020, 0x0};
+WEAK symbol<bool()> UGC_ActiveMod_Loaded{0x1420C88A0, 0x1420D5020, 0x1404E1200};
 WEAK symbol<const char *()> UGC_ActiveMod_PublisherId{0x1420CAF00, 0x1420D7680,
                                                       0x1404E3230};
 WEAK symbol<void(LocalClientNum_t localClientNum, UGCItem *mod, bool reloadFS)>

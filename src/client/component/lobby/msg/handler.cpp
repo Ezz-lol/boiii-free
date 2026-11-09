@@ -94,7 +94,10 @@ class component final : public generic_component {
 
 public:
   void post_unpack() override {
-    replace_message_handlers();
+    // Most of what the handlers call has no legacy address
+    if (!game::is_legacy_client()) {
+      replace_message_handlers();
+    }
     HandlePacketInternal_hook.create(HandlePacketInternal,
                                      HandlePacketInternal_Trace);
   }

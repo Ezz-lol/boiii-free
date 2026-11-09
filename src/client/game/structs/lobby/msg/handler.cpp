@@ -6,6 +6,23 @@ namespace game {
 namespace lobby {
 
 namespace msg {
+namespace {
+// The engine writes nominees up to the first empty slot, but its read keeps
+// going until the sender ends the array
+bool package_nominees(LobbyMsg &lobbyMsg, LobbyClientPool<XUID> &nominees) {
+  bool result = lobbyMsg.package_arrayStart("nomineelist");
+  for (size_t nomineeIdx = 0; result; ++nomineeIdx) {
+    const bool hasNominee =
+        nomineeIdx < std::size(nominees) && nominees[nomineeIdx] != 0;
+    if (!lobbyMsg.package_element(hasNominee)) {
+      break;
+    }
+    result = nomineeIdx < std::size(nominees) &&
+             lobbyMsg.package_xuid("xuid", &nominees[nomineeIdx]);
+  }
+  return result;
+}
+} // namespace
 
 bool MsgMutableClientInfo::package(LobbyMsg &lobbyMsg) {
   bool result =
@@ -188,15 +205,7 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
   }
   result &= lobbyMsg.package_uchar("migratebits", &migrateInfo.indexBits) &&
             lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS);
-  result &= lobbyMsg.package_arrayStart("nomineelist");
-  for (size_t nomineeIdx = 0;
-       result && lobbyMsg.package_element(
-                     nomineeIdx < std::size(migrateInfo.migrateNominees));
-       ++nomineeIdx) {
-    result &=
-        lobbyMsg.package_xuid("xuid", &migrateInfo.migrateNominees[nomineeIdx]);
-  }
-  return result;
+  return result && package_nominees(lobbyMsg, migrateInfo.migrateNominees);
 }
 
 bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
@@ -300,7 +309,9 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
                                 &client.characterSelection.characterIndex) &&
           lobbyMsg.package_uint("loadout",
                                 &client.characterSelection.loadoutType) &&
-          validate(client.characterSelection.loadoutType);
+          (client.characterSelection.loadoutType ==
+               heroLoadoutTypes_e::INVALID ||
+           validate(client.characterSelection.loadoutType));
     }
 
     if (!result) {
@@ -314,7 +325,10 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
     if (!result) {
       return false;
     }
-    return result && lobbyMsg.package_glob("settings", getCompressedBuffer()) &&
+    if (compressedBufferSize > 0) {
+      result &= lobbyMsg.package_glob("settings", getCompressedBuffer());
+    }
+    return result &&
            lobbyMsg.package_int("compstate", &dataGame.pregameState) &&
            validate(dataGame.pregameState) &&
            lobbyMsg.package_string("customname",
@@ -333,7 +347,8 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
            lobbyMsg.package_bool("isuserfile", &dataGame.isUserFile) &&
            lobbyMsg.package_bool("islivestream", &dataGame.isLiveStream) &&
            lobbyMsg.package_int("mainmode", &dataGame.mainMode) &&
-           validate(dataGame.mainMode) &&
+           (dataGame.mainMode == eModes::INVALID ||
+            validate(dataGame.mainMode)) &&
            lobbyMsg.package_string("demomode", dataGame.demoMode) &&
            lobbyMsg.package_string("filecategory", dataGame.fileCategory) &&
            lobbyMsg.package_xuid("authorxuid", &dataGame.authorXUID);
@@ -381,6 +396,7 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
       session::GameClientData &client = dataGame.client[clientIdx];
       result &=
           lobbyMsg.package_int("team", &client.team) && validate(client.team) &&
+          lobbyMsg.package_int("mapvote", &client.mapVote) &&
           lobbyMsg.package_int("pregamepos", &client.pregamePosition) &&
           lobbyMsg.package_int("pregamestate", &client.pregameState) &&
           validate(client.pregameState) &&
@@ -390,7 +406,9 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
                                 &client.characterSelection.characterIndex) &&
           lobbyMsg.package_uint("loadout",
                                 &client.characterSelection.loadoutType) &&
-          validate(client.characterSelection.loadoutType);
+          (client.characterSelection.loadoutType ==
+               heroLoadoutTypes_e::INVALID ||
+           validate(client.characterSelection.loadoutType));
     }
     return result && lobbyMsg.package_int("plistid", &dataGame.playlistId) &&
            lobbyMsg.package_int("plistcurr", &dataGame.playlistCurrentEntry) &&
@@ -408,16 +426,7 @@ bool Msg_LobbyHostHeartbeat::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package_int("heartbeatnum", &heartbeatNum) &&
       lobbyMsg.package_int("lobbytype", &lobbyType) && validate(lobbyType) &&
       lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS) &&
-      lobbyMsg.package_arrayStart("nomineelist");
-
-  for (ClientNum_t nomineeIdx = ClientNum_t::CLIENT_INDEX_0;
-       result && lobbyMsg.package_element(
-                     nomineeIdx < std::size(migrateInfo.migrateNominees) &&
-                     migrateInfo.migrateNominees[nomineeIdx] == 0);
-       ++nomineeIdx) {
-    result &=
-        lobbyMsg.package_xuid("xuid", &migrateInfo.migrateNominees[nomineeIdx]);
-  }
+      package_nominees(lobbyMsg, migrateInfo.migrateNominees);
   return result;
 }
 
