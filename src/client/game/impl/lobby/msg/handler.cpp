@@ -1170,6 +1170,18 @@ void HandleMigrateAnnounceHost(ControllerIndex_t controllerIndex,
   }
 }
 
+void HandleIngameMigrateTo(ControllerIndex_t controllerIndex,
+                           net::netadr_t *fromAdr, XUID fromXUID,
+                           LobbyMsg *lobbyMsg) {
+  Msg_LobbyIngameMigrateMigrateTo msgData{};
+
+  if (msgData.package(*lobbyMsg)) {
+    migrate::LobbyInGameMigrateClient_HandleMigrateTo(
+        controllerIndex, client::LobbyClientData_GetSession(msgData.lobbyType),
+        &msgData);
+  }
+}
+
 void HandleIngameMigrateNewHost(ControllerIndex_t controllerIndex,
                                 net::netadr_t *fromAdr, XUID fromXUID,
                                 LobbyMsg *lobbyMsg) {

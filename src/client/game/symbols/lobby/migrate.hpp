@@ -34,6 +34,10 @@ WEAK symbol<void(ControllerIndex_t controllerIndex,
                  msg::Msg_LobbyIngameMigrateNewHost *msgData)>
     LobbyInGameMigrateClient_HandleSessionInfoMsg{0x141EC2450, 0x0,
                                                   0x140482AD0};
+WEAK symbol<void(ControllerIndex_t controllerIndex,
+                 session::LobbySession *clientSession,
+                 msg::Msg_LobbyIngameMigrateMigrateTo *msgData)>
+    LobbyInGameMigrateClient_HandleMigrateTo{0x141EC23C0, 0x0, 0x140482A40};
 } // namespace migrate
 } // namespace lobby
 } // namespace game
