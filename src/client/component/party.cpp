@@ -37,40 +37,31 @@ game::EngineDependentDvarMut cl_server_discord;
 namespace {
 constexpr uint16_t DEFAULT_SERVER_PORT = 27017;
 
-bool is_valid_discord_invite(const std::string& url)
-{
-    constexpr std::string_view discord_gg = "https://discord.gg/";
-    constexpr std::string_view discord_com = "https://discord.com/invite/";
+bool is_valid_discord_invite(const std::string &url) {
+  constexpr std::string_view discord_gg = "https://discord.gg/";
+  constexpr std::string_view discord_com = "https://discord.com/invite/";
 
-    std::string_view code;
+  std::string_view code;
 
-    if (url.starts_with(discord_gg))
-    {
-        code = std::string_view(url).substr(discord_gg.size());
-    }
-    else if (url.starts_with(discord_com))
-    {
-        code = std::string_view(url).substr(discord_com.size());
-    }
-    else
-    {
-        return false;
-    }
+  if (url.starts_with(discord_gg)) {
+    code = std::string_view(url).substr(discord_gg.size());
+  } else if (url.starts_with(discord_com)) {
+    code = std::string_view(url).substr(discord_com.size());
+  } else {
+    return false;
+  }
 
-    if (code.empty() || code.size() > 64)
-    {
-        return false;
-    }
+  if (code.empty() || code.size() > 64) {
+    return false;
+  }
 
-    for (const unsigned char c : code)
-    {
-        if (!std::isalnum(c) && c != '-' && c != '_')
-        {
-            return false;
-        }
+  for (const unsigned char c : code) {
+    if (!std::isalnum(c) && c != '-' && c != '_') {
+      return false;
     }
+  }
 
-    return true;
+  return true;
 }
 
 std::atomic_bool is_connecting_to_dedi{false};
@@ -445,21 +436,20 @@ void update_server_lobby() {
 
     if (cl_server_discord &&
         !game::get_dvar_string("cl_server_discord").value_or("").empty()) {
-        cl_server_discord.set("");
+      cl_server_discord.set("");
     }
 
     return;
   }
 
-  const bool connected_to_target = network::are_addresses_equal(
-      get_connected_server(), connect_host);
+  const bool connected_to_target =
+      network::are_addresses_equal(get_connected_server(), connect_host);
 
-  const std::string discord =
-      connected_to_target ? pending_server_discord : "";
+  const std::string discord = connected_to_target ? pending_server_discord : "";
 
   if (cl_server_discord &&
       game::get_dvar_string("cl_server_discord").value_or("") != discord) {
-      cl_server_discord.set(discord.c_str());
+    cl_server_discord.set(discord.c_str());
   }
   const bool on_dedi = is_dedi_server(get_connected_server());
   if (cl_connected_to_dedi.get_bool() != on_dedi) {
@@ -672,19 +662,18 @@ void handle_connect_query_response(const bool success,
                                               base_uri) &&
              workshop::check_valid_mod_id(mod_id, {}, base_uri))) {
           if (!network::are_addresses_equal(target, connect_host)) {
-              return;
+            return;
           }
 
           const std::string discord = info.get("discord");
 
           pending_server_discord =
-              info.get("dedicated") == "1" &&
-              is_valid_discord_invite(discord)
+              info.get("dedicated") == "1" && is_valid_discord_invite(discord)
                   ? discord
                   : "";
 
-          connect_in_mode(
-              target, mode, mapname, gametype, usermap_id, mod_id, lobby);
+          connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
+                          lobby);
         } else {
           const char *msg = utils::string::va(
               "Missing or invalid workshop/map dependencies for server %s.",
@@ -702,7 +691,7 @@ void handle_connect_query_response(const bool success,
 void connect_finish(const game::net::netadr_t &target) {
   pending_server_discord.clear();
   if (cl_server_discord) {
-      cl_server_discord.set("");
+    cl_server_discord.set("");
   }
   connect_host = target;
 
@@ -937,28 +926,21 @@ struct component final : client_component {
         "True when connected to a dedicated server");
     scheduler::once(
         [] {
-            cl_server_discord = game::register_dvar_string(
-                "cl_server_discord", "",
-                game::dvarFlags_e::NONE,
-                "Discord invite URL of the connected server");
+          cl_server_discord = game::register_dvar_string(
+              "cl_server_discord", "", game::dvarFlags_e::NONE,
+              "Discord invite URL of the connected server");
         },
         scheduler::pipeline::main);
     command::add("openServerDiscord", [] {
-        const std::string invite{
-            game::get_dvar_string("cl_server_discord").value_or("")};
+      const std::string invite{
+          game::get_dvar_string("cl_server_discord").value_or("")};
 
-        if (!is_valid_discord_invite(invite))
-        {
-            return;
-        }
+      if (!is_valid_discord_invite(invite)) {
+        return;
+      }
 
-        ShellExecuteA(
-            nullptr,
-            "open",
-            invite.c_str(),
-            nullptr,
-            nullptr,
-            SW_SHOWNORMAL);
+      ShellExecuteA(nullptr, "open", invite.c_str(), nullptr, nullptr,
+                    SW_SHOWNORMAL);
     });
 
     live_get_xp_scale_hook.create(game::live::Live_GetXPScale.get(),

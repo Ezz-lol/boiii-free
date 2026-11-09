@@ -77,13 +77,10 @@ struct component final : generic_component {
     scheduler::once(
         [] {
           const std::string configured{
-              game::get_dvar_string("sv_discord").value_or("")
-          };
+              game::get_dvar_string("sv_discord").value_or("")};
 
           sv_discord = game::register_dvar_string(
-              "sv_discord",
-              configured.c_str(),
-              game::dvarFlags_e::NONE,
+              "sv_discord", configured.c_str(), game::dvarFlags_e::NONE,
               "Discord invite URL for this server");
         },
         scheduler::pipeline::main);
@@ -96,11 +93,9 @@ struct component final : generic_component {
       info.set("gamename", "T7");
       info.set("hostname", game::hostname().value_or(""));
       info.set("gametype", game::gametype().value_or(""));
-      info.set(
-          "discord",
-          game::is_server() && sv_discord
-              ? sv_discord.get_string().value_or("")
-              : "");
+      info.set("discord", game::is_server() && sv_discord
+                              ? sv_discord.get_string().value_or("")
+                              : "");
       /*
          Unsure why this is commented out, but important notes in case of
         future restoration:
