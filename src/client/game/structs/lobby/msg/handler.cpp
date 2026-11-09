@@ -10,12 +10,11 @@ namespace msg {
 bool MsgMutableClientInfo::package(LobbyMsg &lobbyMsg) {
   bool result =
       lobbyMsg.package_uint64("lobbyid", &mutableClientInfo.lobbyID) &&
-      lobbyMsg.package_string(
-          "clantag", mutableClientInfo.clantag,
-          static_cast<int32_t>(std::size(mutableClientInfo.clantag)));
+      lobbyMsg.package_string("clantag", mutableClientInfo.clantag,
+                              std::size(mutableClientInfo.clantag));
 
-  for (size_t progIdx = std::size(mutableClientInfo.chunkStatuses); progIdx > 0;
-       --progIdx) {
+  for (size_t progIdx = 0; progIdx < std::size(mutableClientInfo.progression);
+       ++progIdx) {
     ClientProgression &prog = mutableClientInfo.progression[progIdx];
     result &= lobbyMsg.package_uchar("rank", &prog.rank) &&
               lobbyMsg.package_uchar("prestige", &prog.prestige) &&
@@ -188,8 +187,8 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
             lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS);
   result &= lobbyMsg.package_arrayStart("nomineelist");
   for (size_t nomineeIdx = 0;
-       result &= lobbyMsg.validated_package_element(
-           nomineeIdx < std::size(migrateInfo.migrateNominees));
+       result && lobbyMsg.package_element(
+                     nomineeIdx < std::size(migrateInfo.migrateNominees));
        ++nomineeIdx) {
     result &=
         lobbyMsg.package_xuid("xuid", &migrateInfo.migrateNominees[nomineeIdx]);
@@ -405,11 +404,13 @@ bool Msg_LobbyHostHeartbeat::package(LobbyMsg &lobbyMsg) {
   bool result =
       lobbyMsg.package_int("heartbeatnum", &heartbeatNum) &&
       lobbyMsg.package_int("lobbytype", &lobbyType) && validate(lobbyType) &&
-      lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS);
-  result &= lobbyMsg.package_arrayStart("nomineelist");
+      lobbyMsg.package_int("lasthosttimems", &migrateInfo.lasthostTimeMS) &&
+      lobbyMsg.package_arrayStart("nomineelist");
+
   for (ClientNum_t nomineeIdx = ClientNum_t::CLIENT_INDEX_0;
-       result &= lobbyMsg.validated_package_element(
-           nomineeIdx < std::size(migrateInfo.migrateNominees));
+       result && lobbyMsg.package_element(
+                     nomineeIdx < std::size(migrateInfo.migrateNominees) &&
+                     migrateInfo.migrateNominees[nomineeIdx] == 0);
        ++nomineeIdx) {
     result &=
         lobbyMsg.package_xuid("xuid", &migrateInfo.migrateNominees[nomineeIdx]);

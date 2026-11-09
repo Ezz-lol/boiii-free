@@ -215,7 +215,7 @@ void add_profile_info(const game::XUID xuid, const profile_info &info) {
   }
 
 #ifndef NDEBUG
-  game::trace("[profile_info] Adding profile info: %llX\n", xuid);
+  game::trace("[profile_info] Adding profile info: {:X}", xuid);
 #endif
 
   profile_mapping.access([&](profile_map &profiles) { profiles[xuid] = info; });

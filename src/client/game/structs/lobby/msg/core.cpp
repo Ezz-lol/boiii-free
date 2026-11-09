@@ -110,16 +110,14 @@ bool LobbyMsg::package_uchar(const std::string_view &key, uint8_t *val) {
 
 bool LobbyMsg::package_string(const std::string_view &key, char *val,
                               size_t maxChar) {
-  if (packageType == PackageType::NONE) {
+  switch (packageType) {
+  case PackageType::NONE:
     return false;
-  }
-  if (packageType != PackageType::WRITE) {
+  case PackageType::WRITE:
+    return std::strlen(val) <= maxChar && write_string(key, val);
+  case PackageType::READ:
     return read_string(key, val, maxChar);
   }
-  if (std::strlen(val) > maxChar) {
-    return false;
-  }
-  return write_string(key, val);
 }
 
 bool LobbyMsg::package_uint64(const std::string_view &key, uint64_t *val) {

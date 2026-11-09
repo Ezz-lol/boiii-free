@@ -75,11 +75,29 @@ inline void replace_message_handlers() {
   replace_p2p_messageHandlers();
 }
 
+utils::hook::detour HandlePacketInternal_hook;
+bool HandlePacketInternal_Trace(ControllerIndex_t controllerIndex,
+                                net::netadr_t *fromAdr, XUID fromXuid,
+                                LobbyType lobbyType, LobbyModule destModule,
+                                net::msg::msg_t *msg) {
+  game::trace("[Lobby][Msg][{}] HandlePacketInternal called with fromAdr: {}, "
+              "fromXuid: {:016X}, lobbyType: {}, destModule: {}, msg: {:p}",
+              game::serialize(controllerIndex), ::serialize(fromAdr), fromXuid,
+              game::lobby::serialize(lobbyType), serialize(destModule),
+              reinterpret_cast<void *>(msg));
+  return HandlePacketInternal_hook.invoke<bool>(
+      controllerIndex, fromAdr, fromXuid, lobbyType, destModule, msg);
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lobby/msg/handler");
 
 public:
-  void post_unpack() override { replace_message_handlers(); }
+  void post_unpack() override {
+    replace_message_handlers();
+    HandlePacketInternal_hook.create(HandlePacketInternal,
+                                     HandlePacketInternal_Trace);
+  }
 };
 } // namespace msg
 } // namespace lobby

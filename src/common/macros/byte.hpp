@@ -1,7 +1,9 @@
 #pragma once
 
+#include <concepts>
 #include <cstdint>
 #include <type_traits>
+#include <bit>
 
 inline constexpr uint64_t byteswap(uint64_t val) {
 #if defined(__GNUC__) || defined(__clang__)
@@ -63,4 +65,20 @@ template <typename T>
            std::is_convertible_v<T, uint16_t>)
 inline constexpr T byteswap(T val) {
   return static_cast<T>(byteswap(static_cast<uint16_t>(val)));
+}
+
+template <std::integral T> constexpr T letoh(T value) noexcept {
+  if constexpr (std::endian::native == std::endian::big) {
+    return byteswap(value);
+  } else {
+    return value;
+  }
+}
+
+template <std::integral T> constexpr T htole(T value) noexcept {
+  if constexpr (std::endian::native == std::endian::big) {
+    return byteswap(value);
+  } else {
+    return value;
+  }
 }

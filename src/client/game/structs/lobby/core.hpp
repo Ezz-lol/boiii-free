@@ -233,7 +233,7 @@ enum class LobbyType : int32_t {
   LAST = 1,
 };
 constexpr bool validate(const LobbyType lobbyType) {
-  return lobbyType >= LobbyType::PRIVATE && lobbyType < LobbyType::COUNT;
+  return lobbyType == LobbyType::PRIVATE || lobbyType == LobbyType::GAME;
 }
 IMPL_ENUM_OPERATORS(LobbyType);
 

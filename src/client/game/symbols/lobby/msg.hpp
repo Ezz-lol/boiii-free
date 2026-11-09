@@ -31,6 +31,11 @@ WEAK symbol<bool(const ControllerIndex_t controllerIndex,
                  msg::Msg_VoicePacket *msgData, net::NetChanMsgType_e channel)>
     LobbyMsg_SendToHost_Voice{0x141EE4970, 0x0, 0x1404A2290};
 
+WEAK symbol<bool(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
+                 XUID fromXuid, LobbyType lobbyType, LobbyModule destModule,
+                 net::msg::msg_t *msg)>
+    HandlePacketInternal{0x141EEB860, 0x141EF7FE0, 0x1404A5B90};
+
 inline bool LobbyMsg_SendToHost(ControllerIndex_t controllerIndex,
                                 session::LobbySession *lobbySession,
                                 msg::Msg_VoicePacket *msgData,

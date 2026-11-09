@@ -80,7 +80,7 @@ int32_t msg_t::read_long() {
                  // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
                  (static_cast<uint32_t>(b3) << 24);
 
-  return static_cast<int32_t>(ntohl(val));
+  return static_cast<int32_t>(letoh(val));
 }
 
 float msg_t::read_float() {
@@ -117,7 +117,7 @@ int64_t msg_t::read_int64() {
       // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
       (static_cast<uint64_t>(b6) << 48) | (static_cast<uint64_t>(b7) << 56);
 
-  return static_cast<int64_t>(ntohll(l));
+  return static_cast<int64_t>(letoh(l));
 }
 
 int16_t msg_t::read_short() {
@@ -130,8 +130,8 @@ int16_t msg_t::read_short() {
   uint8_t b1 = read_byte();
 
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-  uint16_t val = static_cast<uint16_t>(b0 | (b1 << 8));
-  return static_cast<int16_t>(ntohs(val));
+  uint16_t val = static_cast<uint16_t>(b0) | (static_cast<uint16_t>(b1) << 8);
+  return static_cast<int16_t>(letoh(val));
 }
 
 char *msg_t::read_string(char *string, size_t maxChars) {
@@ -200,7 +200,7 @@ void msg_t::write_long(int32_t c) {
     overflowed = qtrue;
   } else {
     *reinterpret_cast<uint32_t *>(data + cursize) =
-        htonl(static_cast<uint32_t>(c));
+        htole(static_cast<uint32_t>(c));
     cursize += sizeof(int32_t);
   }
 }
@@ -210,7 +210,7 @@ void msg_t::write_int64(int64_t c) {
     overflowed = qtrue;
   } else {
     *reinterpret_cast<uint64_t *>(data + cursize) =
-        htonll(static_cast<uint64_t>(c));
+        htole(static_cast<uint64_t>(c));
     cursize += sizeof(int64_t);
   }
 }
@@ -220,7 +220,7 @@ void msg_t::write_short(int16_t c) {
     overflowed = qtrue;
   } else {
     *reinterpret_cast<uint16_t *>(data + cursize) =
-        htons(static_cast<uint16_t>(c));
+        htole(static_cast<uint16_t>(c));
     cursize += sizeof(int16_t);
   }
 }

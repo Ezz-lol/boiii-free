@@ -64,6 +64,14 @@ void HandleAgreementResponse(ControllerIndex_t controllerIndex,
       debug::LobbyDebug_AgreementCount(0);
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace(
+        "[Lobby][Message][{}] Host received invalid join agreement response "
+        "from client ({:016X} @ {})",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize());
+  }
+#endif
 }
 
 // P2P
@@ -92,6 +100,14 @@ void LobbyPeerToPeer_HandleConnectivityTest(ControllerIndex_t controllerIndex,
                                             newConnectivityBits);
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Peer received invalid connectivity test "
+                "from peer ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // P2P
@@ -110,12 +126,21 @@ void HandleDemoState(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
     demo::Demo_ReadHeartbeat(
         com::Com_ControllerIndex_GetLocalClientNum(controllerIndex), &msgData);
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Peer received invalid demo state "
+                "from peer ({:016X} @ {})",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize());
+  }
+#endif
 }
 
 // Host <- Client
 void HandleMemberInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
                       XUID fromXUID, LobbyMsg *lobbyMsg) {
   Msg_JoinMemberInfo msgData{};
+
   if (msgData.package(*lobbyMsg)) {
 #ifndef NDEBUG
     game::trace("[Lobby][Message][{}] Host received member info "
@@ -148,6 +173,14 @@ void HandleMemberInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
           msgData.fixedClientInfoMsg.fixedClientInfo.xuid);
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Host received member info "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Host <- Client
@@ -181,6 +214,14 @@ void HandleServerInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
         ++serverList.count;
       }
     }
+#ifndef NDEBUG
+    else {
+      game::trace("[Lobby][Message][{}] Host received invalid server info "
+                  "from client ({:016X} @ {}): {}",
+                  game::serialize(controllerIndex), fromXUID,
+                  fromAdr->serialize(), msgData.serialize());
+    }
+#endif
   }
 }
 
@@ -188,6 +229,7 @@ void HandleServerInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
 void HandleJoinRequest(ControllerIndex_t controllerIndex,
                        net::netadr_t *fromAdr, XUID fromXUID,
                        LobbyMsg *lobbyMsg) {
+
   ControllerIndex_t activeControllerIndex = controllerIndex;
   net::netadr_t targetAdr = {};
   if (fromAdr != nullptr) {
@@ -324,6 +366,14 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
                                          LobbyModule::HOST, targetAdr, fromXUID,
                                          joinResponse);
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Host received invalid join request "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // P2P
@@ -360,6 +410,14 @@ void HandleP2PVoicePacket(ControllerIndex_t controllerIndex,
       }
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Peer received invalid voice packet "
+                "from peer ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Host <- Client
@@ -379,6 +437,14 @@ void HandleHostClientVoicePacket(ControllerIndex_t controllerIndex,
     voice::LobbyVoice_HandleVoicePacket(
         controllerIndex, LobbyHostData_GetSession(msgData.lobbyType), &msgData);
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Host received invalid voice packet "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Host <- Client
@@ -387,6 +453,7 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
                         LobbyMsg *lobbyMsg) {
   const char *failReason = nullptr;
   Msg_JoinResponse msgData{};
+
   if (msgData.package(*lobbyMsg) &&
       join::s_join->state == join::JoinSourceState::HANDSHAKING) {
 #ifndef NDEBUG
@@ -494,6 +561,14 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
       join::Host_ChangeState(join::s_join->sourceLobbyType);
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Host received invalid join response "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // P2P
@@ -518,6 +593,14 @@ void HandleMigrateStart(ControllerIndex_t controllerIndex,
       migrate::LobbyMigrate_HandleLobbyMigrateTo(session, msgData.migrateTo);
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Peer received invalid migration start "
+                "from peer ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Host <- Client
@@ -639,6 +722,14 @@ void Host_HandleClientContent(ControllerIndex_t controllerIndex,
       }
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Host received invalid client content "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Host <- Client
@@ -659,6 +750,14 @@ void HandleModifiedStats(ControllerIndex_t controllerIndex,
     sv::SV_ReceiveModifiedStats(fromXUID, msgData.statsBuffer,
                                 msgData.statsSize);
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Host received invalid modified stats "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Host <- Client
@@ -684,6 +783,14 @@ void HandleClientDisconnect(ControllerIndex_t controllerIndex,
                                    "received client disconnect message");
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Host received invalid disconnect "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Host <- Client
@@ -715,6 +822,15 @@ void HandlePeerToPeerUpdate(ControllerIndex_t controllerIndex,
       }
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace(
+        "[Lobby][Message][{}] Host received invalid peer to peer update "
+        "from client ({:016X} @ {}): {}",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+        msgData.serialize());
+  }
+#endif
 }
 
 // Host <- Client
@@ -895,6 +1011,14 @@ void HandleClientReliableData(ControllerIndex_t controllerIndex,
       }
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Host received invalid reliable data"
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Host <- Client
@@ -925,6 +1049,14 @@ void HandleLobbyClientHeartbeat(ControllerIndex_t controllerIndex,
       session::LobbySession_SetAllLobbySessionsDirty(7);
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Host received invalid heartbeat "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // P2P
@@ -946,6 +1078,15 @@ void HandleMigrateBandwidthTest(ControllerIndex_t controllerIndex,
     migrate::LobbyMigrateClient_HandleTestPacket(
         controllerIndex, session, fromAdr, msgData.peerXuid, &msgData);
   }
+#ifndef NDEBUG
+  else {
+    game::trace(
+        "[Lobby][Message][{}] Peer received invalid migrate bandwidth test "
+        "from peer ({:016X} @ {}): {}",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+        msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -975,6 +1116,15 @@ void HandleLobbyStatePrivate(ControllerIndex_t controllerIndex,
       session::LobbySession_DirtySet(session, 2);
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace(
+        "[Lobby][Message][{}] Client received invalid lobby state private "
+        "from host ({:016X} @ {}): {}",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+        msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -982,6 +1132,7 @@ void HandleLobbyStateGame(ControllerIndex_t controllerIndex,
                           net::netadr_t *fromAdr, XUID fromXUID,
                           LobbyMsg *lobbyMsg) {
   Msg_LobbyStateGame msgData{};
+
   if (msgData.package(*lobbyMsg) && msgData.core.lobbyType == LobbyType::GAME) {
 #ifndef NDEBUG
     game::trace("[Lobby][Message][{}] Client received lobby state game "
@@ -1114,6 +1265,14 @@ void HandleLobbyStateGame(ControllerIndex_t controllerIndex,
       }
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Client received invalid lobby state game "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -1122,6 +1281,7 @@ void HandleLobbyHostHeartbeat(ControllerIndex_t controllerIndex,
                               LobbyMsg *lobbyMsg) {
 
   Msg_LobbyHostHeartbeat msgData{};
+
   if (msgData.package(*lobbyMsg)) {
 #ifndef NDEBUG
     game::trace("[Lobby][Message][{}] Client received heartbeat "
@@ -1142,13 +1302,20 @@ void HandleLobbyHostHeartbeat(ControllerIndex_t controllerIndex,
         if (!map.has_value() || !map.value().starts_with("cp_sh")) {
           return;
         }
-        // Note: TAC protected on client. Needs to be re-implemented.
-        com::Com_UpdateScriptBunkCollectibles(controllerIndex);
+        com::Com_UpdateScriptBunkCollectibles.call_safe(controllerIndex);
       }
       client::LobbyClientMsg_SendClientHeartbeat(controllerIndex,
                                                  session->type);
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Client received invalid heartbeat "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -1156,6 +1323,7 @@ void HandleHostDisconnect(ControllerIndex_t controllerIndex,
                           net::netadr_t *fromAdr, XUID fromXUID,
                           LobbyMsg *lobbyMsg) {
   Msg_LobbyHostDisconnect msgData{};
+
   if (msgData.package(*lobbyMsg)) {
 #ifndef NDEBUG
     game::trace("[Lobby][Message][{}] Client received disconnect host "
@@ -1184,6 +1352,14 @@ void HandleHostDisconnect(ControllerIndex_t controllerIndex,
       }
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Client received invalid disconnect host "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -1191,6 +1367,7 @@ void HandleHostDisconnectClient(ControllerIndex_t controllerIndex,
                                 net::netadr_t *fromAdr, XUID fromXUID,
                                 LobbyMsg *lobbyMsg) {
   Msg_LobbyDisconnectClient msgData{};
+
   if (msgData.package(*lobbyMsg)) {
 #ifndef NDEBUG
     game::trace("[Lobby][Message][{}] Client received disconnect client "
@@ -1211,6 +1388,15 @@ void HandleHostDisconnectClient(ControllerIndex_t controllerIndex,
       }
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace(
+        "[Lobby][Message][{}] Client received invalid disconnect client "
+        "from host ({:016X} @ {}): {}",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+        msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -1237,6 +1423,15 @@ void HandleHostLeaveWithParty(ControllerIndex_t controllerIndex,
       }
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace(
+        "[Lobby][Message][{}] Client received invalid host leave with party "
+        "from host ({:016X} @ {}): {}",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+        msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -1274,6 +1469,15 @@ void HandleAgreementRequest(ControllerIndex_t controllerIndex,
         join::SendDisagree(&joinClient);
       }
     }
+#ifndef NDEBUG
+    else {
+      game::trace(
+          "[Lobby][Message][{}] Client received invalid join agreement request "
+          "from host ({:016X} @ {}): {}",
+          game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+          msgData.serialize());
+    }
+#endif
   }
 }
 
@@ -1284,6 +1488,7 @@ void HandleJoinComplete(ControllerIndex_t controllerIndex,
 
   join::JoinClient &client = (*join::s_joinClient)[controllerIndex];
   Msg_JoinComplete msgData{};
+
   if (msgData.package(*lobbyMsg) &&
       !client.potentialHost.info.netAdr.is_zero_ip()) {
 #ifndef NDEBUG
@@ -1369,6 +1574,14 @@ void HandleJoinComplete(ControllerIndex_t controllerIndex,
       join::LobbyJoin_DisconnectFromHost(&client.potentialHost.info);
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Client received invalid join complete "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -1376,6 +1589,7 @@ void HandleMigrateAnnounceHost(ControllerIndex_t controllerIndex,
                                net::netadr_t *fromAdr, XUID fromXUID,
                                LobbyMsg *lobbyMsg) {
   Msg_LobbyMigrateAnnounceHost msgData{};
+
   if (msgData.package(*lobbyMsg) && !fromAdr->is_zero_ip()) {
 #ifndef NDEBUG
     game::trace("[Lobby][Message][{}] Client received migrate announce host "
@@ -1388,6 +1602,15 @@ void HandleMigrateAnnounceHost(ControllerIndex_t controllerIndex,
         client::LobbyClientData_GetSession(msgData.lobbyType), &msgData,
         fromXUID);
   }
+#ifndef NDEBUG
+  else {
+    game::trace(
+        "[Lobby][Message][{}] Client received invalid migrate announce host "
+        "from host ({:016X} @ {}): {}",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+        msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -1407,6 +1630,15 @@ void HandleIngameMigrateTo(ControllerIndex_t controllerIndex,
         controllerIndex, client::LobbyClientData_GetSession(msgData.lobbyType),
         &msgData);
   }
+#ifndef NDEBUG
+  else {
+    game::trace(
+        "[Lobby][Message][{}] Client received invalid in-game migrate to "
+        "from host ({:016X} @ {}): {}",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+        msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -1427,6 +1659,16 @@ void HandleIngameMigrateNewHost(ControllerIndex_t controllerIndex,
         controllerIndex, client::LobbyClientData_GetSession(msgData.lobbyType),
         &msgData);
   }
+
+#ifndef NDEBUG
+  else {
+    game::trace(
+        "[Lobby][Message][{}] Client received invalid in-game migrate new host "
+        "from host ({:016X} @ {}): {}",
+        game::serialize(controllerIndex), fromXUID, fromAdr->serialize(),
+        msgData.serialize());
+  }
+#endif
 }
 
 // Client <- Host
@@ -1479,6 +1721,14 @@ void Client_HandleClientContent(ControllerIndex_t controllerIndex,
       }
     }
   }
+#ifndef NDEBUG
+  else {
+    game::trace("[Lobby][Message][{}] Client received invalid client content "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+  }
+#endif
 }
 
 } // namespace msg

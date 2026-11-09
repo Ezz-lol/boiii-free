@@ -2,6 +2,7 @@
 
 #include "ptr.hpp"
 #include <cstdint>
+#include <mutex>
 
 namespace arxan::detail {
 void set_address_to_call(const void *address);
@@ -62,6 +63,8 @@ template <typename T> struct symbol : base_symbol<T> {
   using base_symbol<T>::base_symbol;
 };
 
+extern std::recursive_mutex call_safe_mutex;
+
 template <typename T, typename... Args>
 struct symbol<T(Args...)> : base_symbol<T(Args...)> {
   using func_type = T(Args...);
@@ -69,6 +72,9 @@ struct symbol<T(Args...)> : base_symbol<T(Args...)> {
   using base_symbol<func_type>::base_symbol;
 
   T call_safe(Args... args) const {
+
+    std::scoped_lock call_safe_lock(call_safe_mutex);
+
     arxan::detail::set_address_to_call(this->get());
     return static_cast<func_type *>(arxan::detail::callstack_proxy_addr)(
         args...);
