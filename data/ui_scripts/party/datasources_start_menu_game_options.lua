@@ -24,6 +24,21 @@ local function getServerDiscord()
   return nil
 end
 
+local function getServerDiscordDisplayText()
+  local label = "DISCORD SERVER"
+
+  pcall(function()
+    if Dvar.cl_server_discord_label then
+      local configured = Dvar.cl_server_discord_label:get()
+      if type(configured) == "string" and configured ~= "" then
+        label = configured
+      end
+    end
+  end)
+
+  return "^5" .. label
+end
+
 local function openServerDiscord(self, element, controller)
   Engine.ExecNow(controller, "openServerDiscord")
 end
@@ -178,11 +193,11 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
     table.insert(options, endGameOption)
   end
   table.insert(options, { models = { displayText = "QUIT TO DESKTOP", action = OpenPCQuit } })
-  -- Server Discord invite
+  -- Discord server invite
   if getServerDiscord() then
     table.insert(options, {
       models = {
-        displayText = "^5SERVER DISCORD",
+        displayText = getServerDiscordDisplayText(),
         action = openServerDiscord,
       },
     })
@@ -233,7 +248,7 @@ local function appendHostOptions(dataSource)
         end
       end
     end
-    -- Server Discord: compatible with modded pause menus.
+    -- Discord server: compatible with modded pause menus.
     if getServerDiscord() then
       local exists = false
 
@@ -241,7 +256,7 @@ local function appendHostOptions(dataSource)
         local textModel = item.model and Engine.GetModel(item.model, "displayText")
         local displayText = textModel and Engine.GetModelValue(textModel)
 
-        if displayText == "^5SERVER DISCORD" then
+        if displayText == getServerDiscordDisplayText() then
           exists = true
           break
         end
@@ -259,7 +274,7 @@ local function appendHostOptions(dataSource)
 
         model = Engine.CreateModel(root, modelIndex)
 
-        Engine.SetModelValue(Engine.CreateModel(model, "displayText"), "^5SERVER DISCORD")
+        Engine.SetModelValue(Engine.CreateModel(model, "displayText"), getServerDiscordDisplayText())
 
         Engine.SetModelValue(Engine.CreateModel(model, "action"), openServerDiscord)
 

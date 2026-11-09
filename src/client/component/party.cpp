@@ -34,6 +34,7 @@
 namespace party {
 game::EngineDependentDvarMut cl_connected_to_dedi;
 game::EngineDependentDvarMut cl_server_discord;
+game::EngineDependentDvarMut cl_server_discord_label;
 namespace {
 constexpr uint16_t DEFAULT_SERVER_PORT = 27017;
 
@@ -64,10 +65,25 @@ bool is_valid_discord_invite(const std::string &url) {
   return true;
 }
 
+std::string normalize_discord_label(std::string label) {
+  if (label.empty() || label.size() > 40) {
+    return "DISCORD SERVER";
+  }
+
+  for (const unsigned char c : label) {
+    if (c < 32 || c == 127 || c == '\\' || c == '^') {
+      return "DISCORD SERVER";
+    }
+  }
+
+  return label;
+}
+
 std::atomic_bool is_connecting_to_dedi{false};
 game::net::netadr_t connect_host{{}, {}, game::net::netadrtype_t::BAD, {}};
 
 std::string pending_server_discord;
+std::string pending_server_discord_label = "DISCORD SERVER";
 std::mutex hostname_mutex;
 std::string cached_server_hostname;
 int cached_server_max_clients = 0;
@@ -438,6 +454,9 @@ void update_server_lobby() {
         !game::get_dvar_string("cl_server_discord").value_or("").empty()) {
       cl_server_discord.set("");
     }
+    if (cl_server_discord_label) {
+      cl_server_discord_label.set("DISCORD SERVER");
+    }
 
     return;
   }
@@ -450,6 +469,14 @@ void update_server_lobby() {
   if (cl_server_discord &&
       game::get_dvar_string("cl_server_discord").value_or("") != discord) {
     cl_server_discord.set(discord.c_str());
+  }
+  const std::string label =
+      connected_to_target && !pending_server_discord.empty()
+          ? pending_server_discord_label
+          : "DISCORD SERVER";
+  if (cl_server_discord_label &&
+      game::get_dvar_string("cl_server_discord_label").value_or("") != label) {
+    cl_server_discord_label.set(label.c_str());
   }
   const bool on_dedi = is_dedi_server(get_connected_server());
   if (cl_connected_to_dedi.get_bool() != on_dedi) {
@@ -671,6 +698,10 @@ void handle_connect_query_response(const bool success,
               info.get("dedicated") == "1" && is_valid_discord_invite(discord)
                   ? discord
                   : "";
+          pending_server_discord_label =
+              pending_server_discord.empty()
+                  ? "DISCORD SERVER"
+                  : normalize_discord_label(info.get("discord_label"));
 
           connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
                           lobby);
@@ -692,6 +723,11 @@ void connect_finish(const game::net::netadr_t &target) {
   pending_server_discord.clear();
   if (cl_server_discord) {
     cl_server_discord.set("");
+  }
+  pending_server_discord_label = "DISCORD SERVER";
+
+  if (cl_server_discord_label) {
+    cl_server_discord_label.set("DISCORD SERVER");
   }
   connect_host = target;
 
@@ -929,6 +965,10 @@ struct component final : client_component {
           cl_server_discord = game::register_dvar_string(
               "cl_server_discord", "", game::dvarFlags_e::NONE,
               "Discord invite URL of the connected server");
+          cl_server_discord_label = game::register_dvar_string(
+              "cl_server_discord_label", "DISCORD SERVER",
+              game::dvarFlags_e::NONE,
+              "Discord button label of the connected server");
         },
         scheduler::pipeline::main);
     command::add("openServerDiscord", [] {

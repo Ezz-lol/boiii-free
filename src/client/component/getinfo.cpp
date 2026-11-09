@@ -45,7 +45,22 @@ template <typename T> int get_client_count(T *client_states) {
 }
 namespace {
 game::EngineDependentDvarMut sv_discord;
+game::EngineDependentDvarMut sv_discord_label;
+
+std::string normalize_discord_label(std::string label) {
+  if (label.empty() || label.size() > 40) {
+    return "DISCORD SERVER";
+  }
+
+  for (const unsigned char c : label) {
+    if (c < 32 || c == 127 || c == '\\' || c == '^') {
+      return "DISCORD SERVER";
+    }
+  }
+
+  return label;
 }
+} // namespace
 
 bool is_host() { return game::server_running(); }
 
@@ -84,6 +99,16 @@ struct component final : generic_component {
               "Discord invite URL for this server");
         },
         scheduler::pipeline::main);
+    scheduler::once(
+        [] {
+          const std::string configured{game::get_dvar_string("sv_discordLabel")
+                                           .value_or("DISCORD SERVER")};
+
+          sv_discord_label = game::register_dvar_string(
+              "sv_discordLabel", configured.c_str(), game::dvarFlags_e::NONE,
+              "Custom pause menu label for the Discord server invite");
+        },
+        scheduler::pipeline::main);
 
     network::on("getInfo", [](const game::net::netadr_t &target,
                               const network::data_view &data,
@@ -96,6 +121,11 @@ struct component final : generic_component {
       info.set("discord", game::is_server() && sv_discord
                               ? sv_discord.get_string().value_or("")
                               : "");
+      info.set("discord_label",
+               game::is_server() && sv_discord_label
+                   ? normalize_discord_label(std::string{
+                         sv_discord_label.get_string().value_or("")})
+                   : "DISCORD SERVER");
       /*
          Unsure why this is commented out, but important notes in case of
         future restoration:
