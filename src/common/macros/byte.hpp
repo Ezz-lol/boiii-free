@@ -1,9 +1,9 @@
 #pragma once
 
+#include <bit>
 #include <concepts>
 #include <cstdint>
 #include <type_traits>
-#include <bit>
 
 inline constexpr uint64_t byteswap(uint64_t val) {
 #if defined(__GNUC__) || defined(__clang__)
