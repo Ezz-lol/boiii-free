@@ -16,31 +16,18 @@ public:
       : address(address) {}
 
   alwaysinline constexpr base_symbol(const uintptr_t address,
-                                     const uintptr_t legacy_address)
-      : address(address), legacy_address(legacy_address) {}
-
-  alwaysinline constexpr base_symbol(const uintptr_t address,
-                                     const uintptr_t legacy_address,
                                      const uintptr_t server_address)
-      : address(address), legacy_address(legacy_address),
-        server_address(server_address) {}
+      : address(address), server_address(server_address) {}
 
   alwaysinline constexpr base_symbol(const intptr_t address)
       : address(address) {}
 
   alwaysinline constexpr base_symbol(const intptr_t address,
-                                     const intptr_t legacy_address)
-      : address(address), legacy_address(legacy_address) {}
-
-  alwaysinline constexpr base_symbol(const intptr_t address,
-                                     const intptr_t legacy_address,
                                      const intptr_t server_address)
-      : address(address), legacy_address(legacy_address),
-        server_address(server_address) {}
+      : address(address), server_address(server_address) {}
 
   alwaysinline T *get() const {
-    return reinterpret_cast<T *>(
-        select(this->address, this->legacy_address, this->server_address));
+    return reinterpret_cast<T *>(select(this->address, this->server_address));
   }
 
   alwaysinline operator T *() const { return this->get(); }
@@ -55,7 +42,6 @@ public:
 
 private:
   uintptr_t address{};
-  uintptr_t legacy_address{};
   uintptr_t server_address{};
 };
 
