@@ -31,6 +31,8 @@ WEAK symbol<bool(eModes mode, ControllerIndex_t controllerIndex,
                                                    0x0};
 WEAK symbol<int32_t(eModes mode, ControllerIndex_t controllerIndex)>
     BG_UnlockablesGetCustomClassCount{0x14262C790, 0x1426A5900, 0x0};
+WEAK symbol<void(eModes mode)> BG_UnlockablesLoadItems{0x142625680, 0x0,
+                                                       0x1406BE160};
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
                  BGEmblemBackgroundID backgroundId)>
     BG_EmblemIsEntitlementBackgroundGranted{0x1425EE3B0, 0x142667520, 0x0};
