@@ -567,14 +567,14 @@ PACKED(struct Msg_ClientContent {
         lobbyMsg.package_glob("buffer", getClientContentData()) &&
         lobbyMsg.package_uchar("sessionmode",
                                reinterpret_cast<uint8_t *>(&sessionMode)) &&
-        validate(sessionMode) &&
+        (validate(sessionMode) || sessionMode == eModes::COUNT) &&
         lobbyMsg.package_uchar("gamemode",
                                reinterpret_cast<uint8_t *>(&gameMode));
     // gameMode is sometimes sent as 0xF8 in first packet if in main menu
     if (result) {
       gameMode &= eGameModes::MASK;
     }
-    return result && validate(gameMode);
+    return result && (validate(gameMode) || gameMode == eGameModes::COUNT);
   }
 
   inline std::string serialize() const noexcept {

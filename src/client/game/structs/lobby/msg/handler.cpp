@@ -219,7 +219,7 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package_int("status", &dataGame.status) &&
       lobbyMsg.package_int("statusvalue", &dataGame.statusValue) &&
       lobbyMsg.package_int("gamemode", &dataGame.gameMode) &&
-      validate(dataGame.gameMode) &&
+      (validate(dataGame.gameMode) || dataGame.gameMode == eGameModes::COUNT) &&
       lobbyMsg.package_string("gametype", dataGame.gameType) &&
       lobbyMsg.package_string("map", dataGame.mapName) &&
       lobbyMsg.package_string("ugcName", dataGame.ugcInfo.publisherId) &&
@@ -339,7 +339,7 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
            lobbyMsg.package_bool("isuserfile", &dataGame.isUserFile) &&
            lobbyMsg.package_bool("islivestream", &dataGame.isLiveStream) &&
            lobbyMsg.package_int("mainmode", &dataGame.mainMode) &&
-           (dataGame.mainMode == eModes::INVALID ||
+           (dataGame.mainMode == eModes::COUNT ||
             validate(dataGame.mainMode)) &&
            lobbyMsg.package_string("demomode", dataGame.demoMode) &&
            lobbyMsg.package_string("filecategory", dataGame.fileCategory) &&
@@ -481,7 +481,8 @@ bool Msg_InfoResponseLobbyServer::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package(lobby) && lobbyMsg.package_xuid("xuid", &xuid) &&
       lobbyMsg.package_string("gamertag", gamertag) &&
       lobbyMsg.package_int("sessionmode", &sessionMode) &&
-      validate(sessionMode) && lobbyMsg.package_string("mapname", mapName) &&
+      (validate(sessionMode) || sessionMode == eModes::COUNT) &&
+      lobbyMsg.package_string("mapname", mapName) &&
       lobbyMsg.package_string("gametype", gameType) &&
       lobbyMsg.package_bool("ingame", &isInGame) &&
       lobbyMsg.package_uint("maxclients", &maxClients) &&

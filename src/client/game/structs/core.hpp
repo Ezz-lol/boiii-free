@@ -736,7 +736,7 @@ enum class eGameModes : int32_t {
 IMPL_ENUM_OPERATORS(eGameModes);
 constexpr bool validate(const eGameModes gamemode) {
   return gamemode >= eGameModes::MATCHMAKING_PLAYLIST &&
-         gamemode <= eGameModes::COUNT;
+         gamemode < eGameModes::COUNT;
 }
 
 inline constexpr const char *serialize(const eGameModes mode) {
@@ -774,7 +774,7 @@ enum class eModes : uint32_t {
 };
 IMPL_ENUM_OPERATORS(eModes);
 constexpr bool validate(const eModes mode) {
-  return mode >= eModes::ZOMBIES && mode <= eModes::COUNT;
+  return mode >= eModes::ZOMBIES && mode < eModes::COUNT;
 }
 
 inline constexpr const char *serialize(const eModes mode) {
