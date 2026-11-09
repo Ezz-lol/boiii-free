@@ -117,7 +117,6 @@ void remove_crash_file() {
 
 struct patch_install_cancelled : std::exception {};
 
-constexpr uint32_t LEGACY_CLIENT_CHECKSUM = 0x888C368;
 constexpr uint32_t SUPPORTED_CLIENT_CHECKSUM = 0x6531394;
 
 constexpr const char SUPPORTED_CLIENT_PATCH_URL[] =
@@ -129,7 +128,6 @@ constexpr const char SUPPORTED_CLIENT_PATCH_SHA1[] =
 
 enum class client_binary_state : uint8_t {
   supported,
-  legacy,
   incompatible,
   unreadable,
 };
@@ -197,10 +195,6 @@ classify_client_binary(const std::filesystem::path &client_binary) {
 
   if (*checksum == SUPPORTED_CLIENT_CHECKSUM) {
     return client_binary_state::supported;
-  }
-
-  if (*checksum == LEGACY_CLIENT_CHECKSUM) {
-    return client_binary_state::legacy;
   }
 
   return client_binary_state::incompatible;
@@ -474,7 +468,6 @@ void ensure_compatible_client_binary(
     const std::filesystem::path &client_binary) {
   const client_binary_state state = classify_client_binary(client_binary);
   switch (state) {
-  case client_binary_state::legacy:
   case client_binary_state::incompatible: {
     const bool close_running_game = is_client_binary_process_running();
     if (prompt_to_install_client_patch(state, close_running_game)) {
