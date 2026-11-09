@@ -123,22 +123,24 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package_int("networkmode", &lobbyNetworkMode) &&
       validate(lobbyNetworkMode) &&
       lobbyMsg.package_int("mainmode", &lobbyMainMode) &&
-      validate(lobbyMainMode) &&
+      (lobbyMainMode == LobbyMainMode::INVALID || validate(lobbyMainMode)) &&
       lobbyMsg.package_int("partyprivacy", &partyPrivacy) &&
       validate(partyPrivacy) && lobbyMsg.package_int("lobbytype", &lobbyType) &&
       validate(lobbyType) && lobbyMsg.package_int("lobbymode", &lobbyMode) &&
-      validate(lobbyMode) && lobbyMsg.package_int("sessionstatus", &status) &&
-      validate(status) && lobbyMsg.package_int("uiscreen", &uiScreen) &&
+      (lobbyMode == LobbyMode::INVALID || validate(lobbyMode)) &&
+      lobbyMsg.package_int("sessionstatus", &status) && validate(status) &&
+      lobbyMsg.package_int("uiscreen", &uiScreen) &&
       lobbyMsg.package_uchar("leaderactivity",
                              reinterpret_cast<uint8_t *>(&uiLeaderActivity)) &&
       lobbyMsg.package_string("key", key,
                               static_cast<int32_t>(std::size(key))) &&
       lobbyMsg.package_xuid("leader", &clientLeader) &&
       lobbyMsg.package_xuid("platformsession", &platformSessionID) &&
-      lobbyMsg.package_int("maxclients", &maxClients) && validate(maxClients) &&
+      lobbyMsg.package_int("maxclients", &maxClients) &&
+      validate_count(maxClients) &&
       lobbyMsg.package_bool("isadvertised", &isAdvertised) &&
       lobbyMsg.package_int("clientcount", &clientCount) &&
-      validate(clientCount);
+      validate_count(clientCount);
   // PATCH: validate enum values
   if (!result) {
     return false;
@@ -159,7 +161,7 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
             lobbyMsg.package_uint("ugcVersion", &ugcInfo.version);
   result &= lobbyMsg.package_arrayStart("clientlist");
   for (ClientNum_t clientIdx = ClientNum_t::CLIENT_INDEX_FIRST;
-       result &= lobbyMsg.validated_package_element(clientIdx < clientCount);
+       lobbyMsg.package_next_element(clientIdx < clientCount, result);
        ++clientIdx) {
     MsgClientLobbyInfo &client = clientList[+clientIdx];
     result &= lobbyMsg.package_xuid("xuid", &client.xuid) &&
@@ -178,6 +180,7 @@ bool Msg_LobbyState::package(LobbyMsg &lobbyMsg) {
               lobbyMsg.package_uchar("band", &client.latencyBand) &&
               lobbyMsg.package_uint("netsrc", &client.localNetID) &&
               lobbyMsg.package_uint("joinorder", &client.joinOrder) &&
+              lobbyMsg.package_uint("dlcBits", &client.dlcBits.mask) &&
               client.mutableClientInfoMsg.package(lobbyMsg);
   }
   if (!result) {
@@ -228,8 +231,8 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
   switch (core.lobbyMode) {
   case LobbyMode::PUBLIC: {
     result &= lobbyMsg.package_arrayStart("clientlist");
-    for (size_t clientIdx = 0; result &= lobbyMsg.validated_package_element(
-                                   clientIdx < std::size(dataGame.client));
+    for (size_t clientIdx = 0; lobbyMsg.package_next_element(
+             clientIdx < std::size(dataGame.client), result);
 
          ++clientIdx) {
       session::GameClientData &client = dataGame.client[clientIdx];
@@ -257,8 +260,8 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
     }
     result &= lobbyMsg.package_arrayStart("votes");
 
-    for (uint32_t voteIdx = 0; result &= lobbyMsg.validated_package_element(
-                                   voteIdx < dataGame.pregameVoteCount);
+    for (uint32_t voteIdx = 0; lobbyMsg.package_next_element(
+             voteIdx < dataGame.pregameVoteCount, result);
          ++voteIdx) {
       session::ItemVote &vote = dataGame.pregameVotes[voteIdx];
       result &=
@@ -282,8 +285,8 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
     }
     result &= lobbyMsg.package_arrayStart("clientlist");
     for (ClientNum_t clientIdx = ClientNum_t::CLIENT_INDEX_0;
-         result &= lobbyMsg.validated_package_element(
-             clientIdx < std::size(dataGame.client));
+         lobbyMsg.package_next_element(clientIdx < std::size(dataGame.client),
+                                       result);
          ++clientIdx) {
 
       session::GameClientData &client = dataGame.client[clientIdx];
@@ -345,8 +348,8 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
       return false;
     }
     result &= lobbyMsg.package_arrayStart("votes");
-    for (size_t voteIdx = 0; result &= lobbyMsg.validated_package_element(
-                                 voteIdx < dataGame.pregameVoteCount);
+    for (size_t voteIdx = 0; lobbyMsg.package_next_element(
+             voteIdx < dataGame.pregameVoteCount, result);
          ++voteIdx) {
       session::ItemVote &vote = dataGame.pregameVotes[voteIdx];
       result &=
@@ -371,8 +374,8 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
 
     result &= lobbyMsg.package_arrayStart("clientlist");
     for (ClientNum_t clientIdx = ClientNum_t::CLIENT_INDEX_0;
-         result &= lobbyMsg.validated_package_element(
-             clientIdx < std::size(dataGame.client));
+         lobbyMsg.package_next_element(clientIdx < std::size(dataGame.client),
+                                       result);
          ++clientIdx) {
 
       session::GameClientData &client = dataGame.client[clientIdx];
@@ -454,8 +457,7 @@ bool Msg_JoinParty::package(LobbyMsg &lobbyMsg) {
   }
   result &= lobbyMsg.package_arrayStart("members");
   for (ClientNum_t partyMemberIdx = ClientNum_t::CLIENT_INDEX_FIRST;
-       result &=
-       lobbyMsg.validated_package_element(partyMemberIdx < memberCount);
+       lobbyMsg.package_next_element(partyMemberIdx < memberCount, result);
        ++partyMemberIdx) {
     join::JoinPartyMember &partyMember = members[partyMemberIdx];
     result &=
@@ -482,9 +484,9 @@ bool Msg_InfoResponseLobbyServer::package(LobbyMsg &lobbyMsg) {
       lobbyMsg.package_string("gametype", gameType) &&
       lobbyMsg.package_bool("ingame", &isInGame) &&
       lobbyMsg.package_uint("maxclients", &maxClients) &&
-      validate(maxClients) &&
+      validate_count(maxClients) &&
       lobbyMsg.package_uint("clientcount", &clientCount) &&
-      validate(clientCount) && lobbyMsg.package_arrayStart("clientlist");
+      validate_count(clientCount) && lobbyMsg.package_arrayStart("clientlist");
 
   // PATCH: validate clientcounts, enum values
   if (!result) {
@@ -492,7 +494,7 @@ bool Msg_InfoResponseLobbyServer::package(LobbyMsg &lobbyMsg) {
   }
 
   for (size_t lanClientIdx = 0;
-       result &= lobbyMsg.validated_package_element(lanClientIdx < clientCount);
+       lobbyMsg.package_next_element(lanClientIdx < clientCount, result);
        ++lanClientIdx) {
     LANClientInfo &lanClient = client[lanClientIdx];
     result &= lobbyMsg.package_xuid("xuid", &lanClient.xuid) &&

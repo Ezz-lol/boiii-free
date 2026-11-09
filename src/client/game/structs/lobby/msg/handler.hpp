@@ -160,7 +160,7 @@ PACKED(struct Msg_JoinParty {
   int32_t playlistID = 0;
   int32_t playlistVersion = 0;
   int32_t ffotdVersion = 0;
-  LobbyNetworkMode networkMode = LobbyNetworkMode::INVALID;
+  LobbyNetworkMode networkMode = LobbyNetworkMode::UNKNOWN;
   uint32_t netFieldChecksum = 0;
   int32_t protocolVersion = 0;
   int32_t changelist = 0;
@@ -567,10 +567,8 @@ PACKED(struct Msg_ClientContent {
            lobbyMsg.package_glob("buffer", getClientContentData()) &&
            lobbyMsg.package_uchar("sessionmode",
                                   reinterpret_cast<uint8_t *>(&sessionMode)) &&
-           validate(sessionMode) &&
            lobbyMsg.package_uchar("gamemode",
-                                  reinterpret_cast<uint8_t *>(&gameMode)) &&
-           validate(gameMode);
+                                  reinterpret_cast<uint8_t *>(&gameMode));
   }
 
   inline std::string serialize() const noexcept {

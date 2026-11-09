@@ -496,6 +496,7 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
             }
             join::s_join->state = join::JoinSourceState::WAITING_FOR_AGREEMENT;
             join::Host_ChangeState(join::s_join->sourceLobbyType);
+            return;
           }
           join::s_join->joinResult =
               join::JoinResult::SEND_AGREEMENT_REQUEST_FAILED;
@@ -546,6 +547,7 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
             }
             join::s_join->state = join::JoinSourceState::ASSOCIATING;
             join::Host_ChangeState(join::s_join->sourceLobbyType);
+            return;
           }
           failReason = "MENU_JOIN_RESULT_COULD_NOT_RESERVE";
           break;

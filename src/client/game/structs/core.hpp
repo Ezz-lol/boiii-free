@@ -480,6 +480,11 @@ constexpr bool validate(const ClientNum_t clientNum) {
          clientNum < ClientNum_t::CLIENT_INDEX_COUNT;
 }
 
+constexpr bool validate_count(const ClientNum_t count) {
+  return count >= ClientNum_t::CLIENT_INDEX_0 &&
+         count <= ClientNum_t::CLIENT_INDEX_COUNT;
+}
+
 constexpr const char *serialize(const ClientNum_t clientNum) {
   switch (clientNum) {
   case CLIENT_INDEX_0:

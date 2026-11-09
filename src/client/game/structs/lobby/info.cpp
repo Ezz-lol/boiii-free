@@ -10,8 +10,7 @@ bool InfoResponseLobby::package(msg::LobbyMsg &lobbyMsg) {
   bool result = true;
   lobbyMsg.package_arrayStart("lobbies");
   for (LobbyModule lobbyModule = LobbyModule::HOST;
-       result &=
-       lobbyMsg.validated_package_element(lobbyModule < LobbyModule::COUNT);
+       lobbyMsg.package_next_element(lobbyModule < LobbyModule::COUNT, result);
        ++lobbyModule) {
     result &=
         lobbyMsg.package_bool("valid", &isValid) &&
