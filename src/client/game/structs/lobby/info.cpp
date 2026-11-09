@@ -22,7 +22,8 @@ bool InfoResponseLobby::package(msg::LobbyMsg &lobbyMsg) {
           validate(lobbyParams.networkMode) &&
           lobbyMsg.package_int(
               "mainmode", reinterpret_cast<int32_t *>(&lobbyParams.mainMode)) &&
-          validate(lobbyParams.mainMode) &&
+          (lobbyParams.mainMode == LobbyMainMode::INVALID ||
+           validate(lobbyParams.mainMode)) &&
           lobbyMsg.package_glob("secid", &secId, sizeof(secId)) &&
           lobbyMsg.package_glob("seckey", &secKey, sizeof(secKey)) &&
           lobbyMsg.package_glob("addrbuff", serializedAdr.addrBuff,

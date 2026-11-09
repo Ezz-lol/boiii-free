@@ -15,7 +15,7 @@ WEAK symbol<ContentFlags(ActiveClient *activeClient)>
 WEAK symbol<bool(ActiveClient *activeClient)> LobbyActiveList_IsStarterPack{
     0x1420FAFC0, 0x142153A80, 0x0};
 WEAK symbol<clientcontent::ClientContent *(ActiveClient *activeClient)>
-    LobbyActiveList_GetClientContent{0x141ED3140, 0x0, 0x1404AAE80};
+    LobbyActiveList_GetClientContent{0x141EF0C40, 0x0, 0x1404AAE80};
 WEAK symbol<bool(ActiveClient *activeClient,
                  clientcontent::ClientContentType contentType, XUID xuid)>
     LobbyActiveList_ClearClientContentForClient{0x141EF0A40, 0x0, 0x1404AAD00};

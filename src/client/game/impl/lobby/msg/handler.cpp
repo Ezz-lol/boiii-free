@@ -13,6 +13,15 @@
 namespace game {
 namespace lobby {
 namespace msg {
+namespace {
+// Matches the lobby component's patch to the engine's join handler, which this
+// handler replaces
+LobbyNetworkMode get_join_network_mode() {
+  return game::is_new_client() ? LobbyNetworkMode::LIVE
+                               : base::LobbyBase_GetNetworkMode();
+}
+} // namespace
+
 // Host <- Client
 void HandleAgreementResponse(ControllerIndex_t controllerIndex,
                              net::netadr_t *fromAdr, XUID fromXUID,
@@ -175,7 +184,7 @@ void HandleMemberInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
   }
 #ifndef NDEBUG
   else {
-    game::trace("[Lobby][Message][{}] Host received member info "
+    game::trace("[Lobby][Message][{}] Host received invalid member info "
                 "from client ({:016X} @ {}): {}",
                 game::serialize(controllerIndex), fromXUID,
                 fromAdr->serialize(), msgData.serialize());
@@ -250,7 +259,7 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
         LobbyHostData_GetSession(msgData.targetLobby);
     const LobbyType lobbyType = session->type;
     const LobbyMainMode mainMode = base::LobbyBase_GetMainMode();
-    const LobbyNetworkMode networkMode = base::LobbyBase_GetNetworkMode();
+    const LobbyNetworkMode networkMode = get_join_network_mode();
 
     Msg_JoinResponse joinResponse{};
     strscpy(joinResponse.name, session->host.info.name);
@@ -288,7 +297,7 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
 
     if (joinable && privacyAllowsJoin) {
       if (ugc::UGC_ActiveMod_Loaded() || isXUIDLocalPlayer ||
-          base::LobbyBase_GetNetworkMode() == LobbyNetworkMode::LIVE) {
+          networkMode == LobbyNetworkMode::LIVE) {
         if (isPermaBanned) {
           joinResponse.response = join::JoinResult::BANNED;
         } else if (hasBannedMember) {

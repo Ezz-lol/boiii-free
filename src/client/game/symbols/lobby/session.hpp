@@ -34,7 +34,7 @@ WEAK symbol<bool(LobbySession *lobbySession, XUID xuid,
                  bool *mutableClientInfoChanged)>
     LobbySession_UpdateClient{0x141EF5590, 0x0, 0x1404AF2C0};
 WEAK symbol<void(int32_t dirtyBits)> LobbySession_SetAllLobbySessionsDirty{
-    0x141ECD350, 0x0, 0x1404AF2C0};
+    0x141ECD350, 0x0, 0x14048B640};
 WEAK symbol<bool(LobbySession *lobbySession, XUID xuid, const char *reason)>
     LobbySession_RemoveClient{0x141EF5280, 0x0, 0x1404AEFC0};
 } // namespace session

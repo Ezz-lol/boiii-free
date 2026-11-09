@@ -848,7 +848,8 @@ PACKED(struct Msg_JoinAgreementRequest {
            validate(destinationLobbyParams.networkMode) &&
            lobbyMsg.package_int("destmainmode",
                                 &destinationLobbyParams.mainMode) &&
-           validate(destinationLobbyParams.mainMode) &&
+           (destinationLobbyParams.mainMode == LobbyMainMode::INVALID ||
+            validate(destinationLobbyParams.mainMode)) &&
            lobbyMsg.package_int("nonce", &agreementNonce) &&
            lobbyMsg.package_int("serverloc", &serverLoc);
   }
@@ -939,7 +940,8 @@ PACKED(struct Msg_JoinResponse {
            lobbyMsg.package_int("networkmode", &lobbyParams.networkMode) &&
            validate(lobbyParams.networkMode) &&
            lobbyMsg.package_int("mainmode", &lobbyParams.mainMode) &&
-           validate(lobbyParams.mainMode) &&
+           (lobbyParams.mainMode == LobbyMainMode::INVALID ||
+            validate(lobbyParams.mainMode)) &&
            lobbyMsg.package_uint64("reservationkey", &reservationKey);
   }
 
