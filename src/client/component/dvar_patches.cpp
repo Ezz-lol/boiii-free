@@ -241,19 +241,6 @@ template <const bool Value> inline void sv_cheats_force() {
   }
 }
 
-inline constexpr const char *serialize(eModes mode) {
-  switch (mode) {
-  case eModes::ZOMBIES:
-    return "MODE_ZOMBIES";
-  case eModes::MULTIPLAYER:
-    return "MODE_MULTIPLAYER";
-  case eModes::CAMPAIGN:
-    return "MODE_CAMPAIGN";
-  default:
-    return "MODE_INVALID";
-  }
-}
-
 utils::hook::detour Dvar_GetSessionModeSpecificDvarInternal_hook;
 EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
     EngineDependentDvar base, eModes modeArg) {
@@ -279,23 +266,24 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
     return resolved;
   }
   default: {
-    const char *debugName = base.debugName();
+    const char *debug_name = base.debugName();
     const char *name =
-        debugName ? debugName
-                  : utils::string::va("UNKNOWN(hash: 0x%X)", base.name());
+        debug_name == nullptr
+            ? utils::string::va("UNKNOWN(hash: 0x%X)", base.name())
+            : debug_name;
     com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
                     consoleLabel_e::DEFAULT,
                     "Warning: Sessionmode not set while attempting to get "
                     "sessionmode specific dvar for mode: %s from base dvar : "
                     "\"%s\". Falling back to "
                     "first available sessionmode-specific dvar.\n",
-                    serialize(mode), name);
-    const SessionModePool<EngineDependentDvar> &sessionModeSpecificDvars =
+                    game::serialize(mode), name);
+    const SessionModePool<EngineDependentDvar> &session_mode_specific_dvars =
         base.indirect();
-    for (eModes sessionMode = eModes::FIRST; sessionMode < eModes::COUNT;
-         ++sessionMode) {
-      if (sessionModeSpecificDvars[sessionMode]) {
-        return sessionModeSpecificDvars[sessionMode];
+    for (eModes session_mode = eModes::FIRST; session_mode < eModes::COUNT;
+         ++session_mode) {
+      if (session_mode_specific_dvars[session_mode]) {
+        return session_mode_specific_dvars[session_mode];
       }
     }
     com::Com_Printf(
@@ -317,7 +305,7 @@ float GetXPScale_Server([[maybe_unused]] ClientNum_t clientNum) {
 ddl::statValue_t
 GScr_GetGunXPScaled_Server([[maybe_unused]] ClientNum_t clientNum,
                            ddl::statValue_t value) {
-  value.intValue = static_cast<int32_t>(value.intValue * gun_xp_scale() + 0.5f);
+  value.intValue = lround(static_cast<float>(value.intValue) * gun_xp_scale());
   return value;
 }
 
@@ -366,9 +354,9 @@ public:
     utils::hook::jump(game::Dvar_CanSetConfigDvar.get(), return_true);
 
     if (game::is_client()) {
-      this->patch_client();
+      patch_client();
     } else {
-      this->patch_server();
+      patch_server();
     }
   }
 

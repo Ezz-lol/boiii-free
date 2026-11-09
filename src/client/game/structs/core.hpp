@@ -79,6 +79,21 @@ enum class CampaignMode : int32_t {
   INVALID = 3,
 };
 
+inline constexpr const char *serialize(const CampaignMode mode) {
+  switch (mode) {
+  case CampaignMode::DEFAULT:
+    return "CAMPAIGN_MODE_DEFAULT";
+  case CampaignMode::ZOMBIES:
+    return "CAMPAIGN_MODE_ZOMBIES";
+  case CampaignMode::COUNT:
+    return "CAMPAIGN_MODE_COUNT";
+  case CampaignMode::INVALID:
+    return "CAMPAIGN_MODE_INVALID";
+  default:
+    return "CAMPAIGN_MODE_UNKNOWN";
+  }
+}
+
 enum class ContentFlagBits : uint32_t {
   // Explicitly used for unknown content by engine
   UNKNOWN = 0x1,
@@ -98,6 +113,43 @@ enum class ContentFlagBits : uint32_t {
   DLCPC = 0x4000,
 };
 IMPL_ENUM_OPERATORS(ContentFlagBits);
+
+inline constexpr const char *serialize(const ContentFlagBits bits) {
+  switch (bits) {
+  case ContentFlagBits::UNKNOWN:
+    return "CONTENT_FLAG_UNKNOWN";
+  case ContentFlagBits::ORIGINALMAPS:
+    return "CONTENT_FLAG_ORIGINALMAPS";
+  case ContentFlagBits::DLC0ZM:
+    return "CONTENT_FLAG_DLC0ZM";
+  case ContentFlagBits::DLC0MP:
+    return "CONTENT_FLAG_DLC0MP";
+  case ContentFlagBits::DLC1:
+    return "CONTENT_FLAG_DLC1";
+  case ContentFlagBits::DLC2:
+    return "CONTENT_FLAG_DLC2";
+  case ContentFlagBits::DLC3:
+    return "CONTENT_FLAG_DLC3";
+  case ContentFlagBits::DLC4:
+    return "CONTENT_FLAG_DLC4";
+  case ContentFlagBits::DLC5:
+    return "CONTENT_FLAG_DLC5";
+  case ContentFlagBits::DLC1ZM:
+    return "CONTENT_FLAG_DLC1ZM";
+  case ContentFlagBits::DLC2ZM:
+    return "CONTENT_FLAG_DLC2ZM";
+  case ContentFlagBits::DLC3ZM:
+    return "CONTENT_FLAG_DLC3ZM";
+  case ContentFlagBits::DLC4ZM:
+    return "CONTENT_FLAG_DLC4ZM";
+  case ContentFlagBits::DLC6:
+    return "CONTENT_FLAG_DLC6";
+  case ContentFlagBits::DLCPC:
+    return "CONTENT_FLAG_DLCPC";
+  default:
+    return "CONTENT_FLAG_UNKNOWN";
+  }
+}
 
 union ContentFlags {
   uint32_t mask = 0;
@@ -121,7 +173,22 @@ union ContentFlags {
     uint32_t dlcPC : 1;        // 0x4000
 
     uint32_t : 17;
+
   } bits;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"mask\": {:08X}, \"unknown\": {}, "
+                       "\"originalMaps\": {}, \"dlc0zm\": {}, "
+                       "\"dlc0mp\": {}, \"dlc1\": {}, \"dlc2\": {}, "
+                       "\"dlc3\": {}, \"dlc4\": {}, "
+                       "\"dlc5\": {}, \"dlc1zm\": {}, \"dlc2zm\": {}, "
+                       "\"dlc3zm\": {}, \"dlc4zm\": {}, "
+                       "\"dlc6\": {}, \"dlcPC\": {} }}",
+                       mask, bits.unknown, bits.originalMaps, bits.dlc0zm,
+                       bits.dlc0mp, bits.dlc1, bits.dlc2, bits.dlc3, bits.dlc4,
+                       bits.dlc5, bits.dlc1zm, bits.dlc2zm, bits.dlc3zm,
+                       bits.dlc4zm, bits.dlc6, bits.dlcPC);
+  }
 
   template <IntegralLike T> constexpr operator T() const noexcept {
     return static_cast<T>(mask);
@@ -212,6 +279,47 @@ enum class dlcIndex_t : int32_t {
   USERMAP_INDEX = 15,
 };
 
+inline constexpr const char *serialize(const dlcIndex_t index) {
+  switch (index) {
+  case dlcIndex_t::DEV_MAP_INDEX:
+    return "DLC_INDEX_DEV";
+  case dlcIndex_t::ORIGINAL_MAP_INDEX:
+    return "DLC_INDEX_ORIGINAL";
+  case dlcIndex_t::DLC0ZM_INDEX:
+    return "DLC_INDEX_DLC0ZM";
+  case dlcIndex_t::DLC0MP_INDEX:
+    return "DLC_INDEX_DLC0MP";
+  case dlcIndex_t::DLC1_INDEX:
+    return "DLC_INDEX_DLC1";
+  case dlcIndex_t::DLC2_INDEX:
+    return "DLC_INDEX_DLC2";
+  case dlcIndex_t::DLC3_INDEX:
+    return "DLC_INDEX_DLC3";
+  case dlcIndex_t::DLC4_INDEX:
+    return "DLC_INDEX_DLC4";
+  case dlcIndex_t::DLC5_INDEX:
+    return "DLC_INDEX_DLC5";
+  case dlcIndex_t::DLC1ZM_INDEX:
+    return "DLC_INDEX_DLC1ZM";
+  case dlcIndex_t::DLC2ZM_INDEX:
+    return "DLC_INDEX_DLC2ZM";
+  case dlcIndex_t::DLC3ZM_INDEX:
+    return "DLC_INDEX_DLC3ZM";
+  case dlcIndex_t::DLC4ZM_INDEX:
+    return "DLC_INDEX_DLC4ZM";
+  case dlcIndex_t::DLC6_INDEX:
+    return "DLC_INDEX_DLC6";
+  case dlcIndex_t::DLCPC_INDEX:
+    return "DLC_INDEX_DLCPC";
+  case dlcIndex_t::DLC_INDEX_COUNT:
+    return "DLC_INDEX_COUNT";
+  case dlcIndex_t::USERMAP_INDEX:
+    return "DLC_INDEX_USERMAP";
+  default:
+    return "DLC_INDEX_UNKNOWN";
+  }
+}
+
 enum class clientplatform_t : int32_t {
   PC = 0x0,      // PC
   ORBIS = 0x1,   // PS4
@@ -219,6 +327,21 @@ enum class clientplatform_t : int32_t {
   COUNT = 0x3,
 };
 IMPL_ENUM_OPERATORS(clientplatform_t);
+
+inline constexpr const char *serialize(const clientplatform_t platform) {
+  switch (platform) {
+  case clientplatform_t::PC:
+    return "CLIENT_PLATFORM_PC";
+  case clientplatform_t::ORBIS:
+    return "CLIENT_PLATFORM_ORBIS";
+  case clientplatform_t::DURANGO:
+    return "CLIENT_PLATFORM_DURANGO";
+  case clientplatform_t::COUNT:
+    return "CLIENT_PLATFORM_COUNT";
+  default:
+    return "CLIENT_PLATFORM_UNKNOWN";
+  }
+}
 
 constexpr bool validate(const clientplatform_t platform) {
   return platform >= clientplatform_t::PC && platform < clientplatform_t::COUNT;
@@ -576,6 +699,21 @@ enum class LocalClientNum8_t : int8_t {
 };
 IMPL_ENUM_OPERATORS(LocalClientNum8_t);
 
+inline constexpr const char *serialize(const LocalClientNum8_t clientNum) {
+  switch (clientNum) {
+  case LocalClientNum8_t::INVALID_LOCAL_CLIENT:
+    return "LOCAL_CLIENT_INVALID";
+  case LocalClientNum8_t::LOCAL_CLIENT_0:
+    return "LOCAL_CLIENT_0";
+  case LocalClientNum8_t::LOCAL_CLIENT_1:
+    return "LOCAL_CLIENT_1";
+  case LocalClientNum8_t::LOCAL_CLIENT_COUNT:
+    return "LOCAL_CLIENT_COUNT";
+  default:
+    return "LOCAL_CLIENT_UNKNOWN";
+  }
+}
+
 enum class eGameModes : int32_t {
   MATCHMAKING_PLAYLIST = 0x0,
   MATCHMAKING_MANUAL = 0x1,
@@ -594,6 +732,31 @@ constexpr bool validate(const eGameModes gamemode) {
          gamemode <= eGameModes::COUNT;
 }
 
+inline constexpr const char *serialize(const eGameModes mode) {
+  switch (mode) {
+  case eGameModes::MATCHMAKING_PLAYLIST:
+    return "GAME_MODE_MATCHMAKING_PLAYLIST";
+  case eGameModes::MATCHMAKING_MANUAL:
+    return "GAME_MODE_MATCHMAKING_MANUAL";
+  case eGameModes::DEFAULT:
+    return "GAME_MODE_DEFAULT";
+  case eGameModes::LEAGUE:
+    return "GAME_MODE_LEAGUE";
+  case eGameModes::FREERUN:
+    return "GAME_MODE_FREERUN";
+  case eGameModes::THEATER:
+    return "GAME_MODE_THEATER";
+  case eGameModes::MANUAL_PLAYLIST:
+    return "GAME_MODE_MANUAL_PLAYLIST";
+  case eGameModes::RTS:
+    return "GAME_MODE_RTS";
+  case eGameModes::COUNT:
+    return "GAME_MODE_COUNT";
+  default:
+    return "GAME_MODE_INVALID";
+  }
+}
+
 enum class eModes : uint32_t {
   ZOMBIES = 0x0,
   FIRST = 0x0,
@@ -605,6 +768,21 @@ enum class eModes : uint32_t {
 IMPL_ENUM_OPERATORS(eModes);
 constexpr bool validate(const eModes mode) {
   return mode >= eModes::ZOMBIES && mode < eModes::COUNT;
+}
+
+inline constexpr const char *serialize(const eModes mode) {
+  switch (mode) {
+  case eModes::ZOMBIES:
+    return "MODE_ZOMBIES";
+  case eModes::MULTIPLAYER:
+    return "MODE_MULTIPLAYER";
+  case eModes::CAMPAIGN:
+    return "MODE_CAMPAIGN";
+  case eModes::COUNT:
+    return "MODE_COUNT";
+  default:
+    return "MODE_INVALID";
+  }
 }
 
 namespace com {
@@ -1971,6 +2149,39 @@ enum class connstate_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(connstate_t);
 
+inline constexpr const char *serialize(const connstate_t state) {
+  switch (state) {
+  case connstate_t::DISCONNECTED:
+    return "CONN_STATE_DISCONNECTED";
+  case connstate_t::CINEMATIC:
+    return "CONN_STATE_CINEMATIC";
+  case connstate_t::UICINEMATIC:
+    return "CONN_STATE_UICINEMATIC";
+  case connstate_t::LOGO:
+    return "CONN_STATE_LOGO";
+  case connstate_t::CHALLENGING:
+    return "CONN_STATE_CHALLENGING";
+  case connstate_t::CONNECTING:
+    return "CONN_STATE_CONNECTING";
+  case connstate_t::CONFIRMLOADING:
+    return "CONN_STATE_CONFIRMLOADING";
+  case connstate_t::CONNECTED:
+    return "CONN_STATE_CONNECTED";
+  case connstate_t::SENDINGDATA:
+    return "CONN_STATE_SENDINGDATA";
+  case connstate_t::PRIMED:
+    return "CONN_STATE_PRIMED";
+  case connstate_t::LOADING:
+    return "CONN_STATE_LOADING";
+  case connstate_t::ACTIVE:
+    return "CONN_STATE_ACTIVE";
+  case connstate_t::COUNT:
+    return "CONN_STATE_COUNT";
+  default:
+    return "CONN_STATE_UNKNOWN";
+  }
+}
+
 enum class StanceState : int32_t {
   STAND = 0x0,
   CROUCH = 0x1,
@@ -1979,6 +2190,23 @@ enum class StanceState : int32_t {
   SLIDE = 0x4,
 };
 IMPL_ENUM_OPERATORS(StanceState);
+
+inline constexpr const char *serialize(const StanceState stance) {
+  switch (stance) {
+  case StanceState::STAND:
+    return "STANCE_STATE_STAND";
+  case StanceState::CROUCH:
+    return "STANCE_STATE_CROUCH";
+  case StanceState::PRONE:
+    return "STANCE_STATE_PRONE";
+  case StanceState::DIVE_TO_PRONE:
+    return "STANCE_STATE_DIVE_TO_PRONE";
+  case StanceState::SLIDE:
+    return "STANCE_STATE_SLIDE";
+  default:
+    return "STANCE_STATE_UNKNOWN";
+  }
+}
 
 typedef void *fileHandle_t;
 

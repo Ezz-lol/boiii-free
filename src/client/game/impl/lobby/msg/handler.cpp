@@ -13,6 +13,7 @@
 namespace game {
 namespace lobby {
 namespace msg {
+// Host <- Client
 void HandleAgreementResponse(ControllerIndex_t controllerIndex,
                              net::netadr_t *fromAdr, XUID fromXUID,
                              LobbyMsg *lobbyMsg) {
@@ -20,6 +21,12 @@ void HandleAgreementResponse(ControllerIndex_t controllerIndex,
   Msg_JoinAgreementResponse msgData{};
   if (msgData.package(*lobbyMsg) &&
       join::s_join->state == join::JoinSourceState::WAITING_FOR_AGREEMENT) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received join agreement response "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
     join::Agreement_Update(&join::s_join->agreement, msgData.xuid,
                            msgData.clientAgrees);
     if (join::s_join->agreement.requestCount > 0 &&
@@ -58,11 +65,20 @@ void HandleAgreementResponse(ControllerIndex_t controllerIndex,
     }
   }
 }
+
+// P2P
 void LobbyPeerToPeer_HandleConnectivityTest(ControllerIndex_t controllerIndex,
                                             net::netadr_t *fromAdr,
                                             XUID fromXUID, LobbyMsg *lobbyMsg) {
   Msg_ConnectionTest msgData{};
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Peer received connectivity test "
+                "from peer ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         client::LobbyClient_GetSession(msgData.lobbyType);
     const int32_t currentConnectivityBits =
@@ -77,20 +93,37 @@ void LobbyPeerToPeer_HandleConnectivityTest(ControllerIndex_t controllerIndex,
     }
   }
 }
+
+// P2P
 void HandleDemoState(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
                      XUID fromXUID, LobbyMsg *lobbyMsg) {
   Msg_DemoState msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Peer received demo state "
+                "from peer ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     demo::Demo_ReadHeartbeat(
         com::Com_ControllerIndex_GetLocalClientNum(controllerIndex), &msgData);
   }
 }
 
+// Host <- Client
 void HandleMemberInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
                       XUID fromXUID, LobbyMsg *lobbyMsg) {
   Msg_JoinMemberInfo msgData{};
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received member info "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     uint64_t joinNonce = 0;
     if (reservation::ReservationIsValid(
             *reservation::s_reservation,
@@ -116,6 +149,8 @@ void HandleMemberInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
     }
   }
 }
+
+// Host <- Client
 void HandleServerInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
                       XUID fromXUID, LobbyMsg *lobbyMsg) {
 
@@ -127,6 +162,13 @@ void HandleServerInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
         serverList.serverInfo[serverList.count];
     msgData = {};
     if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+      game::trace("[Lobby][Message][{}] Host received server info "
+                  "from client ({:016X} @ {}): {}",
+                  game::serialize(controllerIndex), fromXUID,
+                  fromAdr->serialize(), msgData.serialize());
+#endif
+
       if (serverList.refreshTime == -1) {
         serverList.refreshTime = 0;
       }
@@ -141,6 +183,8 @@ void HandleServerInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
     }
   }
 }
+
+// Host <- client
 void HandleJoinRequest(ControllerIndex_t controllerIndex,
                        net::netadr_t *fromAdr, XUID fromXUID,
                        LobbyMsg *lobbyMsg) {
@@ -152,6 +196,14 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
 
   Msg_JoinParty msgData{};
   if (msgData.package(*lobbyMsg)) {
+
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received join request "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         LobbyHostData_GetSession(msgData.targetLobby);
     const LobbyType lobbyType = session->type;
@@ -274,12 +326,20 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
   }
 }
 
+// P2P
 void HandleP2PVoicePacket(ControllerIndex_t controllerIndex,
                           net::netadr_t *fromAdr, XUID fromXUID,
                           LobbyMsg *lobbyMsg) {
   Msg_VoicePacket msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Peer received voice packet "
+                "from peer ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         client::LobbyClient_GetSession(msgData.lobbyType);
     if (voice::LobbyVoice_HandleVoicePacket(controllerIndex, session,
@@ -301,16 +361,27 @@ void HandleP2PVoicePacket(ControllerIndex_t controllerIndex,
     }
   }
 }
+
+// Host <- Client
 void HandleHostClientVoicePacket(ControllerIndex_t controllerIndex,
                                  net::netadr_t *fromAdr, XUID fromXUID,
                                  LobbyMsg *lobbyMsg) {
   Msg_VoicePacket msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received voice packet "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     voice::LobbyVoice_HandleVoicePacket(
         controllerIndex, LobbyHostData_GetSession(msgData.lobbyType), &msgData);
   }
 }
+
+// Host <- Client
 void HandleJoinResponse(ControllerIndex_t controllerIndex,
                         net::netadr_t *fromAdr, XUID fromXUID,
                         LobbyMsg *lobbyMsg) {
@@ -318,6 +389,13 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
   Msg_JoinResponse msgData{};
   if (msgData.package(*lobbyMsg) &&
       join::s_join->state == join::JoinSourceState::HANDSHAKING) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received join response "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     if (net::NetAdr_Compare(fromAdr,
                             &join::s_join->potentialHost.info.netAdr)) {
       if (msgData.lobbyType > LobbyType::GAME) {
@@ -417,12 +495,21 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
     }
   }
 }
+
+// P2P
 void HandleMigrateStart(ControllerIndex_t controllerIndex,
                         net::netadr_t *fromAdr, XUID fromXUID,
                         LobbyMsg *lobbyMsg) {
   Msg_LobbyMigrateStart msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Peer received migration start "
+                "from peer ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         client::LobbyClient_GetSession(msgData.lobbyType);
     if (msgData.migrateTo == 0) {
@@ -433,12 +520,20 @@ void HandleMigrateStart(ControllerIndex_t controllerIndex,
   }
 }
 
+// Host <- Client
 void Host_HandleClientContent(ControllerIndex_t controllerIndex,
                               net::netadr_t *fromAdr, XUID fromXUID,
                               LobbyMsg *lobbyMsg) {
   Msg_ClientContent msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received client content "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     if (LobbyHost_IsHost(msgData.lobbyType)) {
       const clientcontent::ClientContentType contentType =
           clientcontent::ClientContentType_GetContentTypeFromDatamask(
@@ -545,6 +640,8 @@ void Host_HandleClientContent(ControllerIndex_t controllerIndex,
     }
   }
 }
+
+// Host <- Client
 void HandleModifiedStats(ControllerIndex_t controllerIndex,
                          net::netadr_t *fromAdr, XUID fromXUID,
                          LobbyMsg *lobbyMsg) {
@@ -552,16 +649,32 @@ void HandleModifiedStats(ControllerIndex_t controllerIndex,
   Msg_ModifiedStats msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received modified stats "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     sv::SV_ReceiveModifiedStats(fromXUID, msgData.statsBuffer,
                                 msgData.statsSize);
   }
 }
+
+// Host <- Client
 void HandleClientDisconnect(ControllerIndex_t controllerIndex,
                             net::netadr_t *fromAdr, XUID fromXUID,
                             LobbyMsg *lobbyMsg) {
   Msg_LobbyClientDisconnect msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received disconnect "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         LobbyHostData_GetSession(msgData.lobbyType);
     session::SessionClient *const client =
@@ -572,12 +685,21 @@ void HandleClientDisconnect(ControllerIndex_t controllerIndex,
     }
   }
 }
+
+// Host <- Client
 void HandlePeerToPeerUpdate(ControllerIndex_t controllerIndex,
                             net::netadr_t *fromAdr, XUID fromXUID,
                             LobbyMsg *lobbyMsg) {
   Msg_PeerToPeerInfo msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received peer to peer update "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         LobbyHostData_GetSession(msgData.lobbyType);
     if (LobbyHost_IsHost(msgData.lobbyType)) {
@@ -594,12 +716,21 @@ void HandlePeerToPeerUpdate(ControllerIndex_t controllerIndex,
     }
   }
 }
+
+// Host <- Client
 void HandleClientReliableData(ControllerIndex_t controllerIndex,
-                              net::netadr_t *adr, XUID fromXUID,
+                              net::netadr_t *fromAdr, XUID fromXUID,
                               LobbyMsg *lobbyMsg) {
   Msg_ClientReliableData msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received reliable data"
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         LobbyHostData_GetSession(msgData.lobbyType);
 
@@ -765,12 +896,21 @@ void HandleClientReliableData(ControllerIndex_t controllerIndex,
     }
   }
 }
+
+// Host <- Client
 void HandleLobbyClientHeartbeat(ControllerIndex_t controllerIndex,
                                 net::netadr_t *fromAdr, XUID fromXUID,
                                 LobbyMsg *lobbyMsg) {
   Msg_LobbyClientHeartbeat msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Host received heartbeat "
+                "from client ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         LobbyHostData_GetSession(msgData.lobbyType);
     if (session != nullptr) {
@@ -786,12 +926,21 @@ void HandleLobbyClientHeartbeat(ControllerIndex_t controllerIndex,
     }
   }
 }
+
+// P2P
 void HandleMigrateBandwidthTest(ControllerIndex_t controllerIndex,
                                 net::netadr_t *fromAdr, XUID fromXUID,
                                 LobbyMsg *lobbyMsg) {
   Msg_LobbyMigrateBandwidthTest msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Peer received migrate bandwidth test "
+                "from peer ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         client::LobbyClient_GetSession(msgData.lobbyType);
     migrate::LobbyMigrateClient_HandleTestPacket(
@@ -799,12 +948,19 @@ void HandleMigrateBandwidthTest(ControllerIndex_t controllerIndex,
   }
 }
 
+// Client <- Host
 void HandleLobbyStatePrivate(ControllerIndex_t controllerIndex,
                              net::netadr_t *fromAdr, XUID fromXUID,
                              LobbyMsg *lobbyMsg) {
   Msg_LobbyStatePrivate msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received lobby state private "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
 
     if (IsLobbyStateValid(controllerIndex, fromAdr, fromXUID,
                           msgData.core.lobbyType,
@@ -821,11 +977,19 @@ void HandleLobbyStatePrivate(ControllerIndex_t controllerIndex,
   }
 }
 
+// Client <- Host
 void HandleLobbyStateGame(ControllerIndex_t controllerIndex,
                           net::netadr_t *fromAdr, XUID fromXUID,
                           LobbyMsg *lobbyMsg) {
   Msg_LobbyStateGame msgData{};
   if (msgData.package(*lobbyMsg) && msgData.core.lobbyType == LobbyType::GAME) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received lobby state game "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     if (IsLobbyStateValid(controllerIndex, fromAdr, fromXUID, LobbyType::GAME,
                           msgData.core.migrateInfo.indexBits)) {
       HandleLobbyStateCore(controllerIndex, fromAdr, fromXUID, &msgData.core);
@@ -952,12 +1116,20 @@ void HandleLobbyStateGame(ControllerIndex_t controllerIndex,
   }
 }
 
+// Client <- Host
 void HandleLobbyHostHeartbeat(ControllerIndex_t controllerIndex,
                               net::netadr_t *fromAdr, XUID fromXUID,
                               LobbyMsg *lobbyMsg) {
 
   Msg_LobbyHostHeartbeat msgData{};
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received heartbeat "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         client::LobbyClient_GetSession(msgData.lobbyType);
     if (session != nullptr && fromXUID == session->host.info.xuid) {
@@ -979,11 +1151,19 @@ void HandleLobbyHostHeartbeat(ControllerIndex_t controllerIndex,
   }
 }
 
+// Client <- Host
 void HandleHostDisconnect(ControllerIndex_t controllerIndex,
                           net::netadr_t *fromAdr, XUID fromXUID,
                           LobbyMsg *lobbyMsg) {
   Msg_LobbyHostDisconnect msgData{};
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received disconnect host "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     if (!host::LobbyHost_IsHost(msgData.lobbyType)) {
       session::LobbySession *const session =
           client::LobbyClientData_GetSession(msgData.lobbyType);
@@ -1006,11 +1186,19 @@ void HandleHostDisconnect(ControllerIndex_t controllerIndex,
   }
 }
 
+// Client <- Host
 void HandleHostDisconnectClient(ControllerIndex_t controllerIndex,
                                 net::netadr_t *fromAdr, XUID fromXUID,
                                 LobbyMsg *lobbyMsg) {
   Msg_LobbyDisconnectClient msgData{};
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received disconnect client "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     session::LobbySession *const session =
         client::LobbyClientData_GetSession(msgData.lobbyType);
     if (session->active != session::SessionActive::INACTIVE) {
@@ -1025,12 +1213,20 @@ void HandleHostDisconnectClient(ControllerIndex_t controllerIndex,
   }
 }
 
+// Client <- Host
 void HandleHostLeaveWithParty(ControllerIndex_t controllerIndex,
                               net::netadr_t *fromAdr, XUID fromXUID,
                               LobbyMsg *lobbyMsg) {
   Msg_LobbyHostLeaveWithParty msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received host leave with party "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     if (!host::LobbyHost_IsHost(msgData.lobbyType)) {
       session::LobbySession *const session =
           client::LobbyClientData_GetSession(msgData.lobbyType);
@@ -1043,6 +1239,7 @@ void HandleHostLeaveWithParty(ControllerIndex_t controllerIndex,
   }
 }
 
+// Client <- Host
 void HandleAgreementRequest(ControllerIndex_t controllerIndex,
                             net::netadr_t *fromAdr, XUID fromXUID,
                             LobbyMsg *lobbyMsg) {
@@ -1051,6 +1248,13 @@ void HandleAgreementRequest(ControllerIndex_t controllerIndex,
   join::JoinClient &joinClient = (*join::s_joinClient)[controllerIndex];
   if (joinClient.state == join::JoinClientState::IDLE) {
     if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+      game::trace("[Lobby][Message][{}] Client received join agreement request "
+                  "from host ({:016X} @ {}): {}",
+                  game::serialize(controllerIndex), fromXUID,
+                  fromAdr->serialize(), msgData.serialize());
+#endif
+
       joinClient.potentialHost.info.xuid = msgData.hostXuid;
       strscpy(joinClient.potentialHost.info.name, msgData.hostName);
       joinClient.potentialHost.info.serializedAdr.addrBuff =
@@ -1073,6 +1277,7 @@ void HandleAgreementRequest(ControllerIndex_t controllerIndex,
   }
 }
 
+// Client <- Host
 void HandleJoinComplete(ControllerIndex_t controllerIndex,
                         net::netadr_t *fromAdr, XUID fromXUID,
                         LobbyMsg *lobbyMsg) {
@@ -1081,6 +1286,13 @@ void HandleJoinComplete(ControllerIndex_t controllerIndex,
   Msg_JoinComplete msgData{};
   if (msgData.package(*lobbyMsg) &&
       !client.potentialHost.info.netAdr.is_zero_ip()) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received join complete "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     if (msgData.shouldCommit) {
       Msg_JoinMemberInfo memberInfoMsg{};
 
@@ -1159,47 +1371,78 @@ void HandleJoinComplete(ControllerIndex_t controllerIndex,
   }
 }
 
+// Client <- Host
 void HandleMigrateAnnounceHost(ControllerIndex_t controllerIndex,
                                net::netadr_t *fromAdr, XUID fromXUID,
                                LobbyMsg *lobbyMsg) {
   Msg_LobbyMigrateAnnounceHost msgData{};
   if (msgData.package(*lobbyMsg) && !fromAdr->is_zero_ip()) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received migrate announce host "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     migrate::LobbyMigrateClient_HandleHostAnnounce(
         client::LobbyClientData_GetSession(msgData.lobbyType), &msgData,
         fromXUID);
   }
 }
 
+// Client <- Host
 void HandleIngameMigrateTo(ControllerIndex_t controllerIndex,
                            net::netadr_t *fromAdr, XUID fromXUID,
                            LobbyMsg *lobbyMsg) {
   Msg_LobbyIngameMigrateMigrateTo msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received in-game migrate to "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
     migrate::LobbyInGameMigrateClient_HandleMigrateTo(
         controllerIndex, client::LobbyClientData_GetSession(msgData.lobbyType),
         &msgData);
   }
 }
 
+// Client <- Host
 void HandleIngameMigrateNewHost(ControllerIndex_t controllerIndex,
                                 net::netadr_t *fromAdr, XUID fromXUID,
                                 LobbyMsg *lobbyMsg) {
   Msg_LobbyIngameMigrateNewHost msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received in-game migrate new host "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     migrate::LobbyInGameMigrateClient_HandleSessionInfoMsg(
         controllerIndex, client::LobbyClientData_GetSession(msgData.lobbyType),
         &msgData);
   }
 }
 
+// Client <- Host
 void Client_HandleClientContent(ControllerIndex_t controllerIndex,
                                 net::netadr_t *fromAdr, XUID fromXUID,
                                 LobbyMsg *lobbyMsg) {
   Msg_ClientContent msgData{};
 
   if (msgData.package(*lobbyMsg)) {
+#ifndef NDEBUG
+    game::trace("[Lobby][Message][{}] Client received client content "
+                "from host ({:016X} @ {}): {}",
+                game::serialize(controllerIndex), fromXUID,
+                fromAdr->serialize(), msgData.serialize());
+#endif
+
     clientcontent::ClientContentType contentType =
         clientcontent::ClientContentType_GetContentTypeFromDatamask(
             msgData.dataMask);

@@ -39,6 +39,49 @@ enum class LobbyMsgElementType : uint32_t {
   COUNT = 0x11,
 };
 
+inline constexpr const char *serialize(const LobbyMsgElementType type) {
+  switch (type) {
+  case LobbyMsgElementType::INT32:
+    return "ELEMENT_TYPE_INT32";
+  case LobbyMsgElementType::UINT32:
+    return "ELEMENT_TYPE_UINT32";
+  case LobbyMsgElementType::INT16:
+    return "ELEMENT_TYPE_INT16";
+  case LobbyMsgElementType::UINT16:
+    return "ELEMENT_TYPE_UINT16";
+  case LobbyMsgElementType::INT8:
+    return "ELEMENT_TYPE_INT8";
+  case LobbyMsgElementType::UINT8:
+    return "ELEMENT_TYPE_UINT8";
+  case LobbyMsgElementType::INT64:
+    return "ELEMENT_TYPE_INT64";
+  case LobbyMsgElementType::UINT64:
+    return "ELEMENT_TYPE_UINT64";
+  case LobbyMsgElementType::FLOAT:
+    return "ELEMENT_TYPE_FLOAT";
+  case LobbyMsgElementType::XUID:
+    return "ELEMENT_TYPE_XUID";
+  case LobbyMsgElementType::STRING:
+    return "ELEMENT_TYPE_STRING";
+  case LobbyMsgElementType::GLOB:
+    return "ELEMENT_TYPE_GLOB";
+  case LobbyMsgElementType::ARRAY_BEGIN:
+    return "ELEMENT_TYPE_ARRAY_BEGIN";
+  case LobbyMsgElementType::ARRAY_ELEMENT:
+    return "ELEMENT_TYPE_ARRAY_ELEMENT";
+  case LobbyMsgElementType::ARRAY_END:
+    return "ELEMENT_TYPE_ARRAY_END";
+  case LobbyMsgElementType::DEBUG_START:
+    return "ELEMENT_TYPE_DEBUG_START";
+  case LobbyMsgElementType::DEBUG_END:
+    return "ELEMENT_TYPE_DEBUG_END";
+  case LobbyMsgElementType::COUNT:
+    return "ELEMENT_TYPE_COUNT";
+  default:
+    return "ELEMENT_TYPE_UNKNOWN";
+  }
+}
+
 enum class MsgType : int32_t {
   NONE = -1,
   INFO_REQUEST = 0,
@@ -80,6 +123,83 @@ enum class MsgType : int32_t {
   COUNT = 0x21,
 };
 IMPL_ENUM_OPERATORS(MsgType);
+
+inline constexpr const char *serialize(const MsgType type) {
+  switch (type) {
+  case MsgType::NONE:
+    return "MSG_TYPE_NONE";
+  case MsgType::INFO_REQUEST:
+    return "MSG_TYPE_INFO_REQUEST";
+  case MsgType::INFO_RESPONSE:
+    return "MSG_TYPE_INFO_RESPONSE";
+  case MsgType::LOBBY_STATE_PRIVATE:
+    return "MSG_TYPE_LOBBY_STATE_PRIVATE";
+  case MsgType::LOBBY_STATE_GAME:
+    return "MSG_TYPE_LOBBY_STATE_GAME";
+  case MsgType::LOBBY_STATE_GAMEPUBLIC:
+    return "MSG_TYPE_LOBBY_STATE_GAMEPUBLIC";
+  case MsgType::LOBBY_STATE_GAMECUSTOM:
+    return "MSG_TYPE_LOBBY_STATE_GAMECUSTOM";
+  case MsgType::LOBBY_STATE_GAMETHEATER:
+    return "MSG_TYPE_LOBBY_STATE_GAMETHEATER";
+  case MsgType::LOBBY_HOST_HEARTBEAT:
+    return "MSG_TYPE_LOBBY_HOST_HEARTBEAT";
+  case MsgType::LOBBY_HOST_DISCONNECT:
+    return "MSG_TYPE_LOBBY_HOST_DISCONNECT";
+  case MsgType::LOBBY_HOST_DISCONNECT_CLIENT:
+    return "MSG_TYPE_LOBBY_HOST_DISCONNECT_CLIENT";
+  case MsgType::LOBBY_HOST_LEAVE_WITH_PARTY:
+    return "MSG_TYPE_LOBBY_HOST_LEAVE_WITH_PARTY";
+  case MsgType::LOBBY_CLIENT_HEARTBEAT:
+    return "MSG_TYPE_LOBBY_CLIENT_HEARTBEAT";
+  case MsgType::LOBBY_CLIENT_DISCONNECT:
+    return "MSG_TYPE_LOBBY_CLIENT_DISCONNECT";
+  case MsgType::LOBBY_CLIENT_RELIABLE_DATA:
+    return "MSG_TYPE_LOBBY_CLIENT_RELIABLE_DATA";
+  case MsgType::LOBBY_CLIENT_CONTENT:
+    return "MSG_TYPE_LOBBY_CLIENT_CONTENT";
+  case MsgType::LOBBY_MODIFIED_STATS:
+    return "MSG_TYPE_LOBBY_MODIFIED_STATS";
+  case MsgType::JOIN_LOBBY:
+    return "MSG_TYPE_JOIN_LOBBY";
+  case MsgType::JOIN_RESPONSE:
+    return "MSG_TYPE_JOIN_RESPONSE";
+  case MsgType::JOIN_AGREEMENT_REQUEST:
+    return "MSG_TYPE_JOIN_AGREEMENT_REQUEST";
+  case MsgType::JOIN_AGREEMENT_RESPONSE:
+    return "MSG_TYPE_JOIN_AGREEMENT_RESPONSE";
+  case MsgType::JOIN_COMPLETE:
+    return "MSG_TYPE_JOIN_COMPLETE";
+  case MsgType::JOIN_MEMBER_INFO:
+    return "MSG_TYPE_JOIN_MEMBER_INFO";
+  case MsgType::SERVERLIST_INFO:
+    return "MSG_TYPE_SERVERLIST_INFO";
+  case MsgType::PEER_TO_PEER_CONNECTIVITY_TEST:
+    return "MSG_TYPE_PEER_TO_PEER_CONNECTIVITY_TEST";
+  case MsgType::PEER_TO_PEER_INFO:
+    return "MSG_TYPE_PEER_TO_PEER_INFO";
+  case MsgType::LOBBY_MIGRATE_TEST:
+    return "MSG_TYPE_LOBBY_MIGRATE_TEST";
+  case MsgType::MIGRATE_ANNOUNCE_HOST:
+    return "MSG_TYPE_MIGRATE_ANNOUNCE_HOST";
+  case MsgType::MIGRATE_START:
+    return "MSG_TYPE_MIGRATE_START";
+  case MsgType::INGAME_MIGRATE_TO:
+    return "MSG_TYPE_INGAME_MIGRATE_TO";
+  case MsgType::MIGRATE_NEW_HOST:
+    return "MSG_TYPE_MIGRATE_NEW_HOST";
+  case MsgType::VOICE_PACKET:
+    return "MSG_TYPE_VOICE_PACKET";
+  case MsgType::VOICE_RELAY_PACKET:
+    return "MSG_TYPE_VOICE_RELAY_PACKET";
+  case MsgType::DEMO_STATE:
+    return "MSG_TYPE_DEMO_STATE";
+  case MsgType::COUNT:
+    return "MSG_TYPE_COUNT";
+  default:
+    return "MSG_TYPE_UNKNOWN";
+  }
+}
 
 inline constexpr std::string_view lobbyMsgName[+MsgType::COUNT] = {
     "InfoRequest",
@@ -125,6 +245,19 @@ enum class PackageType : uint32_t {
   READ = 0x2,
 };
 
+inline constexpr const char *serialize(const PackageType type) {
+  switch (type) {
+  case PackageType::NONE:
+    return "PACKAGE_TYPE_NONE";
+  case PackageType::WRITE:
+    return "PACKAGE_TYPE_WRITE";
+  case PackageType::READ:
+    return "PACKAGE_TYPE_READ";
+  default:
+    return "PACKAGE_TYPE_UNKNOWN";
+  }
+}
+
 inline constexpr auto LOBBYMSG_MAX_KEY_LENGTH = 0x10;
 typedef char lobbyMsgKey_t[LOBBYMSG_MAX_KEY_LENGTH];
 
@@ -137,6 +270,11 @@ union LobbyMsgEncodeFlags {
   };
 
   alwaysinline constexpr void clear() noexcept { packed = 0; }
+
+  inline std::string serialize() const noexcept {
+    return std::format(R"({{ "isArray": {}, "encodeKey": {} }})", isArray,
+                       encodeKey);
+  }
 };
 
 template <typename T>
@@ -339,6 +477,13 @@ struct LobbyMsg {
   alwaysinline bool read(P &packet, uint8_t (&buf)[N]) {
     return prep_readMsg(buf, N) && package(packet);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        R"({{ "msgType": {}, "encodeFlags": {}, "packageType": {} }})",
+        msg::serialize(msgType), encodeFlags.serialize(),
+        msg::serialize(packageType));
+  }
 };
 
 enum class MsgState : uint32_t {
@@ -346,9 +491,24 @@ enum class MsgState : uint32_t {
   WAITING_FOR_ACK = 0x1,
 };
 
+inline constexpr const char *serialize(const MsgState state) {
+  switch (state) {
+  case MsgState::IDLE:
+    return "MSG_STATE_IDLE";
+  case MsgState::WAITING_FOR_ACK:
+    return "MSG_STATE_WAITING_FOR_ACK";
+  default:
+    return "MSG_STATE_UNKNOWN";
+  }
+}
+
 struct EVENT_HANDLE {
   bool manualReset = false;
   uint8_t _padding1[7] = {0};
+
+  inline std::string serialize() const noexcept {
+    return std::format(R"({{ "manualReset": {} }})", ::serialize(manualReset));
+  }
 };
 
 enum class netchanMessageState_e : uint32_t {
@@ -357,10 +517,29 @@ enum class netchanMessageState_e : uint32_t {
   TIMEOUT = 0x2,
 };
 
+inline constexpr const char *serialize(const netchanMessageState_e state) {
+  switch (state) {
+  case netchanMessageState_e::COMPLETE:
+    return "NETCHAN_MESSAGE_STATE_COMPLETE";
+  case netchanMessageState_e::FAILED:
+    return "NETCHAN_MESSAGE_STATE_FAILED";
+  case netchanMessageState_e::TIMEOUT:
+    return "NETCHAN_MESSAGE_STATE_TIMEOUT";
+  default:
+    return "NETCHAN_MESSAGE_STATE_UNKNOWN";
+  }
+}
+
 struct netchanMsgConfig_s {
   EVENT_HANDLE completedEvent = {};
   netchanMessageState_e status = netchanMessageState_e::FAILED;
   int32_t timeoutMS = 0;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        R"({{ "completedEvent": {}, "status": {}, "timeoutMS": {} }})",
+        completedEvent.serialize(), msg::serialize(status), timeoutMS);
+  }
 };
 
 typedef netchanMsgConfig_s netchanMsgConfig_t;
@@ -374,12 +553,26 @@ struct NetChanMsg {
   int32_t timeout = 0;
   XUID toXUID = 0;
   XUID clientXUID = 0;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"sentTime\": {}, \"msgState\": {}, \"msgType\": {}, \"config\": "
+        "{}, "
+        "\"timeout\": {}, \"toXUID\": {:016X}, \"clientXUID\": {:016X} }}",
+        sentTime, msg::serialize(msgState), msg::serialize(msgType),
+        config.serialize(), timeout, toXUID, clientXUID);
+  }
 };
 ASSERT_SIZE(NetChanMsg, 0x30);
 
 struct LobbyMsgHandler {
   MsgType msgType;
   LobbyMsg_MsgHandleCallbackPtr function;
+
+  inline std::string serialize() const noexcept {
+    return std::format(R"({{ "msgType": {}, "function": {} }})",
+                       msg::serialize(msgType), ::serialize(function));
+  }
 };
 } // namespace msg
 } // namespace lobby

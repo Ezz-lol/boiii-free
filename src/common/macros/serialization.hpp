@@ -29,7 +29,7 @@ concept SerializablePtr = !std::is_reference_v<T> && std::is_pointer_v<T> &&
 template <typename T>
   requires(std::same_as<T, bool>)
 inline constexpr const char *serialize(const T val) {
-  return ::readable_ptr(val) ? "true" : "false";
+  return val ? "true" : "false";
 }
 
 inline constexpr std::string serialize(const char *val) {
@@ -82,7 +82,8 @@ template <typename T>
       result += std::format(", 0x{:X}", arr[i]);
     }
   }
-  result += "]";
+  result += ']';
+  ;
   return result;
 }
 
@@ -101,7 +102,8 @@ template <typename T>
       }
     }
   }
-  result += "]";
+  result += ']';
+  ;
   return result;
 }
 
@@ -119,7 +121,8 @@ template <typename T>
       }
     }
   }
-  result += "]";
+  result += ']';
+  ;
   return result;
 }
 
@@ -134,7 +137,8 @@ template <typename T>
       result += std::format(", {}", arr[i]);
     }
   }
-  result += "]";
+  result += ']';
+  ;
   return result;
 }
 
@@ -149,7 +153,8 @@ template <typename T>
       result += std::format(", {}", serialize(arr[i]));
     }
   }
-  result += "]";
+  result += ']';
+  ;
   return result;
 }
 
@@ -176,7 +181,7 @@ template <typename T>
       }
     }
   }
-  result += "]";
+  result += ']';
   return result;
 }
 
@@ -191,7 +196,8 @@ template <SerializablePtr T>
       result += std::format(", {}", ::serialize(arr[i]));
     }
   }
-  result += "]";
+  result += ']';
+  ;
   return result;
 }
 
@@ -208,7 +214,8 @@ template <SerializablePtr T>
       }
     }
   }
-  result += "]";
+  result += ']';
+  ;
   return result;
 }
 
@@ -261,4 +268,57 @@ template <typename T, const size_t N>
 template <SerializablePtr T, const size_t N>
 [[nodiscard]] inline std::string serialize(const T (&arr)[N]) {
   return serialize(&arr[0], N);
+}
+
+template <typename T>
+  requires(std::is_integral_v<T> || std::is_enum_v<T> ||
+           std::is_same_v<T, bool> || std::is_same_v<T, char> ||
+           std::is_floating_point_v<T>)
+[[nodiscard]] inline std::string serialize(const std::span<const T> s) {
+  return serialize(s.data(), s.size());
+}
+
+template <typename T>
+  requires(std::is_integral_v<T> || std::is_enum_v<T> ||
+           std::is_same_v<T, bool> || std::is_same_v<T, char> ||
+           std::is_floating_point_v<T>)
+[[nodiscard]] inline std::string
+serialize(const std::span<const volatile T> s) {
+  return serialize(s.data(), s.size());
+}
+
+template <Serializable T>
+[[nodiscard]] inline std::string serialize(const std::span<const T> s) {
+  return serialize(s.data(), s.size());
+}
+
+template <Serializable T, const size_t N>
+[[nodiscard]] inline std::string
+serialize(const std::span<const volatile T> s) {
+  return serialize(s.data(), s.size());
+}
+
+template <typename T>
+  requires(std::is_integral_v<T> && !std::is_enum_v<T> &&
+           !std::is_same_v<T, bool> && !std::is_same_v<T, char>)
+[[nodiscard]] inline std::string serialize(const std::span<const T *const> s) {
+  return serialize(s.data(), s.size());
+}
+
+template <typename T>
+  requires(std::is_floating_point_v<T>)
+[[nodiscard]] inline std::string serialize(const std::span<const T *const> s) {
+  return serialize(s.data(), s.size());
+}
+
+template <typename T>
+  requires(std::is_enum_v<T> || std::is_same_v<T, bool> ||
+           std::is_same_v<T, char>)
+[[nodiscard]] inline std::string serialize(const std::span<const T *const> s) {
+  return serialize(s.data(), s.size());
+}
+
+template <SerializablePtr T>
+[[nodiscard]] inline std::string serialize(const std::span<const T> s) {
+  return serialize(s.data(), s.size());
 }

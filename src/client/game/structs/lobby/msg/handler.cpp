@@ -56,7 +56,8 @@ bool MsgMutableClientInfo::package(LobbyMsg &lobbyMsg) {
          lobbyMsg.package_glob(
 
              "charitemcolors",
-             mutableClientInfo.heroInfo.selectedCharacterItemColors,
+             reinterpret_cast<void *>(
+                 &mutableClientInfo.heroInfo.selectedCharacterItemColors),
              sizeof(mutableClientInfo.heroInfo.selectedCharacterItemColors)) &&
          lobbyMsg.package_glob(
 

@@ -138,6 +138,12 @@ PACKED(struct Msg_InfoResponse {
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::INFO_RESPONSE;
   bool package(LobbyMsg & lobbyMsg);
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"nonce\": {}, \"uiScreen\": {}, \"natType\": {}, \"lobby\": {} }}",
+        nonce, uiScreen, dw::net::serialize(natType), ::serialize(lobby));
+  }
 });
 ASSERT_SIZE(Msg_InfoResponse, 0x150);
 
@@ -171,6 +177,27 @@ PACKED(struct Msg_JoinParty {
   bool package(LobbyMsg & lobbyMsg);
 
   IMPL_SLICE_METHODS(members, memberCount, Members);
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"targetLobby\": {}, \"sourceLobby\": {}, \"joinType\": {}, "
+        "\"probedXuid\": {:016X}, "
+        "\"memberCount\": {}, \"members\": {}, \"splitscreenClients\": {}, "
+        "\"playlistID\": {}, \"playlistVersion\": {}, "
+        "\"ffotdVersion\": {}, \"networkMode\": {}, \"netFieldChecksum\": "
+        "{:08X}, \"protocolVersion\": {}, "
+        "\"changelist\": {}, \"pingBand\": {}, \"dlcBits\": {}, \"joinNonce\": "
+        "{}, \"isStarterPack\": {}, "
+        "\"password\": {}, \"chunkStatus\": {} }}",
+        lobby::serialize(targetLobby), lobby::serialize(sourceLobby),
+        join::serialize(joinType), probedXuid, game::serialize(memberCount),
+        ::serialize(getMembers()), game::serialize(splitscreenClients),
+        playlistID, playlistVersion, ffotdVersion,
+        lobby::serialize(networkMode), netFieldChecksum, protocolVersion,
+        changelist, pingBand, dlcBits.serialize(), joinNonce,
+        ::serialize(isStarterPack), ::serialize(password),
+        ::serialize(chunkStatus));
+  }
 });
 ASSERT_SIZE(Msg_JoinParty, 0x2B8);
 
@@ -179,6 +206,11 @@ struct MsgMutableClientInfo {
   MutableClientInfo mutableClientInfo = {};
 
   bool package(LobbyMsg &lobbyMsg);
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"mutableClientInfo\": {} }}",
+                       mutableClientInfo.serialize());
+  }
 };
 ASSERT_SIZE(MsgMutableClientInfo, 0x410);
 
@@ -202,6 +234,22 @@ PACKED(struct MsgClientLobbyInfo {
   uint32_t joinOrder = 0;
   ContentFlags dlcBits = {};
   uint8_t _padding48C[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"xuid\": {:016X}, \"clientNum\": {}, \"gamertag\": "
+                       "{}, \"isGuest\": {}, "
+                       "\"lobbyID\": {:016X}, \"qport\": {}, \"latencyBand\": "
+                       "{}, \"mutableClientInfoMsg\": {}, "
+                       "\"score\": {}, \"connectivityBits\": {:X}, "
+                       "\"serializedAdr\": {}, \"localNetID\": {}, "
+                       "\"joinOrder\": {}, \"dlcBits\": {} }}",
+                       xuid, game::serialize(clientNum), ::serialize(gamertag),
+                       ::serialize(isGuest), lobbyID, qport, latencyBand,
+                       mutableClientInfoMsg.serialize(), score,
+                       connectivityBits, serializedAdr.serialize(),
+                       net::serialize(localNetID), joinOrder,
+                       dlcBits.serialize());
+  }
 });
 ASSERT_SIZE(MsgClientLobbyInfo, 0x490);
 
@@ -211,12 +259,23 @@ PACKED(struct MsgHostMigrateInfo {
   uint8_t _padding01[3];
   int32_t lasthostTimeMS = 0;
   LobbyClientPool<XUID> migrateNominees = {0};
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"indexBits\": {:X}, \"lasthostTimeMS\": {}, "
+                       "\"migrateNominees\": {} }}",
+                       indexBits, lasthostTimeMS, ::serialize(migrateNominees));
+  }
 });
 ASSERT_SIZE(MsgHostMigrateInfo, 0x98);
 
 // Verified
 struct MsgPlatformSessionData {
   session::PlatformSessionData platformSessionData = {};
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"platformSessionData\": {} }}",
+                       platformSessionData.serialize());
+  }
 };
 
 // Verified
@@ -248,6 +307,27 @@ PACKED(struct Msg_LobbyState {
   bool package(LobbyMsg & lobbyMsg);
 
   IMPL_SLICE_METHODS(clientList, clientCount, ClientList);
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"stateNum\": {}, \"lobbyNetworkMode\": {}, "
+        "\"lobbyMainMode\": {}, \"partyPrivacy\": {}, "
+        "\"lobbyType\": {}, \"lobbyMode\": {}, \"status\": {}, "
+        "\"uiScreen\": {}, \"uiLeaderActivity\": {}, "
+        "\"key\": {}, \"clientLeader\": {:016X}, "
+        "\"platformSessionID\": {:016X}, \"maxClients\": {}, "
+        "\"isAdvertised\": {}, \"clientCount\": {}, "
+        "\"clientList\": {}, \"migrateInfo\": {}, "
+        "\"platformData\": {}, \"ugcInfo\": {} }}",
+        stateNum, lobby::serialize(lobbyNetworkMode),
+        lobby::serialize(lobbyMainMode), lobby::serialize(partyPrivacy),
+        lobby::serialize(lobbyType), lobby::serialize(lobbyMode),
+        session::serialize(status), uiScreen, uiLeaderActivity,
+        ::serialize(key), clientLeader, platformSessionID,
+        game::serialize(maxClients), ::serialize(isAdvertised),
+        game::serialize(clientCount), ::serialize(getClientList()),
+        migrateInfo.serialize(), platformData.serialize(), ugcInfo.serialize());
+  }
 });
 // Verified
 ASSERT_SIZE(Msg_LobbyState, 0x53C8);
@@ -265,6 +345,12 @@ PACKED(struct Msg_LobbyStateGame {
   bool package(LobbyMsg & lobbyMsg);
 
   IMPL_SLICE_METHODS(compressedBuffer, compressedBufferSize, CompressedBuffer);
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"core\": {}, \"dataGame\": {}, \"compressedBufferSize\": {} }}",
+        core.serialize(), dataGame.serialize(), compressedBufferSize);
+  }
 });
 ASSERT_SIZE(Msg_LobbyStateGame, 0x132E0);
 ASSERT_OFFSET(Msg_LobbyStateGame, core, 0x0);
@@ -274,6 +360,10 @@ ASSERT_OFFSET(Msg_LobbyStateGame, compressedBuffer, 0x72DC);
 
 struct PrivateData {
   int32_t playlistId = 0;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"playlistId\": {} }}", playlistId);
+  }
 };
 
 // Verified
@@ -288,6 +378,11 @@ PACKED(struct Msg_LobbyStatePrivate {
     return core.package(lobbyMsg) &&
            (core.lobbyMode != LobbyMode::ARENA ||
             lobbyMsg.package_int("plistid", &dataPrivate.playlistId));
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"core\": {}, \"dataPrivate\": {} }}",
+                       core.serialize(), dataPrivate.serialize());
   }
 });
 ASSERT_SIZE(Msg_LobbyStatePrivate, 0x53D0);
@@ -304,6 +399,11 @@ PACKED(struct Msg_JoinAgreementResponse {
   inline bool package(LobbyMsg & lobbyMsg) {
     return lobbyMsg.package_xuid("xuid", &xuid) &&
            lobbyMsg.package_bool("agree", &clientAgrees);
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"xuid\": {:016X}, \"clientAgrees\": {} }}", xuid,
+                       ::serialize(clientAgrees));
   }
 });
 ASSERT_SIZE(Msg_JoinAgreementResponse, 0x10);
@@ -322,6 +422,10 @@ PACKED(struct Msg_ModifiedStats {
   }
 
   IMPL_SLICE_METHODS(statsBuffer, statsSize, StatsBuffer);
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"statsSize\": {} }}", statsSize);
+  }
 });
 ASSERT_SIZE(Msg_ModifiedStats, 0x10004);
 
@@ -348,6 +452,21 @@ PACKED(struct Msg_ClientReliableData {
       MsgType::LOBBY_CLIENT_RELIABLE_DATA;
 
   bool package(LobbyMsg & lobbyMsg);
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"dataMask\": {:08X}, \"lobbyType\": {}, \"xuidNewLeader\": "
+        "{:016X}, \"disconnectClientXuid\": {:016X}, "
+        "\"disconnectClient\": {}, \"leaderActivity\": {}, "
+        "\"platformSessionID\": {:016X}, \"team\": {}, "
+        "\"mapVote\": {}, \"readyUp\": {}, \"itemVote\": {}, "
+        "\"characterSelection\": {}, \"editComplete\": {} }}",
+        dataMask, lobby::serialize(lobbyType), xuidNewLeader,
+        disconnectClientXuid, lobby::serialize(disconnectClient),
+        leaderActivity, platformSessionID, game::serialize(team),
+        lobby::serialize(mapVote), ::serialize(readyUp), itemVote.serialize(),
+        characterSelection.serialize(), ::serialize(editComplete));
+  }
 });
 ASSERT_SIZE(Msg_ClientReliableData, 0x68);
 
@@ -379,6 +498,14 @@ PACKED(struct Msg_VoicePacket {
   }
 
   IMPL_SLICE_METHODS(voiceData, sizeofVoiceData, VoiceData);
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"talkerIndex\": {}, "
+                       "\"relayBits\": {:X}, \"sizeofVoiceData\": {}, "
+                       "\"numPacketsInData\": {} }}",
+                       lobby::serialize(lobbyType), talkerIndex, relayBits,
+                       sizeofVoiceData, numPacketsInData);
+  }
 });
 ASSERT_SIZE(Msg_VoicePacket, 0x4C0);
 
@@ -406,6 +533,11 @@ struct MsgFixedClientInfo {
            lobbyMsg.package_float("longitude", &fixedClientInfo.longitude) &&
            lobbyMsg.package_bool("experimentActive",
                                  &fixedClientInfo.experimentActive);
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"fixedClientInfo\": {} }}",
+                       fixedClientInfo.serialize());
   }
 };
 
@@ -440,6 +572,14 @@ PACKED(struct Msg_ClientContent {
                                   reinterpret_cast<uint8_t *>(&gameMode)) &&
            validate(gameMode);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"dataMask\": {:08X}, \"lobbyType\": {}, \"compressedBufferSize\": "
+        "{}, \"clientXUID\": {:016X}, \"sessionMode\": {}, \"gameMode\": {} }}",
+        dataMask, lobby::serialize(lobbyType), compressedBufferSize, clientXUID,
+        game::serialize(sessionMode), game::serialize(gameMode));
+  }
 });
 ASSERT_SIZE(Msg_ClientContent, 0x27C20);
 
@@ -462,6 +602,14 @@ PACKED(struct Msg_LobbyMigrateBandwidthTest {
            lobbyMsg.package_int("timems", &timeMS) &&
            lobbyMsg.package_uchar("seqorcount", &sentPacketCountOrSequence);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"lobbyType\": {}, \"peerXuid\": {:016X}, \"isAck\": {}, "
+        "\"sentPacketCountOrSequence\": {}, \"timeMS\": {} }}",
+        lobby::serialize(lobbyType), peerXuid, ::serialize(isAck),
+        sentPacketCountOrSequence, timeMS);
+  }
 });
 ASSERT_SIZE(Msg_LobbyMigrateBandwidthTest, 0x18);
 
@@ -482,6 +630,13 @@ PACKED(struct Msg_LobbyDisconnectClient {
            lobbyMsg.package_int("discclient", &disconnectClient) &&
            validate(disconnectClient);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"disconnectClientXuid\": "
+                       "{:016X}, \"disconnectClient\": {} }}",
+                       lobby::serialize(lobbyType), disconnectClientXuid,
+                       lobby::serialize(disconnectClient));
+  }
 });
 ASSERT_SIZE(Msg_LobbyDisconnectClient, 0x18);
 
@@ -497,6 +652,12 @@ PACKED(struct Msg_ConnectionTest {
     return lobbyMsg.package_int("lobbytype", &lobbyType) &&
            validate(lobbyType) && lobbyMsg.package_int("index", &clientIndex) &&
            validate(clientIndex);
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"clientIndex\": {} }}",
+                       lobby::serialize(lobbyType),
+                       game::serialize(clientIndex));
   }
 });
 ASSERT_SIZE(Msg_ConnectionTest, 0x8);
@@ -527,6 +688,17 @@ PACKED(struct Msg_DemoState {
            lobbyMsg.package_int("kframejumpcount", &keyframeJumpCount) &&
            lobbyMsg.package_int("lstkframetime", &lastKeyframeTime);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"lobbyType\": {}, \"paused\": {}, \"serverTime\": {}, "
+        "\"timeScale\": {}, "
+        "\"client\": {}, \"keyframeIndex\": {}, \"lastJumpedKeyframe\": {}, "
+        "\"keyframeJumpCount\": {}, \"lastKeyframeTime\": {} }}",
+        lobby::serialize(lobbyType), ::serialize(paused), serverTime, timeScale,
+        game::serialize(client), keyframeIndex, lastJumpedKeyframe,
+        keyframeJumpCount, lastKeyframeTime);
+  }
 });
 ASSERT_SIZE(Msg_DemoState, 0x24);
 
@@ -543,6 +715,11 @@ PACKED(struct Msg_LobbyClientDisconnect {
     return lobbyMsg.package_int("lobbytype", &lobbyType) &&
            validate(lobbyType) && lobbyMsg.package_xuid("xuid", &xuid);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"xuid\": {:016X} }}",
+                       lobby::serialize(lobbyType), xuid);
+  }
 });
 ASSERT_SIZE(Msg_LobbyClientDisconnect, 0x10);
 
@@ -555,6 +732,12 @@ PACKED(struct Msg_LobbyHostHeartbeat {
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_HOST_HEARTBEAT;
 
   bool package(LobbyMsg & lobbyMsg);
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"heartbeatNum\": {}, \"lobbyType\": {}, \"migrateInfo\": {} }}",
+        heartbeatNum, lobby::serialize(lobbyType), migrateInfo.serialize());
+  }
 });
 ASSERT_SIZE(Msg_LobbyHostHeartbeat, 0xA0);
 
@@ -571,6 +754,11 @@ PACKED(struct Msg_LobbyIngameMigrateMigrateTo {
            validate(lobbyType) &&
            lobbyMsg.package_xuid("newhost", &newHostXuid);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"newHostXuid\": {:016X} }}",
+                       lobby::serialize(lobbyType), newHostXuid);
+  }
 });
 ASSERT_SIZE(Msg_LobbyIngameMigrateMigrateTo, 0x10);
 
@@ -582,6 +770,10 @@ PACKED(struct Msg_InfoRequest {
 
   inline bool package(LobbyMsg & lobbyMsg) {
     return lobbyMsg.package_uint("nonce", &nonce);
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"nonce\": {} }}", nonce);
   }
 });
 ASSERT_SIZE(Msg_InfoRequest, 0x4);
@@ -606,6 +798,20 @@ PACKED(struct Msg_InfoResponseLobbyServer {
   bool package(LobbyMsg & lobbyMsg);
 
   IMPL_SLICE_METHODS(client, clientCount, Client);
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"clientPlatform\": {}, \"lobby\": {}, \"xuid\": {:016X}, "
+        "\"gamertag\": {}, "
+        "\"sessionMode\": {}, \"mapName\": {}, \"gameType\": {}, \"isInGame\": "
+        "{}, "
+        "\"maxClients\": {}, \"clientCount\": {}, \"client\": {} }}",
+        game::serialize(clientPlatform), ::serialize(lobby), xuid,
+        ::serialize(gamertag), game::serialize(sessionMode),
+        ::serialize(mapName), ::serialize(gameType), ::serialize(isInGame),
+        game::serialize(maxClients), game::serialize(clientCount),
+        ::serialize(getClient()));
+  }
 });
 ASSERT_SIZE(Msg_InfoResponseLobbyServer, 0x490);
 
@@ -648,6 +854,21 @@ PACKED(struct Msg_JoinAgreementRequest {
            lobbyMsg.package_int("nonce", &agreementNonce) &&
            lobbyMsg.package_int("serverloc", &serverLoc);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"hostXuid\": {:016X}, \"hostName\": {}, \"secId\": "
+                       "{}, \"secKey\": {}, "
+                       "\"serializedAdr\": {}, \"sourceLobbyType\": {}, "
+                       "\"destinationLobbyType\": {}, "
+                       "\"destinationLobbyParams\": {}, \"reservationKey\": "
+                       "{}, \"agreementNonce\": {}, \"serverLoc\": {} }}",
+                       hostXuid, ::serialize(hostName), secId.serialize(),
+                       secKey.serialize(), serializedAdr.serialize(),
+                       lobby::serialize(sourceLobbyType),
+                       lobby::serialize(destinationLobbyType),
+                       destinationLobbyParams.serialize(), reservationKey,
+                       agreementNonce, serverLoc);
+  }
 });
 ASSERT_SIZE(Msg_JoinAgreementRequest, 0x88);
 
@@ -660,6 +881,10 @@ PACKED(struct Msg_JoinComplete {
 
   inline bool package(LobbyMsg & lobbyMsg) {
     return lobbyMsg.package_bool("xuid", &shouldCommit);
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"shouldCommit\": {} }}", ::serialize(shouldCommit));
   }
 });
 ASSERT_SIZE(Msg_JoinComplete, 0x1);
@@ -681,6 +906,16 @@ PACKED(struct Msg_JoinMemberInfo {
            lobbyMsg.package_int("lobbytype", &targetLobby) &&
            validate(targetLobby) && fixedClientInfoMsg.package(lobbyMsg) &&
            mutableClientInfoMsg.package(lobbyMsg);
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"mutableClientInfoMsg\": {}, "
+                       "\"fixedClientInfoMsg\": {}, \"reservationKey\": {}, "
+                       "\"targetLobby\": {}, \"serializedAdr\": {} }}",
+                       mutableClientInfoMsg.serialize(),
+                       fixedClientInfoMsg.serialize(), reservationKey,
+                       lobby::serialize(targetLobby),
+                       serializedAdr.serialize());
   }
 });
 ASSERT_SIZE(Msg_JoinMemberInfo, 0x518);
@@ -709,6 +944,15 @@ PACKED(struct Msg_JoinResponse {
            validate(lobbyParams.mainMode) &&
            lobbyMsg.package_uint64("reservationkey", &reservationKey);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"response\": {}, \"name\": {}, \"serverLocation\": "
+                       "{}, \"lobbyType\": {}, "
+                       "\"lobbyParams\": {}, \"reservationKey\": {} }}",
+                       join::serialize(response), ::serialize(name),
+                       serverLocation, lobby::serialize(lobbyType),
+                       lobbyParams.serialize(), reservationKey);
+  }
 });
 ASSERT_SIZE(Msg_JoinResponse, 0x40);
 
@@ -719,6 +963,12 @@ PACKED(struct MsgClientMigrateInfo {
   uint32_t recievedPacketCount = 0;
   float m = 0.0f;
   uint32_t uploadBandwidth = 0;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"totalLatencyMS\": {}, \"recievedPacketCount\": "
+                       "{}, \"m\": {}, \"uploadBandwidth\": {} }}",
+                       totalLatencyMS, recievedPacketCount, m, uploadBandwidth);
+  }
 });
 ASSERT_SIZE(MsgClientMigrateInfo, 0x10);
 
@@ -744,6 +994,14 @@ PACKED(struct Msg_LobbyClientHeartbeat {
                                  &migrateInfo.uploadBandwidth) &&
            mutableClientInfoMsg.package(lobbyMsg);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"mutableClientInfoMsg\": {}, "
+                       "\"migrateInfo\": {} }}",
+                       lobby::serialize(lobbyType),
+                       mutableClientInfoMsg.serialize(),
+                       migrateInfo.serialize());
+  }
 });
 ASSERT_SIZE(Msg_LobbyClientHeartbeat, 0x428);
 
@@ -759,6 +1017,11 @@ PACKED(struct Msg_LobbyHostDisconnect {
     return lobbyMsg.package_int("lobbytype", &lobbyType) &&
            validate(lobbyType) && lobbyMsg.package_xuid("xuid", &xuid);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"xuid\": {:016X} }}",
+                       lobby::serialize(lobbyType), xuid);
+  }
 });
 ASSERT_SIZE(Msg_LobbyHostDisconnect, 0x10);
 
@@ -771,6 +1034,10 @@ PACKED(struct Msg_LobbyHostLeaveWithParty {
 
   inline bool package(LobbyMsg & lobbyMsg) {
     return lobbyMsg.package_int("lobbytype", &lobbyType) && validate(lobbyType);
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {} }}", lobby::serialize(lobbyType));
   }
 });
 ASSERT_SIZE(Msg_LobbyHostLeaveWithParty, 0x4);
@@ -787,6 +1054,11 @@ PACKED(struct Msg_LobbyIngameMigrateNewHost {
     return lobbyMsg.package_int("lobbytype", &lobbyType) &&
            validate(lobbyType) && lobbyMsg.package_xuid("hostxuid", &hostXuid);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"hostXuid\": {:016X} }}",
+                       lobby::serialize(lobbyType), hostXuid);
+  }
 });
 ASSERT_SIZE(Msg_LobbyIngameMigrateNewHost, 0x10);
 
@@ -800,6 +1072,11 @@ PACKED(struct Msg_LobbyMigrateAnnounceHost {
   inline bool package(LobbyMsg & lobbyMsg) {
     return lobbyMsg.package_int("lobbytype", &lobbyType) &&
            validate(lobbyType) && lobbyMsg.package_int("timeout", &timeout);
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"timeout\": {} }}",
+                       lobby::serialize(lobbyType), timeout);
   }
 });
 ASSERT_SIZE(Msg_LobbyMigrateAnnounceHost, 0x8);
@@ -817,6 +1094,11 @@ PACKED(struct Msg_LobbyMigrateStart {
            validate(lobbyType) &&
            lobbyMsg.package_xuid("migrateTo", &migrateTo);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"migrateTo\": {:016X} }}",
+                       lobby::serialize(lobbyType), migrateTo);
+  }
 });
 ASSERT_SIZE(Msg_LobbyMigrateStart, 0x10);
 
@@ -833,6 +1115,13 @@ PACKED(struct Msg_PeerToPeerInfo {
            validate(lobbyType) &&
            lobbyMsg.package_int("connectbit", &connectivityBits) &&
            lobbyMsg.package_xuid("xuid", &clientXuid);
+  }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"lobbyType\": {}, \"connectivityBits\": {}, "
+                       "\"clientXuid\": {:016X} }}",
+                       lobby::serialize(lobbyType), connectivityBits,
+                       clientXuid);
   }
 });
 ASSERT_SIZE(Msg_PeerToPeerInfo, 0x10);

@@ -17,6 +17,19 @@ enum class connectionType_e : uint32_t {
   WIRELESS = 0x2,
 };
 
+inline constexpr const char *serialize(const connectionType_e type) {
+  switch (type) {
+  case connectionType_e::UNKNOWN:
+    return "CONNECTION_TYPE_UNKNOWN";
+  case connectionType_e::WIRED:
+    return "CONNECTION_TYPE_WIRED";
+  case connectionType_e::WIRELESS:
+    return "CONNECTION_TYPE_WIRELESS";
+  default:
+    return "CONNECTION_TYPE_UNKNOWN";
+  }
+}
+
 enum class NetChanMsgType_e : int32_t {
   INVALID_CHANNEL = -1,
   SNAPSHOT = 0x0,
@@ -41,6 +54,53 @@ enum class NetChanMsgType_e : int32_t {
 };
 IMPL_ENUM_OPERATORS(NetChanMsgType_e);
 
+inline constexpr const char *serialize(const NetChanMsgType_e type) {
+  switch (type) {
+  case NetChanMsgType_e::INVALID_CHANNEL:
+    return "NET_CHAN_MSG_INVALID_CHANNEL";
+  case NetChanMsgType_e::SNAPSHOT:
+    return "NET_CHAN_MSG_SNAPSHOT";
+  case NetChanMsgType_e::CLIENTMSG:
+    return "NET_CHAN_MSG_CLIENTMSG";
+  case NetChanMsgType_e::VOICE:
+    return "NET_CHAN_MSG_VOICE";
+  case NetChanMsgType_e::LOBBY_VOICE:
+    return "NET_CHAN_MSG_LOBBY_VOICE";
+  case NetChanMsgType_e::LOBBYPRIVATE_STATE:
+    return "NET_CHAN_MSG_LOBBYPRIVATE_STATE";
+  case NetChanMsgType_e::LOBBYPRIVATE_HEARTBEAT:
+    return "NET_CHAN_MSG_LOBBYPRIVATE_HEARTBEAT";
+  case NetChanMsgType_e::LOBBYPRIVATE_RELIABLE:
+    return "NET_CHAN_MSG_LOBBYPRIVATE_RELIABLE";
+  case NetChanMsgType_e::LOBBYPRIVATE_UNRELIABLE:
+    return "NET_CHAN_MSG_LOBBYPRIVATE_UNRELIABLE";
+  case NetChanMsgType_e::LOBBYPRIVATE_MIGRATE:
+    return "NET_CHAN_MSG_LOBBYPRIVATE_MIGRATE";
+  case NetChanMsgType_e::LOBBYGAME_STATE:
+    return "NET_CHAN_MSG_LOBBYGAME_STATE";
+  case NetChanMsgType_e::LOBBYGAME_HEARTBEAT:
+    return "NET_CHAN_MSG_LOBBYGAME_HEARTBEAT";
+  case NetChanMsgType_e::LOBBYGAME_RELIABLE:
+    return "NET_CHAN_MSG_LOBBYGAME_RELIABLE";
+  case NetChanMsgType_e::LOBBYGAME_UNRELIABLE:
+    return "NET_CHAN_MSG_LOBBYGAME_UNRELIABLE";
+  case NetChanMsgType_e::LOBBYGAME_MIGRATE:
+    return "NET_CHAN_MSG_LOBBYGAME_MIGRATE";
+  case NetChanMsgType_e::LOBBY_JOIN:
+    return "NET_CHAN_MSG_LOBBY_JOIN";
+  case NetChanMsgType_e::PTP:
+    return "NET_CHAN_MSG_PTP";
+  case NetChanMsgType_e::CLIENT_CONTENT:
+    return "NET_CHAN_MSG_CLIENT_CONTENT";
+  case NetChanMsgType_e::TEST:
+    return "NET_CHAN_MSG_TEST";
+  case NetChanMsgType_e::MAX_CHANNELS:
+    return "NET_CHAN_MSG_MAX_CHANNELS";
+  default:
+    return "NET_CHAN_MSG_UNKNOWN";
+  }
+}
+
 constexpr size_t UINT8_STR_BUF_LEN = 3; // Decimal; 0 - 255
 constexpr size_t UINT16_STR_BUF_LEN = sizeof(uint16_t) * UINT8_STR_BUF_LEN;
 constexpr size_t NET_IPV4_STR_BUF_LEN =
@@ -59,6 +119,11 @@ union netipv4_t {
 
   [[nodiscard]] inline std::string toString() const noexcept {
     return std::format("{}.{}.{}.{}", a, b, c, d);
+  }
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(R"({{ "a": {}, "b": {}, "c": {}, "d": {} }})", a, b, c,
+                       d);
   }
 
   inline constexpr ToStringResult
@@ -170,7 +235,10 @@ struct netadr_t {
   }
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{}:{}", ipv4.toString(), port);
+    return std::format(
+        R"({{ "ipv4": {}, "port": {}, "type": {}, "localNetID": {} }})",
+        ipv4.serialize(), port, net::serialize(type),
+        net::serialize(localNetID));
   }
 
   inline constexpr ToStringResult
@@ -250,6 +318,10 @@ struct XNADDR {
   constexpr uint8_t &operator[](Index index) noexcept {
     return get(index);
   }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"addrBuff\": {} }}", ::serialize(addrBuff));
+  }
 };
 
 // ID constant always used by engine during construction.
@@ -263,6 +335,10 @@ struct bdSecurityID {
   }
   constexpr operator volatile size_t &() volatile noexcept { return ab; }
   constexpr operator size_t &() noexcept { return ab; }
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"ab\": {:016X} }}", ab);
+  }
 };
 
 typedef bdSecurityID XNKID;
@@ -304,6 +380,11 @@ union bdSecurityKey {
   }
 
   static constexpr auto size() noexcept { return SIZE; }
+
+  inline std::string serialize() const noexcept {
+    return std::format(R"({{ "a": {}, "b": {}, "ab": {} }})", a.serialize(),
+                       b.serialize(), ::serialize(ab));
+  }
 };
 
 typedef bdSecurityKey XNKEY;
@@ -312,6 +393,11 @@ typedef bdSecurityKey XNKEY;
 struct SerializedAdr {
   bool valid = false;
   XNADDR addrBuff = {};
+
+  inline std::string serialize() const noexcept {
+    return std::format(R"({{ "valid": {}, "addrBuff": {} }})",
+                       ::serialize(valid), addrBuff.serialize());
+  }
 };
 ASSERT_SIZE(SerializedAdr, 0x26);
 
@@ -319,6 +405,13 @@ struct XSESSION_INFO {
   XNKID sessionID;
   XNADDR hostAddress;
   XNKEY keyExchangeKey;
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        R"({{ "sessionID": {}, "hostAddress": {}, "keyExchangeKey": {} }})",
+        sessionID.serialize(), hostAddress.serialize(),
+        keyExchangeKey.serialize());
+  }
 };
 
 enum class PacketModeList {
@@ -346,9 +439,63 @@ enum class PacketModeList {
   COUNT = 0x14,
 };
 
+inline constexpr const char *serialize(const PacketModeList mode) {
+  switch (mode) {
+  case PacketModeList::FIRST:
+    return "PACKET_MODE_FIRST";
+  case PacketModeList::HEADER:
+    return "PACKET_MODE_HEADER";
+  case PacketModeList::OVERHEAD:
+    return "PACKET_MODE_OVERHEAD";
+  case PacketModeList::DATA:
+    return "PACKET_MODE_DATA";
+  case PacketModeList::RELIABLEDATA:
+    return "PACKET_MODE_RELIABLEDATA";
+  case PacketModeList::ZEROFLOAT:
+    return "PACKET_MODE_ZEROFLOAT";
+  case PacketModeList::SMALLFLOAT:
+    return "PACKET_MODE_SMALLFLOAT";
+  case PacketModeList::LARGEFLOAT:
+    return "PACKET_MODE_LARGEFLOAT";
+  case PacketModeList::ZEROINT:
+    return "PACKET_MODE_ZEROINT";
+  case PacketModeList::SMALLANGLE:
+    return "PACKET_MODE_SMALLANGLE";
+  case PacketModeList::ZEROANGLE:
+    return "PACKET_MODE_ZEROANGLE";
+  case PacketModeList::TIMEDELTA:
+    return "PACKET_MODE_TIMEDELTA";
+  case PacketModeList::TIME:
+    return "PACKET_MODE_TIME";
+  case PacketModeList::_24BITFLAGINDEX:
+    return "PACKET_MODE_24BITFLAGINDEX";
+  case PacketModeList::GROUNDENTITY:
+    return "PACKET_MODE_GROUNDENTITY";
+  case PacketModeList::ENTITYNUM:
+    return "PACKET_MODE_ENTITYNUM";
+  case PacketModeList::LASTFIELDCHANGED:
+    return "PACKET_MODE_LASTFIELDCHANGED";
+  case PacketModeList::NOTNETWORKDATA:
+    return "PACKET_MODE_NOTNETWORKDATA";
+  case PacketModeList::ORIGINDELTA:
+    return "PACKET_MODE_ORIGINDELTA";
+  case PacketModeList::ORIGIN:
+    return "PACKET_MODE_ORIGIN";
+  case PacketModeList::COUNT:
+    return "PACKET_MODE_COUNT";
+  default:
+    return "PACKET_MODE_UNKNOWN";
+  }
+}
+
 struct PacketMode {
   uint32_t start;
   PacketModeList mode;
+
+  inline std::string serialize() const noexcept {
+    return std::format(R"({{ "start": {}, "mode": {} }})", start,
+                       net::serialize(mode));
+  }
 };
 
 // Verified
@@ -362,6 +509,15 @@ PACKED(struct HostInfo {
   uint8_t _padding76[2];
   uint32_t serverLocation = 0;
   uint8_t _padding7C[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"xuid\": {:016X}, \"name\": {}, \"netAdr\": {}, "
+        "\"serializedAdr\": {}, "
+        "\"secId\": {}, \"secKey\": {}, \"serverLocation\": {} }}",
+        xuid, ::serialize(name), netAdr.serialize(), serializedAdr.serialize(),
+        secId.serialize(), secKey.serialize(), serverLocation);
+  }
 });
 ASSERT_SIZE(HostInfo, 0x80);
 
@@ -369,6 +525,17 @@ enum class svscmd_type {
   CAN_IGNORE = 0x0,
   RELIABLE = 0x1,
 };
+
+inline constexpr const char *serialize(const svscmd_type type) {
+  switch (type) {
+  case svscmd_type::CAN_IGNORE:
+    return "SVSCMD_TYPE_CAN_IGNORE";
+  case svscmd_type::RELIABLE:
+    return "SVSCMD_TYPE_RELIABLE";
+  default:
+    return "SVSCMD_TYPE_UNKNOWN";
+  }
+}
 
 enum class clientState_t : int32_t {
   FREE = 0x0, // can be used for a new connection
@@ -407,6 +574,11 @@ struct netProfilePacket_t {
   int32_t iTime;
   int32_t iSize;
   int32_t bFragment;
+
+  inline std::string serialize() const noexcept {
+    return std::format(R"({{ "iTime": {}, "iSize": {}, "bFragment": {} }})",
+                       iTime, iSize, bFragment);
+  }
 };
 
 struct netProfileStream_t {
@@ -419,12 +591,28 @@ struct netProfileStream_t {
   int32_t iFragmentPercentage;
   int32_t iLargestPacket;
   int32_t iSmallestPacket;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"packets\": {}, \"iCurrPacket\": {}, "
+                       "\"iBytesPerSecond\": {}, \"iLastBPSCalcTime\": {}, "
+                       "\"iCountedPackets\": {}, \"iCountedFragments\": {}, "
+                       "\"iFragmentPercentage\": {}, "
+                       "\"iLargestPacket\": {}, \"iSmallestPacket\": {} }}",
+                       ::serialize(packets), iCurrPacket, iBytesPerSecond,
+                       iLastBPSCalcTime, iCountedPackets, iCountedFragments,
+                       iFragmentPercentage, iLargestPacket, iSmallestPacket);
+  }
 };
 ASSERT_SIZE(netProfileStream_t, 0x2F0);
 
 struct netProfileInfo_t {
   netProfileStream_t send;
   netProfileStream_t recieve;
+
+  inline std::string serialize() const noexcept {
+    return std::format(R"({{ "send": {}, "recieve": {} }})", send.serialize(),
+                       recieve.serialize());
+  }
 };
 ASSERT_SIZE(netProfileInfo_t, 0x5e0);
 
@@ -436,12 +624,25 @@ struct netchanOOBMessage_t {
   volatile int32_t state;
   uint8_t data[1256];
   int32_t dataLen;
+
+  IMPL_SLICE_METHODS(data, dataLen, Data);
+
+  inline std::string serialize() const noexcept {
+    const int32_t state_copy = state;
+    return std::format(
+        R"({{ "from": {}, "state": {:X}, "data": {}, "dataLen": {} }})",
+        from.serialize(), state_copy, ::serialize(getData()), dataLen);
+  }
 };
 ASSERT_SIZE(netchanOOBMessage_t, 0x500);
 
 struct EVENT_HANDLE {
   qboolean manualReset;
   uint8_t _padding[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"manualReset\": {} }}", manualReset.serialize());
+  }
 };
 enum class netchanMessageState_e : uint32_t {
   COMPLETE = 0x0,
@@ -449,10 +650,29 @@ enum class netchanMessageState_e : uint32_t {
   TIMEOUT = 0x2,
 };
 
+inline constexpr const char *serialize(const netchanMessageState_e state) {
+  switch (state) {
+  case netchanMessageState_e::COMPLETE:
+    return "NETCHAN_MESSAGE_STATE_COMPLETE";
+  case netchanMessageState_e::FAILED:
+    return "NETCHAN_MESSAGE_STATE_FAILED";
+  case netchanMessageState_e::TIMEOUT:
+    return "NETCHAN_MESSAGE_STATE_TIMEOUT";
+  default:
+    return "NETCHAN_MESSAGE_STATE_UNKNOWN";
+  }
+}
+
 struct netchanMsgConfig_s {
   EVENT_HANDLE completedEvent;
   netchanMessageState_e status;
   int32_t timeoutMS;
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(
+        R"({{ "completedEvent": {}, "status": {}, "timeoutMS": {} }})",
+        completedEvent.serialize(), net::serialize(status), timeoutMS);
+  }
 };
 
 typedef netchanMsgConfig_s netchanMsgConfig_t;
@@ -467,6 +687,17 @@ PACKED(struct netchan_t {
   qboolean waitingForAcks;
   netProfileInfo_t prof;
   uint8_t _padding[4];
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"outgoingSequence\": {}, \"sock\": {}, "
+                       "\"incomingSequence\": {}, \"remoteAddress\": {}, "
+                       "\"qport\": {}, \"messageConfig\": {}, "
+                       "\"waitingForAcks\": {}, \"prof\": {} }}",
+                       outgoingSequence, net::serialize(sock), incomingSequence,
+                       remoteAddress.serialize(), qport,
+                       messageConfig.serialize(), ::serialize(waitingForAcks),
+                       prof.serialize());
+  }
 });
 ASSERT_SIZE(netchan_t, 0x618);
 
@@ -501,6 +732,27 @@ PACKED(struct serverInfo_t {
   str16_t gameType;
   bool isInGame;
   uint8_t _padding0E1[7];
+
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"xnaddr\": {}, \"xnkey\": {}, \"xnkid\": {}, \"publicSlots\": {}, "
+        "\"publicSlotsUsed\": {}, "
+        "\"privateSlots\": {}, \"privateSlotsUsed\": {}, \"nonce\": {}, "
+        "\"adr\": {}, \"netType\": {}, "
+        "\"clients\": {}, \"maxClients\": {}, \"dirty\": {}, \"friendlyfire\": "
+        "{}, \"killcam\": {}, "
+        "\"hardware\": {}, \"mod\": {}, \"requestCount\": {}, \"minPing\": {}, "
+        "\"maxPing\": {}, "
+        "\"ping\": {}, \"hostName\": {}, \"mapName\": {}, \"game\": {}, "
+        "\"gameType\": {}, "
+        "\"isInGame\": {} }}",
+        xnaddr.serialize(), xnkey.serialize(), xnkid.serialize(), publicSlots,
+        publicSlotsUsed, privateSlots, privateSlotsUsed, nonce, adr.serialize(),
+        netType, clients, maxClients, dirty, ::serialize(friendlyfire),
+        ::serialize(killcam), hardware, mod, requestCount, minPing, maxPing,
+        ping, ::serialize(hostName), ::serialize(mapName), ::serialize(game),
+        ::serialize(gameType), ::serialize(isInGame));
+  }
 });
 ASSERT_SIZE(serverInfo_t, 0xE8);
 

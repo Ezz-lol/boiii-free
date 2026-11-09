@@ -16,6 +16,11 @@ namespace info {
 PACKED(struct LobbyUGCInfo {
   str32_t publisherId = {0};
   uint32_t version = 0;
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"publisherId\": {}, \"version\": {} }}",
+                       ::serialize(publisherId), version);
+  }
 });
 ASSERT_SIZE(LobbyUGCInfo, 0x24);
 
@@ -34,6 +39,17 @@ PACKED(struct InfoResponseLobby {
   uint8_t _padding9C[4];
 
   bool package(msg::LobbyMsg & msg);
+
+  inline std::string serialize() const noexcept {
+    return std::format("{{ \"isValid\": {}, \"hostXuid\": {:016X}, "
+                       "\"hostName\": {}, \"secId\": {}, "
+                       "\"secKey\": {}, \"serializedAdr\": {}, "
+                       "\"lobbyParams\": {}, \"ugcInfo\": {} }}",
+                       ::serialize(isValid), hostXuid, ::serialize(hostName),
+                       secId.serialize(), secKey.serialize(),
+                       serializedAdr.serialize(), lobbyParams.serialize(),
+                       ugcInfo.serialize());
+  }
 });
 ASSERT_SIZE(InfoResponseLobby, 0xA0);
 

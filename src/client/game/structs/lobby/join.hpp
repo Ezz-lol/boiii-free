@@ -20,6 +20,25 @@ enum class JoinType : int32_t {
 };
 IMPL_ENUM_OPERATORS(JoinType);
 
+inline constexpr const char *serialize(const JoinType joinType) {
+  switch (joinType) {
+  case JoinType::NORMAL:
+    return "JOIN_TYPE_NORMAL";
+  case JoinType::PLAYLIST:
+    return "JOIN_TYPE_PLAYLIST";
+  case JoinType::FRIEND:
+    return "JOIN_TYPE_FRIEND";
+  case JoinType::INVITE:
+    return "JOIN_TYPE_INVITE";
+  case JoinType::PARTY:
+    return "JOIN_TYPE_PARTY";
+  case JoinType::GROUPS:
+    return "JOIN_TYPE_GROUPS";
+  default:
+    return "JOIN_TYPE_INVALID";
+  }
+}
+
 constexpr bool validate(const JoinType joinType) {
   return joinType >= JoinType::NORMAL && joinType < JoinType::COUNT;
 }
@@ -37,6 +56,31 @@ enum class JoinSourceState : uint32_t {
   COUNT = 0x9,
 };
 IMPL_ENUM_OPERATORS(JoinSourceState);
+
+inline constexpr const char *serialize(const JoinSourceState state) {
+  switch (state) {
+  case JoinSourceState::IDLE:
+    return "JOIN_SOURCE_STATE_IDLE";
+  case JoinSourceState::CONNECT_TO_NEXT_HOST:
+    return "JOIN_SOURCE_STATE_CONNECT_TO_NEXT_HOST";
+  case JoinSourceState::ASSOCIATING:
+    return "JOIN_SOURCE_STATE_ASSOCIATING";
+  case JoinSourceState::HANDSHAKING:
+    return "JOIN_SOURCE_STATE_HANDSHAKING";
+  case JoinSourceState::WAITING_FOR_AGREEMENT:
+    return "JOIN_SOURCE_STATE_WAITING_FOR_AGREEMENT";
+  case JoinSourceState::CONNECTION_FAILED:
+    return "JOIN_SOURCE_STATE_CONNECTION_FAILED";
+  case JoinSourceState::CONNECTION_SUCCESS:
+    return "JOIN_SOURCE_STATE_CONNECTION_SUCCESS";
+  case JoinSourceState::ENDING_HOST:
+    return "JOIN_SOURCE_STATE_ENDING_HOST";
+  case JoinSourceState::CLEANUP:
+    return "JOIN_SOURCE_STATE_CLEANUP";
+  default:
+    return "JOIN_SOURCE_STATE_INVALID";
+  }
+}
 
 // Verified
 enum class JoinResult : uint32_t {
@@ -100,6 +144,125 @@ enum class JoinResult : uint32_t {
 };
 IMPL_ENUM_OPERATORS(JoinResult);
 
+inline constexpr const char *serialize(const JoinResult result) {
+  switch (result) {
+  case JoinResult::INVALID:
+    return "JOIN_RESULT_INVALID";
+  case JoinResult::SUCCESS:
+    return "JOIN_RESULT_SUCCESS";
+  case JoinResult::CONNECT_TO_HOST_FAILURE:
+    return "JOIN_RESULT_CONNECT_TO_HOST_FAILURE";
+  case JoinResult::PROBE_SEND_FAILURE:
+    return "JOIN_RESULT_PROBE_SEND_FAILURE";
+  case JoinResult::PROBE_TIMEOUT:
+    return "JOIN_RESULT_PROBE_TIMEOUT";
+  case JoinResult::PROBE_INVALID_LOBBY:
+    return "JOIN_RESULT_PROBE_INVALID_LOBBY";
+  case JoinResult::PROBE_INVALID_INFO:
+    return "JOIN_RESULT_PROBE_INVALID_INFO";
+  case JoinResult::PROBE_RESULT_INVALID:
+    return "JOIN_RESULT_PROBE_RESULT_INVALID";
+  case JoinResult::INVALID_LOBBY:
+    return "JOIN_RESULT_INVALID_LOBBY";
+  case JoinResult::SEND_AGREEMENT_REQUEST_FAILED:
+    return "JOIN_RESULT_SEND_AGREEMENT_REQUEST_FAILED";
+  case JoinResult::HANDSHAKE_WINDOW_EXPIRED:
+    return "JOIN_RESULT_HANDSHAKE_WINDOW_EXPIRED";
+  case JoinResult::AGREEMENT_WINDOW_EXPIRED:
+    return "JOIN_RESULT_AGREEMENT_WINDOW_EXPIRED";
+  case JoinResult::JOIN_DISABLED:
+    return "JOIN_RESULT_JOIN_DISABLED";
+  case JoinResult::JOIN_ALREADY_IN_PROGRESS:
+    return "JOIN_RESULT_JOIN_ALREADY_IN_PROGRESS";
+  case JoinResult::NOT_JOINABLE_OFFLINE_MODE:
+    return "JOIN_RESULT_NOT_JOINABLE_OFFLINE_MODE";
+  case JoinResult::NOT_JOINABLE_NOT_HOSTING:
+    return "JOIN_RESULT_NOT_JOINABLE_NOT_HOSTING";
+  case JoinResult::NOT_JOINABLE_NOT_IDLE:
+    return "JOIN_RESULT_NOT_JOINABLE_NOT_IDLE";
+  case JoinResult::NOT_JOINABLE_CLOSED:
+    return "JOIN_RESULT_NOT_JOINABLE_CLOSED";
+  case JoinResult::NOT_JOINABLE_INVITE_ONLY:
+    return "JOIN_RESULT_NOT_JOINABLE_INVITE_ONLY";
+  case JoinResult::NOT_JOINABLE_FRIENDS_ONLY:
+    return "JOIN_RESULT_NOT_JOINABLE_FRIENDS_ONLY";
+  case JoinResult::NOT_JOINABLE_SOLO_MODE:
+    return "JOIN_RESULT_NOT_JOINABLE_SOLO_MODE";
+  case JoinResult::NO_JOIN_IN_PROGRESS:
+    return "JOIN_RESULT_NO_JOIN_IN_PROGRESS";
+  case JoinResult::GAME_PAUSED:
+    return "JOIN_RESULT_GAME_PAUSED";
+  case JoinResult::CHUNK_MP_REQUIRED:
+    return "JOIN_RESULT_CHUNK_MP_REQUIRED";
+  case JoinResult::CHUNK_ZM_REQUIRED:
+    return "JOIN_RESULT_CHUNK_ZM_REQUIRED";
+  case JoinResult::CHUNK_CP_REQUIRED:
+    return "JOIN_RESULT_CHUNK_CP_REQUIRED";
+  case JoinResult::CHUNK_MP_REQUIRED_HOST:
+    return "JOIN_RESULT_CHUNK_MP_REQUIRED_HOST";
+  case JoinResult::CHUNK_ZM_REQUIRED_HOST:
+    return "JOIN_RESULT_CHUNK_ZM_REQUIRED_HOST";
+  case JoinResult::CHUNK_CP_REQUIRED_HOST:
+    return "JOIN_RESULT_CHUNK_CP_REQUIRED_HOST";
+  case JoinResult::SPLITSCREEN_NOT_ALLOWED:
+    return "JOIN_RESULT_SPLITSCREEN_NOT_ALLOWED";
+  case JoinResult::IN_PUBLIC_PROBATION:
+    return "JOIN_RESULT_IN_PUBLIC_PROBATION";
+  case JoinResult::IN_ARENA_PROBATION:
+    return "JOIN_RESULT_IN_ARENA_PROBATION";
+  case JoinResult::OVER_MAX_PARTY_LIMIT:
+    return "JOIN_RESULT_OVER_MAX_PARTY_LIMIT";
+  case JoinResult::NO_PARTIES:
+    return "JOIN_RESULT_NO_PARTIES";
+  case JoinResult::LOBBY_FULL:
+    return "JOIN_RESULT_LOBBY_FULL";
+  case JoinResult::NETWORK_MODE_MISMATCH:
+    return "JOIN_RESULT_NETWORK_MODE_MISMATCH";
+  case JoinResult::MISMATCH_PLAYLISTID:
+    return "JOIN_RESULT_MISMATCH_PLAYLISTID";
+  case JoinResult::MISMATCH_PLAYLIST_VERSION_TO_NEW:
+    return "JOIN_RESULT_MISMATCH_PLAYLIST_VERSION_TO_NEW";
+  case JoinResult::MISMATCH_PLAYLIST_VERSION_TO_OLD:
+    return "JOIN_RESULT_MISMATCH_PLAYLIST_VERSION_TO_OLD";
+  case JoinResult::MISMATCH_PROTOCOL_VERSION:
+    return "JOIN_RESULT_MISMATCH_PROTOCOL_VERSION";
+  case JoinResult::MISMATCH_NETFIELD_CHECKSUM:
+    return "JOIN_RESULT_MISMATCH_NETFIELD_CHECKSUM";
+  case JoinResult::MISMATCH_FFOTD_VERSION_TO_NEW:
+    return "JOIN_RESULT_MISMATCH_FFOTD_VERSION_TO_NEW";
+  case JoinResult::MISMATCH_FFOTD_VERSION_TO_OLD:
+    return "JOIN_RESULT_MISMATCH_FFOTD_VERSION_TO_OLD";
+  case JoinResult::MIGRATE_IN_PROGRESS:
+    return "JOIN_RESULT_MIGRATE_IN_PROGRESS";
+  case JoinResult::COULD_NOT_RESERVE:
+    return "JOIN_RESULT_COULD_NOT_RESERVE";
+  case JoinResult::BAD_DLC_BITS:
+    return "JOIN_RESULT_BAD_DLC_BITS";
+  case JoinResult::BAD_MPHD_BITS:
+    return "JOIN_RESULT_BAD_MPHD_BITS";
+  case JoinResult::VM_FAILURE_1:
+    return "JOIN_RESULT_VM_FAILURE_1";
+  case JoinResult::VM_FAILURE_2:
+    return "JOIN_RESULT_VM_FAILURE_2";
+  case JoinResult::VM_FAILURE_3:
+    return "JOIN_RESULT_VM_FAILURE_3";
+  case JoinResult::VM_FAILURE_4:
+    return "JOIN_RESULT_VM_FAILURE_4";
+  case JoinResult::STARTER_PACK_RESTRICT:
+    return "JOIN_RESULT_STARTER_PACK_RESTRICT";
+  case JoinResult::INVALID_PASSWORD:
+    return "JOIN_RESULT_INVALID_PASSWORD";
+  case JoinResult::BANNED:
+    return "JOIN_RESULT_BANNED";
+  case JoinResult::BANNED_MEMBER:
+    return "JOIN_RESULT_BANNED_MEMBER";
+  case JoinResult::UNDER_MIN_PARTY_LIMIT:
+    return "JOIN_RESULT_UNDER_MIN_PARTY_LIMIT";
+  default:
+    return "JOIN_RESULT_INVALID";
+  }
+}
+
 enum class JoinClientState : int32_t {
   IDLE = 0x0,
   CONNECT_TO_NEXT_HOST = 0x1,
@@ -114,6 +277,31 @@ enum class JoinClientState : int32_t {
   COUNT = 0x9,
 };
 IMPL_ENUM_OPERATORS(JoinClientState);
+
+inline constexpr const char *serialize(const JoinClientState state) {
+  switch (state) {
+  case JoinClientState::IDLE:
+    return "JOIN_CLIENT_STATE_IDLE";
+  case JoinClientState::CONNECT_TO_NEXT_HOST:
+    return "JOIN_CLIENT_STATE_CONNECT_TO_NEXT_HOST";
+  case JoinClientState::ASSOCIATING:
+    return "JOIN_CLIENT_STATE_ASSOCIATING";
+  case JoinClientState::HANDSHAKING:
+    return "JOIN_CLIENT_STATE_HANDSHAKING";
+  case JoinClientState::WAITING_FOR_AGREEMENT:
+    return "JOIN_CLIENT_STATE_WAITING_FOR_AGREEMENT";
+  case JoinClientState::CONNECTED_FAILED:
+    return "JOIN_CLIENT_STATE_CONNECTED_FAILED";
+  case JoinClientState::CONNECTION_SUCCESS:
+    return "JOIN_CLIENT_STATE_CONNECTION_SUCCESS";
+  case JoinClientState::ENDING_HOST:
+    return "JOIN_CLIENT_STATE_ENDING_HOST";
+  case JoinClientState::CLEANUP:
+    return "JOIN_CLIENT_STATE_CLEANUP";
+  default:
+    return "JOIN_CLIENT_STATE_INVALID";
+  }
+}
 
 // Verified
 struct JoinPartyMember {
@@ -130,6 +318,15 @@ struct JoinPartyMember {
       uint32_t arenaProbationEndTime = 0;
     };
   };
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"xuid\": {:016X}, \"lobbyID\": {:016X}, \"skillRating\": {}, "
+        "\"skillVariance\": {}, \"publicProbationEndTime\": {}, "
+        "\"arenaProbationEndTime\": {} }}",
+        xuid, lobbyID, skillRating, skillVariance, publicProbationEndTime,
+        arenaProbationEndTime);
+  }
 };
 ASSERT_SIZE(JoinPartyMember, 0x20);
 
@@ -156,6 +353,26 @@ struct Join {
   JoinResult joinResult;
 
   IMPL_SLICE_METHODS(hostList, hostCount, HostList);
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(
+        "{{ \"state\": {}, \"actionId\": {}, \"startTime\": {}, \"duration\": "
+        "{}, "
+        "\"controllerIndex\": {}, \"sourceLobbyType\": {}, "
+        "\"targetLobbyType\": {}, "
+        "\"joinComplete\": {}, \"hostList\": {}, \"hostCount\": {}, "
+        "\"processedCount\": {}, "
+        "\"isFinalized\": {}, \"potentialHost\": {}, \"agreement\": {}, "
+        "\"debugAgreement\": {}, "
+        "\"joinType\": {}, \"probedXuid\": {:016X}, \"joinResult\": {} }}",
+        join::serialize(state), actionId, startTime, duration,
+        game::serialize(controllerIndex), lobby::serialize(sourceLobbyType),
+        lobby::serialize(targetLobbyType), ::serialize(joinComplete),
+        ::serialize(getHostList()), hostCount, processedCount,
+        ::serialize(isFinalized), potentialHost.serialize(),
+        agreement.serialize(), debugAgreement.serialize(),
+        join::serialize(joinType), probedXuid, join::serialize(joinResult));
+  }
 };
 ASSERT_OFFSET(Join, joinResult, 0x2838);
 
@@ -165,6 +382,13 @@ struct JoinClient {
   JoinHost potentialHost;
   LobbyType sourceLobbyType;
   ControllerIndex_t controllerIndex;
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format(
+        R"({{ "state": {}, "potentialHost": {}, "sourceLobbyType": {}, "controllerIndex": {} }})",
+        join::serialize(state), potentialHost.serialize(),
+        lobby::serialize(sourceLobbyType), game::serialize(controllerIndex));
+  }
 };
 // Verified
 ASSERT_SIZE(JoinClient, 0xB0);
