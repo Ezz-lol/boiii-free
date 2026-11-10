@@ -515,15 +515,16 @@
   try {
     var storedOpts = null;
     try {
-      storedOpts = localStorage.getItem("boiii_launch_options");
+      var exOpts = getExternal();
+      if (exOpts && exOpts.readLaunchOptions)
+        storedOpts = exOpts.readLaunchOptions();
     } catch (e) {}
-    if (storedOpts === null) {
-      storedOpts =
-        getExternal() &&
-        getExternal().readLaunchOptions &&
-        getExternal().readLaunchOptions();
+    if (storedOpts === null || storedOpts === undefined) {
+      try {
+        storedOpts = localStorage.getItem("boiii_launch_options");
+      } catch (e) {}
     }
-    if (storedOpts !== null) {
+    if (storedOpts !== null && storedOpts !== undefined) {
       var rawParts = (storedOpts || "").split(" ");
       var parts = [];
       for (var pi = 0; pi < rawParts.length; pi++) {
