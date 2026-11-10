@@ -27,6 +27,14 @@ game::EngineDependentDvar cl_yaw_speed;
 game::EngineDependentDvar cl_pitch_speed;
 game::EngineDependentDvar cg_splitscreen_letterbox;
 
+// Views are only resized when the screen layout changes, so refresh them the
+// same way the engine does when splitscreen_horizontal changes
+void handle_splitscreen_letterbox_toggle(
+    [[maybe_unused]] game::EngineDependentDvarMut dvar) {
+  game::cg::CG_ResolutionChanged(true);
+  game::cl::CL_SetupScreenPlacements();
+}
+
 const game::cg::ClientViewParams *
 CG_GetLocalClientViewParams_Stub(game::LocalClientNum_t localClientNum,
                                  int32_t viewIndex, int32_t viewCount) {
@@ -612,18 +620,14 @@ public:
         "off to fill the screen");
     utils::hook::jump(game::cg::CG_GetLocalClientViewParams.get(),
                       CG_GetLocalClientViewParams_Stub);
-    // Views are only resized when the screen layout changes, so refresh them
-    // the same way the engine does when splitscreen_horizontal changes
-    scheduler::loop(
-        [letterboxed = true]() mutable {
-          const bool letterbox = cg_splitscreen_letterbox.get_bool();
-          if (letterbox != letterboxed) {
-            letterboxed = letterbox;
-            game::cg::CG_ResolutionChanged(true);
-            game::cl::CL_SetupScreenPlacements();
-          }
+    // Registered once the saved value is loaded, so loading it at startup
+    // doesn't resize views before the UI exists
+    scheduler::once(
+        [] {
+          game::Dvar_SetModifiedCallback(cg_splitscreen_letterbox,
+                                         handle_splitscreen_letterbox_toggle);
         },
-        scheduler::main);
+        scheduler::pipeline::dvars_loaded);
 
     // CL_AdjustAngles
     utils::hook::call(game::select(0x1412F3344, 0x0),

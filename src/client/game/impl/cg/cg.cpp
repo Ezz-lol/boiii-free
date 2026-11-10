@@ -150,29 +150,25 @@ const ClientViewParams *CG_GetLocalClientViewParams_Impl(
     [[maybe_unused]] LocalClientNum_t localClientNum, int32_t viewIndex,
     int32_t viewCount, bool letterbox) {
   const bool isWidescreen = widescreen->get_bool();
-  auto &views = (*s_localClientViewParams)[isWidescreen];
+  ClientViewLayouts &layouts = s_localClientViewParams->forAspect(isWidescreen);
   if (viewCount == 0) {
-    return &views[0][0];
+    return &layouts.oneView[0];
   }
 
-  // The engine always shrinks two widescreen views to 80% along the side they
-  // don't split
   if (isWidescreen && viewCount == 2) {
-    for (ClientViewParams &view : views[1]) {
-      view.x = letterbox ? 0.1f : 0.0f;
-      view.width = letterbox ? 0.8f : 1.0f;
+    for (ClientViewParams &view : layouts.twoViews) {
+      view.x = letterbox ? SPLITSCREEN_LETTERBOX_OFFSET : 0.0f;
+      view.width = letterbox ? SPLITSCREEN_LETTERBOX_SCALE : 1.0f;
     }
   }
 
-  const ClientViewParams &view = views[viewCount - 1][viewIndex];
+  const ClientViewParams &view = layouts.forViewCount(viewCount)[viewIndex];
   if (!splitscreen_horizontal->get_bool()) {
     return &view;
   }
 
-  // The table is laid out for stacked views; side by side swaps each axis
   static ClientViewParams transposed{};
-  transposed = {
-      .x = view.y, .y = view.x, .width = view.height, .height = view.width};
+  transposed = view.transpose();
   return &transposed;
 }
 
