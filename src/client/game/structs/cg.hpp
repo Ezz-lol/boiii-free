@@ -131,5 +131,14 @@ struct LocalClientIkBufPool {
   LocalClientPool<ik::IkBuf> bufs;
 };
 
+// Verified
+struct ClientViewParams {
+  float x;
+  float y;
+  float width;
+  float height;
+};
+ASSERT_SIZE(ClientViewParams, 0x10);
+
 } // namespace cg
 } // namespace game

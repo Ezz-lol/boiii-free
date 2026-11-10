@@ -7,6 +7,13 @@ namespace cg {
 WEAK symbol<void(LocalClientNum_t localClientNum)> CG_LUIHUDRestart{0x140F7E970,
                                                                     0x0};
 WEAK symbol<ClientUIActives> clientUIActives{0x145359BC0, 0x0};
+WEAK symbol<void(bool resetRoots)> CG_ResolutionChanged{0x141F25C40, 0x0};
+WEAK symbol<const ClientViewParams *(LocalClientNum_t localClientNum,
+                                     int32_t viewIndex, int32_t viewCount)>
+    CG_GetLocalClientViewParams{0x1410CB540, 0x0};
+// Indexed by [widescreen][view count - 1][view index]
+WEAK symbol<ClientViewParams[2][2][2]> s_localClientViewParams{0x1432666F0,
+                                                               0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum, float *fov_x,
                  float *dxDzAtDefaultAspectRatio, float *dxDz, float *dyDz)>
     CG_CalcFOVfromLens{0x1404D6230, 0x0};

@@ -25,6 +25,15 @@ utils::hook::detour preload_map_hook;
 
 game::EngineDependentDvar cl_yaw_speed;
 game::EngineDependentDvar cl_pitch_speed;
+game::EngineDependentDvar cg_splitscreen_letterbox;
+
+const game::cg::ClientViewParams *
+CG_GetLocalClientViewParams_Stub(game::LocalClientNum_t localClientNum,
+                                 int32_t viewIndex, int32_t viewCount) {
+  return game::cg::CG_GetLocalClientViewParams_Impl(
+      localClientNum, viewIndex, viewCount,
+      cg_splitscreen_letterbox.get_bool());
+}
 
 void stop_intro_if_needed() {
   if (game::com::Com_SessionMode_GetMode() == game::eModes::ZOMBIES ||
@@ -597,6 +606,24 @@ public:
         "cl_pitchspeed", 140.0f, std::numeric_limits<float>::min(),
         std::numeric_limits<float>::max(), game::dvarFlags_e::NONE,
         "Max pitch speed in degrees for game pad");
+    cg_splitscreen_letterbox = game::register_dvar_bool(
+        "cg_splitscreen_letterbox", true, game::DvarFlags{.archive = 1},
+        "Shrink split screen views with black bars like the base game. Turn "
+        "off to fill the screen");
+    utils::hook::jump(game::cg::CG_GetLocalClientViewParams.get(),
+                      CG_GetLocalClientViewParams_Stub);
+    // Views are only resized when the screen layout changes, so refresh them
+    // the same way the engine does when splitscreen_horizontal changes
+    scheduler::loop(
+        [letterboxed = true]() mutable {
+          const bool letterbox = cg_splitscreen_letterbox.get_bool();
+          if (letterbox != letterboxed) {
+            letterboxed = letterbox;
+            game::cg::CG_ResolutionChanged(true);
+            game::cl::CL_SetupScreenPlacements();
+          }
+        },
+        scheduler::main);
 
     // CL_AdjustAngles
     utils::hook::call(game::select(0x1412F3344, 0x0),
