@@ -44,6 +44,38 @@ WEAK symbol<UIModelIndex(const UIModelIndex ancestorIndex, const char *key,
                          bool persistent)>
     UI_Model_AllocateNode{0x14200C640, 0x0};
 WEAK symbol<void(UIModelIndex model)> UI_Model_FreeModel{0x14200C9E0, 0x0};
+WEAK symbol<bool(const UIModelIndex nodeIndex)> UI_Model_GetBool{0x14200CC90,
+                                                                 0x0};
+WEAK symbol<UIModelDataType(const UIModelIndex model)> UI_Model_GetDataType{
+    0x14200CCC0, 0x0};
+WEAK symbol<int32_t(const UIModelIndex nodeIndex, lua::hks::lua_State *luaVM)>
+    UI_Model_GetFunction{0x14200CCE0, 0x0};
+WEAK symbol<int32_t(const UIModelIndex nodeIndex)> UI_Model_GetInt{0x14200CD20,
+                                                                   0x0};
+WEAK symbol<UIModelIndex(const UIModelIndex nodeIndex, const char *key)>
+    UI_Model_GetModel{0x14200CD50, 0x0};
+WEAK symbol<float(const UIModelIndex nodeIndex)> UI_Model_GetReal{0x14200CF90,
+                                                                  0x0};
+WEAK symbol<const char *(const UIModelIndex nodeIndex)> UI_Model_GetString{
+    0x14200CFC0, 0x0};
+WEAK symbol<uint64_t(const UIModelIndex nodeIndex)> UI_Model_GetUInt64{
+    0x14200CFF0, 0x0};
+WEAK symbol<void()> UI_Model_ResetModelsAndSubscriptions{0x14200D3D0, 0x0};
+WEAK symbol<bool(UIModelIndex model, const UIModelData *value)>
+    Demo_SetUIModelInternal{0x14200D480, 0x0};
+WEAK symbol<bool(const UIModelIndex nodeIndex, lua::hks::lua_State *luaVM,
+                 int32_t newValue)>
+    UI_Model_SetFunction{0x14200D530, 0x0};
+WEAK symbol<bool(const UIModelIndex nodeIndex, float newValue)>
+    UI_Model_SetReal{0x14200D5E0, 0x0};
+WEAK symbol<UIModelSubscription(UIModelIndex model, int32_t functionRef,
+                                lua::hks::lua_State *luaVM)>
+    UI_Model_AddSubscription{0x14200D780, 0x0};
+WEAK symbol<void(UIModelSubscription subscription)> UI_Model_RemoveSubscription{
+    0x14200D820, 0x0};
+WEAK symbol<void(UIModelIndex model)> UI_Model_UnsubscribeAndFreeModel{
+    0x14200D8E0, 0x0};
+WEAK symbol<int32_t()> UI_GetModelSubscriptionTableRef{0x14268BE70, 0x0};
 
 WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CloseAllMenus{0x14222E5C0,
                                                                     0x0};
@@ -77,7 +109,9 @@ WEAK symbol<void(bool renderImmediately)> UI_SetRenderImmediately{0x142694C80,
                                                                   0x0};
 
 WEAK symbol<int32_t> s_currentStencilValue{0x156262E28, 0x0};
-WEAK symbol<UIModelIndex> s_firstFreeModelNode{0x156293150, 0x0};
-WEAK symbol<UIModelNodePool<UIModelNode>> s_modelNodePool{0x156293160, 0x0};
+WEAK symbol<hunk::HunkUser *> s_modelStringHunk{0x15626C030, 0x0};
+WEAK symbol<UIModelSubscription> s_firstFreeSubscription{0x15626C044, 0x0};
+WEAK symbol<UIModelSubscriptionEntry[UI_MODEL_SUBSCRIPTION_COUNT]>
+    s_modelSubscriptions{0x15626C050, 0x0};
 } // namespace ui
 } // namespace game

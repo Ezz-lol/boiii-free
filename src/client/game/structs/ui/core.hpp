@@ -6,6 +6,10 @@
 
 #include "hash.hpp"
 namespace game {
+namespace lua::hks {
+struct lua_State;
+} // namespace lua::hks
+
 namespace ui {
 typedef uint16_t UIModelIndex;
 
@@ -180,6 +184,17 @@ struct UIModelData {
 typedef uint16_t UIModelSubscription;
 
 // Verified
+struct UIModelSubscriptionEntry {
+  lua::hks::lua_State *luaVM;
+  int32_t functionRef;
+  UIModelIndex model;
+  UIModelSubscription next;
+};
+ASSERT_SIZE(UIModelSubscriptionEntry, 0x10);
+
+inline constexpr size_t UI_MODEL_SUBSCRIPTION_COUNT = 10000;
+
+// Verified
 PACKED(struct UIModelNode {
   djb2Hash_t keyHash;
   uint8_t _padding04[4];
@@ -222,8 +237,10 @@ ASSERT_SIZE(UIModelNode, 0x28);
 template <typename T> struct UIModelNodePool {
   typedef UIModelIndex index_t;
 
-  static inline constexpr auto SIZE = 0x9000;
-  volatile T nodes[SIZE];
+  // The engine's pool has 0x9000 nodes. Ours uses every index UIModelIndex can
+  // hold, with 0 kept as the null model
+  static inline constexpr auto SIZE = 0xFFFF;
+  T nodes[SIZE];
 
   inline static constexpr auto size() noexcept { return SIZE; }
 
@@ -249,25 +266,25 @@ template <typename T> struct UIModelNodePool {
   static inline constexpr void
   assert_index([[maybe_unused]] Index index) noexcept {
     assert(valid_index(index) &&
-           "Index to UIModelNodePool must be within range 0 <= index < 0x9000");
+           "Index to UIModelNodePool must be within range 0 <= index < 0xFFFF");
   }
 
   template <IntegralLike<index_t> Index>
-  inline constexpr volatile T &get(Index index) noexcept {
+  inline constexpr T &get(Index index) noexcept {
     assert_index(index);
     return nodes[static_cast<index_t>(index)];
   }
   template <IntegralLike<index_t> Index>
-  inline constexpr const volatile T &get(Index index) const noexcept {
+  inline constexpr const T &get(Index index) const noexcept {
     assert_index(index);
     return nodes[static_cast<index_t>(index)];
   }
   template <IntegralLike<index_t> Index>
-  inline constexpr volatile T &operator[](Index index) noexcept {
+  inline constexpr T &operator[](Index index) noexcept {
     return get(index);
   }
   template <IntegralLike<index_t> Index>
-  inline constexpr const volatile T &operator[](Index index) const noexcept {
+  inline constexpr const T &operator[](Index index) const noexcept {
     return get(index);
   }
 

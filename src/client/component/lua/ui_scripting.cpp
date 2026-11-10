@@ -7,6 +7,7 @@
 #include <game/impl/com/com.hpp>
 #include <game/impl/lua/lui/quad.hpp>
 #include <game/impl/ugc/ugc.hpp>
+#include <game/impl/ui/model.hpp>
 
 #include <game/ui_scripting/execution.hpp>
 
@@ -2547,50 +2548,44 @@ float UI_Interface_GetTextWidth_Safe(game::LocalClientNum_t localClientNum,
              : 0.0f;
 }
 
-inline void ensure_free_model_node() {
-  if (*game::ui::s_firstFreeModelNode == 0) {
-    for (UIModelIndex i = 1; i < s_modelNodePool->size(); ++i) {
-      const volatile UIModelNode &node = s_modelNodePool->get(i);
-      if (node.isFree()) {
-        *game::ui::s_firstFreeModelNode = i;
-        break;
-      }
-    }
-  }
-}
+// The engine's model pool is a fixed 0x9000 nodes, which split screen runs
+// out of. Every function that touches the pool is replaced so our larger pool
+// is the only one in use
+inline void replace_ui_model_pool() {
+  UI_Model_InitPool();
 
-static std::recursive_mutex UI_Model_Alloc_Mutex;
-
-utils::hook::detour UI_Model_FreeModel_hook;
-void UI_Model_FreeModel_EnsureFreeModelNode(UIModelIndex model) {
-  std::scoped_lock alloc_lck(UI_Model_Alloc_Mutex);
-
-  ensure_free_model_node();
-  UI_Model_FreeModel_hook.invoke(model);
-  ensure_free_model_node();
-}
-
-utils::hook::detour UI_Model_AllocateNode_hook;
-UIModelIndex
-UI_Model_AllocateNode_EnsureFreeModelNode(const UIModelIndex ancestorIndex,
-                                          const char *key, bool persistent) {
-  std::scoped_lock alloc_lck(UI_Model_Alloc_Mutex);
-
-  ensure_free_model_node();
-  const UIModelIndex result = UI_Model_AllocateNode_hook.invoke<UIModelIndex>(
-      ancestorIndex, key, persistent);
-  ensure_free_model_node();
-
-  return result;
+  utils::hook::jump(UI_Model_AllocateNode, UI_Model_AllocateNode_Impl);
+  utils::hook::jump(UI_Model_FreeModel, UI_Model_FreeModel_Impl);
+  utils::hook::jump(UI_Model_GetBool, UI_Model_GetBool_Impl);
+  utils::hook::jump(UI_Model_GetDataType, UI_Model_GetDataType_Impl);
+  utils::hook::jump(UI_Model_GetFunction, UI_Model_GetFunction_Impl);
+  utils::hook::jump(UI_Model_GetInt, UI_Model_GetInt_Impl);
+  utils::hook::jump(UI_Model_GetModel, UI_Model_GetModel_Impl);
+  utils::hook::jump(UI_Model_GetReal, UI_Model_GetReal_Impl);
+  utils::hook::jump(UI_Model_GetString, UI_Model_GetString_Impl);
+  utils::hook::jump(UI_Model_GetUInt64, UI_Model_GetUInt64_Impl);
+  utils::hook::jump(UI_Model_NotifySubscriptions,
+                    UI_Model_NotifySubscriptions_Impl);
+  utils::hook::jump(UI_Model_ResetModelsAndSubscriptions,
+                    UI_Model_ResetModelsAndSubscriptions_Impl);
+  utils::hook::jump(Demo_SetUIModelInternal, Demo_SetUIModelInternal_Impl);
+  utils::hook::jump(UI_Model_SetBool, UI_Model_SetBool_Impl);
+  utils::hook::jump(UI_Model_SetFunction, UI_Model_SetFunction_Impl);
+  utils::hook::jump(UI_Model_SetInt, UI_Model_SetInt_Impl);
+  utils::hook::jump(UI_Model_SetReal, UI_Model_SetReal_Impl);
+  utils::hook::jump(UI_Model_SetString, UI_Model_SetString_Impl);
+  utils::hook::jump(UI_Model_SetUInt64, UI_Model_SetUInt64_Impl);
+  utils::hook::jump(UI_Model_AddSubscription, UI_Model_AddSubscription_Impl);
+  utils::hook::jump(UI_Model_RemoveSubscription,
+                    UI_Model_RemoveSubscription_Impl);
+  utils::hook::jump(UI_Model_UnsubscribeAndFreeModel,
+                    UI_Model_UnsubscribeAndFreeModel_Impl);
 }
 
 inline void apply_ui_model_patches() {
   UI_Interface_GetTextWidth_hook.create(UI_Interface_GetTextWidth,
                                         UI_Interface_GetTextWidth_Safe);
-  UI_Model_AllocateNode_hook.create(game::ui::UI_Model_AllocateNode,
-                                    UI_Model_AllocateNode_EnsureFreeModelNode);
-  UI_Model_FreeModel_hook.create(game::ui::UI_Model_FreeModel,
-                                 UI_Model_FreeModel_EnsureFreeModelNode);
+  replace_ui_model_pool();
 }
 
 class component final : public generic_component {
