@@ -3059,14 +3059,7 @@
   })();
 
   document.getElementById("playBtn").onclick = function () {
-    var playBtn = document.getElementById("playBtn");
     try {
-      var ex = getExternal();
-      if (ex && ex.isGameRunning && ex.isGameRunning() === "1") {
-        showMessage("Game Running", "Black Ops III is already running.");
-        return;
-      }
-      playBtn.disabled = true;
       var opts = window.getSelectedLaunchOption();
 
       var selectedVersion = _selectedVersion || "latest";
@@ -3132,21 +3125,6 @@
       }
     } catch (e) {}
   };
-
-  setInterval(function () {
-    var playBtn = document.getElementById("playBtn");
-    if (!playBtn) return;
-    try {
-      var ex = getExternal();
-      if (ex && ex.isGameRunning && ex.isGameRunning() === "1") {
-        playBtn.disabled = true;
-        playBtn.title = "Game is running";
-      } else {
-        playBtn.disabled = false;
-        playBtn.title = "";
-      }
-    } catch (e) {}
-  }, 1500);
 
   function setupPathBtn(btnId, pathDisplayIds) {
     var btn = document.getElementById(btnId);

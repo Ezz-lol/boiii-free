@@ -2744,12 +2744,6 @@ bool run() {
         });
 
     window.get_html_frame()->register_callback(
-        "isGameRunning",
-        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-          return CComVariant(is_game_process_running() ? "1" : "0");
-        });
-
-    window.get_html_frame()->register_callback(
         "runDiagnostics",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
           const std::filesystem::path &game_path = game::get_game_path();
