@@ -163,7 +163,7 @@ ScrVarIndex_t ScrVar_GetVariableByWeapon_ObjectKey(const scriptInstance_t inst,
                                                    const ScrVarIndex_t parentId,
                                                    const ScrVarIndex_t id) {
   ScrVarIndex_t entry = ScrVar_FindVariable(inst, parentId, id);
-  if (!entry) {
+  if (entry == 0u) {
     entry = ScrVar_NewVariableById(inst, parentId, id);
   }
   ScrVar_ReleaseVariable(inst, id);
@@ -183,22 +183,22 @@ void ScrVar_AddArrayKeys_ObjectKeys(const scriptInstance_t inst,
   }
 
   // The engine walks from the last child to the first
-  for (ScrVarIndex_t id = vars[parentId].value.u.lastChild; id;
+  for (ScrVarIndex_t id = vars[parentId].value.u.lastChild; id != 0u;
        id = vars[id].prevSibling) {
     const ScrVarNameIndex_t key = vars[id].nameIndex;
 
-    switch (vars[id].nameType & 7) {
-    case 1:
-    case 2:
+    switch (vars[id].nameType) {
+    case ScrVarNameType_t::INTEGER:
+    case ScrVarNameType_t::UNKNOWN_INTEGER_LIKE:
       Scr_AddInt(inst, static_cast<int32_t>(key));
       break;
-    case 3:
+    case game::scr::var::ScrVarNameType_t::CONST_STRING:
       Scr_AddConstString(inst, static_cast<ScrString_t>(key));
       break;
-    case 4:
+    case ScrVarNameType_t::OBJECT:
       Scr_AddObject(inst, static_cast<ScrVarIndex_t>(key));
       break;
-    case 5: {
+    case ScrVarNameType_t::WEAPON: {
       weapon::Weapon weapon{};
       weapon.weaponData = vars[key].o.object_o;
       Scr_AddWeapon(inst, weapon, *cl::primaryLocalClientNum);

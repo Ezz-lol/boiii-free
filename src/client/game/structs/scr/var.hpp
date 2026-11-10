@@ -16,7 +16,6 @@ namespace var {
   top.
 */
 typedef uint32_t ScrVarIndex_t;
-typedef uint32_t ScrVarNameType_t;
 typedef uint64_t ScrVarNameIndex_t;
 
 /*
@@ -257,10 +256,18 @@ struct ScrVarEntityInfo_t {
   ClientNum16_t clientNum;
 };
 
+enum class ScrVarNameType_t : int32_t {
+  INTEGER = 0x1,
+  UNKNOWN_INTEGER_LIKE = 0x2,
+  CONST_STRING = 0x3,
+  OBJECT = 0x4,
+  WEAPON = 0x5
+};
+
 PACKED(struct ScrVar_t {
   ScrVarValue_t value;
   struct {
-    int32_t nameType : 3;
+    ScrVarNameType_t nameType : 3;
     uint32_t flags : 5;
     uint32_t refCount : 24;
   };
