@@ -664,8 +664,10 @@ void file_updater::cleanup_root_directory(
   for (const auto &file : existing_files) {
     const std::filesystem::path entry =
         std::filesystem::relative(file, this->base_);
-    if ((entry.string() == "user" || entry.string() == "data" ||
-         entry.string() == "beta_data") &&
+    constexpr std::string_view kept_directories[] = {
+        "user", "data", "beta_data", "minidumps", "cache", "workshop_previews"};
+    if (std::ranges::find(kept_directories, entry.string()) !=
+            std::end(kept_directories) &&
         utils::io::directory_exists(file)) {
       continue;
     }
