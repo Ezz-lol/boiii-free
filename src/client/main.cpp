@@ -1037,18 +1037,19 @@ int main(int argc, char *argv[]) {
         return 0;
       }
 
-      if (!is_server && !launcher::is_game_process_running()) {
+      if (!is_server &&
+          (initial_update_required() || !launcher::is_game_process_running())) {
         updater::update(initial_update_required());
       }
 
       if (initial_update_required()) {
-        const std::filesystem::path &appdata_path = game::get_appdata_path();
-        const std::string appdata_path_str = appdata_path.generic_string();
+        const std::string data_path_str =
+            game::get_data_path().generic_string();
         const char *err = utils::string::va(
             "Missing required data in %s; Initial data download has failed. "
             "BOIII needs an active internet connection "
             "for the first time you launch it.",
-            appdata_path_str.c_str());
+            data_path_str.c_str());
         throw std::runtime_error(err);
       }
 
