@@ -1,5 +1,7 @@
 #include <std_include.hpp>
 
+#include <algorithm>
+
 #include "game/utils.hpp"
 #include "sv.hpp"
 
@@ -96,6 +98,36 @@ void SV_SetConfigString_Impl(const int32_t index, const char *val) {
       }
     }
   }
+}
+
+int32_t SV_GetUniqueClientMachineCount_Impl() {
+  const client_s_cl *clients = *svs_clients_cl;
+  const auto isSameMachine = [](const net::netadr_t &a,
+                                const net::netadr_t &b) {
+    // Loopback ports are local client numbers, so comparing them counted each
+    // split screen player as another machine to migrate to
+    if (a.type == net::netadrtype_t::LOOPBACK &&
+        b.type == net::netadrtype_t::LOOPBACK) {
+      return true;
+    }
+    return net::NetAdr_CompareIP(&a, &b);
+  };
+
+  int32_t count = 0;
+  const int32_t maxClients = static_cast<int32_t>(get_max_client_count());
+  for (int32_t index = 0; index < maxClients; ++index) {
+    const client_s &client = clients[index];
+    if (client.bIsTestClient || client.state < net::clientState_t::ACTIVE) {
+      continue;
+    }
+
+    if (std::none_of(clients, clients + index, [&](const client_s &other) {
+          return isSameMachine(other.address, client.address);
+        })) {
+      ++count;
+    }
+  }
+  return count;
 }
 } // namespace sv
 } // namespace game

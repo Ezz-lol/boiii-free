@@ -11,6 +11,7 @@
 #include <game/impl/cl/cl.hpp>
 #include <game/impl/snd/sd/sd.hpp>
 #include <game/impl/snd/snd.hpp>
+#include <game/impl/sv/sv.hpp>
 #include <game/utils.hpp>
 
 #include <utils/hook.hpp>
@@ -668,6 +669,8 @@ public:
     */
     utils::hook::jump(game::cl::CL_CheckForResend.get(),
                       game::cl::CL_CheckForResend_Impl);
+    utils::hook::jump(game::sv::SV_GetUniqueClientMachineCount.get(),
+                      game::sv::SV_GetUniqueClientMachineCount_Impl);
     SV_MapRestart_f_hook.create(
         game::sv::SV_MapRestart_f.get(),
         SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::FULL>);

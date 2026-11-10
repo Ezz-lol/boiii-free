@@ -60,6 +60,7 @@ WEAK symbol<void *(level::gentity_t *gEnt)> SV_LinkEntity{0x1422068B0,
 */
 WEAK symbol<void(client_s *cl_0, const char *reason)>
     SV_Live_RemoveAllClientsFromAddress{0x1421F7B00, 0x1405379E0};
+WEAK symbol<int32_t()> SV_GetUniqueClientMachineCount{0x1421ECC40, 0x0};
 WEAK symbol<void(net::netadr_t from, uint32_t time, net::msg::msg_t *msg)>
     SV_PacketEvent{0x1421F7C20, 0x140537B00};
 WEAK symbol<void(client_s *client, net::svscmd_type type, const char *cmd)>
