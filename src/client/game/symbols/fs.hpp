@@ -24,15 +24,18 @@ WEAK
     symbol<FILE *(const wchar_t *FileName, const wchar_t *Mode, int32_t ShFlag)>
         wfsopen{0x142BD1DCC, 0x140AC7808};
 WEAK symbol<int64_t(const wchar_t *path)> __mkdir{0x142BE85AC, 0x140ADA114};
-WEAK symbol<int32_t(const char *fileName, struct _stat64 *stat)> stat64{0x142BD3F94, 0x140AC6388};
-WEAK symbol<int32_t(const char *fileName, struct _stat64i32 *stat)> stat64i32{0x142BD15C4, 0x140ABD25C};
+WEAK symbol<int32_t(const char *fileName, struct _stat64 *stat)> stat64{
+    0x142BD3F94, 0x140AC6388};
+WEAK symbol<int32_t(const char *fileName, struct _stat64i32 *stat)> stat64i32{
+    0x142BD15C4, 0x140ABD25C};
 
 WEAK symbol<void(const char *path, const char *dir, int32_t bLanguageDirectory,
                  int32_t iLanguage)>
     FS_AddGameDirectory{0x142245DB0, 0x140562F60};
 WEAK symbol<void(const char *path, const char *dir)>
     FS_AddLocalizedGameDirectory{0x142245FD0, 0x140563180};
-WEAK symbol<void(const char *gameName, bool allow_devraw)> FS_Startup{0x1422478E0, 0x140564A70};
+WEAK symbol<void(const char *gameName, bool allow_devraw)> FS_Startup{
+    0x1422478E0, 0x140564A70};
 WEAK symbol<void(const char *base, const char *game, const char *qpath,
                  char *ospath)>
     FS_BuildOSPath{0x142246220, 0x1405633D0};

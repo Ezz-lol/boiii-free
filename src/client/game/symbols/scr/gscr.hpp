@@ -10,13 +10,16 @@ WEAK symbol<void(scriptInstance_t inst, scr_entref_t entref)>
 
 WEAK symbol<void(scriptInstance_t inst, scr_entref_t entref)>
     GScr_GetBGBTokensRemaining{0x141A80830, 0x1402D2310};
-WEAK symbol<void(scriptInstance_t inst)> GScr_PIXBeginEvent{0x141AA6680, 0x1402DA730};
-WEAK symbol<void(scriptInstance_t inst)> GScr_PIXEndEvent{0x141AA66A0, 0x140515B60};
+WEAK symbol<void(scriptInstance_t inst)> GScr_PIXBeginEvent{0x141AA6680,
+                                                            0x1402DA730};
+WEAK symbol<void(scriptInstance_t inst)> GScr_PIXEndEvent{0x141AA66A0,
+                                                          0x140515B60};
 WEAK symbol<void()> GScr_LoadConsts{0x141C28FE0, 0x14032E640};
 // Client only
 WEAK symbol<void(scriptInstance_t inst)> GScr_BBPrint{0x142243E20, 0x0};
 
-WEAK symbol<int32_t(const char *pszMenu)> GScr_GetScriptMenuIndex{0x141A878D0, 0x1402D4590};
+WEAK symbol<int32_t(const char *pszMenu)> GScr_GetScriptMenuIndex{0x141A878D0,
+                                                                  0x1402D4590};
 WEAK symbol<bool(ClientNum_t clientNum, int32_t itemIndex)>
     GScr_IsItemPurchasedForClientNum{0x1415F14B0, 0x140252A20};
 WEAK symbol<float(ClientNum_t clientNum)> GetXPScale{0x1415F78B0, 0x140257BE0};

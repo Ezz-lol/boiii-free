@@ -102,8 +102,8 @@ int read_file_stub(const char *qpath, void **buffer) {
     return len;
   }
 
-  return utils::hook::invoke<int>(
-      game::select(0x142247DB0, 0x140564F70), qpath, buffer);
+  return utils::hook::invoke<int>(game::select(0x142247DB0, 0x140564F70), qpath,
+                                  buffer);
 }
 
 void search_gamesettings_files_on_disk() {
@@ -122,8 +122,7 @@ struct component final : generic_component {
   void post_unpack() override {
     search_gamesettings_files_on_disk();
 
-    utils::hook::call(game::select(0x1420E0921, 0x1404F857D),
-                      read_file_stub);
+    utils::hook::call(game::select(0x1420E0921, 0x1404F857D), read_file_stub);
     utils::hook::jump(game::select(0x1420e0882, 0x1404F853A),
                       utils::hook::assemble(cmd_exec_stub));
   }

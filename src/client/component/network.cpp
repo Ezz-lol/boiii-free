@@ -456,12 +456,10 @@ struct component final : generic_component {
         static_cast<uint32_t>(game::connstate_t::CHALLENGING));
 
     // don't kick clients without dw handle
-    utils::hook::set<uint8_t>(
-        game::select(0x1421F137D, 0x1405315F9), 0xEB);
+    utils::hook::set<uint8_t>(game::select(0x1421F137D, 0x1405315F9), 0xEB);
 
     // Skip DW stuff in NetAdr_ToString
-    utils::hook::set<uint8_t>(
-        game::select(0x14211A432, 0x140515881), 0xEB);
+    utils::hook::set<uint8_t>(game::select(0x14211A432, 0x140515881), 0xEB);
 
     // netadrtype_t::IP -> netadrtype_t::RAWIP in NetAdr_ToString. This is the
     // cmp's 1 byte immediate, so a wider write overwrites the jne after it
@@ -478,16 +476,14 @@ struct component final : generic_component {
       utils::hook::call(0x14018E698_g, cl_dispatch_connectionless_packet_stub);
     } else {
       // Truncate error string to make sure there are no buffer overruns later
-      utils::hook::call(game::select(0x14134D226, 0x0),
-                        com_error_oob_stub);
+      utils::hook::call(game::select(0x14134D226, 0x0), com_error_oob_stub);
 
       // intercept command handling (client-side OOB dispatch)
       utils::hook::call(game::select(0x14134D166, 0x0),
                         utils::hook::assemble(handle_command_stub));
 
       // Disable `echo` command in `CL_DispatchConnectionlessPacket`
-      utils::hook::set<uint8_t>(game::select(0x14134D11B, 0x0),
-                                0xEB);
+      utils::hook::set<uint8_t>(game::select(0x14134D11B, 0x0), 0xEB);
 
       if (game::is_client()) {
         utils::hook::jump(game::net::NET_GetDefaultPort.get(), first_free_port);
@@ -498,17 +494,14 @@ struct component final : generic_component {
     // TODO: what was the prior TODO referring to?
     scheduler::once(create_ip_socket, scheduler::main);
 
-    net_adr_to_string_hook.create(
-        game::select(0x14211A3B0, 0x140515800),
-        net_adr_to_string_stub);
+    net_adr_to_string_hook.create(game::select(0x14211A3B0, 0x140515800),
+                                  net_adr_to_string_stub);
 
     // Demonware's socket retries other ports itself; keep net_port for ours.
-    utils::hook::set(game::select(0x15AA6A38C, 0x14B4BD828),
-                     bind_stub);
+    utils::hook::set(game::select(0x15AA6A38C, 0x14B4BD828), bind_stub);
 
     // Set cl_maxpackets to 100
-    utils::hook::set<uint8_t>(
-        game::select(0x1412ff362, 0x140177A32), 100 - 15);
+    utils::hook::set<uint8_t>(game::select(0x1412ff362, 0x140177A32), 100 - 15);
 
     command::add("listBots", client_listing_command<game::foreach_test_client>);
 

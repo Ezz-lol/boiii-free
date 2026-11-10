@@ -30,9 +30,12 @@ WEAK
     symbol<void(const char *pszCommand, char **pszBuffer, char *allocBufferBase,
                 int32_t allocBufferLength, int32_t *allocBufferPos)>
         MSG_WriteReliableCommandToBuffer{0x142129940, 0x0};
-WEAK symbol<void(msg_t *buf, uint8_t *data, int32_t length)> MSG_Init{0x1420FC4C0, 0x0};
-WEAK symbol<void(msg_t *buf, uint8_t *data, int32_t length)> MSG_InitReadOnly{0x1420FC550, 0x0};
-WEAK symbol<void(msg_t *buf, const void *data, int32_t length)> MSG_WriteData{0x1420FED20, 0x0};
+WEAK symbol<void(msg_t *buf, uint8_t *data, int32_t length)> MSG_Init{
+    0x1420FC4C0, 0x0};
+WEAK symbol<void(msg_t *buf, uint8_t *data, int32_t length)> MSG_InitReadOnly{
+    0x1420FC550, 0x0};
+WEAK symbol<void(msg_t *buf, const void *data, int32_t length)> MSG_WriteData{
+    0x1420FED20, 0x0};
 WEAK symbol<void(msg_t *msg, int8_t c)> MSG_WriteByte{0x1420FED00, 0x0};
 WEAK symbol<void(msg_t *msg, int16_t c)> MSG_WriteShort{0x142119C10, 0x0};
 WEAK symbol<void(msg_t *msg, int32_t c)> MSG_WriteLong{0x142119BC0, 0x0};
@@ -41,7 +44,8 @@ WEAK symbol<void(msg_t *msg)> MSG_ClearLastReferencedEntity{0x142104680, 0x0};
 WEAK symbol<void(msg_t *msg)> MSG_WriteBit0{0x142107100, 0x0};
 WEAK symbol<void(msg_t *msg)> MSG_WriteBit1{0x142107140, 0x0};
 WEAK symbol<void(msg_t *msg, uint64_t c)> MSG_WriteInt64{0x1420FF490, 0x0};
-WEAK symbol<void(msg_t *msg, void *data, int32_t len)> MSG_ReadData{0x1420FC9F0, 0x0};
+WEAK symbol<void(msg_t *msg, void *data, int32_t len)> MSG_ReadData{0x1420FC9F0,
+                                                                    0x0};
 WEAK symbol<void(msg_t *sb, const char *s)> MSG_WriteString{0x1420FF760, 0x0};
 WEAK symbol<void(level::playerState_s *ps, user::usercmd_t *cmd)>
     MSG_SetDefaultUserCmd{0x1420FE970, 0x0};

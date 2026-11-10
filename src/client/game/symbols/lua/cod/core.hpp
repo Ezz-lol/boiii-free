@@ -5,7 +5,8 @@
 namespace game {
 namespace lua {
 namespace cod {
-WEAK symbol<void(hks::lua_State *, const char *)> Lua_CoD_LoadLuaFile{0x141F052A0, 0x1404BE1C0};
+WEAK symbol<void(hks::lua_State *, const char *)> Lua_CoD_LoadLuaFile{
+    0x141F052A0, 0x1404BE1C0};
 
 WEAK symbol<game::db::xasset::XAssetHeader(const char *filename)>
     Lua_CoD_GetRawFile{0x141F02860, 0x1404BCB70};

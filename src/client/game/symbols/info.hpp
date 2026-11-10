@@ -4,7 +4,8 @@
 
 namespace game {
 namespace info {
-WEAK symbol<const char *(const char *, const char *key)> Info_ValueForKey{0x14227B6E0, 0x0};
+WEAK symbol<const char *(const char *, const char *key)> Info_ValueForKey{
+    0x14227B6E0, 0x0};
 WEAK symbol<void(char *s, const char *key, const char *value)>
     Info_SetValueForKey{0x14227B340, 0x1405802D0};
 

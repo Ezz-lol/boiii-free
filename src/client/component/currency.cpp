@@ -1890,8 +1890,7 @@ struct component final : client_component {
         burn_duplicates);
     // `Com_SessionMode_IsOnlineArenaGame` call before `Loot_IncCurrency` in
     // the Loot XP server command.
-    utils::hook::call(game::select(0x140F7B2E3, 0x0),
-                      accept_server_loot_xp);
+    utils::hook::call(game::select(0x140F7B2E3, 0x0), accept_server_loot_xp);
 
     balance_command("codpoints", false);
     balance_command("divinium", true);

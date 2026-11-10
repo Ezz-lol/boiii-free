@@ -30,10 +30,12 @@ WEAK symbol<void(consoleChannel_e channel, consoleLabel_e label,
 WEAK symbol<void(const char *file, int line, errorParm code, const char *fmt,
                  ...)>
     Com_Error_{0x1420EB9F0, 0x140501470};
-WEAK symbol<void(int32_t localClientNum, const char *message)> Com_ErrorCleanup{0x1420EB5D0, 0x140501050};
+WEAK symbol<void(int32_t localClientNum, const char *message)> Com_ErrorCleanup{
+    0x1420EB5D0, 0x140501050};
 WEAK symbol<uint8_t> Com_Error_PrintErrorCall{0x1420EBEED, 0x1405018AE};
 WEAK symbol<uint8_t> Com_ErrorCleanup_PrintErrorCall{0x1420EB7EE, 0x1405011FB};
-WEAK symbol<uint8_t> Com_ErrorCleanup_PrintDisconnectCall{0x1420EB818, 0x140501223};
+WEAK symbol<uint8_t> Com_ErrorCleanup_PrintDisconnectCall{0x1420EB818,
+                                                          0x140501223};
 WEAK symbol<void()> Com_ErrorAbort{0x1420EB5B0, 0x140501030};
 WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420EABF0, 0x140500940};
 
@@ -41,18 +43,23 @@ WEAK symbol<game::eModes()> _Com_SessionMode_GetMode{0x1420EA5B0, 0x1405002D0};
 // To allow for forward declaration for use in struct methods
 inline eModes Com_SessionMode_GetMode() { return _Com_SessionMode_GetMode(); }
 WEAK symbol<eGameModes()> Com_SessionMode_GetGameMode{0x1420EA130, 0x1404FFE50};
-WEAK symbol<eNetworkModes()> Com_SessionMode_GetNetworkMode{0x1420EA680, 0x1405003A0};
-WEAK symbol<eNetworkModes()> Com_SessionMode_GetActiveNetworkMode{0x1420EA6C0, 0x0};
+WEAK symbol<eNetworkModes()> Com_SessionMode_GetNetworkMode{0x1420EA680,
+                                                            0x1405003A0};
+WEAK symbol<eNetworkModes()> Com_SessionMode_GetActiveNetworkMode{0x1420EA6C0,
+                                                                  0x0};
 WEAK symbol<eNetworkModes(eNetworkModes networkMode)>
     Com_SessionMode_ToActiveNetworkMode{0x1420EA690, 0x0};
-WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{0x1420EAE30, 0x140500B80};
-WEAK symbol<void(eGameModes mode)> Com_SessionMode_SetGameMode{0x1420EADF0, 0x140500B40};
+WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{
+    0x1420EAE30, 0x140500B80};
+WEAK symbol<void(eGameModes mode)> Com_SessionMode_SetGameMode{0x1420EADF0,
+                                                               0x140500B40};
 WEAK symbol<bool()> Com_IsRunningUILevel{0x1420EF8F0, 0x140504BD0};
 WEAK symbol<bool()> Com_IsInGame{0x1420EF860, 0x140504B90};
 WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode,
                  uint32_t flags)>
     Com_SwitchMode{0x1420F1A10, 0x140506960};
-WEAK symbol<void(const char *level)> Com_LoadLevelFastFiles{0x1420EFA80, 0x140504C30};
+WEAK symbol<void(const char *level)> Com_LoadLevelFastFiles{0x1420EFA80,
+                                                            0x140504C30};
 WEAK symbol<void()> Com_UnloadLevelFastFiles{0x1420F2000, 0x140506E40};
 WEAK symbol<void()> Com_TryUnloadLevelFastFiles{0x1420F3000, 0x140507CF0};
 
@@ -64,13 +71,16 @@ WEAK symbol<game::net::netsrc_t(game::LocalClientNum_t localClientNum)>
     Com_LocalClient_GetNetworkID{0x1420E31D0, 0x0};
 WEAK symbol<void *(live::LiveAllocTypes type, void *ptr, const size_t size)>
     Com_LiveRealloc{0x1420F3390, 0x0};
-WEAK symbol<void(live::LiveAllocTypes type, void *ptr)> Com_LiveDeallocate{0x1420F32C0, 0x0};
+WEAK symbol<void(live::LiveAllocTypes type, void *ptr)> Com_LiveDeallocate{
+    0x1420F32C0, 0x0};
 WEAK symbol<qboolean> com_errorEntered{0x15686E938, 0x0};
-WEAK symbol<const char *()> Com_SessionMode_GetAbbreviationForCurrentMode{0x1420EA010, 0x0};
+WEAK symbol<const char *()> Com_SessionMode_GetAbbreviationForCurrentMode{
+    0x1420EA010, 0x0};
 WEAK symbol<LocalClientNum_t(ControllerIndex_t controllerIndex)>
     Com_ControllerIndex_GetLocalClientNum{0x1420E3040, 0x1404FACB0};
 WEAK symbol<void()> Com_Frame_Try_Block_Function{0x1420EC680, 0x1405020E0};
-WEAK symbol<ControllerIndex_t()> Com_ControllerIndexes_GetPrimary{0x1420E3100, 0x1404FAD70};
+WEAK symbol<ControllerIndex_t()> Com_ControllerIndexes_GetPrimary{0x1420E3100,
+                                                                  0x1404FAD70};
 WEAK symbol<void(const char *inString, char *outString, int32_t outStringSize)>
     Com_CleanStringForNetwork{0x14227BB60, 0x140580A60};
 WEAK symbol<void()> Com_ShutdownUILevelAndReinitialize{0x1420F12A0, 0x0};
@@ -79,7 +89,8 @@ WEAK symbol<void()> Com_ShutdownUILevel{0x1420F1250, 0x0};
 // Unsure of exact name. This function does not exist in any prior engine
 // versions, nor in the dedicated server. It's return value is compared to
 // com_maxfps and the minimum of the two is used as the FPS limit.
-WEAK symbol<uint32_t(LocalClientNum_t localClientNum)> Com_FPSLimit{0x140F7CFD0, 0x0};
+WEAK symbol<uint32_t(LocalClientNum_t localClientNum)> Com_FPSLimit{0x140F7CFD0,
+                                                                    0x0};
 
 WEAK symbol<void()> ParseBuildInfo{0x1420E2E70, 0x1404FAAE0};
 WEAK symbol<const char *()> Com_GetBuildConfig{0x1420E2AF0, 0x1404FA7D0};
@@ -105,8 +116,10 @@ WEAK symbol<const char *> BUILD_MACHINE{0x1432FC230, 0x14110B3D0};
 WEAK symbol<const char *> BUILD_TYPE{0x1432FC238, 0x14110B3D8};
 WEAK symbol<const char *> BUILD_TIME{0x1432FC240, 0x14110B3E0};
 
-WEAK symbol<int32_t(BuildIntField field)> Com_GetBuildIntField{0x1420E2C10, 0x1404FA8B0};
-WEAK symbol<const char *(BuildStringField field)> Com_GetBuildStringField{0x1420E2C80, 0x1404FA910};
+WEAK symbol<int32_t(BuildIntField field)> Com_GetBuildIntField{0x1420E2C10,
+                                                               0x1404FA8B0};
+WEAK symbol<const char *(BuildStringField field)> Com_GetBuildStringField{
+    0x1420E2C80, 0x1404FA910};
 WEAK symbol<uint32_t(const void *data, int32_t length, uint32_t initialCrc)>
     Com_BlockChecksum32{0x1423F47D0, 0x1405FD490};
 WEAK symbol<void(ControllerIndex_t controllerIndex)>

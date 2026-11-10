@@ -5,7 +5,8 @@
 namespace game {
 namespace dw {
 namespace task {
-WEAK symbol<void(TaskRecord *task)> TaskManager2_ProcessDemonwareTask{0x142253740, 0x0};
+WEAK symbol<void(TaskRecord *task)> TaskManager2_ProcessDemonwareTask{
+    0x142253740, 0x0};
 }
 } // namespace dw
 } // namespace game

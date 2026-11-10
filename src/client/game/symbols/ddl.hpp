@@ -13,10 +13,14 @@ WEAK symbol<const char *(const StringTable *table, int32_t comparisonColumn,
                          const char *value, int32_t valueColumn)>
     StringTable_Lookup{0x142251CD0, 0x0};
 
-WEAK symbol<bool(const DDLState *, DDLState *, const char *)> DDL_MoveToName{0x1424A92F0, 0x0};
-WEAK symbol<bool(const DDLState *, DDLState *, int32_t)> DDL_MoveToIndex{0x1424A92E0, 0x0};
-WEAK symbol<uint32_t(const DDLState *, const DDLContext *)> DDL_GetUInt{0x1424A8DC0, 0x0};
-WEAK symbol<bool(const DDLState *, DDLContext *, uint32_t)> DDL_SetUInt{0x1424A9800, 0x0};
+WEAK symbol<bool(const DDLState *, DDLState *, const char *)> DDL_MoveToName{
+    0x1424A92F0, 0x0};
+WEAK symbol<bool(const DDLState *, DDLState *, int32_t)> DDL_MoveToIndex{
+    0x1424A92E0, 0x0};
+WEAK symbol<uint32_t(const DDLState *, const DDLContext *)> DDL_GetUInt{
+    0x1424A8DC0, 0x0};
+WEAK symbol<bool(const DDLState *, DDLContext *, uint32_t)> DDL_SetUInt{
+    0x1424A9800, 0x0};
 
 WEAK symbol<bool(void *buff, int32_t len, const DDLDef *ddlDef,
                  DDLContext *const ddlContext, DDLWriteCB writeCB,

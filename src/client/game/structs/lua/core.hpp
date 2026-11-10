@@ -1419,7 +1419,8 @@ struct LuaScopedEventBase {
 struct LuaScopedEvent : public LuaScopedEventBase {
 
   struct syms {
-    static inline constexpr symbol<void(LuaScopedEvent *)> destructor{0x141EF8370, 0x1404B2600};
+    static inline constexpr symbol<void(LuaScopedEvent *)> destructor{
+        0x141EF8370, 0x1404B2600};
     // Returning the class by value would pass a hidden return pointer first
     static inline constexpr symbol<LuaScopedEvent *(
         LuaScopedEvent *, hks::lua_State *luaVM, int32_t depth, ...)>

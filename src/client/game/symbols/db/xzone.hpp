@@ -17,7 +17,8 @@ WEAK symbol<ZonePool<char[65]>> g_zoneNameList{0x0, 0x146E876D0};
 WEAK symbol<ZonePool<XZoneInfoInternal>> g_zoneInfo{0x149916020, 0x146E88770};
 WEAK symbol<uint32_t> g_zoneInfoCount{0x149917620, 0x146E88714};
 
-WEAK symbol<bool(const char *fastfileName)> DB_CheckModXFile{0x1420C9260, 0x1404E1B90};
+WEAK symbol<bool(const char *fastfileName)> DB_CheckModXFile{0x1420C9260,
+                                                             0x1404E1B90};
 
 } // namespace xzone
 } // namespace db

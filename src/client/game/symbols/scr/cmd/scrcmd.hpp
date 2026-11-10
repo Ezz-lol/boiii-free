@@ -13,7 +13,8 @@ WEAK symbol<void(scriptInstance_t inst, scr_entref_t *entref)>
     ScrCmd_PlaySoundToPlayer{0x1415FB330, 0x140259EE0};
 WEAK symbol<void(scriptInstance_t inst, scr_entref_t *entref)>
     ScrCmd_PlaySoundToTeam{0x141ADC5A0, 0x1402E6550};
-WEAK symbol<void(scriptInstance_t inst, scr_entref_t *entref)> ScrCmd_PlaySound{0x141ADA8D0, 0x1402E62B0};
+WEAK symbol<void(scriptInstance_t inst, scr_entref_t *entref)> ScrCmd_PlaySound{
+    0x141ADA8D0, 0x1402E62B0};
 WEAK symbol<void(scriptInstance_t inst, scr_entref_t *entref)>
     ScrCmd_PlaySoundToAllButPlayer{0x1415FB270, 0x140259E00};
 } // namespace cmd

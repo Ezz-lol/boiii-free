@@ -29,11 +29,13 @@ WEAK symbol<bool(eModes mode, ControllerIndex_t controllerIndex,
     BG_UnlockablesCharacterCustomizationItemLocked{0x142628EC0, 0x0};
 WEAK symbol<int32_t(eModes mode, ControllerIndex_t controllerIndex)>
     BG_UnlockablesGetCustomClassCount{0x14262C790, 0x0};
-WEAK symbol<void(eModes mode)> BG_UnlockablesLoadItems{0x142625680, 0x1406BE160};
+WEAK symbol<void(eModes mode)> BG_UnlockablesLoadItems{0x142625680,
+                                                       0x1406BE160};
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
                  BGEmblemBackgroundID backgroundId)>
     BG_EmblemIsEntitlementBackgroundGranted{0x1425EE3B0, 0x0};
-WEAK symbol<bool(const vec3_t *pos, const vec3_t *mapCenter)> BG_ValidateOrigin{0x142609370, 0x1406A9BB0};
+WEAK symbol<bool(const vec3_t *pos, const vec3_t *mapCenter)> BG_ValidateOrigin{
+    0x142609370, 0x1406A9BB0};
 WEAK symbol<void(const level::trajectory_t *tr, int32_t atTime, vec3_t *result)>
     BG_EvaluateTrajectory{0x142601DA0, 0x1406A3DE0};
 WEAK symbol<void(const level::trajectory_t *tr, int32_t atTime, vec3_t *result)>
@@ -56,7 +58,8 @@ WEAK symbol<void(move::pmove_t *pm, vehicle::VehicleState *vehicleState,
     BG_VehicleSlideMove{0x0, 0x1406CE2E0};
 WEAK symbol<void(move::pmove_t *pm, const move::pml_t *pml)>
     BG_VehiclePlaneMove{0x1425FC6E0, 0x14069E710};
-WEAK symbol<void(move::pmove_t *pm, const move::pml_t *pml)> BG_VehicleMove{0x14264E5F0, 0x1406CE190};
+WEAK symbol<void(move::pmove_t *pm, const move::pml_t *pml)> BG_VehicleMove{
+    0x14264E5F0, 0x1406CE190};
 WEAK symbol<void(move::pmove_t *pm, const move::pml_t *pml)>
     BG_VehicleHelicopterMove{0x1425FBC00, 0x14069DC30};
 WEAK symbol<void(move::pmove_t *pm, vehicle::VehicleState *vehicleState,

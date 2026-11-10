@@ -35,8 +35,10 @@ WEAK symbol<cclosure *(lua_State *s, lua_CFunction *function,
                        hksInt32 num_upvalues, hksInt32 internal_,
                        hksInt32 profilerTreatClosureAsFunc)>
     cclosure_Create{0x141D2ED50, 0x1403E48C0};
-WEAK symbol<int32_t(lua_State *s, hksInt32 t)> hksi_luaL_ref{0x141D40710, 0x1403F5CF0};
-WEAK symbol<void(lua_State *s, hksInt32 t, hksInt32 ref)> hksi_luaL_unref{0x141D40890, 0x1403F5E70};
+WEAK symbol<int32_t(lua_State *s, hksInt32 t)> hksi_luaL_ref{0x141D40710,
+                                                             0x1403F5CF0};
+WEAK symbol<void(lua_State *s, hksInt32 t, hksInt32 ref)> hksi_luaL_unref{
+    0x141D40890, 0x1403F5E70};
 
 WEAK symbol<int32_t(lua_State *s, const HksCompilerSettings *options,
                     const char *buff, hksSize sz, const char *name)>
@@ -46,8 +48,10 @@ WEAK symbol<int32_t(lua_State *s, const char *what, lua_Debug *ar)>
     hksi_lua_getinfo{0x141D40E40, 0x1403F64B0};
 WEAK symbol<int32_t(lua_State *s, hksInt32 level, lua_Debug *ar)>
     hksi_lua_getstack{0x141D41100, 0x1403F6770};
-WEAK symbol<void(lua_State *s, const char *fmt, ...)> hksi_luaL_error{0x141D405C0, 0x1403F5BA0};
-WEAK symbol<ObjectTypePool<const char *>> s_compilerTypeName{0x1432FC4C0, 0x14110B5C8};
+WEAK symbol<void(lua_State *s, const char *fmt, ...)> hksi_luaL_error{
+    0x141D405C0, 0x1403F5BA0};
+WEAK symbol<ObjectTypePool<const char *>> s_compilerTypeName{0x1432FC4C0,
+                                                             0x14110B5C8};
 
 // `hks::execute<(HksBytecodeSharingMode)0>`
 WEAK symbol<luaReturnCount_e(lua_State *s, const hksInstruction *PC,
@@ -97,12 +101,14 @@ WEAK symbol<HksRegister *(HksRegister *retstr, lua_State *s,
     gettable_event_string_outofline_other{0x141D3B6A0, 0x1403F0CD0};
 WEAK symbol<HksObject *(lua_State *s, HksObject *func, HksObject *arg_end)>
     non_function_call{0x141D48F80, 0x1403FE4D0};
-WEAK symbol<void(lua_State *s, HksObject *lfp)> closePendingUpvalues{0x141D316E0, 0x1403E7250};
+WEAK symbol<void(lua_State *s, HksObject *lfp)> closePendingUpvalues{
+    0x141D316E0, 0x1403E7250};
 WEAK symbol<HksRegister *(HksRegister *retstr, lua_State *s,
                           const HksObject *op1, const HksObject *op2,
                           Metamethod event)>
     getcomphandler{0x141D3A9C0, 0x1403EFFF0};
-WEAK symbol<hksInt32(InternString *o1, InternString *o2)> compareString{0x141D317E0, 0x1403E7350};
+WEAK symbol<hksInt32(InternString *o1, InternString *o2)> compareString{
+    0x141D317E0, 0x1403E7350};
 WEAK symbol<HksRegister *(HksRegister *retstr, lua_State *s,
                           const HksObject *bv, const HksObject *cv,
                           hks::Metamethod event, const char *op)>
@@ -129,8 +135,10 @@ WEAK symbol<void(lua_State *s, const HksObject *bv, const HksObject *cv,
                  hks::Metamethod event, const char *op,
                  const hksInstruction *pc)>
     callBinaryHandler{0x141D30830, 0x1403E63A0};
-WEAK symbol<hksUint32(hksByte input)> floatingpointbyte2uint{0x141D38100, 0x1403ED7B0};
-WEAK symbol<void(lua_State *s, int32_t n)> hksi_lua_concat{0x141D409A0, 0x1403F5F80};
+WEAK symbol<hksUint32(hksByte input)> floatingpointbyte2uint{0x141D38100,
+                                                             0x1403ED7B0};
+WEAK symbol<void(lua_State *s, int32_t n)> hksi_lua_concat{0x141D409A0,
+                                                           0x1403F5F80};
 WEAK symbol<hksInt32(const char *strptr, hksSize len, HksNumber *dd)>
     stringToNumber{0x141D5FF50, 0x140414AF0};
 WEAK symbol<HksObject *(const hks::HashTable *table, HksObject *value,
@@ -138,7 +146,8 @@ WEAK symbol<HksObject *(const hks::HashTable *table, HksObject *value,
     hks_obj_rawgeti{0x141D38750, 0x1403EDDF0};
 WEAK symbol<HksClosure *(lua_State *s, Method *method, HashTable *globals)>
     createHksClosure{0x141D327F0, 0x1403E8250};
-WEAK symbol<void *(lua_State *s, hksSize size, AllocTypes allocType)> getMemory{0x141D29A30, 0x1403DF860};
+WEAK symbol<void *(lua_State *s, hksSize size, AllocTypes allocType)> getMemory{
+    0x141D29A30, 0x1403DF860};
 
 WEAK symbol<void *(void *userData, void *oldMemory, size_t oldSize,
                    size_t newSize)>
@@ -146,17 +155,22 @@ WEAK symbol<void *(void *userData, void *oldMemory, size_t oldSize,
 WEAK symbol<int32_t(lua_State *s)> hksDefaultPanic{0x141D3C700, 0x1403F1D30};
 WEAK symbol<void *(void *ud, void *ptr, size_t osize, size_t nsize)>
     hks_fixedheapallocator{0x141D3D340, 0x1403F2940};
-WEAK symbol<int32_t(const char *filename, int32_t lua_line)> hks_identity_map{0x141D7ABA0, 0x1403F2AE0};
-WEAK symbol<lua_State *(const HksStateSettings *settings)> hks_newstate{0x141D3DC70, 0x1403F3270};
-WEAK symbol<lua_State *(const HksStateSettings *settings)> hksi_hks_newstate{0x141D3F7C0, 0x1403F4DA0};
+WEAK symbol<int32_t(const char *filename, int32_t lua_line)> hks_identity_map{
+    0x141D7ABA0, 0x1403F2AE0};
+WEAK symbol<lua_State *(const HksStateSettings *settings)> hks_newstate{
+    0x141D3DC70, 0x1403F3270};
+WEAK symbol<lua_State *(const HksStateSettings *settings)> hksi_hks_newstate{
+    0x141D3F7C0, 0x1403F4DA0};
 WEAK symbol<void(lua_State *s, lua_CFunction *fn, int32_t n,
                  const char *functionName, hksBool treatClosureAsFuncForProf)>
     hks_pushnamedcclosure{0x141D3EFE0, 0x1403F45C0};
 WEAK symbol<void(lua_State *s, lua_CFunction *fn, int32_t n,
                  const char *functionName, hksBool treatClosureAsFuncForProf)>
     hksi_hks_pushnamedcclosure{0x141D3F9D0, 0x1403F4FB0};
-WEAK symbol<void(lua_State *s, const char *name)> hksi_hks_setfname{0x141D3FA50, 0x1403F5030};
-WEAK symbol<void(lua_State *s, const char *name)> hksi_hks_setname{0x141D3FB50, 0x1403F5130};
+WEAK symbol<void(lua_State *s, const char *name)> hksi_hks_setfname{
+    0x141D3FA50, 0x1403F5030};
+WEAK symbol<void(lua_State *s, const char *name)> hksi_hks_setname{0x141D3FB50,
+                                                                   0x1403F5130};
 WEAK symbol<void(lua_State *targetstate, lua_State *tracedstate,
                  int32_t startlvl, hksInt32 maxlevels)>
     hksi_hks_traceback{0x141D3FED0, 0x0};
@@ -165,23 +179,30 @@ WEAK symbol<int32_t(lua_State *s, int32_t narg, const char *extramsg)>
     hksi_luaL_argerror{0x141D403C0, 0x1403F59A0};
 WEAK symbol<const char *(lua_State *s, int32_t narg, hksSize *l)>
     hksi_luaL_checklstring{0x141D40550, 0x0};
-WEAK symbol<int32_t(lua_State *s, int32_t ix1, int32_t ix2)> hksi_lua_lessthan{0x141D41660, 0x0};
+WEAK symbol<int32_t(lua_State *s, int32_t ix1, int32_t ix2)> hksi_lua_lessthan{
+    0x141D41660, 0x0};
 WEAK symbol<void(lua_State *s, int32_t lvl)> hksi_luaL_where{0x141D40910, 0x0};
 WEAK symbol<lua_State *(lua_State *s)> hksi_lua_newthread{0x141D41800, 0x0};
 WEAK symbol<int32_t(lua_State *s, int32_t nargs, int32_t nresults,
                     int32_t errfunc)>
     hksi_lua_pcall{0x141D41900, 0x0};
-WEAK symbol<const char *(lua_State *s, const char *fmt)> hksi_lua_pushfstring{0x141D41AE0, 0x0};
-WEAK symbol<void(lua_State *s, int32_t index)> hksi_lua_pushvalue{0x1414295F0, 0x0};
+WEAK symbol<const char *(lua_State *s, const char *fmt)> hksi_lua_pushfstring{
+    0x141D41AE0, 0x0};
+WEAK symbol<void(lua_State *s, int32_t index)> hksi_lua_pushvalue{0x1414295F0,
+                                                                  0x0};
 WEAK symbol<const char *(lua_State *s, const char *fmt, va_list argp)>
     hksi_lua_pushvfstring{0x141D41B10, 0x1403F7210};
-WEAK symbol<int32_t(lua_State *s, int32_t narg)> hksi_lua_resume{0x141D42060, 0x1403F7760};
-WEAK symbol<void(lua_State *s, int32_t index)> hksi_lua_settable{0x141429770, 0x1401DEAF0};
+WEAK symbol<int32_t(lua_State *s, int32_t narg)> hksi_lua_resume{0x141D42060,
+                                                                 0x1403F7760};
+WEAK symbol<void(lua_State *s, int32_t index)> hksi_lua_settable{0x141429770,
+                                                                 0x1401DEAF0};
 WEAK symbol<void(lua_State *s, const char *libname, const luaL_Reg *l,
                  int32_t nup, const hksBool isHksFunc)>
     hksI_openlib{0x141D3C9B0, 0x1403F1FE0};
-WEAK symbol<void(lua_State *s, hks::hksInt32 index)> hksi_luasettable{0x141429770, 0x1401DEAF0};
-WEAK symbol<void *(lua_State *s, size_t size)> hksi_lua_newuserdata{0x141D472C0, 0x1403FC810};
+WEAK symbol<void(lua_State *s, hks::hksInt32 index)> hksi_luasettable{
+    0x141429770, 0x1401DEAF0};
+WEAK symbol<void *(lua_State *s, size_t size)> hksi_lua_newuserdata{
+    0x141D472C0, 0x1403FC810};
 WEAK symbol<int32_t(lua_State *s, const HksCompilerSettings *options,
                     const char *filename)>
     hksL_loadfile{0x141D3CC70, 0x0};
@@ -191,11 +212,14 @@ WEAK symbol<HksRegister *(HksRegister *retstr, lua_State *s,
 WEAK symbol<HksRegister *(HksRegister *retstr, lua_State *s, const char *str,
                           size_t l)>
     hks_obj_newlstringhashed{0x141D3E640, 0x0};
-WEAK symbol<size_t(lua_State *s, const HksObject *obj)> hks_obj_objlen{0x141D3E730, 0x0};
+WEAK symbol<size_t(lua_State *s, const HksObject *obj)> hks_obj_objlen{
+    0x141D3E730, 0x0};
 WEAK symbol<const char *(lua_State *s, HksObject *obj, size_t *len)>
     hks_obj_tolstring{0x141D3EC30, 0x1403F4210};
-WEAK symbol<HksNumber(lua_State *s, const HksObject *obj)> hks_obj_tonumber{0x141D3EF80, 0x1403F4560};
-WEAK symbol<int32_t(lua_State *s, const HksObject *obj)> hks_obj_isnumber{0x141D3E420, 0x1403F3A10};
+WEAK symbol<HksNumber(lua_State *s, const HksObject *obj)> hks_obj_tonumber{
+    0x141D3EF80, 0x1403F4560};
+WEAK symbol<int32_t(lua_State *s, const HksObject *obj)> hks_obj_isnumber{
+    0x141D3E420, 0x1403F3A10};
 WEAK symbol<luaReturnCount_e(lua_State *s, const char *filename,
                              const char *func_name)>
     load_dll{0x141D460E0, 0x1403FB6F0};
@@ -250,8 +274,10 @@ WEAK symbol<lua_CFunction> io_write{0x141D22F00, 0x1403D7890};
 WEAK symbol<lua_CFunction> io_write_file{0x141D22EC0, 0x1403D7850};
 
 WEAK symbol<lua_CFunction> compiler_settings{0x141D22750, 0x1403D6330};
-WEAK symbol<lua_CFunction> set_garbage_collector_weights{0x141D22850, 0x1403D6430};
-WEAK symbol<lua_CFunction> get_garbage_collector_weights{0x141D22D00, 0x1403D68E0};
+WEAK symbol<lua_CFunction> set_garbage_collector_weights{0x141D22850,
+                                                         0x1403D6430};
+WEAK symbol<lua_CFunction> get_garbage_collector_weights{0x141D22D00,
+                                                         0x1403D68E0};
 
 WEAK symbol<lua_CFunction> package_loadlib{0x141D1D060, 0x1403D95E0};
 WEAK symbol<lua_CFunction> serialize_persist{0x141D1FB60, 0x1403DE520};

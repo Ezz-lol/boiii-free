@@ -405,17 +405,14 @@ struct component final : generic_component {
     server_thread =
         utils::thread::create_named_thread("Demonware", server_main);
 
-    utils::hook::set<uint8_t>(
-        game::select(0x1428C4AF9, 0x1407D5879),
-        0x0); // CURLOPT_SSL_VERIFYPEER
-    utils::hook::set<uint8_t>(
-        game::select(0x15ce1c127, 0x1407D5865),
-        0xAF); // CURLOPT_SSL_VERIFYHOST
+    utils::hook::set<uint8_t>(game::select(0x1428C4AF9, 0x1407D5879),
+                              0x0); // CURLOPT_SSL_VERIFYPEER
+    utils::hook::set<uint8_t>(game::select(0x15ce1c127, 0x1407D5865),
+                              0xAF); // CURLOPT_SSL_VERIFYHOST
 
     // HTTPS -> HTTP
-    utils::hook::copy_string(
-        game::select(0x1430395A0, 0x140EE4C68),
-        "http://prod.umbrella.demonware.net");
+    utils::hook::copy_string(game::select(0x1430395A0, 0x140EE4C68),
+                             "http://prod.umbrella.demonware.net");
 
     if (game::is_server()) {
       return;

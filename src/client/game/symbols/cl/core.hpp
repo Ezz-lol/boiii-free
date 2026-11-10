@@ -26,20 +26,25 @@ WEAK symbol<void(LocalClientNum_t localClientNum, const char *pszMapName,
 WEAK symbol<void(game::LocalClientNum_t localClientNum, bool active)>
     CL_LocalClient_SetActive{0x1427C1940, 0x0};
 
-WEAK symbol<const char *(int32_t configStringIndex)> CL_GetConfigString{0x141321130, 0x14017CCC0};
-WEAK symbol<int64_t(LocalClientNum_t localClientNum)> CL_ClearClientThinkPacket{0x1412F33F0, 0x0};
+WEAK symbol<const char *(int32_t configStringIndex)> CL_GetConfigString{
+    0x141321130, 0x14017CCC0};
+WEAK symbol<int64_t(LocalClientNum_t localClientNum)> CL_ClearClientThinkPacket{
+    0x1412F33F0, 0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum, const char *mapname,
                  const char *gametype)>
     CL_PreloadMap{0x14135A200, 0x0};
-WEAK symbol<bool(const char *map)> CL_MapSwitch_IsMapPreloaded{0x14131EA10, 0x0};
+WEAK symbol<bool(const char *map)> CL_MapSwitch_IsMapPreloaded{0x14131EA10,
+                                                               0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum, bool isServer)>
     CL_MapSwitch_SwitchNow{0x14131EC80, 0x0};
 WEAK symbol<void(bool setupViewport)> CL_InitRenderer{0x141359710, 0x0};
 WEAK symbol<void()> CL_StartHunkUsers{0x14135D1B0, 0x0};
 WEAK symbol<CLMapSwitch> cl_switch{0x1452C4A00, 0x142850830};
 
-WEAK symbol<void(int64_t localClientNum, int32_t msec)> CL_Frame{0x141351400, 0x0};
-WEAK symbol<void(game::LocalClientNum_t localClientNum)> CL_CheckForResend{0x14134B990, 0x0};
+WEAK symbol<void(int64_t localClientNum, int32_t msec)> CL_Frame{0x141351400,
+                                                                 0x0};
+WEAK symbol<void(game::LocalClientNum_t localClientNum)> CL_CheckForResend{
+    0x14134B990, 0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum, bool checkStatus)>
     CL_LoadoutChanged{0x141359980, 0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum, bool deactivateClient)>
@@ -64,7 +69,8 @@ WEAK symbol<void(const LocalClientNum_t localClientNum, unsigned __int8 c,
 
 WEAK symbol<void()> CL_CompositeRender{0x141335BF0, 0x0};
 // Actual name is unknown - gives an image back to CL_CompositeRender's pool
-WEAK symbol<void(gfx::GfxImage *image)> CL_CompositeRender_ReleaseImage{0x141335B90, 0x0};
+WEAK symbol<void(gfx::GfxImage *image)> CL_CompositeRender_ReleaseImage{
+    0x141335B90, 0x0};
 // Actual name is unknown
 WEAK symbol<CompositeJob[16]> compositeJobs{0x1452CA460, 0x0};
 
@@ -80,7 +86,8 @@ WEAK symbol<r::vidConfig_t> cls_vidConfig{0x14536571C, 0x1428EB3CC};
 
 WEAK symbol<ClientNum_t> cl_allocatedClients{0x1432A7EE8, 0x0};
 WEAK symbol<clientAllocFlags_t> cl_lastAllocFlags{0x14535598C, 0x0};
-WEAK symbol<void(LocalClientNum_t localClientNum)> CL_FirstSnapshot{0x141320E80, 0x0};
+WEAK symbol<void(LocalClientNum_t localClientNum)> CL_FirstSnapshot{0x141320E80,
+                                                                    0x0};
 
 WEAK symbol<LocalClientNum_t> primaryLocalClientNum{0x1433A256C, 0x14112E01C};
 WEAK symbol<LocalClientNum_t> cl_maxLocalClients{0x145323720, 0x0};

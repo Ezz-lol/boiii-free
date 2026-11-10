@@ -42,18 +42,29 @@ inline VM_OP_FUNC_PTR *error_recovery(Opcode op) {
 }
 
 WEAK symbol<VM_OP_FUNC> VM_OP_CallBuiltin_Handler{0x1412CE480, 0x14015C3C0};
-WEAK symbol<VM_OP_FUNC> VM_OP_CallBuiltinMethod_Handler{0x1412CE3C0, 0x14015C300};
+WEAK symbol<VM_OP_FUNC> VM_OP_CallBuiltinMethod_Handler{0x1412CE3C0,
+                                                        0x14015C300};
 WEAK symbol<VM_OP_FUNC> VM_OP_EvalArrayRef_Handler{0x1412D02D0, 0x14015DE40};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptFunctionCallClass_Handler{0x1412CEB40, 0x14015CA30};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptFunctionCall_Handler{0x1412CEEA0, 0x14015CCE0};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptFunctionCallPointer_Handler{0x1412CECD0, 0x14015CB70};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptMethodCall_Handler{0x1412CF1F0, 0x14015D030};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptMethodCallPointer_Handler{0x1412CEFC0, 0x14015CE00};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptMethodThreadCall_Handler{0x1412CF590, 0x14015D370};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptMethodThreadCallPointer_Handler{0x1412CF370, 0x14015D1B0};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptThreadCallClass_Handler{0x1412CF760, 0x14015D4E0};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptThreadCall_Handler{0x1412CFB30, 0x14015D8B0};
-WEAK symbol<VM_OP_FUNC> VM_OP_ScriptThreadCallPointer_Handler{0x1412CF950, 0x14015D6D0};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptFunctionCallClass_Handler{0x1412CEB40,
+                                                              0x14015CA30};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptFunctionCall_Handler{0x1412CEEA0,
+                                                         0x14015CCE0};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptFunctionCallPointer_Handler{0x1412CECD0,
+                                                                0x14015CB70};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptMethodCall_Handler{0x1412CF1F0,
+                                                       0x14015D030};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptMethodCallPointer_Handler{0x1412CEFC0,
+                                                              0x14015CE00};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptMethodThreadCall_Handler{0x1412CF590,
+                                                             0x14015D370};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptMethodThreadCallPointer_Handler{
+    0x1412CF370, 0x14015D1B0};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptThreadCallClass_Handler{0x1412CF760,
+                                                            0x14015D4E0};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptThreadCall_Handler{0x1412CFB30,
+                                                       0x14015D8B0};
+WEAK symbol<VM_OP_FUNC> VM_OP_ScriptThreadCallPointer_Handler{0x1412CF950,
+                                                              0x14015D6D0};
 } // namespace op
 } // namespace vm
 } // namespace scr

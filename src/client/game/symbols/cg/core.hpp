@@ -4,7 +4,8 @@
 
 namespace game {
 namespace cg {
-WEAK symbol<void(LocalClientNum_t localClientNum)> CG_LUIHUDRestart{0x140F7E970, 0x0};
+WEAK symbol<void(LocalClientNum_t localClientNum)> CG_LUIHUDRestart{0x140F7E970,
+                                                                    0x0};
 WEAK symbol<ClientUIActives> clientUIActives{0x145359BC0, 0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum, float *fov_x,
                  float *dxDzAtDefaultAspectRatio, float *dxDz, float *dyDz)>
@@ -18,7 +19,8 @@ WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients)>
 WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients,
                  int32_t maxKillCamsInSplitscreen)>
     CG_InitAndAllocCGEntsArray{0x14085B990, 0x0};
-WEAK symbol<bool(LocalClientNum_t localClientNum)> CG_IsFullyInitialized{0x1400AB1A0, 0x0};
+WEAK symbol<bool(LocalClientNum_t localClientNum)> CG_IsFullyInitialized{
+    0x1400AB1A0, 0x0};
 
 WEAK symbol<void(hunk::HunkUser *user, LocalClientNum_t maxLocalClients,
                  ClientNum_t maxClients)>
@@ -43,7 +45,8 @@ extern LocalClientPool<ClientPlayerWeaponInfo> cg_weaponsArray;
 extern LocalClientPool<phys::Destructible> cg_destructibles;
 extern LocalClientPool<ik::IkBuf> cg_ikBuf;
 
-WEAK symbol<CGFakeEntitiesInuseBitArray> cg_fakeEntitiesInuseBitArray{0x144C98B80, 0x0};
+WEAK symbol<CGFakeEntitiesInuseBitArray> cg_fakeEntitiesInuseBitArray{
+    0x144C98B80, 0x0};
 
 /*
     The builtin pools below are replaced with the above, statically allocated
@@ -63,12 +66,17 @@ WEAK symbol<CGFakeEntitiesInuseBitArray> cg_fakeEntitiesInuseBitArray{0x144C98B8
 */
 WEAK symbol<level::cl::cgPool *> builtin_cgArray{0x144C98C80, 0x14222BCB0};
 WEAK symbol<level::cl::cgsPool *> builtin_cgsArray{0x144C98B70, 0x14222BCB8};
-WEAK symbol<level::cl::LocalClientCentityPools> builtin_cg_entitiesArray{0x144C98B60, 0x14222BCC0};
-WEAK symbol<anim::ViewModelInfoPool *> builtin_cg_viewModelArray{0x14495A428, 0x0};
-WEAK symbol<ClientPlayerAttachmentInfoPool *> builtin_cg_attachmentsArray{0x14495A420, 0x0};
+WEAK symbol<level::cl::LocalClientCentityPools> builtin_cg_entitiesArray{
+    0x144C98B60, 0x14222BCC0};
+WEAK symbol<anim::ViewModelInfoPool *> builtin_cg_viewModelArray{0x14495A428,
+                                                                 0x0};
+WEAK symbol<ClientPlayerAttachmentInfoPool *> builtin_cg_attachmentsArray{
+    0x14495A420, 0x0};
 
-WEAK symbol<LocalClientCgWeaponsPools> builtin_cg_weaponsArray{0x14495A410, 0x0};
-WEAK symbol<LocalClientCgDestructiblesPools> builtin_cg_destructibles{0x157E820C0, 0x0};
+WEAK symbol<LocalClientCgWeaponsPools> builtin_cg_weaponsArray{0x14495A410,
+                                                               0x0};
+WEAK symbol<LocalClientCgDestructiblesPools> builtin_cg_destructibles{
+    0x157E820C0, 0x0};
 WEAK symbol<LocalClientIkBufs> builtin_cg_ikBuf{0x1449B25C0, 0x0};
 
 } // namespace cg

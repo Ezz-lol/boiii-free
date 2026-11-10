@@ -10,7 +10,8 @@ using namespace game::ai;
 WEAK symbol<bool(const AIBody *aiBody, int32_t entityNum,
                  LocalClientNum_t localClientNum)>
     G_ASM_AimLayerShouldBeActive{0x1415B1C50, 0x14023F5B0};
-WEAK symbol<void(int32_t entityNum)> G_ASM_AnimUpdated{0x1415B37A0, 0x14023F6C0};
+WEAK symbol<void(int32_t entityNum)> G_ASM_AnimUpdated{0x1415B37A0,
+                                                       0x14023F6C0};
 WEAK symbol<void(int32_t entityNum, LocalClientNum_t localClientNum,
                  vec3_t *headingVec)>
     G_ASM_GetAIHeadingVec{0x1415B6F60, 0x14023FA30};
@@ -43,9 +44,12 @@ WEAK symbol<bool(AIBody *aiBody, int32_t entityNum,
 WEAK symbol<void(int32_t attackerEntNum, LocalClientNum_t localClientNum,
                  int32_t shootAtEntNum, vec3_t *targetPos)>
     G_ASM_GetTargetPos{0x1415C12B0, 0x140240000};
-WEAK symbol<void(AIBody *aiBody, int32_t entityNum)> G_ASM_PackState{0x1415C1540, 0x140240290};
-WEAK symbol<asmStatus_t(AIBody *aiBody, int32_t entityNum)> G_ASM_PostUpdate{0x0, 0x140240420};
-WEAK symbol<asmStatus_t(AIBody *aiBody, int32_t entityNum)> G_ASM_PreUpdate{0x0, 0x140240570};
+WEAK symbol<void(AIBody *aiBody, int32_t entityNum)> G_ASM_PackState{
+    0x1415C1540, 0x140240290};
+WEAK symbol<asmStatus_t(AIBody *aiBody, int32_t entityNum)> G_ASM_PostUpdate{
+    0x0, 0x140240420};
+WEAK symbol<asmStatus_t(AIBody *aiBody, int32_t entityNum)> G_ASM_PreUpdate{
+    0x0, 0x140240570};
 WEAK symbol<void()> G_ASM_InitMocomps{0x1415C93D0, 0x1402445D0};
 WEAK symbol<int(AIBody *aiBody, int32_t entityNum,
                 LocalClientNum_t localClientNum)>
@@ -59,7 +63,8 @@ WEAK
 WEAK symbol<bool(AIBody *aiBody, int32_t entityNum,
                  LocalClientNum_t localClientNum)>
     G_ASM_GetShootAnimations{0x1415D8B20, 0x140245150};
-WEAK symbol<void(int32_t entityNum, bool shouldSet)> G_ASM_SetFiringFlag{0x1415D8C10, 0x140245240};
+WEAK symbol<void(int32_t entityNum, bool shouldSet)> G_ASM_SetFiringFlag{
+    0x1415D8C10, 0x140245240};
 WEAK symbol<bool(const AIBody *const aiBody, int32_t entityNum,
                  LocalClientNum_t localClientNum)>
     G_ASM_ShootLayerShouldBeActive{0x1415DA6F0, 0x1402452D0};

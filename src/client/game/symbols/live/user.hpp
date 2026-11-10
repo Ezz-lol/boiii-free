@@ -14,13 +14,16 @@ WEAK symbol<const char *(ControllerIndex_t controllerIndex)>
 WEAK symbol<const char *(ControllerIndex_t controllerIndex)>
     LiveUser_GetClientName{0x141EBA850, 0x0};
 // Initial XUID generation. Value is later fetched by LiveUser_GetXuid
-WEAK symbol<bool(int64_t controllerIndex, XUID *xuid)> LiveUser_UserGetXuid{0x141EBABC0, 0x0};
+WEAK symbol<bool(int64_t controllerIndex, XUID *xuid)> LiveUser_UserGetXuid{
+    0x141EBABC0, 0x0};
 WEAK symbol<bool(ControllerIndex_t controllerIndex, char *buf,
                  const int bufsize)>
     LiveUser_UserGetName{0x141EBAB40, 0x14047F4B0};
-WEAK symbol<UserDataForControllerMap> s_userDataForControllerMap{0x143390190, 0x0};
+WEAK symbol<UserDataForControllerMap> s_userDataForControllerMap{0x143390190,
+                                                                 0x0};
 
-WEAK symbol<ControllerIndex_t(const XUID xuid)> LiveUser_GetControllerFromXUID{0x141EBA340, 0x0};
+WEAK symbol<ControllerIndex_t(const XUID xuid)> LiveUser_GetControllerFromXUID{
+    0x141EBA340, 0x0};
 WEAK symbol<ControllerIndex_t(const XUID xuid)>
     LiveUser_GetSignedInControllerFromXUID{0x141EBA390, 0x0};
 WEAK symbol<XUSER_SIGNIN_STATE(const ControllerIndex_t controllerIndex)>
@@ -29,18 +32,23 @@ WEAK symbol<EUserTier(const ControllerIndex_t controllerIndex)>
     LiveUser_GetTier{0x141EBA3D0, 0x0};
 WEAK symbol<userData_t *(const ControllerIndex_t controllerIndex)>
     LiveUser_GetUserDataForController{0x141EBA3F0, 0x0};
-WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveUser_IsActive{0x141EBA470, 0x0};
+WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveUser_IsActive{
+    0x141EBA470, 0x0};
 WEAK symbol<bool()> LiveUser_IsAnyLocalUserContentRestricted{0x141EBA490, 0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
     LiveUser_IsChatRestricted{0x141EBA510, 0x0};
-WEAK symbol<bool(const ControllerIndex_t controllerIndex)> LiveUser_IsConnected{0x141EBA530, 0x0};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex)> LiveUser_IsConnected{
+    0x141EBA530, 0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
     LiveUser_IsDeviceContentRestricted{0x141EBA550, 0x0};
-WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveUser_IsSignedIn{0x141EBA5A0, 0x0};
-WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveUser_IsSignedInToLive{0x141EBA5C0, 0x0};
+WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveUser_IsSignedIn{
+    0x141EBA5A0, 0x0};
+WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveUser_IsSignedInToLive{
+    0x141EBA5C0, 0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
     LiveUser_IsUserContentRestricted{0x141EBA5E0, 0x0};
-WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveUser_IsUserGuest{0x141E721D0, 0x0};
+WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveUser_IsUserGuest{
+    0x141E721D0, 0x0};
 // Same as LiveUser_IsUserGuest, but also sets the sponsorController -
 // always set to Com_ControllerIndexes_GetPrimary() return value.
 // Name is `LiveUser_IsUserGuest` in the engine - override.
@@ -49,11 +57,13 @@ WEAK symbol<bool(ControllerIndex_t controllerIndex,
     LiveUser_IsUserGuest2{0x141EBA630, 0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
     LiveUser_IsUserSignedInToLive{0x141EBA680, 0x0};
-WEAK symbol<bool(const XUID xuid)> LiveUser_IsXUIDLocalPlayer{0x141EBA6A0, 0x14047F2E0};
+WEAK symbol<bool(const XUID xuid)> LiveUser_IsXUIDLocalPlayer{0x141EBA6A0,
+                                                              0x14047F2E0};
 WEAK symbol<void()> LiveUser_SetPrimaryActive{0x141EBA330, 0x0};
 WEAK symbol<void(const ControllerIndex_t controllerIndex, EUserTier tier)>
     LiveUser_SetTier{0x141EBA6D0, 0x0};
-WEAK symbol<XUID(const userData_t *userdata)> LiveUser_GetLocalXuid{0x1420F2310, 0x0};
+WEAK symbol<XUID(const userData_t *userdata)> LiveUser_GetLocalXuid{0x1420F2310,
+                                                                    0x0};
 
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
                  const char **disconnectMessage)>
@@ -62,7 +72,8 @@ WEAK symbol<PartyMemberTalkingState(ControllerIndex_t controllerIndex,
                                     const XUID xuid)>
     LiveUser_GetPartyMemberTalkingState{0x141EBA870, 0x0};
 
-WEAK symbol<bool(XUID userXuid)> LiveUser_IsPermaBanned{0x1421EC160, 0x14052E150};
+WEAK symbol<bool(XUID userXuid)> LiveUser_IsPermaBanned{0x1421EC160,
+                                                        0x14052E150};
 } // namespace user
 
 } // namespace live

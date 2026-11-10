@@ -1842,7 +1842,8 @@ PACKED(struct NitrousVehicle {
         update_gravity{0x14230B840, 0x1405C3090};
     static constexpr symbol<thiscall_t<void(NitrousVehicle *)>>
         update_orientation_constraint{0x14230C4D0, 0x1405C3D20};
-    static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> update_pause{0x14230C6A0, 0x1405C3EF0};
+    static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> update_pause{
+        0x14230C6A0, 0x1405C3EF0};
     static constexpr symbol<
         thiscall_t<void(NitrousVehicle *, const double delta_t)>>
         update_prolog{0x14230C800, 0x1405C4050};
@@ -1858,7 +1859,8 @@ PACKED(struct NitrousVehicle {
         thiscall_t<void(NitrousVehicle *, level::gentity_t *owner,
                         const VehicleParameter *parameter)>>
         init{0x14230E310, 0x1405C5980};
-    static constexpr symbol<thiscall_t<bool(NitrousVehicle *)>> is_path_moving{0x14230E6F0, 0x1405C5D60};
+    static constexpr symbol<thiscall_t<bool(NitrousVehicle *)>> is_path_moving{
+        0x14230E6F0, 0x1405C5D60};
     static constexpr symbol<thiscall_t<void(NitrousVehicle *, bool shutdown)>>
         pause_physics{0x1423118B0, 0x1405C5EF0};
     static constexpr symbol<thiscall_t<void(const NitrousVehicle *v)>>
@@ -1866,7 +1868,8 @@ PACKED(struct NitrousVehicle {
     static constexpr symbol<
         thiscall_t<void(NitrousVehicle *, int32_t attach_mode)>>
         start_path{0x142311FE0, 0x1405C6470};
-    static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> unpause_physics{0x142312160, 0x1405C65F0};
+    static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> unpause_physics{
+        0x142312160, 0x1405C65F0};
     static constexpr symbol<
         thiscall_t<void(NitrousVehicle *, const float desired_speed_factor)>>
         update_braking_and_acceleration{0x142315990, 0x1405C69D0};

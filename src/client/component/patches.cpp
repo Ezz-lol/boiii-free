@@ -426,16 +426,12 @@ struct component final : generic_component {
         game::sys::Sys_WaitForSingleObject.get(), Sys_WaitForSingleObject_Safe);
 
     // print hexadecimal xuids in chat game log command
-    utils::hook::set<char>(game::select(0x142F5A332, 0x140E16FA2),
-                           'x');
+    utils::hook::set<char>(game::select(0x142F5A332, 0x140E16FA2), 'x');
 
     // change 4 character min name limit to 3 characters
-    utils::hook::set<uint8_t>(
-        game::select(0x1421f0f23, 0x140531143), 3);
-    utils::hook::set<uint8_t>(
-        game::select(0x1421f1084, 0x1405312A8), 3);
-    utils::hook::set<uint8_t>(
-        game::select(0x1421f145c, 0x1405316DC), 3);
+    utils::hook::set<uint8_t>(game::select(0x1421f0f23, 0x140531143), 3);
+    utils::hook::set<uint8_t>(game::select(0x1421f1084, 0x1405312A8), 3);
+    utils::hook::set<uint8_t>(game::select(0x1421f145c, 0x1405316DC), 3);
 
     // make sure reliableAck is not negative or too big
     utils::hook::call(game::select(0x1421F7D6C, 0x140537C4C),

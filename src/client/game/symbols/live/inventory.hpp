@@ -17,8 +17,10 @@ WEAK symbol<uint32_t(ControllerIndex_t controllerIndex, uint32_t itemId)>
     LiveInventory_GetItemQuantity{0x141DFC5A0, 0x0};
 WEAK symbol<bool(ControllerIndex_t controllerIndex)>
     LiveInventory_AreExtraSlotsPurchased{0x141DFBEC0, 0x0};
-WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveInventory_IsValid{0x141DFD920, 0x0};
-WEAK symbol<void(ControllerIndex_t controllerIndex)> LiveInventory_Update{0x141DFDF10, 0x0};
+WEAK symbol<bool(ControllerIndex_t controllerIndex)> LiveInventory_IsValid{
+    0x141DFD920, 0x0};
+WEAK symbol<void(ControllerIndex_t controllerIndex)> LiveInventory_Update{
+    0x141DFDF10, 0x0};
 WEAK symbol<bool(ControllerIndex_t controllerIndex, int32_t currency,
                  int32_t newValue)>
     LiveInventory_UpdatePlayerBalance{0x141DFE0C0, 0x0};

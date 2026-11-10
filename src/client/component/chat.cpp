@@ -291,8 +291,7 @@ public:
           },
           scheduler::pipeline::main);
 
-      utils::hook::call(game::select(0x141DDDF7F, 0x0),
-                        cl_handle_chat);
+      utils::hook::call(game::select(0x141DDDF7F, 0x0), cl_handle_chat);
 
       g_say_hook.create(game::G_Say.get(), g_say_stub);
       g_chat_hook.create(game::G_Chat.get(), g_chat_stub);

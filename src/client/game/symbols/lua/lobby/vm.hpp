@@ -10,12 +10,15 @@ WEAK symbol<void()> LobbyVM_Reload{0x141EE4640, 0x1404A1F50};
 WEAK symbol<void(ControllerIndex_t controllerIndex,
                  game::lobby::LobbyType lobbyType, ClientNum_t maxClients)>
     LobbyVM_LobbyHostLeftEvent{0x141EE3130, 0x1404A0CC0};
-WEAK symbol<void(hks::lua_Integer value)> LobbyVM_CheckAdvertiseSteamServer{0x0, 0x1404A03D0};
+WEAK symbol<void(hks::lua_Integer value)> LobbyVM_CheckAdvertiseSteamServer{
+    0x0, 0x1404A03D0};
 WEAK symbol<bool(ControllerIndex_t controllerIndex)>
     LobbyVM_CheckAdvertizeSteamServer{0x141EE2870, 0x0};
-WEAK symbol<void(hks::lua_Integer value)> LobbyVM_CheckInitSteamServer{0x0, 0x1404A0480};
+WEAK symbol<void(hks::lua_Integer value)> LobbyVM_CheckInitSteamServer{
+    0x0, 0x1404A0480};
 WEAK symbol<void()> LobbyVM_ClientLaunch_ClearLaunchScript{0x141EC1320, 0x0};
-WEAK symbol<void(const ControllerIndex_t controllerIndex)> LobbyVM_DevmapEvent{0x141EE2A50, 0x0};
+WEAK symbol<void(const ControllerIndex_t controllerIndex)> LobbyVM_DevmapEvent{
+    0x141EE2A50, 0x0};
 WEAK symbol<void(game::lobby::session::LobbySession *lobbySession,
                  const char *lobbyVMEvent)>
     LobbyVM_FireEvent{0x141EE2B10, 0x0};
@@ -45,9 +48,11 @@ WEAK symbol<void(
     game::lobby::session::LobbySession *lobbySession, XUID disconnectClientXuid,
     game::lobby::LobbyDisconnectClient disconnectClient, const char *errorMsg)>
     LobbyVM_OnDisconnect{0x141EE3550, 0x1404A10C0};
-WEAK symbol<void(ControllerIndex_t controllerIndex)> LobbyVM_OnDWDisconnect{0x141EE34B0, 0x1404A1020};
+WEAK symbol<void(ControllerIndex_t controllerIndex)> LobbyVM_OnDWDisconnect{
+    0x141EE34B0, 0x1404A1020};
 WEAK symbol<void()> LobbyVM_OnErrorShutdown{0x141EE3710, 0x1404A1280};
-WEAK symbol<void(ControllerIndex_t controllerIndex)> LobbyVM_OnExperimentReset{0x141EBF990, 0x1404808C0};
+WEAK symbol<void(ControllerIndex_t controllerIndex)> LobbyVM_OnExperimentReset{
+    0x141EBF990, 0x1404808C0};
 WEAK symbol<void(game::lobby::session::LobbySession *lobbySession)>
     LobbyVM_OnGametypeSettingsChange{0x141EE37B0, 0x1404A1320};
 WEAK symbol<void()> LobbyVM_OnInit{0x141EE37C0, 0x1404A1330};

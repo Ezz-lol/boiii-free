@@ -13,7 +13,8 @@ WEAK symbol<taskCompleteResults(const game::net::netadr_t *netadr)>
 WEAK symbol<bool(game::net::netadr_t *netadr, const uint8_t *commonAddr,
                  const game::net::bdSecurityID *secId)>
     dwCommonAddrToNetadr{0x14143C380, 0x1401E5260};
-WEAK symbol<int32_t(const game::net::netadr_t *netadr)> dwGetConnectionStatus{0x14143CAD0, 0x1401E59B0};
+WEAK symbol<int32_t(const game::net::netadr_t *netadr)> dwGetConnectionStatus{
+    0x14143CAD0, 0x1401E59B0};
 
 } // namespace dw
 } // namespace game

@@ -23,14 +23,17 @@ WEAK symbol<UIModelIndex(const UIModelIndex parentNodeIndex, const char *path)>
     UI_Model_CreateModelFromPath{0x14200C840, 0x0};
 WEAK symbol<UIModelIndex(const UIModelIndex parentNodeIndex, const char *path)>
     UI_Model_CreatePersistentModelFromPath{0x14200C900, 0x0};
-WEAK symbol<bool(const UIModelIndex nodeIndex)> UI_Model_ForceNotify{0x14200C9C0, 0x0};
+WEAK symbol<bool(const UIModelIndex nodeIndex)> UI_Model_ForceNotify{
+    0x14200C9C0, 0x0};
 WEAK symbol<UIModelIndex()> UI_Model_GetGlobalModel{0x14200CD10, 0x0};
 WEAK symbol<UIModelIndex(const ControllerIndex_t controllerIndex)>
     UI_Model_GetModelForController{0x14200CEE0, 0x0};
 WEAK symbol<UIModelIndex(const UIModelIndex parentNodeIndex, const char *path)>
     UI_Model_GetModelFromPath{0x14200CEF0, 0x0};
-WEAK symbol<void(UIModelIndex model)> UI_Model_NotifySubscriptions{0x14200D1D0, 0x0};
-WEAK symbol<bool(const UIModelIndex nodeIndex, bool newValue)> UI_Model_SetBool{0x14200D4E0, 0x0};
+WEAK symbol<void(UIModelIndex model)> UI_Model_NotifySubscriptions{0x14200D1D0,
+                                                                   0x0};
+WEAK symbol<bool(const UIModelIndex nodeIndex, bool newValue)> UI_Model_SetBool{
+    0x14200D4E0, 0x0};
 WEAK symbol<bool(const UIModelIndex nodeIndex, int32_t newValue)>
     UI_Model_SetInt{0x14200D590, 0x0};
 WEAK symbol<bool(const UIModelIndex nodeIndex, const char *newValue)>
@@ -42,7 +45,8 @@ WEAK symbol<UIModelIndex(const UIModelIndex ancestorIndex, const char *key,
     UI_Model_AllocateNode{0x14200C640, 0x0};
 WEAK symbol<void(UIModelIndex model)> UI_Model_FreeModel{0x14200C9E0, 0x0};
 
-WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CloseAllMenus{0x14222E5C0, 0x0};
+WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CloseAllMenus{0x14222E5C0,
+                                                                    0x0};
 WEAK symbol<void()> UI_Shutdown{0x142694C90, 0x0};
 
 WEAK symbol<void(const char *rootName)> UI_CoD_ProcessEvents{0x141F21620, 0x0};
@@ -50,14 +54,17 @@ WEAK symbol<void(bool frontend)> UI_CoD_ShutdownAndInit{0x141F26800, 0x0};
 WEAK symbol<void(lua::hks::lua_Alloc allocFunction, void *outOfMemoryFunction)>
     UI_Init{0x14268BE80, 0x0};
 
-WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Layout{0x141F1D770, 0x0};
-WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Render{0x141F219C0, 0x0};
+WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Layout{0x141F1D770,
+                                                                 0x0};
+WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Render{0x141F219C0,
+                                                                 0x0};
 WEAK symbol<float(LocalClientNum_t localClientNum, const char *text,
                   db::xasset::ttf::TTFDef *font, float textHeight,
                   float letterSpacing)>
     UI_Interface_GetTextWidth{0x141C9F0A0, 0x0};
 
-WEAK symbol<void(float *x, float *y, float *z)> UI_ApplyTransformsToPoint{0x1427A3EA0, 0x0};
+WEAK symbol<void(float *x, float *y, float *z)> UI_ApplyTransformsToPoint{
+    0x1427A3EA0, 0x0};
 
 WEAK symbol<bool()> UI_IsRenderingImmediately{0x14268C5A0, 0x0};
 
@@ -66,7 +73,8 @@ WEAK symbol<bool(const LocalClientNum_t localClientNum, const char **textPtr,
                  gfx::GfxColor *color, char **buttonName,
                  gfx::GfxImage **iconImage, uint32_t *cursor)>
     UI_CoD_ReadCharFromString{0x141F216A0, 0x0};
-WEAK symbol<void(bool renderImmediately)> UI_SetRenderImmediately{0x142694C80, 0x0};
+WEAK symbol<void(bool renderImmediately)> UI_SetRenderImmediately{0x142694C80,
+                                                                  0x0};
 
 WEAK symbol<int32_t> s_currentStencilValue{0x156262E28, 0x0};
 WEAK symbol<UIModelIndex> s_firstFreeModelNode{0x156293150, 0x0};

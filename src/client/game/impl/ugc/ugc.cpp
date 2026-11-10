@@ -419,8 +419,8 @@ public:
                                SteamAPICall_t hApiCall, UGCItem * result)>
         SetFunc;
 
-    SetFunc setImpl = reinterpret_cast<SetFunc>(
-        game::select(0x1420C8840, 0x1404E11A0));
+    SetFunc setImpl =
+        reinterpret_cast<SetFunc>(game::select(0x1420C8840, 0x1404E11A0));
     setImpl(this, hApiCall, result);
   };
   uint8_t _unknown[8];

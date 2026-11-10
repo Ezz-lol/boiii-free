@@ -4,7 +4,8 @@
 
 namespace game {
 namespace r {
-WEAK symbol<void(const GfxWindowParms *wndParms)> R_StoreWindowSettings{0x141CB17C0, 0x140386C30};
+WEAK symbol<void(const GfxWindowParms *wndParms)> R_StoreWindowSettings{
+    0x141CB17C0, 0x140386C30};
 WEAK symbol<void()> R_StreamPopDisable{0x141D039E0, 0x1403BB430};
 WEAK symbol<void()> R_StreamPushDisable{0x141D03A00, 0x1403BB470};
 

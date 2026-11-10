@@ -57,10 +57,10 @@ typedef game::vec4<uint8_t> int_color_t;
 template <size_t index>
 void patch_color(const uint8_t r, const uint8_t g, const uint8_t b,
                  const uint8_t a = 255) {
-  int_color_t *color_table = reinterpret_cast<int_color_t *>(
-      game::select(0x142F70E00, 0x0));
-  game::vec4_t *g_color_table = reinterpret_cast<game::vec4_t *>(
-      game::select(0x142F36D10, 0x0));
+  int_color_t *color_table =
+      reinterpret_cast<int_color_t *>(game::select(0x142F70E00, 0x0));
+  game::vec4_t *g_color_table =
+      reinterpret_cast<game::vec4_t *>(game::select(0x142F36D10, 0x0));
 
   color_table[index] = {.r = r, .g = g, .b = b, .a = a};
   g_color_table[index] = {

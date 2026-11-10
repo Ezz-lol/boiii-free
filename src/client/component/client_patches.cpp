@@ -556,8 +556,7 @@ public:
         0xEB);
 
     // Always get loadscreen gametype from s_gametype
-    utils::hook::set<uint8_t>(game::select(0x142232ABC, 0x0),
-                              0xEB);
+    utils::hook::set<uint8_t>(game::select(0x142232ABC, 0x0), 0xEB);
 
     // Show bots' ranks on the scoreboard and next to their overhead names.
     // Bots have no XUID, and custom games aren't public online games.
@@ -578,10 +577,8 @@ public:
             0x65),
         return_const<true>);
     // Overhead names: `Com_SessionMode_IsPublicOnlineGame` call and XUID check
-    utils::hook::call(game::select(0x14069D8BB, 0x0),
-                      return_const<true>);
-    utils::hook::set<uint8_t>(game::select(0x14069D8D7, 0x0),
-                              0xEB);
+    utils::hook::call(game::select(0x14069D8BB, 0x0), return_const<true>);
+    utils::hook::set<uint8_t>(game::select(0x14069D8D7, 0x0), 0xEB);
 
     // Don't drop clients with MP_HOST_COMMS_FAILURE when a stat changes more
     // than the anti-boosting limits allow (65536 XP, 300 kills, etc), which

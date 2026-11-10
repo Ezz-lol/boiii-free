@@ -31,7 +31,8 @@ WEAK symbol<int32_t(ConfigStringStart configStringStart, const char *val)>
 WEAK symbol<void(LocalClientNum_t localClientNum, int32_t index)>
     BG_Cache_HandleConfigStringChange{0x1400A81B0, 0x140047090};
 
-WEAK symbol<volatile BGCacheTypePool<bgCacheTypeInfo>> s_bgCacheTypeInfo{0x143256720, 0x14106B720};
+WEAK symbol<volatile BGCacheTypePool<bgCacheTypeInfo>> s_bgCacheTypeInfo{
+    0x143256720, 0x14106B720};
 WEAK symbol<volatile bgCachePool> s_bgCache{0x1436051F0, 0x1413862A0};
 } // namespace cache
 } // namespace bg

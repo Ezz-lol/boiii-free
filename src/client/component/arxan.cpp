@@ -62,8 +62,7 @@ uint64_t get_callstack_return_stub() {
      corresponds to the first series of 13 `0xCC` (`int 3`) unused alignment
      padding bytes in the module, displaced by +2.
   */
-  static const uintptr_t placeholder =
-      game::select(0x141DC7FD4, 0x140101168);
+  static const uintptr_t placeholder = game::select(0x141DC7FD4, 0x140101168);
   utils::hook::set<uint8_t>(placeholder - 2, 0xFF); // fakes a call
   utils::hook::nop(placeholder, 1);
   utils::hook::jump(placeholder + 1,

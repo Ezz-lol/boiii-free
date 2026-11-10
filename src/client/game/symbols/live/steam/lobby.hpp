@@ -25,7 +25,8 @@ WEAK symbol<bool(::game::steam::CCallbackBase *callback, uint32_t _unused,
 WEAK symbol<int32_t(::game::steam::CCallbackBase *callback, uint32_t _unused)>
     LiveSteamLobby_GetLobbyDataCount_WithCallback{0x141EA5C90, 0x0};
 
-WEAK symbol<bool(CSteamID *lobbyId)> LiveSteamLobby_GetAndValidateID{0x141EA6680, 0x0};
+WEAK symbol<bool(CSteamID *lobbyId)> LiveSteamLobby_GetAndValidateID{
+    0x141EA6680, 0x0};
 WEAK symbol<bool(XUID joinId)> LiveSteam_Lobby_RequestJoin{0x141EA61D0, 0x0};
 } // namespace lobby
 } // namespace steam

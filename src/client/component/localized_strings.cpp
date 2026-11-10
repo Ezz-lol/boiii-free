@@ -37,8 +37,8 @@ class component final : public client_component {
 public:
   void post_unpack() override {
     // Change some localized strings
-    seh_string_ed_get_string_hook.create(
-        game::select(0x14221CBC0, 0x0), &seh_string_ed_get_string);
+    seh_string_ed_get_string_hook.create(game::select(0x14221CBC0, 0x0),
+                                         &seh_string_ed_get_string);
   }
 };
 } // namespace localized_strings

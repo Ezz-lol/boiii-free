@@ -51,7 +51,8 @@ WEAK symbol<void(
     ControllerIndex_t controllerIndex, session::LobbySession *lobbySession,
     session::SessionClient *outClient, XUID ourXuid, int *routeList)>
     LobbyVoice_BuildRouteList{0x141EE4DF0, 0x1404A26E0};
-WEAK symbol<void(ControllerIndex_t controllerIndex)> LobbyVoice_ClearMuteList{0x141EE52C0, 0x1404A2BC0};
+WEAK symbol<void(ControllerIndex_t controllerIndex)> LobbyVoice_ClearMuteList{
+    0x141EE52C0, 0x1404A2BC0};
 WEAK symbol<ClientNum_t(session::LobbySession *lobbySession, XUID ourXuid,
                         int *routeList, session::SessionClient *peer)>
     LobbyVoice_FindGoodRouteForClientNum{0x141EE5300, 0x1404A2C00};
@@ -86,7 +87,8 @@ WEAK symbol<void(ControllerIndex_t controllerIndex,
     LobbyVoice_TransmitQueuedVoiceData{0x141EE8FC0, 0x0};
 WEAK symbol<void(ControllerIndex_t controllerIndex, LobbyType lobbyType)>
     LobbyVoice_Update{0x141EE9110, 0x0};
-WEAK symbol<void(LobbyType lobbyType)> LobbyVoice_VoiceChatAllowedForAll{0x141EE92C0, 0x0};
+WEAK symbol<void(LobbyType lobbyType)> LobbyVoice_VoiceChatAllowedForAll{
+    0x141EE92C0, 0x0};
 WEAK symbol<array<uint8_t, 1222>> tempVoicePacketBuf{0x145778CD0, 0x142CEE840};
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
                  session::LobbySession *lobbySession,

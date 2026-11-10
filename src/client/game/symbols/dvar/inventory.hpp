@@ -11,5 +11,6 @@ WEAK symbol<EngineDependentDvarMut> inventory_itemsPerPage{0x15114E3B8, 0x0};
 WEAK symbol<EngineDependentDvarMut> inventory_maxPages{0x15114E3B0, 0x0};
 WEAK symbol<EngineDependentDvarMut> inventory_retry_delay{0x15114E3C8, 0x0};
 WEAK symbol<EngineDependentDvarMut> inventory_retry_max{0x15114E3D0, 0x0};
-WEAK symbol<EngineDependentDvarMut> inventory_test_button_visible{0x15114E3A8, 0x0};
+WEAK symbol<EngineDependentDvarMut> inventory_test_button_visible{0x15114E3A8,
+                                                                  0x0};
 } // namespace game

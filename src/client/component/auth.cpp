@@ -689,8 +689,7 @@ struct component final : generic_component {
     scheduler::loop(evict_stale_challenges, scheduler::pipeline::async, 5min);
 
     // Skip connect handler
-    utils::hook::set<uint8_t>(
-        game::select(0x1421F73CA, 0x14053714A), 0xEB);
+    utils::hook::set<uint8_t>(game::select(0x1421F73CA, 0x14053714A), 0xEB);
     network::on("connect", handle_connect_packet_fragment);
     network::on("playerXuid", handle_player_xuid_packet);
     network::on("getChallengeResponse", set_challenge);

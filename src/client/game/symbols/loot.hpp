@@ -11,7 +11,8 @@ WEAK symbol<bool(ControllerIndex_t controllerIndex, int32_t crateType,
 WEAK symbol<uint32_t(ControllerIndex_t controllerIndex, eModes mode,
                      uint32_t itemId)>
     Loot_GetItemQuantity{0x141E76170, 0x0};
-WEAK symbol<bool(ControllerIndex_t controllerIndex)> Loot_RewardIsProcessing{0x141E74120, 0x0};
+WEAK symbol<bool(ControllerIndex_t controllerIndex)> Loot_RewardIsProcessing{
+    0x141E74120, 0x0};
 WEAK symbol<uint32_t(ControllerIndex_t controllerIndex, int32_t currency)>
     Loot_GetCurrency{0x141DFC680, 0x0};
 WEAK symbol<bool(ControllerIndex_t controllerIndex, uint32_t count)>

@@ -24,8 +24,10 @@ WEAK symbol<EngineDependentDvarMut> sv_clientside{0x145145FC0, 0x1426DF918};
 WEAK symbol<EngineDependentDvarMut> sv_clientSideBullets{0x0, 0x14A0BC700};
 WEAK symbol<EngineDependentDvarMut> sv_clientSideVehicles{0x0, 0x14A0BC708};
 WEAK symbol<EngineDependentDvarMut> sv_clientupdatedistance{0x0, 0x14A19DC70};
-WEAK symbol<EngineDependentDvarMut> sv_connectionlogprobability{0x0, 0x14A038B00};
-WEAK symbol<EngineDependentDvarMut> sv_connectionlogsamplespersecond{0x0, 0x14A038B08};
+WEAK symbol<EngineDependentDvarMut> sv_connectionlogprobability{0x0,
+                                                                0x14A038B00};
+WEAK symbol<EngineDependentDvarMut> sv_connectionlogsamplespersecond{
+    0x0, 0x14A038B08};
 WEAK symbol<EngineDependentDvarMut> sv_connecttimeout{0x0, 0x14A178260};
 WEAK symbol<EngineDependentDvarMut> sv_detailedScriptErrors{0x0, 0x14A1797D0};
 WEAK symbol<EngineDependentDvarMut> sv_disableClientConsole{0x0, 0x14A189A20};
@@ -33,11 +35,13 @@ WEAK symbol<EngineDependentDvarMut> sv_dwlsgerror{0x0, 0x14A179938};
 WEAK symbol<EngineDependentDvarMut> sv_dynsnaps{0x0, 0x14A19DC80};
 WEAK symbol<EngineDependentDvarMut> sv_endgameifisuck{0x0, 0x14A179800};
 WEAK symbol<EngineDependentDvarMut> sv_endmatch{0x0, 0x14A0BC550};
-WEAK symbol<EngineDependentDvarMut> sv_error_on_baseline_failure{0x0, 0x14A0BC568};
+WEAK symbol<EngineDependentDvarMut> sv_error_on_baseline_failure{0x0,
+                                                                 0x14A0BC568};
 WEAK symbol<EngineDependentDvarMut> sv_expensive_bullet_time{0x0, 0x14A1797E8};
 WEAK symbol<EngineDependentDvarMut> sv_fakeremoteclient{0x0, 0x14A2CE208};
 WEAK symbol<EngineDependentDvarMut> sv_fakeserverload{0x15686ED88, 0x14948DCA8};
-WEAK symbol<EngineDependentDvarMut> sv_fakeServerLoadRand{0x15686ED90, 0x14948DCB0};
+WEAK symbol<EngineDependentDvarMut> sv_fakeServerLoadRand{0x15686ED90,
+                                                          0x14948DCB0};
 WEAK symbol<EngineDependentDvarMut> sv_ffchecksums{0x0, 0x14A179910};
 WEAK symbol<EngineDependentDvarMut> sv_ffnames{0x0, 0x14A179918};
 WEAK symbol<EngineDependentDvarMut> sv_floodprotect{0x0, 0x14A1798D8};
@@ -53,41 +57,59 @@ WEAK symbol<EngineDependentDvarMut> sv_iwds{0x0, 0x14A1798F0};
 WEAK symbol<EngineDependentDvarMut> sv_jqprof_continuous{0x0, 0x14A1798B8};
 WEAK symbol<EngineDependentDvarMut> sv_jqprof_enabled{0x0, 0x14A1798A8};
 WEAK symbol<EngineDependentDvarMut> sv_jqprof_frequency{0x0, 0x14A1798C0};
-WEAK symbol<EngineDependentDvarMut> sv_jqprof_profilecheckpointframes{0x0, 0x14A1798C8};
+WEAK symbol<EngineDependentDvarMut> sv_jqprof_profilecheckpointframes{
+    0x0, 0x14A1798C8};
 WEAK symbol<EngineDependentDvarMut> sv_jqprof_threshold{0x0, 0x14A1798B0};
 WEAK symbol<EngineDependentDvarMut> sv_keywords{0x0, 0x14A179890};
 WEAK symbol<EngineDependentDvarMut> sv_mapcrc{0x157736850, 0x0};
 WEAK symbol<EngineDependentDvarMut> sv_maprotation{0x157746970, 0x14A179948};
-WEAK symbol<EngineDependentDvarMut> sv_maprotationcurrent{0x157746978, 0x14A189980};
+WEAK symbol<EngineDependentDvarMut> sv_maprotationcurrent{0x157746978,
+                                                          0x14A189980};
 WEAK symbol<EngineDependentDvarMut> sv_mapswitch{0x1575F4DA8, 0x14A037948};
-WEAK symbol<EngineDependentDvarMut> sv_mapswitchperloadfrontendreservemb{0x0, 0x142850820};
+WEAK symbol<EngineDependentDvarMut> sv_mapswitchperloadfrontendreservemb{
+    0x0, 0x142850820};
 WEAK symbol<EngineDependentDvarMut>
     sv_mapswitchperloadfrontendreservepagesperframe{0x0, 0x142850828};
-WEAK symbol<EngineDependentDvarMut> sv_mapswitchperloadfrontendstreamerframes{0x0, 0x142850818};
-WEAK symbol<EngineDependentDvarMut> sv_mapswitchpreloadfrontend{0x1452C49E0, 0x142850810};
+WEAK symbol<EngineDependentDvarMut> sv_mapswitchperloadfrontendstreamerframes{
+    0x0, 0x142850818};
+WEAK symbol<EngineDependentDvarMut> sv_mapswitchpreloadfrontend{0x1452C49E0,
+                                                                0x142850810};
 WEAK symbol<EngineDependentDvarMut> sv_maxclients{0x0, 0x14A0BC580};
-WEAK symbol<EngineDependentDvarMut> sv_maxPhysExplosionSpheres{0x0, 0x14A0BC570};
+WEAK symbol<EngineDependentDvarMut> sv_maxPhysExplosionSpheres{0x0,
+                                                               0x14A0BC570};
 WEAK symbol<EngineDependentDvarMut> sv_maxrate{0x0, 0x14A1899F8};
 WEAK symbol<EngineDependentDvarMut> sv_network_fps{0x0, 0x14A189988};
 WEAK symbol<EngineDependentDvarMut> sv_noname{0x0, 0x14A1797B0};
-WEAK symbol<EngineDependentDvarMut> sv_onlinehostsnapshotratethrottled{0x0, 0x14A189998};
+WEAK symbol<EngineDependentDvarMut> sv_onlinehostsnapshotratethrottled{
+    0x0, 0x14A189998};
 WEAK symbol<EngineDependentDvarMut> sv_paused{0x15686E918, 0x14948EEB8};
 WEAK symbol<EngineDependentDvarMut> sv_playlist{0x0, 0x14A1797C0};
-WEAK symbol<EngineDependentDvarMut> sv_playlistFetchInterval{0x15186AE40, 0x148487070};
+WEAK symbol<EngineDependentDvarMut> sv_playlistFetchInterval{0x15186AE40,
+                                                             0x148487070};
 WEAK symbol<EngineDependentDvarMut> sv_privateclients{0x0, 0x14A0BC548};
-WEAK symbol<EngineDependentDvarMut> sv_privateclientsforclients{0x157736890, 0x14A1798D0};
+WEAK symbol<EngineDependentDvarMut> sv_privateclientsforclients{0x157736890,
+                                                                0x14A1798D0};
 WEAK symbol<EngineDependentDvarMut> sv_privatePassword{0x0, 0x14A179780};
 WEAK symbol<EngineDependentDvarMut> sv_pure{0x0, 0x14A1798A0};
 WEAK symbol<EngineDependentDvarMut> sv_rateboosting{0x0, 0x14A1899A0};
-WEAK symbol<EngineDependentDvarMut> sv_rateboostingallowunackdeltas{0x0, 0x14A1899E8};
-WEAK symbol<EngineDependentDvarMut> sv_rateboostingdebugforcesuspend{0x0, 0x14A1899E0};
-WEAK symbol<EngineDependentDvarMut> sv_rateboostingmaxuploadusage{0x0, 0x14A1899B0};
-WEAK symbol<EngineDependentDvarMut> sv_rateboostingminuploadscale{0x0, 0x14A1899A8};
-WEAK symbol<EngineDependentDvarMut> sv_rateboostingrecovertime{0x0, 0x14A1899C0};
-WEAK symbol<EngineDependentDvarMut> sv_rateboostingsuspendbadframescpu{0x0, 0x14A1899C8};
-WEAK symbol<EngineDependentDvarMut> sv_rateboostingsuspendbadframescputhreshold{0x0, 0x14A1899D0};
-WEAK symbol<EngineDependentDvarMut> sv_rateboostingsuspendbadframescputimeout{0x0, 0x14A1899D8};
-WEAK symbol<EngineDependentDvarMut> sv_rateboostingsuspendedmaxuploadusage{0x0, 0x14A1899B8};
+WEAK symbol<EngineDependentDvarMut> sv_rateboostingallowunackdeltas{
+    0x0, 0x14A1899E8};
+WEAK symbol<EngineDependentDvarMut> sv_rateboostingdebugforcesuspend{
+    0x0, 0x14A1899E0};
+WEAK symbol<EngineDependentDvarMut> sv_rateboostingmaxuploadusage{0x0,
+                                                                  0x14A1899B0};
+WEAK symbol<EngineDependentDvarMut> sv_rateboostingminuploadscale{0x0,
+                                                                  0x14A1899A8};
+WEAK symbol<EngineDependentDvarMut> sv_rateboostingrecovertime{0x0,
+                                                               0x14A1899C0};
+WEAK symbol<EngineDependentDvarMut> sv_rateboostingsuspendbadframescpu{
+    0x0, 0x14A1899C8};
+WEAK symbol<EngineDependentDvarMut> sv_rateboostingsuspendbadframescputhreshold{
+    0x0, 0x14A1899D0};
+WEAK symbol<EngineDependentDvarMut> sv_rateboostingsuspendbadframescputimeout{
+    0x0, 0x14A1899D8};
+WEAK symbol<EngineDependentDvarMut> sv_rateboostingsuspendedmaxuploadusage{
+    0x0, 0x14A1899B8};
 WEAK symbol<EngineDependentDvarMut> sv_reconnectlimit{0x157736840, 0x14A179848};
 WEAK symbol<EngineDependentDvarMut> sv_referencedffchecksums{0x0, 0x14A179920};
 WEAK symbol<EngineDependentDvarMut> sv_referencedffnames{0x0, 0x14A179928};

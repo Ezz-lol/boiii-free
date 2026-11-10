@@ -188,8 +188,7 @@ public:
     // Show all dvars in dvardump command
     utils::hook::nop(game::select(0x1420F9139, 0x140509179), 6);
     // Stops game from deleting debug names from archive dvars
-    utils::hook::set<uint8_t>(
-        game::select(0x1422692C0, 0x1405786D0), 0xC3);
+    utils::hook::set<uint8_t>(game::select(0x1422692C0, 0x1405786D0), 0xC3);
   }
 };
 } // namespace dvars

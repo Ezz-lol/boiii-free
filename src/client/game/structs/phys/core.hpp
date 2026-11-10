@@ -1669,24 +1669,30 @@ public:
   static constexpr symbol<rigid_body_constraint_custom_orientation *(
       rigid_body *const b1, rigid_body *const b2, const int no_error)>
       create_rbc_custom_orientation{0x14000B9A0, 0x14000B810};
-  static constexpr symbol<rigid_body *(const int no_error)> create_rigid_body{0x14000BE20, 0x14000BC90};
+  static constexpr symbol<rigid_body *(const int no_error)> create_rigid_body{
+      0x14000BE20, 0x14000BC90};
   static inline void destroy(rigid_body *const rb) {
     static constexpr symbol<void(rigid_body *const rb)> sym{0x0, 0x14000BD50};
     return sym(rb);
   }
 
   static inline void destroy(user_rigid_body *const rb) {
-    static constexpr symbol<void(user_rigid_body *const rb)> sym{0x0, 0x14000BEE0};
+    static constexpr symbol<void(user_rigid_body *const rb)> sym{0x0,
+                                                                 0x14000BEE0};
     return sym(rb);
   }
-  static constexpr symbol<void(rigid_body *const rb)> destroy_all_constraint{0x14000C0C0, 0x14000BF30};
-  static constexpr symbol<void(rigid_body *const rb)> fixup_wheel_constraints{0x0, 0x14000C460};
+  static constexpr symbol<void(rigid_body *const rb)> destroy_all_constraint{
+      0x14000C0C0, 0x14000BF30};
+  static constexpr symbol<void(rigid_body *const rb)> fixup_wheel_constraints{
+      0x0, 0x14000C460};
   static constexpr symbol<environment_rigid_body *()>
       get_environment_rigid_body{0x0, 0x14000C4D0};
   static constexpr symbol<void(phys_collision_callback_t collision_callback)>
       set_collision_callback{0x14000C690, 0x14000C500};
-  static constexpr symbol<void(const float max_delta_t)> set_max_delta_t{0x14000C6A0, 0x14000C510};
-  static constexpr symbol<void(const int max_v_iters)> set_v_tol{0x14000C6B0, 0x14000C520};
+  static constexpr symbol<void(const float max_delta_t)> set_max_delta_t{
+      0x14000C6A0, 0x14000C510};
+  static constexpr symbol<void(const int max_v_iters)> set_v_tol{0x14000C6B0,
+                                                                 0x14000C520};
 };
 
 enum class TraceBrushType : int32_t {

@@ -5,7 +5,8 @@ namespace game {
 namespace scr {
 namespace builtin {
 namespace table {
-WEAK symbol<ActorInterfaceMethodTable> actor_interface_methods{0x1432BA470, 0x1410C96D0};
+WEAK symbol<ActorInterfaceMethodTable> actor_interface_methods{0x1432BA470,
+                                                               0x1410C96D0};
 WEAK symbol<ActorMethodTable> actor_methods{0x1433FDD80, 0x141187760};
 WEAK symbol<BotMethodTable> bot_methods{0x1432BA6D0, 0x1410C9930};
 WEAK symbol<CommonFunctionTable> common_functions{0x1432C67A0, 0x1410D59D0};
@@ -15,7 +16,8 @@ WEAK symbol<HudElemMethodTable> hudElem_methods{0x1432C56A0, 0x1410D48D0};
 WEAK symbol<MathFunctionTable> math_functions{0x1432BE810, 0x1410CDA70};
 WEAK symbol<PlayerMethodTable> player_methods{0x1432C1C90, 0x1410D0EC0};
 WEAK symbol<ScriptEntMethodTable> scriptEnt_methods{0x1432CE140, 0x1410DD370};
-WEAK symbol<ScriptVehicleMethodTable> scriptVehicle_methods{0x1432CECC0, 0x1410DDEE0};
+WEAK symbol<ScriptVehicleMethodTable> scriptVehicle_methods{0x1432CECC0,
+                                                            0x1410DDEE0};
 WEAK symbol<SentientFunctionTable> sentient_functions{0x1432BF320, 0x1410CE580};
 WEAK symbol<SentientMethodTable> sentient_methods{0x1432BEF40, 0x1410CE1A0};
 WEAK symbol<UtilFunctionTable> util_functions{0x1432BE8A0, 0x1410CDB00};

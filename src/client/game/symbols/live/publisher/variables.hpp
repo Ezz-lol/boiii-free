@@ -6,7 +6,8 @@ namespace game {
 namespace live {
 namespace publisher {
 namespace variables {
-WEAK symbol<bool()> LivePublisherVariables_AreVariablesAvailable{0x141E133D0, 0x0};
+WEAK symbol<bool()> LivePublisherVariables_AreVariablesAvailable{0x141E133D0,
+                                                                 0x0};
 }
 } // namespace publisher
 } // namespace live

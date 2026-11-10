@@ -10,7 +10,8 @@ WEAK symbol<ddl::DDLDef *> s_gametypeSettingsDDL{0x15686BE78, 0x14948B108};
 WEAK symbol<ddl::DDLContext> s_gametypeSettingsDDLCtx{0x15686E5F8, 0x14948D888};
 WEAK symbol<str8_t> s_downloadedGameType{0x15686E648, 0x14948D8D8};
 
-WEAK symbol<void()> Com_GametypeSettings_GametypeSetting_f{0x1420E82C0, 0x1404FE210};
+WEAK symbol<void()> Com_GametypeSettings_GametypeSetting_f{0x1420E82C0,
+                                                           0x1404FE210};
 WEAK symbol<void()> Com_GametypeSettings_Init{0x1420E8750, 0x1404FE6E0};
 WEAK symbol<void(const char *gametype, bool loadDefaultSettings)>
     Com_GametypeSettings_SetGametype{0x1420E9200, 0x1404FF120};
@@ -21,7 +22,8 @@ WEAK symbol<bool(lobby::session::gametypesettings_t *compressedBuffer,
                  int32_t compressedBufferSize)>
     _Com_GametypeSettings_Read{0x1420E8C30, 0x1404FEB50};
 
-WEAK symbol<bool(net::msg::msg_t *msg)> _Com_GametypeSettings_Read2{0x1420E8A60, 0x1404FE980};
+WEAK symbol<bool(net::msg::msg_t *msg)> _Com_GametypeSettings_Read2{
+    0x1420E8A60, 0x1404FE980};
 
 alwaysinline bool
 Com_GametypeSettings_Read(lobby::session::gametypesettings_t &compressedBuffer,

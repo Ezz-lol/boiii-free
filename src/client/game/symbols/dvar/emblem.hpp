@@ -6,7 +6,8 @@ namespace game {
 WEAK symbol<EngineDependentDvarMut> emblems_enabled{0x150BC5B88, 0x148293838};
 WEAK symbol<EngineDependentDvarMut> emblems_max_count{0x150BC5B80, 0x148293830};
 WEAK symbol<EngineDependentDvarMut> emblemVersion{0x150BC5B90, 0x148293840};
-WEAK symbol<EngineDependentDvarMut> default_emblems_max_count{0x150BC5B98, 0x148293848};
+WEAK symbol<EngineDependentDvarMut> default_emblems_max_count{0x150BC5B98,
+                                                              0x148293848};
 WEAK symbol<EngineDependentDvarMut> allEmblemsPurchased{0x159B80478, 0x0};
 WEAK symbol<EngineDependentDvarMut> allEmblemsUnlocked{0x159B80470, 0x0};
 

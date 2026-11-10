@@ -18,7 +18,8 @@ WEAK symbol<bool(ControllerIndex_t controllerIndex, int32_t *infoBitmask,
     Live_GetConnectivityInformation{0x141DFF8F0, 0x0};
 
 // LiveStats
-WEAK symbol<const char *(int32_t controllerIndex)> LiveStats_GetClanTagText{0x141E90390, 0x0};
+WEAK symbol<const char *(int32_t controllerIndex)> LiveStats_GetClanTagText{
+    0x141E90390, 0x0};
 
 WEAK symbol<bool(ControllerIndex_t controllerIndex)>
     Live_LocalClient_StorageAndStats_Ready{0x141DFEA90, 0x0};
@@ -32,7 +33,8 @@ WEAK symbol<bool(game::ControllerIndex_t controllerIndex)>
     Live_IsUserSignedInToDemonware{0x141E00D10, 0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
     Live_IsDemonwareFetchingDone{0x141E00C80, 0x0};
-WEAK symbol<void(const ControllerIndex_t controllerIndex)> Live_OnDWDisconnect{0x141E71B70, 0x0};
+WEAK symbol<void(const ControllerIndex_t controllerIndex)> Live_OnDWDisconnect{
+    0x141E71B70, 0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
     Live_BlockUntilSignedInToDemonware{0x141DFEBB0, 0x0};
 
@@ -40,8 +42,10 @@ WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
 WEAK symbol<uint32_t(ControllerIndex_t controllerIndex)>
     Live_DoubleXPGetGroupMaskForController{0x141E04640, 0x0};
 WEAK symbol<uint32_t[2]> g_oldDoubleXPMask{0x145359BB0, 0x0};
-WEAK symbol<float(ControllerIndex_t controllerIndex)> Live_GetXPScale{0x141E05860, 0x0};
-WEAK symbol<float(ControllerIndex_t controllerIndex)> Live_GetGunXPScale{0x141E05770, 0x0};
+WEAK symbol<float(ControllerIndex_t controllerIndex)> Live_GetXPScale{
+    0x141E05860, 0x0};
+WEAK symbol<float(ControllerIndex_t controllerIndex)> Live_GetGunXPScale{
+    0x141E05770, 0x0};
 
 WEAK symbol<EngineDependentDvar> live_insyncddlsrequired{0x15118D818, 0x0};
 

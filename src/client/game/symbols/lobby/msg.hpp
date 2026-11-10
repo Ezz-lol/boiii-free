@@ -6,11 +6,14 @@ namespace game {
 namespace lobby {
 namespace msg {
 // We, the client, received a packet from host
-WEAK symbol<LobbyClientHostMsgHandlersTable> client_hostMessageHandlers{0x142F9EDA0, 0x140E59160};
+WEAK symbol<LobbyClientHostMsgHandlersTable> client_hostMessageHandlers{
+    0x142F9EDA0, 0x140E59160};
 // We, a peer, received a packet from another peer
-WEAK symbol<LobbyP2PMsgHandlersTable> p2p_messageHandlers{0x142FA2BA0, 0x140E5D360};
+WEAK symbol<LobbyP2PMsgHandlersTable> p2p_messageHandlers{0x142FA2BA0,
+                                                          0x140E5D360};
 // We, the host, received a packet from client
-WEAK symbol<LobbyHostClientMsgHandlersTable> host_clientMessageHandlers{0x142FA0100, 0x140E5A5C0};
+WEAK symbol<LobbyHostClientMsgHandlersTable> host_clientMessageHandlers{
+    0x142FA0100, 0x140E5A5C0};
 
 WEAK symbol<void(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
                  XUID fromXUID, msg::Msg_LobbyState *msgData)>

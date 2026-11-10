@@ -451,9 +451,8 @@ struct component final : client_component {
         },
         scheduler::async, 200ms);
 
-    lua_server_info_to_table_hook.create(
-        game::select(0x141F13590, 0x0),
-        lua_server_info_to_table_stub);
+    lua_server_info_to_table_hook.create(game::select(0x141F13590, 0x0),
+                                         lua_server_info_to_table_stub);
 
     scheduler::once(
         [] {

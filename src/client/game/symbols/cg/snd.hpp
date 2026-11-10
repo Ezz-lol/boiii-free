@@ -5,12 +5,14 @@
 namespace game {
 namespace cg {
 namespace snd {
-WEAK symbol<void(game::snd::cmd::SndCommandBuffer *buffer)> SND_CommandCG{0x142213C50, 0x140545B60};
+WEAK symbol<void(game::snd::cmd::SndCommandBuffer *buffer)> SND_CommandCG{
+    0x142213C50, 0x140545B60};
 WEAK symbol<void(game::snd::SndEntHandle ent, scr::ScrString_t xanimName)>
     CG_PlayFacialAnimation{0x14102EDB0, 0x14011E680};
 WEAK symbol<void(int32_t msec, int32_t lengthNotifyData)>
     CG_ScriptSndLengthNotify{0x141039050, 0x14011F2D0};
-WEAK symbol<void(game::snd::SndEntHandle handle)> SND_SetEntState{0x142216CD0, 0x140548DC0};
+WEAK symbol<void(game::snd::SndEntHandle handle)> SND_SetEntState{0x142216CD0,
+                                                                  0x140548DC0};
 WEAK symbol<void(int32_t msec, const char *lengthNotifyData)>
     CG_SubtitleSndLengthNotify{0x14104F900, 0x140120200};
 WEAK symbol<void(LocalClientNum_t localClientNum, int32_t entityNum,

@@ -3,6 +3,8 @@
 #include <game/symbols/sym_include.hpp>
 
 namespace game {
-WEAK symbol<EngineDependentDvarMut> lobbydebuglogjoins{0x1556CE8D8, 0x148581378};
-WEAK symbol<EngineDependentDvarMut> lobbydebuglogjoinsuccess{0x1556CE8E0, 0x148581380};
+WEAK symbol<EngineDependentDvarMut> lobbydebuglogjoins{0x1556CE8D8,
+                                                       0x148581378};
+WEAK symbol<EngineDependentDvarMut> lobbydebuglogjoinsuccess{0x1556CE8E0,
+                                                             0x148581380};
 } // namespace game

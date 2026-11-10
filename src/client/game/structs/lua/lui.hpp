@@ -194,7 +194,8 @@ struct LUIScopedEvent : public LuaScopedEventBase {
   uint8_t _padding59[7];
 
   struct syms {
-    static inline constexpr symbol<void(LUIScopedEvent *)> destructor{0x142685850, 0x0};
+    static inline constexpr symbol<void(LUIScopedEvent *)> destructor{
+        0x142685850, 0x0};
 
     static inline constexpr symbol<void(LUIScopedEvent *, hks::lua_State *luaVM,
                                         const char *rootName,

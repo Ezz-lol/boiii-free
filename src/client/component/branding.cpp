@@ -50,8 +50,7 @@ struct component final : client_component {
       scheduler::loop(draw_branding, scheduler::renderer);
 
       // Change window title prefix
-      utils::hook::copy_string(game::select(0x142FC02D8, 0x0),
-                               "EZZ");
+      utils::hook::copy_string(game::select(0x142FC02D8, 0x0), "EZZ");
 
       // Change ingame console prefix
       utils::hook::call(game::con::Con_DrawInput.offset(0x90),

@@ -11,7 +11,8 @@ namespace load {
 
 WEAK symbol<xasset::XAssetEntryPtr[15360]> g_copyInfo{0x0, 0x14699D260};
 WEAK symbol<uint32_t> g_copyInfoCount{0x0, 0x146902028};
-WEAK symbol<void(xasset::XAssetEntry *newEntry)> DB_DelayedCopyXAsset{0x14141FF20, 0x1401D4FE0};
+WEAK symbol<void(xasset::XAssetEntry *newEntry)> DB_DelayedCopyXAsset{
+    0x14141FF20, 0x1401D4FE0};
 
 WEAK symbol<DB_LoadData> g_load{0x14938D3B0, 0x1468FD490};
 WEAK symbol<void(xzone::XZoneInfo *zoneInfo, uint32_t zoneCount, bool sync,

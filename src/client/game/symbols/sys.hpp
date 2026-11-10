@@ -6,7 +6,8 @@
 namespace game {
 namespace sys {
 WEAK symbol<int32_t()> Sys_Milliseconds{0x1422B9700, 0x1405972F0};
-WEAK symbol<void(HINSTANCE h_instance)> Sys_CreateConsole{0x1422B9C90, 0x140597880};
+WEAK symbol<void(HINSTANCE h_instance)> Sys_CreateConsole{0x1422B9C90,
+                                                          0x140597880};
 WEAK symbol<void()> Sys_ShowConsole{0x1422BA250, 0x140597E40};
 WEAK symbol<void(const char *text)> Sys_Print{0x0, 0x1405857A0};
 WEAK symbol<bool()> Sys_IsServerThread{0x14212B110, 0x0};
@@ -22,10 +23,13 @@ inline CmdArgs *Cmd_Argv() { return Sys_GetTLS()->cmdArgs; }
 WEAK symbol<qboolean(net::netadr_t *net_from, net::msg::msg_t *net_message)>
     Sys_GetPacket{0x1422B9040, 0x140596CF0};
 WEAK symbol<qboolean()> Sys_IsDatabaseReady{0x14212AFC0, 0x0};
-WEAK symbol<void(CriticalSection critsect)> Sys_EnterCriticalSection{0x140119190, 0x140055230};
-WEAK symbol<void(CriticalSection critsect)> Sys_LeaveCriticalSection{0x1401191E0, 0x140055280};
+WEAK symbol<void(CriticalSection critsect)> Sys_EnterCriticalSection{
+    0x140119190, 0x140055230};
+WEAK symbol<void(CriticalSection critsect)> Sys_LeaveCriticalSection{
+    0x1401191E0, 0x140055280};
 WEAK symbol<const char *()> Sys_Cwd{0x142247CE0, 0x140564EB0};
-WEAK symbol<void(HANDLE *event)> Sys_WaitForSingleObject{0x14212BC50, 0x140526DC0};
+WEAK symbol<void(HANDLE *event)> Sys_WaitForSingleObject{0x14212BC50,
+                                                         0x140526DC0};
 
 WEAK symbol<fs::PathList(char *directory, const char *extension, char *filter,
                          int *numfiles, qboolean wantsubs)>

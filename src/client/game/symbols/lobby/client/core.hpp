@@ -5,7 +5,8 @@
 namespace game {
 namespace lobby {
 namespace client {
-WEAK symbol<void(session::LobbyGameData *gameData)> ServerStatusNotRunning{0x141EC1DB0, 0x0};
+WEAK symbol<void(session::LobbyGameData *gameData)> ServerStatusNotRunning{
+    0x141EC1DB0, 0x0};
 WEAK symbol<int32_t(const LobbyType lobbyType)>
     LobbyClientSession_GetConnectivityBits{0x141EBE5C0, 0x14047F680};
 WEAK symbol<void(LobbyType lobbyType, int32_t connectivityBits)>
@@ -59,23 +60,30 @@ WEAK symbol<void(const ControllerIndex_t controllerIndex,
     LobbyClient_GetMutableClientInfo{0x141EBEB00, 0x14047FB40};
 WEAK symbol<session::LobbySession *(const LobbyType lobbyType)>
     LobbyClient_GetSession{0x141EBF500, 0x140480520};
-WEAK symbol<void(void *payload)> LobbyClient_HandleClientEnd_Disconnect{0x141ECA050, 0x140488280};
+WEAK symbol<void(void *payload)> LobbyClient_HandleClientEnd_Disconnect{
+    0x141ECA050, 0x140488280};
 WEAK symbol<session::LobbySession *(void *lobbyType)>
     LobbyClient_HandleTaskPending{0x141ECA130, 0x140488340};
 WEAK symbol<int64_t()> LobbyClient_Init{0x141EBF6C0, 0x0};
-WEAK symbol<bool(const LobbyType lobbyType)> LobbyClient_IsActive{0x141EBF6E0, 0x140480680};
-WEAK symbol<bool(const LobbyType lobbyType)> LobbyClient_IsDedicated{0x0, 0x140480720};
-WEAK symbol<bool(const LobbyType lobbyType)> LobbyClient_IsHost{0x141EBF7B0, 0x140480750};
-WEAK symbol<bool(const LobbyType lobbyType)> LobbyClient_IsStateAvailable{0x141EBF880, 0x0};
+WEAK symbol<bool(const LobbyType lobbyType)> LobbyClient_IsActive{0x141EBF6E0,
+                                                                  0x140480680};
+WEAK symbol<bool(const LobbyType lobbyType)> LobbyClient_IsDedicated{
+    0x0, 0x140480720};
+WEAK symbol<bool(const LobbyType lobbyType)> LobbyClient_IsHost{0x141EBF7B0,
+                                                                0x140480750};
+WEAK symbol<bool(const LobbyType lobbyType)> LobbyClient_IsStateAvailable{
+    0x141EBF880, 0x0};
 WEAK symbol<void()> LobbyClientLaunch_Clear{0x141EC1AB0, 0x0};
-WEAK symbol<void(LobbyType lobbyType)> LobbyClientLaunch_Update{0x141EC1C00, 0x0};
+WEAK symbol<void(LobbyType lobbyType)> LobbyClientLaunch_Update{0x141EC1C00,
+                                                                0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex,
                  session::GameData *gameDataMsg)>
     LobbyClientLaunch_UpdateDemoInfo{0x141EC1C30, 0x1404825F0};
 WEAK symbol<void(clientcontent::ClientContent *content, LobbyType lobbyType,
                  XUID fromXUID, XUID clientXUID,
                  clientcontent::ClientContentType contentType)>
-    LobbyClientMsg_DecompressClientContentDataReceived{0x141EC6FA0, 0x140485780};
+    LobbyClientMsg_DecompressClientContentDataReceived{0x141EC6FA0,
+                                                       0x140485780};
 WEAK symbol<bool(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
                  XUID fromXUID, msg::LobbyMsg *lobbyMsg)>
     LobbyClientMsg_HandleHostMsg{0x141EC70F0, 0x1404858D0};
@@ -112,7 +120,8 @@ WEAK symbol<void(const int32_t actionId, LobbyType lobbyType,
                  LobbyMainMode mainMode, LobbyNetworkMode networkMode,
                  net::HostInfo *hostInfo)>
     LobbyClient_Start{0x141EBFB80, 0x140480A90};
-WEAK symbol<void(LobbyType lobbyType)> LobbyClient_TheaterUpdate{0x141EBFB90, 0x0};
+WEAK symbol<void(LobbyType lobbyType)> LobbyClient_TheaterUpdate{0x141EBFB90,
+                                                                 0x0};
 WEAK symbol<void(LobbyType lobbyType)> LobbyClient_Update{0x141EBFC20, 0x0};
 WEAK symbol<uint32_t(const ControllerIndex_t controllerIndex,
                      session::LobbySession *lobbySession,

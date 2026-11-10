@@ -21,7 +21,8 @@ WEAK symbol<matrix2d<snd_fire_manager, 1, 8>> sv_g_snd_fires{0x0, 0x14223B840};
 // Total size 0x1600
 WEAK symbol<snd_autosim[64]> g_snd_autosims{0x144CC1E20, 0x142243B80};
 // Total size 0x1200
-WEAK symbol<snd_autosim_play[64]> g_snd_autosim_history{0x144CC0C20, 0x142242980};
+WEAK symbol<snd_autosim_play[64]> g_snd_autosim_history{0x144CC0C20,
+                                                        0x142242980};
 WEAK symbol<uint32_t> g_snd_autosim_time{0x144CC3AEC, 0x14224E040};
 WEAK symbol<uint32_t> g_snd_autosim_frame{0x144CCC640, 0x1422454EC};
 /*
@@ -71,13 +72,15 @@ WEAK symbol<float(const snd::SndAlias *alias, const vec3_t *org)>
     Snd_GetGlobalPriorityVolume{0x1425102C0, 0x1406499E0};
 WEAK symbol<float(const snd::SndAlias *alias, float volume, float amplitude)>
     Snd_GetGlobalPriority{0x14251DA90, 0x140652260};
-WEAK symbol<float(const snd::SndVoice *voice)> SND_GetBaseLevel{0x14250B070, 0x140645120};
+WEAK symbol<float(const snd::SndVoice *voice)> SND_GetBaseLevel{0x14250B070,
+                                                                0x140645120};
 WEAK symbol<float()> SND_GetPriorityB{0x0, 0x14056A850};
 WEAK symbol<int64_t()> CG_SndAutoSimReset{0x141244D00, 0x1401481D0};
 WEAK symbol<int64_t(const vec3_t *p1, const vec3_t *p2, const vec3_t *p3,
                     float r, vec3_t *start, vec3_t *end)>
     SND_WhizbyPath{0x0, 0x140651D80};
-WEAK symbol<qboolean(SndVoice *voice)> SND_CheckContextLoops{0x14251B3D0, 0x14064FB50};
+WEAK symbol<qboolean(SndVoice *voice)> SND_CheckContextLoops{0x14251B3D0,
+                                                             0x14064FB50};
 WEAK symbol<int32_t(jq::jqBatch *batch, void *data)>
     snd_occlusionCallback_Implementation{0x0, 0x1406510E0};
 WEAK symbol<bool(SndEntHandle sndEnt, const vec3_t *missilePosition,
@@ -87,18 +90,22 @@ WEAK symbol<bool(SndEntHandle sndEnt, const vec3_t *missilePosition,
 WEAK symbol<SndPlaybackId(SndStringHash aliasId, SndPlayback *playback,
                           const SndPlayState *state)>
     SND_ContinueLoopingSound{0x142509680, 0x140643800};
-WEAK symbol<SndMusicState *(SndStringHash id)> SND_GetMusicState{0x0, 0x14064C060};
+WEAK symbol<SndMusicState *(SndStringHash id)> SND_GetMusicState{0x0,
+                                                                 0x14064C060};
 WEAK symbol<int64_t(jq::jqBatch *batch)> Snd_Occlusion{0x0, 0x140651080};
 WEAK symbol<void(SndMusicAssetInstance *instance, bool forceQuickFade)>
     SND_MusicAssetStop{0x142215060, 0x140546DB0};
-WEAK symbol<bool(snd::SndPlaybackId id)> SND_IsPlaying{0x1422148A0, 0x140546670};
+WEAK symbol<bool(snd::SndPlaybackId id)> SND_IsPlaying{0x1422148A0,
+                                                       0x140546670};
 WEAK symbol<bool(SndContext *ctx)> SND_IsValidContext{0x142C3A720, 0x140B29490};
 WEAK symbol<int(const vec3_t *origin, float *minDistanceSq)>
     SND_GetListenerIndexNearestToOrigin{0x14250B470, 0x1406454A0};
 
-WEAK symbol<int(snd::SndStringHash type)> SND_FindContextIndex{0x142518510, 0x14064CF20};
+WEAK symbol<int(snd::SndStringHash type)> SND_FindContextIndex{0x142518510,
+                                                               0x14064CF20};
 WEAK symbol<qboolean()> SND_ActiveListenerCount{0x1425094F0, 0x140643670};
-WEAK symbol<snd::SndMenuCategory(uint32_t group)> SND_GroupCategory{0x142518D10, 0x14064D4E0};
+WEAK symbol<snd::SndMenuCategory(uint32_t group)> SND_GroupCategory{
+    0x142518D10, 0x14064D4E0};
 WEAK symbol<snd::SndPlaybackId(
     const snd::SndAliasList *aliasList, const snd::SndPlayState *state,
     snd::SndPlayback *playback, snd::SndOcclusionStartCache *ocache,
@@ -108,8 +115,10 @@ WEAK symbol<snd::SndPlaybackId(LocalClientNum_t localClientNum, int entitynum,
                                const vec3_t *origin, int fadeMs, bool doNotify,
                                float volume, snd::SndAliasId id)>
     CG_PlaySoundWithHandle{0x141035C10, 0x14011EEF0};
-WEAK symbol<snd::SndStringHash(snd::SndStringHash type)> SND_GetCurrentContext{0x14250B1B0, 0x140645260};
-WEAK symbol<snd::SndVoice *(int playbackId)> SND_GetPlaybackVoice{0x14250BA40, 0x140645740};
+WEAK symbol<snd::SndStringHash(snd::SndStringHash type)> SND_GetCurrentContext{
+    0x14250B1B0, 0x140645260};
+WEAK symbol<snd::SndVoice *(int playbackId)> SND_GetPlaybackVoice{0x14250BA40,
+                                                                  0x140645740};
 WEAK symbol<uint64_t()> SND_LosOcclusionUpdate{0x14251BE90, 0x140643D40};
 WEAK symbol<void(bool atStreamStart)> Load_SndBank{0x141406D70, 0x1401BBBE0};
 
@@ -123,20 +132,29 @@ WEAK symbol<void(bool streamed, snd::SndAssetBankLoad *assetBank,
 WEAK symbol<void()> CG_SndFireReset{0x14103F850, 0x14011F720};
 WEAK symbol<void()> CG_SndGameReset{0x1410411C0, 0x14011F870};
 WEAK symbol<void()> CL_Snd_Restart_f{0x0, 0x140191B30};
-WEAK symbol<void(const char *type, const char *value)> SND_SetContext{0x142216BA0, 0x140548C00};
+WEAK symbol<void(const char *type, const char *value)> SND_SetContext{
+    0x142216BA0, 0x140548C00};
 WEAK symbol<void(const char *futzName, SndGfutzLocation callLocation)>
     SND_SetGlobalFutz{0x0, 0x140548EC0};
-WEAK symbol<void(const char *name)> SND_ForceAmbientRoom{0x142216080, 0x140547F20};
-WEAK symbol<void(const char *stateName)> SND_SetMusicState2{0x0, 0x140549180}; // named `SND_SetMusicState`; overload
-WEAK symbol<void(const char *name)> SND_SetShockAmbientRoom{0x1422170F0, 0x1405493B0};
+WEAK symbol<void(const char *name)> SND_ForceAmbientRoom{0x142216080,
+                                                         0x140547F20};
+WEAK symbol<void(const char *stateName)> SND_SetMusicState2{
+    0x0, 0x140549180}; // named `SND_SetMusicState`; overload
+WEAK symbol<void(const char *name)> SND_SetShockAmbientRoom{0x1422170F0,
+                                                            0x1405493B0};
 WEAK symbol<void(const snd::SndBank *bank, int priority, bool patchZone,
                  ZoneType zoneType)>
     SND_AddBank{0x142215D00, 0x1405479E0};
-WEAK symbol<void(const snd::SndBank *bank)> SND_RemoveBank{0x142216AC0, 0x140548B00};
-WEAK symbol<void(const snd::SndDriverGlobals *globals)> SND_AddGlobals{0x142215D80, 0x140547A80};
-WEAK symbol<void(const snd::SndPatch *patch)> SND_AddPatch{0x142215DC0, 0x140547AE0};
-WEAK symbol<void(const snd::SndPatch *patch)> SND_PatchApply{0x1422159A0, 0x140547680};
-WEAK symbol<void(const snd::SndPatch *patch)> SND_RemovePatch{0x142216B40, 0x140548B60};
+WEAK symbol<void(const snd::SndBank *bank)> SND_RemoveBank{0x142216AC0,
+                                                           0x140548B00};
+WEAK symbol<void(const snd::SndDriverGlobals *globals)> SND_AddGlobals{
+    0x142215D80, 0x140547A80};
+WEAK symbol<void(const snd::SndPatch *patch)> SND_AddPatch{0x142215DC0,
+                                                           0x140547AE0};
+WEAK symbol<void(const snd::SndPatch *patch)> SND_PatchApply{0x1422159A0,
+                                                             0x140547680};
+WEAK symbol<void(const snd::SndPatch *patch)> SND_RemovePatch{0x142216B40,
+                                                              0x140548B60};
 WEAK symbol<void(const snd::SndVoice *voice, float *wet, float *dry)>
     SND_GetLevels{0x14250B3D0, 0x1406511C0};
 WEAK symbol<void(const vec3_t *P, const vec3_t *segmentA,
@@ -165,11 +183,13 @@ WEAK symbol<void(SndEntHandle handle, LocalClientNum_t listener,
     SND_SetListener{0x142216E10, 0x140548F30};
 WEAK symbol<void(SndEntHandle ent, SndStringHash alias_name)>
     SND_StopSoundAliasOnEnt{0x1422172C0, 0x1405495E0};
-WEAK symbol<void(const char *subtitle, uint32_t lengthMs)> SND_SubtitleNotify{0x142217370, 0x140549710};
+WEAK symbol<void(const char *subtitle, uint32_t lengthMs)> SND_SubtitleNotify{
+    0x142217370, 0x140549710};
 WEAK symbol<void(SndPlayback *p)> SND_FreePlayback{0x0, 0x140546490};
 
 WEAK symbol<void(SndQueue *queue)> SND_QueueFlush{0x1422178F0, 0x140549C20};
-WEAK symbol<void(SndEntHandle ent)> SND_StopSoundsOnEnt{0x142217340, 0x1405496B0};
+WEAK symbol<void(SndEntHandle ent)> SND_StopSoundsOnEnt{0x142217340,
+                                                        0x1405496B0};
 WEAK symbol<void(const SndAmbientBsp **bsps, int *numBsps)>
     SND_BankGetAmbientBsps{0x0, 0x14064B320};
 WEAK symbol<void(SndVoice *voice, const vec3_t *startPosition)>
@@ -177,33 +197,43 @@ WEAK symbol<void(SndVoice *voice, const vec3_t *startPosition)>
 WEAK symbol<void(SndDuckCategoryType type, const char *name, int64_t length,
                  float amount)>
     SND_SetDuck{0x142216BE0, 0x140548C70};
-WEAK symbol<void(int count, const SndEntLoop *loops)> SND_PlayLoops{0x142216720, 0x140548790};
-WEAK symbol<void(int32_t id, float attenuation)> SND_SetPlaybackAttenuation{0x142217000, 0x1405491D0};
+WEAK symbol<void(int count, const SndEntLoop *loops)> SND_PlayLoops{
+    0x142216720, 0x140548790};
+WEAK symbol<void(int32_t id, float attenuation)> SND_SetPlaybackAttenuation{
+    0x142217000, 0x1405491D0};
 WEAK symbol<void(int32_t id, float attenuationRate)>
     SND_SetPlaybackAttenuationRate{0x142217030, 0x140549230};
-WEAK symbol<void(int32_t id, float pitch)> SND_SetPlaybackPitch{0x142217060, 0x140549290};
-WEAK symbol<void(int32_t id, float pitchRate)> SND_SetPlaybackPitchRate{0x142217090, 0x1405492F0};
+WEAK symbol<void(int32_t id, float pitch)> SND_SetPlaybackPitch{0x142217060,
+                                                                0x140549290};
+WEAK symbol<void(int32_t id, float pitchRate)> SND_SetPlaybackPitchRate{
+    0x142217090, 0x1405492F0};
 WEAK symbol<void(snd::SndBankLoad *bank, stream::stream_fileid fileHandle,
                  int64_t offset, size_t size, void *data)>
     SND_StreamRead{0x1425136B0, 0x14064CC50};
 WEAK symbol<void()> SND_BankLoadedNotify{0x142215E60, 0x140547BE0};
-WEAK symbol<void(snd::SndBankLoad *load)> SND_EnqueueLoadedAssets{0x142513240, 0x14064C900};
-WEAK symbol<void(snd::SndBankLoad *load)> SND_BankLoadError{0x142511DD0, 0x14064B460};
-WEAK symbol<void(snd::SndBankLoad *load)> SND_BankLoadUpdateState{0x142511EC0, 0x14064B550};
-WEAK symbol<void(snd::SndBankPtr *sound)> Load_SndBankAsset{0x1414261D0, 0x1401DB2D0};
+WEAK symbol<void(snd::SndBankLoad *load)> SND_EnqueueLoadedAssets{0x142513240,
+                                                                  0x14064C900};
+WEAK symbol<void(snd::SndBankLoad *load)> SND_BankLoadError{0x142511DD0,
+                                                            0x14064B460};
+WEAK symbol<void(snd::SndBankLoad *load)> SND_BankLoadUpdateState{0x142511EC0,
+                                                                  0x14064B550};
+WEAK symbol<void(snd::SndBankPtr *sound)> Load_SndBankAsset{0x1414261D0,
+                                                            0x1401DB2D0};
 WEAK symbol<void()> SND_CheckpointRestore{0x142215F80, 0x140547D60};
 WEAK symbol<void(snd::cmd::SndCommandType command, uint64_t cmdSize,
                  snd::cmd::SndCommand cmdData)>
     SND_CommandSND{0x142213DE0, 0x140545CB0};
 WEAK symbol<void()> SND_DebugFini{0x142513A10, 0x14064CE90};
-WEAK symbol<void(snd::SndDuckActive *duck)> SND_StopDuck{0x14250E7B0, 0x1406480D0};
+WEAK symbol<void(snd::SndDuckActive *duck)> SND_StopDuck{0x14250E7B0,
+                                                         0x1406480D0};
 WEAK symbol<void(snd::SndDuckCategoryType category, uint32_t duckId,
                  const snd::SndDuck *duck, float amount)>
     SND_SetDuckByCategory{0x14250D050, 0x140646A50};
 WEAK symbol<void()> SND_DuckReset{0x0, 0x140643C20};
 WEAK symbol<void(SndEntHandle handle, scr::ScrString_t animation)>
     SND_FacialAnimationNotify{0x142216030, 0x140547EA0};
-WEAK symbol<void(snd::SndEntHandle handle)> SND_EntStateRequest{0x142216000, 0x140547E40};
+WEAK symbol<void(snd::SndEntHandle handle)> SND_EntStateRequest{0x142216000,
+                                                                0x140547E40};
 WEAK symbol<void(snd::SndEntHandle sndEnt, snd::SndStringHash name)>
     StopSoundAliasesOnEnt{0x14251B6B0, 0x14064FE30};
 WEAK symbol<void()> SND_EntStateFrame{0x142214540, 0x140546200};
@@ -216,7 +246,8 @@ WEAK symbol<void()> SND_ListenerDiscontinuity{0x14251B610, 0x14064FD90};
 WEAK symbol<void()> SND_LosOcclusionFini{0x14251BAD0, 0x140650220};
 WEAK symbol<void()> SND_LosOcclusionSync{0x14251BB50, 0x140650300};
 WEAK symbol<void()> SND_MusicUpdate{0x1422152F0, 0x140650650};
-WEAK symbol<void(snd::SndPlayback *playback)> SND_FreePlaybackNotify{0x142216120, 0x140548010};
+WEAK symbol<void(snd::SndPlayback *playback)> SND_FreePlaybackNotify{
+    0x142216120, 0x140548010};
 WEAK symbol<void()> SND_ProcessCLQueue{0x1422148E0, 0x1405466B0};
 WEAK symbol<void()> SND_ProcessSNDQueue{0x142214950, 0x140546720};
 WEAK symbol<void(snd::SndQueue *queue, snd::cmd::SndCommandType cmd,
@@ -226,13 +257,17 @@ WEAK symbol<snd::cmd::SndCommandBuffer *(snd::cmd::SndQueueBuffers *buffers,
                                          snd::cmd::SndCommandBuffer *buffer)>
     SND_QueueBufferFree{0x142217A40, 0x0};
 WEAK symbol<void()> SND_RestartDriver{0x142216B80, 0x140548BC0};
-WEAK symbol<void(snd::SndSpeakerMap *map)> Snd_SpeakerMapZero{0x14251E590, 0x140652D60};
-WEAK symbol<void(snd::SndStringHash room)> SND_AmbientShockRoom{0x142213550, 0x140545490};
+WEAK symbol<void(snd::SndSpeakerMap *map)> Snd_SpeakerMapZero{0x14251E590,
+                                                              0x140652D60};
+WEAK symbol<void(snd::SndStringHash room)> SND_AmbientShockRoom{0x142213550,
+                                                                0x140545490};
 WEAK symbol<void()> SND_UpdateWait{0x142217490, 0x1405498A0};
-WEAK symbol<void(SndVoice *voice, float dt)> SND_UpdateVoice{0x14250EBB0, 0x1406484C0};
+WEAK symbol<void(SndVoice *voice, float dt)> SND_UpdateVoice{0x14250EBB0,
+                                                             0x1406484C0};
 WEAK symbol<void(snd::SndVoice *voice, const snd::SndAlias *alias)>
     SND_SetVoiceStartSeeds{0x0, 0x140645780};
-WEAK symbol<void(snd::SndVoice *voice, vec3_t *player)> SND_SetVoiceStartFlux{0x14250D8D0, 0x140647280};
+WEAK symbol<void(snd::SndVoice *voice, vec3_t *player)> SND_SetVoiceStartFlux{
+    0x14250D8D0, 0x140647280};
 WEAK symbol<void(stream::stream_id id, stream::stream_status result,
                  uint32_t numBytesRead, uint8_t *b)>
     SND_BankReadCallback{0x1425122E0, 0x14064B970};
@@ -266,13 +301,18 @@ WEAK symbol<void(SndAliasId aliasId, int fadeTimeMs, float attenuation,
     SND_PlayBundle{0x1422163A0, 0x140548310};
 WEAK symbol<void(const char *roomName, const int entnum)>
     SND_AmbientStateNotify{0x142215E00, 0x140547B40};
-WEAK symbol<void(uint32_t ent, uint32_t lengthMs)> SND_LengthNotify{0x142216190, 0x1405480C0};
-WEAK symbol<void(LocalClientNum_t listener)> SND_DisconnectListener{0x142215FA0, 0x140547DA0};
+WEAK symbol<void(uint32_t ent, uint32_t lengthMs)> SND_LengthNotify{
+    0x142216190, 0x1405480C0};
+WEAK symbol<void(LocalClientNum_t listener)> SND_DisconnectListener{
+    0x142215FA0, 0x140547DA0};
 WEAK symbol<void(SndStringHash stateid, const char *stateName)>
     SND_SetMusicState{0x0, 0x140549130};
-WEAK symbol<void(SndStopSoundFlags flags)> SND_StopSounds{0x142217310, 0x140549660};
-WEAK symbol<void(uint32_t id, const vec3_t origin)> SND_PlayLoopAt{0x1422166B0, 0x1405486F0};
-WEAK symbol<void(SndAliasId id, const vec3_t *origin)> SND_StopLoopAt{0x142217220, 0x1405494F0};
+WEAK symbol<void(SndStopSoundFlags flags)> SND_StopSounds{0x142217310,
+                                                          0x140549660};
+WEAK symbol<void(uint32_t id, const vec3_t origin)> SND_PlayLoopAt{0x1422166B0,
+                                                                   0x1405486F0};
+WEAK symbol<void(SndAliasId id, const vec3_t *origin)> SND_StopLoopAt{
+    0x142217220, 0x1405494F0};
 WEAK symbol<void(SndAliasId id, const vec3_t *origin0, const vec3_t *origin1)>
     SND_PlayLineAt{0x142216620, 0x140548620};
 WEAK symbol<void(SndAliasId id, const vec3_t *origin0, const vec3_t *origin1)>
@@ -293,13 +333,18 @@ WEAK symbol<void()> SND_LoadSoundsWait{0x142513020, 0x14064C6E0};
 // Does not exist on server
 WEAK symbol<void()> SND_InitAfterGlobals{0x14250BE70, 0x0};
 // Internally, just returning `SND_HashName` if `SND_Active`
-WEAK symbol<SndAliasId(const char *aliasName)> SND_FindAliasId{0x1425126F0, 0x14064BD90};
-WEAK symbol<int32_t(const char *name)> SND_GetPlaybackTime{0x142512B60, 0x14064C220}; // Gscr - get length of sound by name, in milliseconds
-WEAK symbol<SndStringHash(const char *name)> SND_HashName{0x14251CD60, 0x140651520};
+WEAK symbol<SndAliasId(const char *aliasName)> SND_FindAliasId{0x1425126F0,
+                                                               0x14064BD90};
+WEAK symbol<int32_t(const char *name)> SND_GetPlaybackTime{
+    0x142512B60,
+    0x14064C220}; // Gscr - get length of sound by name, in milliseconds
+WEAK symbol<SndStringHash(const char *name)> SND_HashName{0x14251CD60,
+                                                          0x140651520};
 WEAK symbol<bool(game::snd::SndPlaybackId playbackId, int32_t *msec)>
     SND_GetKnownLength{0x142214810, 0x1405465C0};
 
-WEAK symbol<int(const void *loadA, const void *loadB)> SND_CompareAssetLoads{0x142510930, 0x14064A010};
+WEAK symbol<int(const void *loadA, const void *loadB)> SND_CompareAssetLoads{
+    0x142510930, 0x14064A010};
 /*
  Used only in cscr - get _current time_ in playback of sound by playbackId, in
  milliseconds.
@@ -318,7 +363,9 @@ WEAK symbol<int(const void *loadA, const void *loadB)> SND_CompareAssetLoads{0x1
  progress, and in GSC scripts, `soundgetplaybacktime` returns total length of
  the sound.
 */
-WEAK symbol<int32_t(game::snd::SndPlaybackId playbackId)> SND_GetPlaybackTime2{0x142214860, 0x140546620}; // Name in engine is also SND_GetPlaybackTime - override.
+WEAK symbol<int32_t(game::snd::SndPlaybackId playbackId)> SND_GetPlaybackTime2{
+    0x142214860,
+    0x140546620}; // Name in engine is also SND_GetPlaybackTime - override.
 /*
   Called by the other SND_AssetBankFindEntry. Name in engine is also
   `SND_AssetBankFindEntry`, overriding the other SND_AssetBankEntry with a
@@ -329,8 +376,10 @@ WEAK symbol<bool(game::snd::SndStringHash id,
                  game::snd::SndAssetBankEntry *entries, uint32_t entryCount,
                  game::snd::SndAssetBankEntry **entry)>
     SND_AssetBankFindEntryIn{0x142510630, 0x140649D40};
-WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetFrameRate{0x1425106A0, 0x140649DA0};
-WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetLengthMs{0x142510720, 0x140649E20};
+WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetFrameRate{
+    0x1425106A0, 0x140649DA0};
+WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetLengthMs{
+    0x142510720, 0x140649E20};
 WEAK symbol<bool(game::snd::SndStringHash id,
                  game::snd::SndAssetBankEntry **entry,
                  stream::stream_fileid *fid, bool streamed)>
@@ -338,7 +387,8 @@ WEAK symbol<bool(game::snd::SndStringHash id,
 WEAK symbol<bool(game::snd::SndStringHash id,
                  game::snd::SndAssetBankEntry **entry, void **data)>
     SND_AssetBankFindLoaded{0x142511750, 0x14064ADF0};
-WEAK symbol<SndAliasList *(game::snd::SndStringHash key)> SND_BankAliasLookup{0x142511900, 0x14064AFA0};
+WEAK symbol<SndAliasList *(game::snd::SndStringHash key)> SND_BankAliasLookup{
+    0x142511900, 0x14064AFA0};
 
 /*
    Client has two equivalent functions for this. The main, used-as-usual
@@ -357,8 +407,10 @@ WEAK symbol<void()> SND_Init{0x0, 0x1406459B0};
 */
 WEAK symbol<bool()> G_SNDEnabled{0x0, 0x140584DB0};
 
-WEAK symbol<SndDuck *(SndStringHash id)> SND_GetDuckById{0x142512860, 0x14064BF00};
-WEAK symbol<SndReverb *(SndStringHash id, const char *name)> SND_GetReverb{0x0, 0x14064C320};
+WEAK symbol<SndDuck *(SndStringHash id)> SND_GetDuckById{0x142512860,
+                                                         0x14064BF00};
+WEAK symbol<SndReverb *(SndStringHash id, const char *name)> SND_GetReverb{
+    0x0, 0x14064C320};
 WEAK symbol<void()> SND_EndFrame{0x142215FD0, 0x140547DF0};
 
 } // namespace snd

@@ -4,8 +4,10 @@
 
 namespace game {
 namespace sl {
-WEAK symbol<const char *(scr::ScrString_t stringValue)> SL_ConvertToString{0x1412D7180, 0x1401632C0};
-WEAK symbol<const char *(scr::ScrString_t stringValue)> SL_ConvertToStringSafe{0x1412D71A0, 0x1401632E0};
+WEAK symbol<const char *(scr::ScrString_t stringValue)> SL_ConvertToString{
+    0x1412D7180, 0x1401632C0};
+WEAK symbol<const char *(scr::ScrString_t stringValue)> SL_ConvertToStringSafe{
+    0x1412D71A0, 0x1401632E0};
 WEAK symbol<scr::ScrString_t(const char *str, uint32_t user, int32_t type)>
     SL_GetString{0x1412D7B40, 0x140163D90};
 WEAK symbol<scr::ScrString_t(const char *str, uint32_t user, int32_t type)>
@@ -13,7 +15,8 @@ WEAK symbol<scr::ScrString_t(const char *str, uint32_t user, int32_t type)>
 WEAK symbol<void(scr::ScrString_t stringValue, volatile RefString *refStr)>
     SL_RemoveRefToStringFree{0x1412D7EB0, 0x140164100};
 
-WEAK symbol<const char *(const char *name)> CopyString{0x14224F700, 0x14056BD70};
+WEAK symbol<const char *(const char *name)> CopyString{0x14224F700,
+                                                       0x14056BD70};
 WEAK symbol<void(const char *str)> FreeString{0x14224F720, 0x14056BD90};
 WEAK symbol<scr::ScrVarCanonicalName_t(const char *name)>
     SL_GenerateCanonicalString{0x1412CB950, 0x140159970};

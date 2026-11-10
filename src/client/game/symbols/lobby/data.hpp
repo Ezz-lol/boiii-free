@@ -5,7 +5,8 @@
 namespace game {
 namespace lobby {
 namespace data {
-WEAK symbol<VoteType(uint32_t itemIndex)> LobbyData_GetItemVoteType{0x141EF2E30, 0x1404ACC80};
+WEAK symbol<VoteType(uint32_t itemIndex)> LobbyData_GetItemVoteType{
+    0x141EF2E30, 0x1404ACC80};
 
 WEAK symbol<VoteType(weapon::eAttachment attachment)>
     LobbyData_GetAttachmentVoteType{0x141EF2C20, 0x1404ACB40};

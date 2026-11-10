@@ -9,5 +9,6 @@ WEAK symbol<EngineDependentDvarMut> gpad_enabled{0x157DEF378, 0x0};
 WEAK symbol<EngineDependentDvarMut> gpad_stick_deadzone_max{0x157DEF360, 0x0};
 WEAK symbol<EngineDependentDvarMut> gpad_stick_deadzone_min{0x157DEF358, 0x0};
 WEAK symbol<EngineDependentDvarMut> gpad_stick_pressed{0x157DEF368, 0x0};
-WEAK symbol<EngineDependentDvarMut> gpad_stick_pressed_hysteresis{0x157DEF370, 0x0};
+WEAK symbol<EngineDependentDvarMut> gpad_stick_pressed_hysteresis{0x157DEF370,
+                                                                  0x0};
 } // namespace game

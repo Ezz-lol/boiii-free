@@ -13,7 +13,8 @@ WEAK symbol<void(int64_t mark)> Hunk_ClearToMark{0x14224FBA0, 0x14056C070};
 WEAK symbol<void *(HunkUser *user, size_t size, int32_t alignment,
                    const char *name)>
     Hunk_UserDefaultAlloc{0x142276860, 0x14057D6C0};
-WEAK symbol<char *(HunkUser *user, const char *in)> Hunk_CopyString{0x142276C70, 0x0};
+WEAK symbol<char *(HunkUser *user, const char *in)> Hunk_CopyString{0x142276C70,
+                                                                    0x0};
 WEAK symbol<void *(HunkUser *user, size_t size, int32_t alignment,
                    const char *name)>
     Hunk_UserAlloc{0x142276CE0, 0x14057DB00};
@@ -26,13 +27,17 @@ WEAK symbol<HunkUser *(void *buffer, size_t size, HU_ALLOCATION_SCHEME scheme,
                        const char *name, int32_t type)>
     Hunk_UserCreateFromBuffer{0x142276DA0, 0x14057DBC0};
 WEAK symbol<void(HunkUser *user)> Hunk_UserDestroy{0x142276E00, 0x14057DC20};
-WEAK symbol<void(HunkUser *user, void *ptr)> Hunk_UserFree{0x142276E20, 0x14057DC40};
-WEAK symbol<void(HunkUser *user)> Hunk_UserDefaultReset{0x142276720, 0x14057D580};
-WEAK symbol<HunkUser *(HunkUserNull *user)> Hunk_UserCreateNull{0x142276DC0, 0x14057DBE0};
+WEAK symbol<void(HunkUser *user, void *ptr)> Hunk_UserFree{0x142276E20,
+                                                           0x14057DC40};
+WEAK symbol<void(HunkUser *user)> Hunk_UserDefaultReset{0x142276720,
+                                                        0x14057D580};
+WEAK symbol<HunkUser *(HunkUserNull *user)> Hunk_UserCreateNull{0x142276DC0,
+                                                                0x14057DBE0};
 
 WEAK symbol<HunkUser *> s_localClientHunk{0x1456BC200, 0x0};
 WEAK symbol<HunkUser *> g_scriptDebugHunk{0x157CC40F0, 0x14A6376C0};
 
-WEAK symbol<HunkUserAllocationSchemeMap> g_HunkUserAllocationSchemeMap{0x1433C28F0, 0x14114BC40};
+WEAK symbol<HunkUserAllocationSchemeMap> g_HunkUserAllocationSchemeMap{
+    0x1433C28F0, 0x14114BC40};
 } // namespace hunk
 } // namespace game

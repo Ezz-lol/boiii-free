@@ -12,7 +12,8 @@ WEAK symbol<void(ActiveClient *activeClient, ContentFlags dlcBits)>
     LobbyActiveList_SetDLCBits{0x141EF23D0, 0x0};
 WEAK symbol<ContentFlags(ActiveClient *activeClient)>
     LobbyActiveList_GetDLCBits{0x141EF10D0, 0x0};
-WEAK symbol<bool(ActiveClient *activeClient)> LobbyActiveList_IsStarterPack{0x1420FAFC0, 0x0};
+WEAK symbol<bool(ActiveClient *activeClient)> LobbyActiveList_IsStarterPack{
+    0x1420FAFC0, 0x0};
 WEAK symbol<clientcontent::ClientContent *(ActiveClient *activeClient)>
     LobbyActiveList_GetClientContent{0x141EF0C40, 0x1404AAE80};
 WEAK symbol<bool(ActiveClient *activeClient,

@@ -21,11 +21,13 @@ WEAK symbol<bool(PacketQueuePtr queue, uint32_t flags, netsrc_t sock,
 WEAK symbol<bool(netsrc_t sock, int32_t length, const void *data,
                  const netadr_t *to)>
     NET_SendPacket{0x1422B9240, 0x140596E40};
-WEAK symbol<bool(const char *str, netadr_t *adr)> NET_StringToAdr{0x142119CC0, 0x140515110};
+WEAK symbol<bool(const char *str, netadr_t *adr)> NET_StringToAdr{0x142119CC0,
+                                                                  0x140515110};
 WEAK symbol<bool(netsrc_t sock, netadr_t *adr, const char *data)>
     NET_OutOfBandPrint{0x14211AC50, 0x140515D90};
 WEAK symbol<uint16_t()> NET_GetDefaultPort{0x142119C60, 0x0};
-WEAK symbol<bool(const netadr_t *a, const netadr_t *b)> NetAdr_Compare{0x142119DB0, 0x140515200};
+WEAK symbol<bool(const netadr_t *a, const netadr_t *b)> NetAdr_Compare{
+    0x142119DB0, 0x140515200};
 WEAK symbol<int32_t> g_qport{0x156DCAB3C, 0x1498C18E0};
 
 } // namespace net

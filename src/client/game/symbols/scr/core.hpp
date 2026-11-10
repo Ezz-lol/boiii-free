@@ -16,20 +16,26 @@ WEAK symbol<scr_const_t> scr_const{0x14A6AA100, 0x147B91CE0};
 // API functions in the script VM
 // Does not seem to exist in dedicated server.
 WEAK symbol<bool()> Scr_IsModLoaded{0x1420C9420, 0x0};
-WEAK symbol<void(scriptInstance_t inst, int32_t value)> Scr_AddInt{0x1412E9890, 0x14016F160};
+WEAK symbol<void(scriptInstance_t inst, int32_t value)> Scr_AddInt{0x1412E9890,
+                                                                   0x14016F160};
 WEAK symbol<const char *(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetString{0x1412EBAC0, 0x140171490};
-WEAK symbol<void(scriptInstance_t inst, const char *value)> Scr_AddString{0x1412E9A50, 0x14016F320};
+WEAK symbol<void(scriptInstance_t inst, const char *value)> Scr_AddString{
+    0x1412E9A50, 0x14016F320};
 // Return value is location of allocation as index of VM stack - returned by
 // ScrVar_AllocVariable internally.
-WEAK symbol<var::ScrVarIndex_t(scriptInstance_t inst)> Scr_AddStruct{0x1412E9AE0, 0x14016F3B0};
-WEAK symbol<void(scriptInstance_t inst, const vec3_t *value)> Scr_AddVector{0x1412E9EB0, 0x14016F780};
+WEAK symbol<var::ScrVarIndex_t(scriptInstance_t inst)> Scr_AddStruct{
+    0x1412E9AE0, 0x14016F3B0};
+WEAK symbol<void(scriptInstance_t inst, const vec3_t *value)> Scr_AddVector{
+    0x1412E9EB0, 0x14016F780};
 WEAK symbol<ScrString_t(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetConstString{0x1412EB210, 0x140170BE0};
 WEAK symbol<float(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetFloat{0x1412EB5E0, 0x140170FB0};
-WEAK symbol<int(scriptInstance_t inst, var::ScrVarIndex_t index)> Scr_GetInt{0x1412EB810, 0x1401711E0};
-WEAK symbol<uint32_t(scriptInstance_t inst)> Scr_GetNumParam{0x1412EB950, 0x140171320};
+WEAK symbol<int(scriptInstance_t inst, var::ScrVarIndex_t index)> Scr_GetInt{
+    0x1412EB810, 0x1401711E0};
+WEAK symbol<uint32_t(scriptInstance_t inst)> Scr_GetNumParam{0x1412EB950,
+                                                             0x140171320};
 WEAK symbol<uint32_t(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetObject{0x1412EB970, 0x140171340};
 WEAK symbol<var::ScrVarType_t(scriptInstance_t inst, var::ScrVarIndex_t index)>
@@ -46,7 +52,8 @@ WEAK symbol<volatile var::ScrVarValue_t *(scriptInstance_t inst,
 WEAK symbol<void(scriptInstance_t inst, var::ScrVarIndex_t index,
                  vec3_t *vectorValue)>
     Scr_GetVector{0x1412EBFB0, 0x140171960};
-WEAK symbol<void(scriptInstance_t inst)> Scr_MakeArray{0x1412EC860, 0x140172210};
+WEAK symbol<void(scriptInstance_t inst)> Scr_MakeArray{0x1412EC860,
+                                                       0x140172210};
 WEAK symbol<void(scriptInstance_t inst, var::ScrVarIndex_t index,
                  const char *error)>
     _Scr_ParamError{0x1412ECBF0, 0x1401725A0};
@@ -71,7 +78,8 @@ WEAK symbol<void(level::gentity_s *ent, ScrVarCanonicalName_t stringValue,
     Scr_Notify_Canon{0x141B3A130, 0x1402F5FF0};
 WEAK symbol<uint32_t(scriptInstance_t inst, const char *filename)>
     Scr_LoadScript{0x1412C8410, 0x140156610};
-WEAK symbol<uint8_t> Scr_LoadScript_ScriptNotFoundCall{0x1412C84B2, 0x1401566B7};
+WEAK symbol<uint8_t> Scr_LoadScript_ScriptNotFoundCall{0x1412C84B2,
+                                                       0x1401566B7};
 WEAK symbol<uint8_t> Scr_LoadScript_LinkScriptCall{0x1412C858C, 0x140156796};
 WEAK symbol<void(scriptInstance_t inst, uint8_t *pos, uint32_t errorCode,
                  const char *message, const char *detail)>
@@ -86,8 +94,10 @@ WEAK symbol<void(scriptInstance_t inst, var::ScrVarIndex_t threadId)>
 WEAK symbol<void(scriptInstance_t inst)> Scr_InitSystem{0x1412EC340, 0x0};
 constexpr size_t SAVED_WORLD_OBJECT_STRIDE = 0x48040;
 WEAK symbol<uint8_t> saved_world_object_valid{0x14518E018, 0x0};
-WEAK symbol<void(scriptInstance_t inst, int32_t user)> Scr_BeginLoadScripts{0x1412C7E10, 0x140156010};
-WEAK symbol<void(ScrString_t *to, ScrString_t from)> Scr_SetString{0x1412D84B0, 0x140164750};
+WEAK symbol<void(scriptInstance_t inst, int32_t user)> Scr_BeginLoadScripts{
+    0x1412C7E10, 0x140156010};
+WEAK symbol<void(ScrString_t *to, ScrString_t from)> Scr_SetString{0x1412D84B0,
+                                                                   0x140164750};
 WEAK symbol<void(scriptInstance_t inst, const char *error, bool terminal)>
     Scr_Error{0x1412EA450, 0x14016FDF0};
 WEAK symbol<void(level::gentity_s *ent, ScrString_t stringValue,
@@ -95,8 +105,10 @@ WEAK symbol<void(level::gentity_s *ent, ScrString_t stringValue,
     Scr_Notify_ScrString{0x141B3A140, 0x1402F6000};
 
 WEAK symbol<void(scriptInstance_t inst)> Scr_AddArray{0x1412E9580, 0x14016EDE0};
-WEAK symbol<void(scriptInstance_t inst, ScrString_t hash)> Scr_AddConstString{0x1412E96D0, 0x14016EEB0};
-WEAK symbol<void(scriptInstance_t inst, float value)> Scr_AddFloat{0x1412E9780, 0x14016F050};
+WEAK symbol<void(scriptInstance_t inst, ScrString_t hash)> Scr_AddConstString{
+    0x1412E96D0, 0x14016EEB0};
+WEAK symbol<void(scriptInstance_t inst, float value)> Scr_AddFloat{0x1412E9780,
+                                                                   0x14016F050};
 
 WEAK symbol<void(scriptInstance_t inst, var::ScrVarValue_t *value)>
     Scr_AddValue{0x1412E9E20, 0x14016F6F0};
@@ -108,7 +120,8 @@ WEAK symbol<scr_animtree_t(scriptInstance_t inst, var::ScrVarIndex_t index,
                            uint32_t user)>
     Scr_GetAnimTree{0x1412EACD0, 0x140170670};
 // Contents are simply `Scr_GetInt(inst, index) != 0`
-WEAK symbol<bool(scriptInstance_t inst, var::ScrVarIndex_t index)> Scr_GetBool{0x0, 0x1401708C0};
+WEAK symbol<bool(scriptInstance_t inst, var::ScrVarIndex_t index)> Scr_GetBool{
+    0x0, 0x1401708C0};
 
 WEAK symbol<bool(scriptInstance_t inst, var::ScrVarIndex_t index,
                  bool defaultValue)>
@@ -118,7 +131,8 @@ WEAK symbol<ScrString_t(scriptInstance_t inst, var::ScrVarIndex_t index)>
 WEAK symbol<scr_entref_t *(scr_entref_t *retstr, scriptInstance_t inst,
                            var::ScrVarIndex_t index)>
     Scr_GetEntityRef{0x1412EB4B0, 0x140170E80};
-WEAK symbol<level::gentity_t *(var::ScrVarIndex_t index)> Scr_GetEntity{0x141B2FC30, 0x1402F58A0};
+WEAK symbol<level::gentity_t *(var::ScrVarIndex_t index)> Scr_GetEntity{
+    0x141B2FC30, 0x1402F58A0};
 WEAK symbol<float(scriptInstance_t inst, var::ScrVarIndex_t index,
                   float defaultValue)>
     Scr_GetFloatOptional{0x1412EB6A0, 0x140171070};
@@ -139,9 +153,11 @@ WEAK symbol<ScrString_t(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetConstLowercaseString{0x1412EB000, 0x1401709A0};
 WEAK symbol<void()> Scr_UpdateScreen{0x1413E1570, 0x0};
 
-WEAK symbol<void(scriptInstance_t inst)> Scr_PlaySoundAtPosition{0x141A72670, 0x1402CC960};
+WEAK symbol<void(scriptInstance_t inst)> Scr_PlaySoundAtPosition{0x141A72670,
+                                                                 0x1402CC960};
 
-WEAK symbol<void(scriptInstance_t inst, const char *error)> Scr_ObjectError{0x1412ECBE0, 0x140172590};
+WEAK symbol<void(scriptInstance_t inst, const char *error)> Scr_ObjectError{
+    0x1412ECBE0, 0x140172590};
 
 WEAK symbol<void(scriptInstance_t inst, int32_t channel, uint8_t codePos)>
     Scr_PrintPrevCodePos{0x1412D4C70, 0x140160DA0};
@@ -149,9 +165,11 @@ WEAK symbol<void(scriptInstance_t inst, int32_t channel, uint8_t codePos)>
 WEAK symbol<void(scriptInstance_t inst, uint8_t *pos, const char **filename,
                  int32_t *lineNum, const char **sourceLine)>
     Scr_GetFileAndLineNum{0x1412CBE70, 0x140159E90};
-WEAK symbol<void(scriptInstance_t inst, objFileInfo_t *fileInfo)> LoadScriptGDB{0x1412CB120, 0x140159360};
+WEAK symbol<void(scriptInstance_t inst, objFileInfo_t *fileInfo)> LoadScriptGDB{
+    0x1412CB120, 0x140159360};
 // Named LoadScriptGDB in engine - overload
-WEAK symbol<void(scriptInstance_t inst)> LoadScriptGDB2{0x1412CACB0, 0x140158EF0};
+WEAK symbol<void(scriptInstance_t inst)> LoadScriptGDB2{0x1412CACB0,
+                                                        0x140158EF0};
 WEAK symbol<objFileInfo_t *(scriptInstance_t inst, void *addr)>
     Scr_FindObjFileInfo{0x1412CBDB0, 0x140159DD0};
 WEAK symbol<void(scriptInstance_t inst, GSC_OBJ *prime_obj,

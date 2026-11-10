@@ -1236,14 +1236,12 @@ LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam,
     }
     [[fallthrough]];
   default:
-    return utils::hook::invoke<LRESULT>(
-        game::select(0x1422B97F0, 0x1405973E0), hwnd, msg, wparam,
-        lparam);
+    return utils::hook::invoke<LRESULT>(game::select(0x1422B97F0, 0x1405973E0),
+                                        hwnd, msg, wparam, lparam);
   }
 
-  return utils::hook::invoke<LRESULT>(
-      game::select(0x1422B97F0, 0x1405973E0), hwnd, msg, wparam,
-      lparam);
+  return utils::hook::invoke<LRESULT>(game::select(0x1422B97F0, 0x1405973E0),
+                                      hwnd, msg, wparam, lparam);
 }
 
 LRESULT input_line_wnd_proc(const HWND hwnd, const UINT msg,
@@ -1304,8 +1302,7 @@ LRESULT input_line_wnd_proc(const HWND hwnd, const UINT msg,
   }
 
   const LRESULT result = utils::hook::invoke<LRESULT>(
-      game::select(0x1422B9AF0, 0x1405976E0), hwnd, msg, wparam,
-      lparam);
+      game::select(0x1422B9AF0, 0x1405976E0), hwnd, msg, wparam, lparam);
 
   if (msg == WM_SETFOCUS) {
     restore_input_caret();
@@ -1676,8 +1673,7 @@ struct component final : generic_component {
 
     utils::hook::jump(printf, print_stub);
 
-    utils::hook::jump(game::select(0x1422B9AC0, 0x1405976B0),
-                      queue_message);
+    utils::hook::jump(game::select(0x1422B9AC0, 0x1405976B0), queue_message);
     utils::hook::nop(game::select(0x1422B9ADA, 0x1405976CA),
                      2); // Print from every thread
 
