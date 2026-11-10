@@ -36,6 +36,11 @@ inline constinit flag_setting log_script_errors_flag{
     .dvar_name = "boiii_logScriptErrors",
     .flag = "log-script-errors",
     .description = "Log every script error, including non-fatal ones"};
+inline constinit flag_setting script_debug_flag{
+    .dvar_name = "boiii_scriptDebug",
+    .flag = "script-debug",
+    .description = "Add runtime diagnostics for common and programmatically "
+                   "detectable erroneous or poorly optimised GSC logic."};
 inline constinit flag_setting ultrawide_flag{
     .dvar_name = "boiii_ultrawide",
     .flag = "ultrawide",
@@ -51,14 +56,9 @@ inline constinit flag_setting xp_bar_flag{
     .description = "Show an XP progress bar in Multiplayer and Zombies"};
 
 inline constexpr flag_setting *ALL_SETTINGS[] = {
-    &skip_intro_flag,
-    &skip_cinematics_flag,
-    &skip_forest_cinematic_flag,
-    &full_logs_flag,
-    &log_script_errors_flag,
-    &ultrawide_flag,
-    &allow_cheats_flag,
-    &xp_bar_flag,
+    &skip_intro_flag, &skip_cinematics_flag,   &skip_forest_cinematic_flag,
+    &full_logs_flag,  &log_script_errors_flag, &script_debug_flag,
+    &ultrawide_flag,  &allow_cheats_flag,      &xp_bar_flag,
 };
 
 inline bool skip_intro() { return skip_intro_flag.enabled(); }
@@ -68,6 +68,7 @@ inline bool skip_forest_cinematic() {
 }
 inline bool full_logs() { return full_logs_flag.enabled(); }
 inline bool log_script_errors() { return log_script_errors_flag.enabled(); }
+inline bool script_debug() { return script_debug_flag.enabled(); }
 inline bool ultrawide() { return ultrawide_flag.enabled(); }
 inline bool cheats() { return allow_cheats_flag.enabled(); }
 } // namespace game

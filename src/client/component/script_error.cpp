@@ -699,7 +699,7 @@ void drop_with_report(const char *file, const int32_t line,
                       const report &report) {
   print_report(report, {});
   const std::string reason =
-      !game::is_server() || game::log_script_errors()
+      !game::is_server() || game::script_debug()
           ? report_text(report, {})
           : "The server stopped because of a script error.";
   notify_players(reason);
