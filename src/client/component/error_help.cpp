@@ -132,15 +132,6 @@ void Com_Error_DirectX(const char *file, const int32_t line,
       fmt, error, result);
 }
 
-void Com_Error_LuiOutOfMemory(const char *file, const int32_t line,
-                              const game::errorParm code, const char *fmt) {
-  Com_Error_Explained(file, line, code, LUI_OUT_OF_MEMORY_HELP, fmt);
-}
-
-void Sys_Error_LuiOutOfMemory(const char *fmt) {
-  Sys_Error_Explained(strip_colors(LUI_OUT_OF_MEMORY_HELP), fmt);
-}
-
 void Com_Error_AssetLimit(const char *file, const int32_t line,
                           const game::errorParm code, const char *fmt,
                           const int32_t limit, const char *type) {
@@ -383,6 +374,15 @@ void Com_Error_MissingBsp(const char *file, const int32_t line,
 }
 } // namespace
 
+void Com_Error_LuiOutOfMemory(const char *file, const int32_t line,
+                              const game::errorParm code, const char *fmt) {
+  Com_Error_Explained(file, line, code, LUI_OUT_OF_MEMORY_HELP, fmt);
+}
+
+void Sys_Error_LuiOutOfMemory(const char *fmt) {
+  Sys_Error_Explained(strip_colors(LUI_OUT_OF_MEMORY_HELP), fmt);
+}
+
 std::string strip_colors(const std::string &text) {
   std::string plain;
   plain.reserve(text.size());
@@ -475,8 +475,6 @@ struct component final : generic_component {
     hook_calls({0x141425CA3}, {0x1401DAE9C}, Sys_Error_DefaultAsset);
     hook_calls({0x1413653DD}, {0x140195DD7}, Com_Error_GameSettings);
     hook_calls({0x1420E08C5}, {}, Com_Error_MissingConfig);
-    hook_calls({0x14200C7B3}, {}, Com_Error_LuiOutOfMemory);
-    hook_calls({0x14200C7D2}, {}, Sys_Error_LuiOutOfMemory);
     hook_calls({0x14141FEC2}, {}, Com_Error_MissingBsp);
     hook_calls(
         {0x141B68E31, 0x141B755A3, 0x141B75A53, 0x141B75C53},

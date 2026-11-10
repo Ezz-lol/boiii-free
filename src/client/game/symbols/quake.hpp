@@ -18,6 +18,7 @@ WEAK symbol<void(char *dest, size_t destsize, const char *src)> I_strcat{
     0x14227C270, 0x140581110};
 
 WEAK symbol<const char *(char *str)> I_CleanStr{0x14227BF80, 0x140580E80};
+WEAK symbol<int32_t(const char *s0, const char *s1)> I_strcmp{0x14227C2E0, 0x0};
 WEAK symbol<int32_t(const char *s0, const char *s1)> I_stricmp{0x14227C460,
                                                                0x140581300};
 WEAK symbol<void(char *dest, size_t destsize, const char *src)> I_strcpy{
