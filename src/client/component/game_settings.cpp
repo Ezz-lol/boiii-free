@@ -73,11 +73,11 @@ void cmd_exec_stub(utils::hook::assembler &a) {
   a.get().jz(exec_from_fastfile);
 
   a.get().bind(exec_from_disk);
-  a.jmp(game::select(0x1420e0907, 0x1420ED087, 0x1404F855E));
+  a.jmp(game::select(0x1420e0907, 0x1404F855E));
 
   a.get().bind(exec_from_fastfile);
   a.get().lea(rdx, ptr(rsp, (game::is_server() ? 0x30 : 0x40)));
-  a.jmp(game::select(0x1420e0887, 0x1420ED007, 0x1404F853F));
+  a.jmp(game::select(0x1420e0887, 0x1404F853F));
 }
 
 int read_file_stub(const char *qpath, void **buffer) {
@@ -103,7 +103,7 @@ int read_file_stub(const char *qpath, void **buffer) {
   }
 
   return utils::hook::invoke<int>(
-      game::select(0x142247DB0, 0x1422A48D0, 0x140564F70), qpath, buffer);
+      game::select(0x142247DB0, 0x140564F70), qpath, buffer);
 }
 
 void search_gamesettings_files_on_disk() {
@@ -122,9 +122,9 @@ struct component final : generic_component {
   void post_unpack() override {
     search_gamesettings_files_on_disk();
 
-    utils::hook::call(game::select(0x1420E0921, 0x1420ED0A1, 0x1404F857D),
+    utils::hook::call(game::select(0x1420E0921, 0x1404F857D),
                       read_file_stub);
-    utils::hook::jump(game::select(0x1420e0882, 0x1420ED002, 0x1404F853A),
+    utils::hook::jump(game::select(0x1420e0882, 0x1404F853A),
                       utils::hook::assemble(cmd_exec_stub));
   }
 };

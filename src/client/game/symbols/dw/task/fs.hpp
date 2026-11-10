@@ -9,11 +9,11 @@ namespace fs {
 WEAK symbol<TaskRecord *(ControllerIndex_t localControllerIndex,
                          dwFileTask *fileTask, uint8_t *buffer,
                          int32_t bufferSize)>
-    dwWriteAndValidateFile{0x141444490, 0x0, 0x0};
+    dwWriteAndValidateFile{0x141444490, 0x0};
 WEAK symbol<TaskRecord *(ControllerIndex_t localControllerIndex,
                          dwFileTask *fileTask, uint8_t *buffer,
                          int32_t bufferSize)>
-    dwWriteAndValidateFileInternal{0x1414444A0, 0x0, 0x0};
+    dwWriteAndValidateFileInternal{0x1414444A0, 0x0};
 } // namespace fs
 } // namespace task
 } // namespace dw

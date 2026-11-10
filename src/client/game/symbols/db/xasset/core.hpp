@@ -9,18 +9,15 @@ namespace db {
 namespace xasset {
 WEAK symbol<void(XAssetType type, XAssetEnum *func, void *inData,
                  bool includeOverride)>
-    DB_EnumXAssets{0x141420990, 0x141420970, 0x1401D5A50};
+    DB_EnumXAssets{0x141420990, 0x1401D5A50};
 WEAK symbol<XAssetHeader(XAssetType type, const char *name, bool errorIfMissing,
                          int32_t waitTime)>
-    DB_FindXAssetHeader{0x141420EF0, 0x141420ED0, 0x1401D5FB0};
-WEAK symbol<const char *(const XAsset *asset)> DB_GetXAssetName{
-    0x1413E9DC0, 0x1413E9DA0, 0x14019F080};
-WEAK symbol<int(XAssetType type)> DB_GetXAssetTypeSize{0x1413E9DF0, 0x1413E9DD0,
-                                                       0x14019F0B0};
-WEAK symbol<bool(XAssetType type, const char *name)> DB_IsXAssetDefault{
-    0x141422160, 0x141422140, 0x1401D7260};
+    DB_FindXAssetHeader{0x141420EF0, 0x1401D5FB0};
+WEAK symbol<const char *(const XAsset *asset)> DB_GetXAssetName{0x1413E9DC0, 0x14019F080};
+WEAK symbol<int(XAssetType type)> DB_GetXAssetTypeSize{0x1413E9DF0, 0x14019F0B0};
+WEAK symbol<bool(XAssetType type, const char *name)> DB_IsXAssetDefault{0x141422160, 0x1401D7260};
 WEAK symbol<void(XAssetType type, const char *name, int32_t waitedMsec)>
-    PrintWaitedError{0x1414262E0, 0x1414262C0, 0x1401DB3E0};
+    PrintWaitedError{0x1414262E0, 0x1401DB3E0};
 } // namespace xasset
 } // namespace db
 } // namespace game

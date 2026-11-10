@@ -9,7 +9,7 @@ namespace table {
 namespace field {
 namespace weapon {
 
-WEAK symbol<FieldTable> fields{0x14325B320, 0x1432DA320, 0x141070320};
+WEAK symbol<FieldTable> fields{0x14325B320, 0x141070320};
 
 }
 } // namespace field

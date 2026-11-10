@@ -406,15 +406,15 @@ struct component final : generic_component {
         utils::thread::create_named_thread("Demonware", server_main);
 
     utils::hook::set<uint8_t>(
-        game::select(0x1428C4AF9, 0x14293DC69, 0x1407D5879),
+        game::select(0x1428C4AF9, 0x1407D5879),
         0x0); // CURLOPT_SSL_VERIFYPEER
     utils::hook::set<uint8_t>(
-        game::select(0x15ce1c127, 0x15C293850, 0x1407D5865),
+        game::select(0x15ce1c127, 0x1407D5865),
         0xAF); // CURLOPT_SSL_VERIFYHOST
 
     // HTTPS -> HTTP
     utils::hook::copy_string(
-        game::select(0x1430395A0, 0x1430B8670, 0x140EE4C68),
+        game::select(0x1430395A0, 0x140EE4C68),
         "http://prod.umbrella.demonware.net");
 
     if (game::is_server()) {
@@ -422,27 +422,27 @@ struct component final : generic_component {
     }
 
     // HTTPS -> HTTP
-    utils::hook::copy_string(game::select(0x143039AA0, 0x1430B8B70, 0x0),
+    utils::hook::copy_string(game::select(0x143039AA0, 0x0),
                              "http://prod.uno.demonware.net/v1.0");
 
     // HTTPS -> HTTP
-    utils::hook::set<uint8_t>(game::select(0x1430396CC, 0x1430B87A0, 0x0), 0x0);
+    utils::hook::set<uint8_t>(game::select(0x1430396CC, 0x0), 0x0);
     // HTTPS -> HTTP
-    utils::hook::copy_string(game::select(0x143039288, 0x1430B8358, 0x0),
+    utils::hook::copy_string(game::select(0x143039288, 0x0),
                              "http://%s:%d/auth/");
 
     utils::hook::set<uint32_t>(
-        game::select(0x141EB8030, 0x141EC4AC0, 0x0),
+        game::select(0x141EB8030, 0x0),
         0xC3D08948); // Skip publisher file signature stuff
-    utils::hook::call(game::select(0x141EB7A6C, 0x141EC44FC, 0x0),
+    utils::hook::call(game::select(0x141EB7A6C, 0x0),
                       get_ffotd_name); // Return unlocalized ffotd name
-    utils::hook::set<uint64_t>(game::select(0x141EF7D80, 0x141F04500, 0x0),
+    utils::hook::set<uint64_t>(game::select(0x141EF7D80, 0x0),
                                0xC300000001B8); // Kill LPC_File_SafeWrite
-    utils::hook::set<uint64_t>(game::select(0x141EF69B0, 0x141F03130, 0x0),
+    utils::hook::set<uint64_t>(game::select(0x141EF69B0, 0x0),
                                0xC300000001B8); // Kill LPC_DeleteStale
 
     utils::hook::set<uint8_t>(
-        game::select(0x141DFDF8B, 0x141E0AA1B, 0x0),
+        game::select(0x141DFDF8B, 0x0),
         0xEB); // Release un-handled reportReward spamming loop
 
     localized_strings::override("MENU_CONNECTING_DW",

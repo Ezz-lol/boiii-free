@@ -63,7 +63,7 @@ uint64_t get_callstack_return_stub() {
      padding bytes in the module, displaced by +2.
   */
   static const uintptr_t placeholder =
-      game::select(0x141DC7FD4, 0x140001056, 0x140101168);
+      game::select(0x141DC7FD4, 0x140101168);
   utils::hook::set<uint8_t>(placeholder - 2, 0xFF); // fakes a call
   utils::hook::nop(placeholder, 1);
   utils::hook::jump(placeholder + 1,

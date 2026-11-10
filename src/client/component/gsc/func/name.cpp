@@ -136,7 +136,7 @@ void gscr_noclip(scriptInstance_t inst, scr_entref_t *entref) {
   }
   int32_t &flags = *reinterpret_cast<int32_t *>(
       reinterpret_cast<uint8_t *>(ent->client) +
-      game::select<uint32_t>(0x16FE4, 0x0, 0x16FF4));
+      game::select<uint32_t>(0x16FE4, 0x16FF4));
   flags ^= 1;
   Scr_AddInt(inst, flags & 1);
 }

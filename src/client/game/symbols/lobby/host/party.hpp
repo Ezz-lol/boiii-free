@@ -17,7 +17,7 @@ namespace party {
 */
 WEAK symbol<join::JoinResult(const ControllerIndex_t controllerIndex,
                              const LobbyType lobbyType, int32_t memberCount)>
-    LobbyHost_IsPartyAllowed{0x141ECC7F0, 0x141ED9200, 0x14048AAE0};
+    LobbyHost_IsPartyAllowed{0x141ECC7F0, 0x14048AAE0};
 
 } // namespace party
 } // namespace host

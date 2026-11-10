@@ -173,7 +173,7 @@ public:
     // `LobbyHost_CanFit`, ensuring that players can always hot-join a
     // lobby and be allowed a slot during runtime
     utils::hook::call(
-        host::LobbyHost_CanFit.offset(game::select_value(0x6e, 0x6e, 0x69)),
+        host::LobbyHost_CanFit.offset(game::select_value(0x6e, 0x69)),
         return_const<false>);
 
     if (game::is_server()) {

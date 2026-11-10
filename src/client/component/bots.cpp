@@ -167,13 +167,13 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("bots");
 
   void post_unpack() override {
-    utils::hook::jump(game::select(0x141653B90, 0x141653B70, 0x1402732E0),
+    utils::hook::jump(game::select(0x141653B90, 0x1402732E0),
                       get_bot_name);
-    utils::hook::call(game::select(0x1421EC547, 0x142249097, 0x14052E53A),
+    utils::hook::call(game::select(0x1421EC547, 0x14052E53A),
                       format_bot_string);
 
     if (game::is_client()) {
-      utils::hook::jump(game::select(0x1416542A0, 0x141654280, 0x0),
+      utils::hook::jump(game::select(0x1416542A0, 0x0),
                         get_bot_name); // SV_ZombieNameRandom
     }
 

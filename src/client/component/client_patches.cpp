@@ -347,7 +347,7 @@ void store_tac_protected_allocs() {
   */
   {
     utils::hook::call(
-        game::G_InitGame.offset(game::select(0x1CAE, 0xDA02, 0x0)),
+        game::G_InitGame.offset(game::select(0x1CAE, 0x0)),
         return_static_alloc<game::level::g_entities_cl_allocation>);
   }
 }
@@ -540,7 +540,7 @@ public:
                                        live_delayed_com_error_stub);
 
     // Don't modify process priority
-    utils::hook::nop(game::select(0x1422BBB28, 0x142334C98, 0x0), 6);
+    utils::hook::nop(game::select(0x1422BBB28, 0x0), 6);
 
     preload_map_hook.create(game::cl::CL_PreloadMap, preload_map_stub);
 
@@ -556,7 +556,7 @@ public:
         0xEB);
 
     // Always get loadscreen gametype from s_gametype
-    utils::hook::set<uint8_t>(game::select(0x142232ABC, 0x14228F5DC, 0x0),
+    utils::hook::set<uint8_t>(game::select(0x142232ABC, 0x0),
                               0xEB);
 
     // Show bots' ranks on the scoreboard and next to their overhead names.
@@ -578,9 +578,9 @@ public:
             0x65),
         return_const<true>);
     // Overhead names: `Com_SessionMode_IsPublicOnlineGame` call and XUID check
-    utils::hook::call(game::select(0x14069D8BB, 0x14069D8BB, 0x0),
+    utils::hook::call(game::select(0x14069D8BB, 0x0),
                       return_const<true>);
-    utils::hook::set<uint8_t>(game::select(0x14069D8D7, 0x14069D8D7, 0x0),
+    utils::hook::set<uint8_t>(game::select(0x14069D8D7, 0x0),
                               0xEB);
 
     // Don't drop clients with MP_HOST_COMMS_FAILURE when a stat changes more
@@ -602,14 +602,14 @@ public:
         "Max pitch speed in degrees for game pad");
 
     // CL_AdjustAngles
-    utils::hook::call(game::select(0x1412F3344, 0x1412F3324, 0x0),
+    utils::hook::call(game::select(0x1412F3344, 0x0),
                       cl_key_state_yaw_speed_stub); // cl_yawspeed
-    utils::hook::call(game::select(0x1412F3364, 0x1412F3344, 0x0),
+    utils::hook::call(game::select(0x1412F3364, 0x0),
                       cl_key_state_yaw_speed_stub); // ^^
 
-    utils::hook::call(game::select(0x1412F33A0, 0x1412F3380, 0x0),
+    utils::hook::call(game::select(0x1412F33A0, 0x0),
                       cl_key_state_pitch_speed_stub); // cl_pitchspeed
-    utils::hook::call(game::select(0x1412F33C1, 0x1412F33A1, 0x0),
+    utils::hook::call(game::select(0x1412F33C1, 0x0),
                       cl_key_state_pitch_speed_stub); // ^^
 
     /*

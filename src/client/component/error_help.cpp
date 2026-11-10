@@ -533,7 +533,7 @@ struct component final : generic_component {
         {0x1408F2BF4}, {0x1400E2AD9},
         Com_Error_WithHelp<HELP_GAME_MISMATCH, const char *, const char *>);
     hook_calls({0x14135A241, 0x1421E9AA1},
-               {0x14017D7B4, 0x14018F3BA, 0x14052BCF6},
+               {0x14017D7B4, 0x14052BCF6},
                Com_Error_WithHelp<HELP_MISSING_MAP>);
     hook_calls({0x14135CDC1}, {0x140191907},
                Com_Error_WithHelp<HELP_MISSING_MOD>);

@@ -13,7 +13,7 @@ WEAK symbol<void(const LocalClientNum_t localClientNum, const char *curText,
                  float postScale, lua::LUIAlignment alignment,
                  lua::hks::lua_State *luaVM, lua::lui::LUIElement *element,
                  uint32_t flags)>
-    UI_DrawTextPhysical{0x141F26FA0, 0x0, 0x0};
+    UI_DrawTextPhysical{0x141F26FA0, 0x0};
 }
 } // namespace draw
 } // namespace ui

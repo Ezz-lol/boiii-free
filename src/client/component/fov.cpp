@@ -27,16 +27,16 @@ struct component final : client_component {
 
   void post_unpack() override {
     // Hook CG_CalcFOVfromLens within CG_CalcFov
-    utils::hook::call(game::select(0x1404DADA7, 0x1404DADA7, 0x0),
+    utils::hook::call(game::select(0x1404DADA7, 0x0),
                       cg_calc_fov_stub);
 
     // Patch cg_fovScale flags
     utils::hook::set<game::dvarFlags_e>(
-        game::select(0x14090E735, 0x14090E735, 0x0),
+        game::select(0x14090E735, 0x0),
         game::dvarFlags_e::ARCHIVE);
 
     // Don't reset cg_fovScale
-    utils::hook::set<uint8_t>(game::select(0x140926D2A, 0x140926D2A, 0x0),
+    utils::hook::set<uint8_t>(game::select(0x140926D2A, 0x0),
                               0xC3);
   }
 };

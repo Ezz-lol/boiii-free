@@ -209,7 +209,7 @@ class component final : public generic_component {
 
 public:
   void post_unpack() override {
-    utils::hook::call(game::select(0x141974B24, 0x141974B04, 0x14029908A),
+    utils::hook::call(game::select(0x141974B24, 0x14029908A),
                       divert_xuid_to_client_num_stub);
 
     client_command::register_handler("say", cmd_say_f);
@@ -291,7 +291,7 @@ public:
           },
           scheduler::pipeline::main);
 
-      utils::hook::call(game::select(0x141DDDF7F, 0x141DEAA0F, 0x0),
+      utils::hook::call(game::select(0x141DDDF7F, 0x0),
                         cl_handle_chat);
 
       g_say_hook.create(game::G_Say.get(), g_say_stub);

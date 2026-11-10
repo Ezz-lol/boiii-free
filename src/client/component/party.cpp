@@ -868,7 +868,7 @@ struct component final : client_component {
     live_get_gun_xp_scale_hook.create(game::live::Live_GetGunXPScale.get(),
                                       live_get_gun_xp_scale_stub);
 
-    utils::hook::jump(game::select(0x141ED9670, 0x141EE5FE0, 0x0),
+    utils::hook::jump(game::select(0x141ED9670, 0x0),
                       &connect_stub);
 
     network::on("infoResponse", handle_info_response);

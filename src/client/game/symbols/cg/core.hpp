@@ -4,38 +4,35 @@
 
 namespace game {
 namespace cg {
-WEAK symbol<void(LocalClientNum_t localClientNum)> CG_LUIHUDRestart{
-    0x140F7E970, 0x140F7E970, 0x0};
-WEAK symbol<ClientUIActives> clientUIActives{0x145359BC0, 0x1453D8BC0, 0x0};
+WEAK symbol<void(LocalClientNum_t localClientNum)> CG_LUIHUDRestart{0x140F7E970, 0x0};
+WEAK symbol<ClientUIActives> clientUIActives{0x145359BC0, 0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum, float *fov_x,
                  float *dxDzAtDefaultAspectRatio, float *dxDz, float *dyDz)>
-    CG_CalcFOVfromLens{0x1404D6230, 0x1404D6230, 0x0};
+    CG_CalcFOVfromLens{0x1404D6230, 0x0};
 
 WEAK symbol<void(LocalClientNum_t localClientNum, level::cl::centity_t *cent,
                  level::entityEvent_t event)>
-    CG_EntityEvent{0x140776DA0, 0x140776DA0, 0x1400CC160};
+    CG_EntityEvent{0x140776DA0, 0x1400CC160};
 WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients)>
-    CG_AllocateClientMemory{0x1408408F0, 0x1408408F0, 0x0};
+    CG_AllocateClientMemory{0x1408408F0, 0x0};
 WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients,
                  int32_t maxKillCamsInSplitscreen)>
-    CG_InitAndAllocCGEntsArray{0x14085B990, 0x14085B990, 0x0};
-WEAK symbol<bool(LocalClientNum_t localClientNum)> CG_IsFullyInitialized{
-    0x1400AB1A0, 0x1400AB1A0, 0x0};
+    CG_InitAndAllocCGEntsArray{0x14085B990, 0x0};
+WEAK symbol<bool(LocalClientNum_t localClientNum)> CG_IsFullyInitialized{0x1400AB1A0, 0x0};
 
 WEAK symbol<void(hunk::HunkUser *user, LocalClientNum_t maxLocalClients,
                  ClientNum_t maxClients)>
-    CG_FreeClientMemory{0x140853D90, 0x140853D90, 0x0};
+    CG_FreeClientMemory{0x140853D90, 0x0};
 WEAK symbol<void(hunk::HunkUser *user, LocalClientNum_t maxLocalClients)>
-    CG_FreeCGEnts{0x140873A30, 0x140873A30, 0x0};
-WEAK symbol<void()> CG_ClearCGEnts{0x142CCDE90, 0x142D47490, 0x0};
+    CG_FreeCGEnts{0x140873A30, 0x0};
+WEAK symbol<void()> CG_ClearCGEnts{0x142CCDE90, 0x0};
 WEAK symbol<bool(int32_t *hitNum, const vec3_t *start, const vec3_t *end,
                  contents_t mask, cm::trace_t *trace)>
-    CG_SightTracePoint{0x1412B43A0, 0x1412B4380, 0x0};
+    CG_SightTracePoint{0x1412B43A0, 0x0};
 
-WEAK symbol<float> cg_hudSplitscreenScale{0x14577B6E8, 0x1457FA6E8,
-                                          0x142CF12BC};
+WEAK symbol<float> cg_hudSplitscreenScale{0x14577B6E8, 0x142CF12BC};
 WEAK symbol<int32_t(LocalClientNum_t, scr::scrChecksum_t *scr_checksum)>
-    CG_TestServerScriptChecksum{0x14092EF40, 0x14092EF40, 0x1400E67C0};
+    CG_TestServerScriptChecksum{0x14092EF40, 0x1400E67C0};
 
 extern LocalClientPool<level::cl::cg_t> cgArray;
 extern LocalClientPool<level::cl::cgs_t> cgsArray;
@@ -46,8 +43,7 @@ extern LocalClientPool<ClientPlayerWeaponInfo> cg_weaponsArray;
 extern LocalClientPool<phys::Destructible> cg_destructibles;
 extern LocalClientPool<ik::IkBuf> cg_ikBuf;
 
-WEAK symbol<CGFakeEntitiesInuseBitArray> cg_fakeEntitiesInuseBitArray{
-    0x144C98B80, 0x144D17B80, 0x0};
+WEAK symbol<CGFakeEntitiesInuseBitArray> cg_fakeEntitiesInuseBitArray{0x144C98B80, 0x0};
 
 /*
     The builtin pools below are replaced with the above, statically allocated
@@ -65,22 +61,15 @@ WEAK symbol<CGFakeEntitiesInuseBitArray> cg_fakeEntitiesInuseBitArray{
   unused, or filled by boiii with the addresses to the above statically
   allocated pools.
 */
-WEAK symbol<level::cl::cgPool *> builtin_cgArray{0x144C98C80, 0x144D17C80,
-                                                 0x14222BCB0};
-WEAK symbol<level::cl::cgsPool *> builtin_cgsArray{0x144C98B70, 0x144D17B70,
-                                                   0x14222BCB8};
-WEAK symbol<level::cl::LocalClientCentityPools> builtin_cg_entitiesArray{
-    0x144C98B60, 0x144D17B60, 0x14222BCC0};
-WEAK symbol<anim::ViewModelInfoPool *> builtin_cg_viewModelArray{
-    0x14495A428, 0x1449D9428, 0x0};
-WEAK symbol<ClientPlayerAttachmentInfoPool *> builtin_cg_attachmentsArray{
-    0x14495A420, 0x1449D9420, 0x0};
+WEAK symbol<level::cl::cgPool *> builtin_cgArray{0x144C98C80, 0x14222BCB0};
+WEAK symbol<level::cl::cgsPool *> builtin_cgsArray{0x144C98B70, 0x14222BCB8};
+WEAK symbol<level::cl::LocalClientCentityPools> builtin_cg_entitiesArray{0x144C98B60, 0x14222BCC0};
+WEAK symbol<anim::ViewModelInfoPool *> builtin_cg_viewModelArray{0x14495A428, 0x0};
+WEAK symbol<ClientPlayerAttachmentInfoPool *> builtin_cg_attachmentsArray{0x14495A420, 0x0};
 
-WEAK symbol<LocalClientCgWeaponsPools> builtin_cg_weaponsArray{
-    0x14495A410, 0x1449D9410, 0x0};
-WEAK symbol<LocalClientCgDestructiblesPools> builtin_cg_destructibles{
-    0x157E820C0, 0x157F00FF0, 0x0};
-WEAK symbol<LocalClientIkBufs> builtin_cg_ikBuf{0x1449B25C0, 0x144A315C0, 0x0};
+WEAK symbol<LocalClientCgWeaponsPools> builtin_cg_weaponsArray{0x14495A410, 0x0};
+WEAK symbol<LocalClientCgDestructiblesPools> builtin_cg_destructibles{0x157E820C0, 0x0};
+WEAK symbol<LocalClientIkBufs> builtin_cg_ikBuf{0x1449B25C0, 0x0};
 
 } // namespace cg
 } // namespace game

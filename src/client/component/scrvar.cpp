@@ -214,7 +214,7 @@ void ScrVar_AddArrayKeys_ObjectKeys(const scriptInstance_t inst,
 
 inline void refcount_scrvar_object_keys() {
   utils::hook::call(vm::op::VM_OP_EvalArrayRef_Handler.offset(
-                        game::select_value(0x276, 0x276, 0x2D7)),
+                        game::select_value(0x276, 0x2D7)),
                     ScrVar_GetVariableByWeapon_ObjectKey);
   utils::hook::jump(ScrVar_AddArrayKeys, ScrVar_AddArrayKeys_ObjectKeys);
 }

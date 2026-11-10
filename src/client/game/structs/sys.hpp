@@ -161,14 +161,14 @@ public:
         impl = reinterpret_cast<
             thiscallPtr_t<void(ScopedCriticalSection *, CriticalSection,
                                ScopedCriticalSectionType)>>(
-            game::select(0x1400D4030, 0x1400D4030, 0x14004F520));
+            game::select(0x1400D4030, 0x14004F520));
     impl(this, s, type);
   }
 
   ~ScopedCriticalSection() {
     static const thiscallPtr_t<void(ScopedCriticalSection *)> impl =
         reinterpret_cast<thiscallPtr_t<void(ScopedCriticalSection *)>>(
-            game::select(0x1400D40F0, 0x1400D40F0, 0x14004F5E0));
+            game::select(0x1400D40F0, 0x14004F5E0));
     impl(this);
   }
 };

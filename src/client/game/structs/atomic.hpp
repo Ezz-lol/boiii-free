@@ -17,8 +17,7 @@ public:
   volatile tlAtomicMutex *ThisPtr;
 
   struct syms {
-    static constexpr symbol<thiscall_t<void(volatile tlAtomicMutex *)>> Lock{
-        0x140009CB0, 0x140009CB0, 0x140009B20};
+    static constexpr symbol<thiscall_t<void(volatile tlAtomicMutex *)>> Lock{0x140009CB0, 0x140009B20};
   };
 
   void Lock() volatile;

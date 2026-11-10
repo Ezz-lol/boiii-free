@@ -256,7 +256,7 @@ struct component final : generic_component {
 
   void post_unpack() override {
     // Disable whitelist
-    utils::hook::jump(game::select(0x1420E20E0, 0x1420EE860, 0x1404F9CD0),
+    utils::hook::jump(game::select(0x1420E20E0, 0x1404F9CD0),
                       update_whitelist_stub);
 
     handle_missing_command_hook.create(

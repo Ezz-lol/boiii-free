@@ -6,40 +6,37 @@ namespace game {
 namespace lobby {
 namespace msg {
 // We, the client, received a packet from host
-WEAK symbol<LobbyClientHostMsgHandlersTable> client_hostMessageHandlers{
-    0x142F9EDA0, 0x14301DE80, 0x140E59160};
+WEAK symbol<LobbyClientHostMsgHandlersTable> client_hostMessageHandlers{0x142F9EDA0, 0x140E59160};
 // We, a peer, received a packet from another peer
-WEAK symbol<LobbyP2PMsgHandlersTable> p2p_messageHandlers{
-    0x142FA2BA0, 0x143021C90, 0x140E5D360};
+WEAK symbol<LobbyP2PMsgHandlersTable> p2p_messageHandlers{0x142FA2BA0, 0x140E5D360};
 // We, the host, received a packet from client
-WEAK symbol<LobbyHostClientMsgHandlersTable> host_clientMessageHandlers{
-    0x142FA0100, 0x14301F1F0, 0x140E5A5C0};
+WEAK symbol<LobbyHostClientMsgHandlersTable> host_clientMessageHandlers{0x142FA0100, 0x140E5A5C0};
 
 WEAK symbol<void(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
                  XUID fromXUID, msg::Msg_LobbyState *msgData)>
-    HandleLobbyStateCore{0x141EC6A50, 0x0, 0x140485230};
+    HandleLobbyStateCore{0x141EC6A50, 0x140485230};
 
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
                  net::NetChanMsgType_e channel, LobbyModule destModule,
                  net::netadr_t *adr, XUID toXuid, net::msg::msg_t *msg,
                  MsgType msgType)>
-    LobbyMsgTransport_SendToAdr{0x141EEC080, 0x0, 0x1404A63B0};
+    LobbyMsgTransport_SendToAdr{0x141EEC080, 0x1404A63B0};
 WEAK symbol<uint32_t(ControllerIndex_t controllerIndex,
                      session::LobbySession *lobbySession,
                      LobbyModule destModule, net::msg::msg_t *msg,
                      MsgType msgType, net::NetChanMsgType_e channel)>
-    LobbyMsgTransport_SendTo{0x141EEBDB0, 0x0, 0x1404A60E0};
+    LobbyMsgTransport_SendTo{0x141EEBDB0, 0x1404A60E0};
 
 // Named `LobbyMsg_SendToHost` in engine - override
 WEAK symbol<bool(const ControllerIndex_t controllerIndex,
                  session::LobbySession *lobbySession,
                  msg::Msg_VoicePacket *msgData, net::NetChanMsgType_e channel)>
-    LobbyMsg_SendToHost_Voice{0x141EE4970, 0x0, 0x1404A2290};
+    LobbyMsg_SendToHost_Voice{0x141EE4970, 0x1404A2290};
 
 WEAK symbol<bool(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
                  XUID fromXuid, LobbyType lobbyType, LobbyModule destModule,
                  net::msg::msg_t *msg)>
-    HandlePacketInternal{0x141EEB860, 0x141EF7FE0, 0x1404A5B90};
+    HandlePacketInternal{0x141EEB860, 0x1404A5B90};
 
 inline bool LobbyMsg_SendToHost(ControllerIndex_t controllerIndex,
                                 session::LobbySession *lobbySession,

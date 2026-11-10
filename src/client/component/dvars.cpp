@@ -182,14 +182,14 @@ public:
     scheduler::once(copy_dvar_names_to_pool, scheduler::pipeline::main);
 
     // All dvars are recognized as command
-    utils::hook::nop(game::select(0x1420F945A, 0x142151F1A, 0x14050949A), 2);
+    utils::hook::nop(game::select(0x1420F945A, 0x14050949A), 2);
     // Show all dvars in dvarlist command
-    utils::hook::nop(game::select(0x1420F9767, 0x142152227, 0x140509797), 6);
+    utils::hook::nop(game::select(0x1420F9767, 0x140509797), 6);
     // Show all dvars in dvardump command
-    utils::hook::nop(game::select(0x1420F9139, 0x142151BF9, 0x140509179), 6);
+    utils::hook::nop(game::select(0x1420F9139, 0x140509179), 6);
     // Stops game from deleting debug names from archive dvars
     utils::hook::set<uint8_t>(
-        game::select(0x1422692C0, 0x1422C5DE0, 0x1405786D0), 0xC3);
+        game::select(0x1422692C0, 0x1405786D0), 0xC3);
   }
 };
 } // namespace dvars

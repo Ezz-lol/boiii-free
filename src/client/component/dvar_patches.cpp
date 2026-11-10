@@ -167,11 +167,11 @@ void dof_enabled_stub(utils::hook::assembler &a) {
 
   a.get().je(update_ads_dof);
 
-  a.jmp(game::select(0x141116eeb, 0x141116ECB, 0x0));
+  a.jmp(game::select(0x141116eeb, 0x0));
 
   a.get().bind(update_ads_dof);
   a.get().lea(rdx, ptr(rbx, 0x131EB4));
-  a.jmp(game::select(0x141116ee2, 0x141116EC2, 0x0)); // CG_UpdateAdsDof
+  a.jmp(game::select(0x141116ee2, 0x0)); // CG_UpdateAdsDof
 }
 
 template <const bool Value>
@@ -223,7 +223,7 @@ template <const bool Value> inline void sv_cheats_force() {
   */
   {
     // R_RegisterDvars
-    utils::hook::call(game::select(0x141C9A844, 0x141CA6C14, 0x140379E51),
+    utils::hook::call(game::select(0x141C9A844, 0x140379E51),
                       Dvar_RegisterBool_Force<Value>);
     // SV_Init
     utils::hook::call(0x140534DD2_g, Dvar_RegisterBool_Force<Value>);
@@ -332,13 +332,13 @@ public:
     */
     // BG_IncrementClientFieldCounterVal (CL) /
     // BG_CheckForFieldSetPreFinalize (SV)
-    utils::hook::call(game::select(0x140134368, 0x140134368, 0x1400577A0),
+    utils::hook::call(game::select(0x140134368, 0x1400577A0),
                       return_false);
     // BG_SetClientFieldFloatVal
-    utils::hook::call(game::select(0x140136DB4, 0x140136DB4, 0x14005AC64),
+    utils::hook::call(game::select(0x140136DB4, 0x14005AC64),
                       return_false);
     // BG_SetClientFieldIntVal
-    utils::hook::call(game::select(0x140136E85, 0x140136E85, 0x14005AD45),
+    utils::hook::call(game::select(0x140136E85, 0x14005AD45),
                       return_false);
 
     scheduler::once(patch_dvars, scheduler::pipeline::main);
@@ -363,11 +363,11 @@ public:
   static void patch_client() {
 
     // Disable `live_uselpc`
-    utils::hook::call(game::select(0x141E00411, 0x141E0CEA1, 0x0),
+    utils::hook::call(game::select(0x141E00411, 0x0),
                       Dvar_RegisterBool_Force<false>);
 
     // toggle ADS dof based on r_dof_enable
-    utils::hook::jump(game::select(0x141116edb, 0x141116EBB, 0x0),
+    utils::hook::jump(game::select(0x141116edb, 0x0),
                       utils::hook::assemble(dof_enabled_stub));
 
     // Disable `lui_oom`

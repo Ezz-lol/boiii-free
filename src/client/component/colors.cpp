@@ -58,9 +58,9 @@ template <size_t index>
 void patch_color(const uint8_t r, const uint8_t g, const uint8_t b,
                  const uint8_t a = 255) {
   int_color_t *color_table = reinterpret_cast<int_color_t *>(
-      game::select(0x142F70E00, 0x142FEFE20, 0x0));
+      game::select(0x142F70E00, 0x0));
   game::vec4_t *g_color_table = reinterpret_cast<game::vec4_t *>(
-      game::select(0x142F36D10, 0x142FB5CF0, 0x0));
+      game::select(0x142F36D10, 0x0));
 
   color_table[index] = {.r = r, .g = g, .b = b, .a = a};
   g_color_table[index] = {
@@ -117,7 +117,7 @@ bool cl_get_client_name_stub(const game::LocalClientNum_t localClientNum,
   utils::string::copy(buf, size, decoded.c_str());
 
   if (_ReturnAddress() ==
-      reinterpret_cast<void *>(game::select(0x1406A7B56, 0x1406A7B56, 0x0))) {
+      reinterpret_cast<void *>(game::select(0x1406A7B56, 0x0))) {
     return res;
   }
 

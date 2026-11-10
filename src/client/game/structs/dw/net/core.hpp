@@ -93,7 +93,7 @@ PACKED(class bdCommonAddr : public bdReferencable {
 public:
   struct syms {
     static inline constexpr symbol<void(const bdCommonAddr *, bdUByte8 *buffer)>
-        serialize{0x142887830, 0x1407BB770, 0x1429009A0};
+        serialize{0x142887830, 0x1429009A0};
   };
 
   bdArray<bdAddr> m_localAddrs;

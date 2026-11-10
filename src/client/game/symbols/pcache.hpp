@@ -5,25 +5,22 @@
 namespace game {
 namespace pcache {
 // PCache
-WEAK symbol<void(ControllerIndex_t controllerIndex)> PCache_DeleteEntries{
-    0x141E80C80, 0x141E8D710, 0x0};
+WEAK symbol<void(ControllerIndex_t controllerIndex)> PCache_DeleteEntries{0x141E80C80, 0x0};
 // Finds or creates a player's cached component. Hold CriticalSection::PCACHE
 // while using it.
 WEAK symbol<live::pcache::PCacheComponent *(
     ControllerIndex_t controllerIndex, XUID xuid,
     live::pcache::pcacheComponent_t type)>
-    PCache_GetComponent{0x141E80CA0, 0x141E8D730, 0x0};
+    PCache_GetComponent{0x141E80CA0, 0x0};
 WEAK symbol<void(ControllerIndex_t controllerIndex, XUID xuid)>
-    PCache_InvalidatePlayerEmblem{0x141E81580, 0x141E8E010, 0x0};
+    PCache_InvalidatePlayerEmblem{0x141E81580, 0x0};
 // inMatch is set while in a match with no menu locking input, and makes it
 // skip fetching public profiles
 WEAK symbol<void(ControllerIndex_t controllerIndex, bool inMatch)>
-    PCache_Update{0x141E81720, 0x141E8E1B0, 0x0};
+    PCache_Update{0x141E81720, 0x0};
 // Task callbacks of PCache_BatchUpdatePublicProfiles. Both mark the players
 // that came back without a profile as PCACHE_STATE_NO_DATA.
-WEAK symbol<bool(dw::TaskRecord *task)> PCache_GetPublicProfilesSuccess{
-    0x141E82310, 0x141E8EDA0, 0x0};
-WEAK symbol<bool(dw::TaskRecord *task)> PCache_GetPublicProfilesFailure{
-    0x141E82580, 0x141E8F010, 0x0};
+WEAK symbol<bool(dw::TaskRecord *task)> PCache_GetPublicProfilesSuccess{0x141E82310, 0x0};
+WEAK symbol<bool(dw::TaskRecord *task)> PCache_GetPublicProfilesFailure{0x141E82580, 0x0};
 } // namespace pcache
 } // namespace game

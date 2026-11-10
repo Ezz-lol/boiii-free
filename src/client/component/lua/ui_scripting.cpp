@@ -2631,7 +2631,7 @@ public:
                                         R_CopyTextureRegionMips_Safe);
     Lua_CoD_FFReader_hook.create(Lua_CoD_FFReader,
                                  Lua_CoD_FFReader_EnforceOverride);
-    utils::hook::call(game::select(0x141D3CD0A, 0x141D4979A, 0x1403F233A),
+    utils::hook::call(game::select(0x141D3CD0A, 0x1403F233A),
                       hks_load_stub);
     load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
     scheduler::once(register_t7overcharged_dvars, scheduler::pipeline::main);

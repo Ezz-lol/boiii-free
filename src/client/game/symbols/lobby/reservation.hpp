@@ -5,7 +5,7 @@
 namespace game {
 namespace lobby {
 namespace reservation {
-WEAK symbol<Reservation> s_reservation{0x1556CDFA0, 0x15574CF10, 0x148580A40};
+WEAK symbol<Reservation> s_reservation{0x1556CDFA0, 0x148580A40};
 }
 } // namespace lobby
 } // namespace game
