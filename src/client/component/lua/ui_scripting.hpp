@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/string.hpp"
 #include <atomic>
 #include <functional>
 
@@ -67,13 +68,7 @@ struct CaseInsensitiveHash {
 // Custom case-insensitive equality functor
 struct CaseInsensitiveEqual {
   constexpr bool operator()(frozen::string a, frozen::string b) const {
-    if (a.size() != b.size())
-      return false;
-    for (std::size_t i = 0; i < a.size(); ++i) {
-      if (std::tolower(a.data()[i]) != std::tolower(b.data()[i]))
-        return false;
-    }
-    return true;
+    return a.size() == b.size() && utils::string::iequal(a.data(), b.data());
   }
 };
 

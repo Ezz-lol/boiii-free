@@ -1,11 +1,20 @@
 #pragma once
 #include "memory.hpp"
+#include <algorithm>
 #include <cstdarg>
 #include <macros/macros.hpp>
 #include <stdexcept>
 #include <string>
 
 namespace utils::string {
+
+alwaysinline constexpr char tolower(char c) noexcept {
+  return (c >= 'A' && c <= 'Z') ? c + ('a' - 'A') : c;
+}
+
+inline constexpr uint8_t tolower(uint8_t c) noexcept {
+  return static_cast<uint8_t>(tolower(static_cast<char>(c)));
+}
 
 template <size_t Buffers, size_t MinBufferSize> class va_provider final {
 public:
@@ -86,16 +95,31 @@ inline std::vector<std::string_view> split(const std::string_view &s,
   return split(s, std::string_view(&delim, 1));
 }
 
-inline bool iequal(const std::string_view &a, const std::string_view &b) {
+inline constexpr bool iequal(const std::string_view &a,
+                             const std::string_view &b) {
   return a.length() == b.length() &&
          std::equal(a.begin(), a.end(), b.begin(), [](uint8_t ca, uint8_t cb) {
-           return std::tolower(ca) == std::tolower(cb);
+           return tolower(ca) == tolower(cb);
          });
 }
 
-std::string to_lower(std::string text);
-std::string to_upper(std::string text);
+constexpr std::string to_lower(std::string text) {
+  std::transform(text.begin(), text.end(), text.begin(),
+                 [](const unsigned char input) {
+                   return static_cast<char>(std::tolower(input));
+                 });
 
+  return text;
+}
+
+constexpr std::string to_upper(std::string text) {
+  std::transform(text.begin(), text.end(), text.begin(),
+                 [](const unsigned char input) {
+                   return static_cast<char>(std::toupper(input));
+                 });
+
+  return text;
+}
 bool contains(const std::string_view &text, const std::string_view &substring);
 bool starts_with(const std::string_view &text,
                  const std::string_view &substring);

@@ -53,24 +53,6 @@ std::vector<std::string> split(const std::string &s,
   return result;
 }
 
-std::string to_lower(std::string text) {
-  std::transform(text.begin(), text.end(), text.begin(),
-                 [](const unsigned char input) {
-                   return static_cast<char>(std::tolower(input));
-                 });
-
-  return text;
-}
-
-std::string to_upper(std::string text) {
-  std::transform(text.begin(), text.end(), text.begin(),
-                 [](const unsigned char input) {
-                   return static_cast<char>(std::toupper(input));
-                 });
-
-  return text;
-}
-
 bool starts_with(const std::string_view &text,
                  const std::string_view &substring) {
   return text.find(substring) == 0;
