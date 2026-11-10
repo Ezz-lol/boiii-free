@@ -11,6 +11,10 @@ void CG_InitAndAllocCGEntsArray_Impl(
     int32_t maxKillCamsInSplitScreen = 0);
 
 void CG_ClearCGEnts_Impl();
+const ClientViewParams *
+CG_GetLocalClientViewParams_Impl(LocalClientNum_t localClientNum,
+                                 int32_t viewIndex, int32_t viewCount,
+                                 bool letterbox);
 void CG_FreeCGEnts_Impl(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients =
                                                   game::LOCAL_CLIENT_COUNT);
 void CG_AllocateClientMemory_Impl(

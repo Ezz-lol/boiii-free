@@ -195,6 +195,22 @@ DataSources.BoiiiQuickSettingsVideo = DataSourceHelpers.ListSetup("BoiiiQuickSet
     optionsTable,
     toggle(controller, "com_drawFPS_PC", "Show FPS Counter", "Display frames per second on screen.")
   )
+  table.insert(
+    optionsTable,
+    CoD.OptionsUtility.CreateDvarSettings(
+      controller,
+      "Split Screen View",
+      "Black Bars keeps each split screen view the size the base game uses. Fill Screen lets each player's view use their whole half of the screen.",
+      "QuickSettings_splitscreenletterbox",
+      "cg_splitscreen_letterbox",
+      {
+        { option = "Black Bars", value = 1, default = true },
+        { option = "Fill Screen", value = 0 },
+      },
+      nil,
+      updateDvar
+    )
+  )
 
   for _, item in ipairs(BoiiiLodSettings.CreateDvarSettings(controller, "QuickSettings_")) do
     table.insert(optionsTable, item)

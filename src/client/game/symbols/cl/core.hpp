@@ -17,6 +17,7 @@ WEAK symbol<bool(game::LocalClientNum_t localClientNum, int index, char *buf,
 WEAK symbol<bool(game::LocalClientNum_t localClientNum)>
     CL_LocalClient_IsActive{0x1427C18E0, 0x0};
 WEAK symbol<float(void *key)> CL_KeyState{0x1412FF880, 0x0};
+WEAK symbol<void()> CL_SetupScreenPlacements{0x14132E1D0, 0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum, int32_t key, int32_t down,
                  uint32_t time)>
     CL_KeyEvent{0x141342220, 0x0};
