@@ -137,8 +137,37 @@ struct ClientViewParams {
   float y;
   float width;
   float height;
+
+  [[nodiscard]] constexpr ClientViewParams transpose() const noexcept {
+    return {.x = y, .y = x, .width = height, .height = width};
+  }
 };
 ASSERT_SIZE(ClientViewParams, 0x10);
+
+// Verified
+struct ClientViewLayouts {
+  // A single view only uses the first entry
+  ClientViewParams oneView[2];
+  ClientViewParams twoViews[2];
+
+  [[nodiscard]] constexpr ClientViewParams *
+  forViewCount(const int32_t viewCount) noexcept {
+    return viewCount <= 1 ? oneView : twoViews;
+  }
+};
+ASSERT_SIZE(ClientViewLayouts, 0x40);
+
+// Verified
+struct LocalClientViewParams {
+  ClientViewLayouts standard;
+  ClientViewLayouts widescreen;
+
+  [[nodiscard]] constexpr ClientViewLayouts &
+  forAspect(const bool isWidescreen) noexcept {
+    return isWidescreen ? widescreen : standard;
+  }
+};
+ASSERT_SIZE(LocalClientViewParams, 0x80);
 
 } // namespace cg
 } // namespace game
