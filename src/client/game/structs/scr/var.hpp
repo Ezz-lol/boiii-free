@@ -256,7 +256,9 @@ struct ScrVarEntityInfo_t {
   ClientNum16_t clientNum;
 };
 
-enum class ScrVarNameType_t : int32_t {
+// Unsigned, or the 3-bit nameType field reads OBJECT and WEAPON back as
+// negative values
+enum class ScrVarNameType_t : uint32_t {
   INTEGER = 0x1,
   UNKNOWN_INTEGER_LIKE = 0x2,
   CONST_STRING = 0x3,

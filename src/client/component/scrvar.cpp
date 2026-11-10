@@ -205,7 +205,8 @@ void ScrVar_AddArrayKeys_ObjectKeys(const scriptInstance_t inst,
       break;
     }
     default:
-      break;
+      // Nothing was pushed, so adding to the array would pop the array itself
+      continue;
     }
 
     Scr_AddArray(inst);
