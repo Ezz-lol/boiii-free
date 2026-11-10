@@ -19,8 +19,8 @@ namespace {
 // Matches the lobby component's patch to the engine's join handler, which this
 // handler replaces
 LobbyNetworkMode get_join_network_mode() {
-  return game::is_new_client() ? LobbyNetworkMode::LIVE
-                               : base::LobbyBase_GetNetworkMode();
+  return game::is_client() ? LobbyNetworkMode::LIVE
+                           : base::LobbyBase_GetNetworkMode();
 }
 } // namespace
 

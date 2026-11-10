@@ -296,7 +296,7 @@ int32_t dw_get_connection_status_stub(const game::net::netadr_t *netadr) {
 
 game::net::HostInfo *lobby_host_info(
     const game::lobby::LobbyType type = game::lobby::LobbyType::PRIVATE) {
-  if (game::is_legacy_client() || !game::lobby::LobbyHost_IsHost(type))
+  if (!game::lobby::LobbyHost_IsHost(type))
     return nullptr;
   game::lobby::session::LobbySession *session =
       game::lobby::LobbyHostData_GetSession(type);
@@ -1097,10 +1097,6 @@ class component final : public generic_component {
 
 public:
   void post_unpack() override {
-    if (game::is_legacy_client()) {
-      return;
-    }
-
     dw_common_addr_to_netadr_hook.create(game::dw::dwCommonAddrToNetadr.get(),
                                          dw_common_addr_to_netadr_stub);
     dw_get_connection_status_hook.create(game::dw::dwGetConnectionStatus.get(),

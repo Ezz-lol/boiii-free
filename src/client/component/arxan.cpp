@@ -813,14 +813,14 @@ struct component final : generic_component {
 
     open_process_hook.create(OpenProcess, open_process_stub);
 
-    if (game::is_legacy_client() || game::is_server()) {
 #ifndef NDEBUG
+    if (game::is_server()) {
       void *get_thread_context_func = utils::nt::library("kernelbase.dll")
                                           .get_proc<void *>("GetThreadContext");
       get_thread_context_hook.create(get_thread_context_func,
                                      get_thread_context_stub);
-#endif
     }
+#endif
 
     utils::hook::copy(this->window_text_buffer_, GetWindowTextA,
                       sizeof(this->window_text_buffer_));
@@ -838,7 +838,7 @@ struct component final : generic_component {
 
   void post_unpack() override {
 
-    if (game::is_new_client()) {
+    if (game::is_client()) {
       patch_checksum_comparisons_new();
     } else {
       search_and_patch_integrity_checks();

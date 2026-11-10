@@ -1652,7 +1652,7 @@ struct component final : generic_component {
     using game::playlist::Playlist_ParsePlaylists;
     if (game::is_server()) {
       utils::hook::nop(Playlist_ParsePlaylists.offset(0x23D4), 5);
-    } else if (!game::is_legacy_client()) {
+    } else {
       utils::hook::nop(Playlist_ParsePlaylists.offset(0x1D59), 5);
       utils::hook::nop(Playlist_ParsePlaylists.offset(0x2209), 5);
     }

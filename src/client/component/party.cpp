@@ -308,7 +308,7 @@ template <utils::hook::detour *Hook> void sv_map_in_mode_stub() {
   bool leave_match = false;
   {
     const command::params_sv params{};
-    if (params.size() > 1 && game::is_new_client()) {
+    if (params.size() > 1 && game::is_client()) {
       leave_match = game::com::Com_IsInGame() && needs_usermaps_mod(params[1]);
       if (!game::com::Com_IsInGame() || leave_match) {
         mode = get_default_gamemode_config_for_map(params[1]);

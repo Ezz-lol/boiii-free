@@ -142,10 +142,8 @@ inline void handle_invalid_scrvars() {
       game::scr::var::ScrVar_CastBool_NonInteger_Impl);
   Scr_IsTrue_hook.create(game::scr::var::Scr_IsTrue.get(),
                          game::scr::var::Scr_IsTrue_Impl);
-  if (!game::is_legacy_client()) {
-    utils::hook::call(game::scr::var::VM_OP_JumpOnTrue_IsTrueCall.get(),
-                      game::scr::var::Scr_IsTrue_JumpOnTrue_Impl);
-  }
+  utils::hook::call(game::scr::var::VM_OP_JumpOnTrue_IsTrueCall.get(),
+                    game::scr::var::Scr_IsTrue_JumpOnTrue_Impl);
 }
 
 inline void handle_invalid_mt_allocs() {
@@ -232,9 +230,6 @@ void enlarge_server_variable_pool() {
       0x1401620E6, 0x140166F2A, 0x140167062, 0x140167C7E, 0x140167EB2,
       0x14016B910, 0x14016BB63, 0x14016F9C8, 0x140171F07, 0x140172F5C,
       0x14017304D, 0x140173335, 0x1401743B7, 0x140174480};
-  if (game::is_legacy_client()) {
-    return;
-  }
   for (const uintptr_t site :
        game::is_server() ? std::span(server_sites) : std::span(client_sites)) {
     utils::hook::set<uint32_t>(game::relocate(site),

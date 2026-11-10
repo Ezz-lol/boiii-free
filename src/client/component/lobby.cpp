@@ -182,7 +182,7 @@ public:
           add_client_at_position_stub);
     }
 
-    if (game::is_new_client()) {
+    if (game::is_client()) {
       for (const size_t offset : {0xa4, 0x26d}) {
         utils::hook::call(host::LobbyHost_HandleJoinRequest.offset(offset),
                           return_const<LobbyNetworkMode::LIVE>);

@@ -241,9 +241,6 @@ class component final : public generic_component {
 
 public:
   void post_unpack() override {
-    if (game::is_legacy_client()) {
-      return;
-    }
     bg_unlockables_load_items_hook.create(
         game::bg::BG_UnlockablesLoadItems.get(),
         bg_unlockables_load_items_stub);

@@ -835,24 +835,22 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("script_error");
 
   void post_unpack() override {
-    if (!game::is_legacy_client()) {
-      utils::hook::call(game::scr::Scr_LoadScript_ScriptNotFoundCall.get(),
-                        Com_Error_ScriptNotFound);
-      utils::hook::call(game::scr::Scr_LoadScript_LinkScriptCall.get(),
-                        Com_Error_LinkScript);
-      utils::hook::call(game::scr::GscObjResolve_LinkErrorsCall.get(),
-                        Com_Error_LinkErrors);
-      utils::hook::call(game::scr::GscObjResolve_LinkerMessageCall.get(),
-                        ignore_linker_message);
-      utils::hook::call(game::scr::GscObjResolve_LinkerMessageCall2.get(),
-                        ignore_linker_message);
-      utils::hook::call(game::scr::VM_RuntimeError_ComErrorCall.get(),
-                        Com_Error_ScriptRuntime);
+    utils::hook::call(game::scr::Scr_LoadScript_ScriptNotFoundCall.get(),
+                      Com_Error_ScriptNotFound);
+    utils::hook::call(game::scr::Scr_LoadScript_LinkScriptCall.get(),
+                      Com_Error_LinkScript);
+    utils::hook::call(game::scr::GscObjResolve_LinkErrorsCall.get(),
+                      Com_Error_LinkErrors);
+    utils::hook::call(game::scr::GscObjResolve_LinkerMessageCall.get(),
+                      ignore_linker_message);
+    utils::hook::call(game::scr::GscObjResolve_LinkerMessageCall2.get(),
+                      ignore_linker_message);
+    utils::hook::call(game::scr::VM_RuntimeError_ComErrorCall.get(),
+                      Com_Error_ScriptRuntime);
 
-      Scr_LoadScript_hook.create(Scr_LoadScript, Scr_LoadScript_Scoped);
-      GscObjResolve_hook.create(GscObjResolve, GscObjResolve_Scoped);
-      VM_RuntimeError_hook.create(VM_RuntimeError, VM_RuntimeError_Scoped);
-    }
+    Scr_LoadScript_hook.create(Scr_LoadScript, Scr_LoadScript_Scoped);
+    GscObjResolve_hook.create(GscObjResolve, GscObjResolve_Scoped);
+    VM_RuntimeError_hook.create(VM_RuntimeError, VM_RuntimeError_Scoped);
 
     ReportObjLinkError_hook.create(ReportObjLinkError,
                                    ReportObjLinkError_Report);

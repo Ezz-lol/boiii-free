@@ -1000,16 +1000,6 @@ void patch_unsafe_lua_functions() {
     HOOK_UNSAFE_FUNCTION("base_load", base_load);
     HOOK_UNSAFE_FUNCTION("string_dump", string_dump);
 
-    if (game::is_legacy_client()) {
-      HOOK_UNSAFE_FUNCTION("os_getenv", os_getenv);
-      HOOK_UNSAFE_FUNCTION("os_tmpname", os_tmpname);
-      HOOK_UNSAFE_FUNCTION("os_execute", os_execute);
-      HOOK_UNSAFE_FUNCTION("os_exit", os_exit);
-      HOOK_UNSAFE_FUNCTION("os_remove", os_remove);
-      HOOK_UNSAFE_FUNCTION("os_rename", os_rename);
-      HOOK_UNSAFE_FUNCTION("os_sleep", os_sleep);
-    }
-
     // io helpers
     HOOK_UNSAFE_FUNCTION("io_tostring", io_tostring);
     HOOK_UNSAFE_FUNCTION("io_close_file", io_close_file);
@@ -2683,9 +2673,7 @@ public:
           },
           scheduler::pipeline::renderer);
 
-      if (!game::is_legacy_client()) {
-        utils::hook::call(0x1420EC3E2_g, CL_KeyEvent_CustomKeymap());
-      }
+      utils::hook::call(0x1420EC3E2_g, CL_KeyEvent_CustomKeymap());
 
       register_lui_commands();
       patch_unsafe_lua_functions();

@@ -454,10 +454,6 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("error_help");
 
   void post_unpack() override {
-    if (game::is_legacy_client()) {
-      return;
-    }
-
     if (game::is_client()) {
       utils::hook::set<uint8_t>(0x1420EBA93_g, 0xEB);
       utils::hook::jump(0x14135CAB9_g, Com_Error_ServerTimeout);

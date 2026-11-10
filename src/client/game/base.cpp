@@ -33,7 +33,7 @@ uint32_t header_checksum() {
   return result;
 }
 
-bool is_new_client() {
+bool is_client() {
   static const bool result = header_checksum() == 0x6531394;
   return result;
 }
@@ -41,16 +41,6 @@ bool is_new_client() {
 bool is_server() {
   static const bool is_server = header_checksum() == 0x14C28B4;
   return is_server;
-}
-
-bool is_legacy_client() {
-  static const bool is_legacy_client = header_checksum() == 0x888C368;
-  return is_legacy_client;
-}
-
-bool is_client() {
-  static const bool is_client = is_legacy_client() || is_new_client();
-  return is_client;
 }
 
 std::filesystem::path game_directory() {

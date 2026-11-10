@@ -388,13 +388,10 @@ struct component final : generic_component {
 #endif
     // Clientfield Mismatch -> recoverable ERR_DROP
     com_error_hook.create(game::com::Com_Error_, com_error_stub);
-    if (!game::is_legacy_client()) {
-      utils::hook::nop(game::com::Com_Error_PrintErrorCall.get(), 5);
-      utils::hook::nop(game::com::Com_ErrorCleanup_PrintErrorCall.get(), 5);
-      utils::hook::nop(game::com::Com_ErrorCleanup_PrintDisconnectCall.get(),
-                       5);
-    }
-    if (game::is_new_client()) {
+    utils::hook::nop(game::com::Com_Error_PrintErrorCall.get(), 5);
+    utils::hook::nop(game::com::Com_ErrorCleanup_PrintErrorCall.get(), 5);
+    utils::hook::nop(game::com::Com_ErrorCleanup_PrintDisconnectCall.get(), 5);
+    if (game::is_client()) {
       active_network_mode_hook.create(
           game::com::Com_SessionMode_GetActiveNetworkMode,
           active_network_mode_stub);
@@ -411,10 +408,8 @@ struct component final : generic_component {
 
     // Havok AI starts its Visual Debugger with every local or dedicated server.
     // It listens on port 25001, and anything connecting to it crashes the game
-    if (!game::is_legacy_client()) {
-      utils::hook::jump(game::hk::hkVisualDebugger_serve.get(),
-                        hkVisualDebugger_serve_stub);
-    }
+    utils::hook::jump(game::hk::hkVisualDebugger_serve.get(),
+                      hkVisualDebugger_serve_stub);
     Demo_AddXAnim_hook.create(game::demo::Demo_AddXAnim.get(),
                               Demo_AddXAnim_stub);
 

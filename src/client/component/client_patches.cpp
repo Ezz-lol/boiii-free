@@ -89,19 +89,6 @@ void patch_is_mod_loaded_checks() {
   }
 }
 
-void patch_legacy_is_mod_loaded_checks() {
-  static constexpr uintptr_t IS_MOD_LOADED_ADDRESSES[] = {
-      0x1420F7484, 0x1420F74A4, 0x1420F73E4, 0x1420F73B4, 0x1420F6E57,
-      0x1413E6A54, 0x1415E7EBB, 0x1415E87BB, 0x1415EBAC9, 0x1415F1F09,
-      0x1415F1FB9, 0x1415F2080, 0x1415F7F40, 0x141A8D0ED, 0x141AA70F9,
-      0x141EA06FB, 0x141EA8C7E, 0x141EB1A39, 0x141ECBA9D, 0x1420F6E1D,
-  };
-
-  for (const uintptr_t &address : IS_MOD_LOADED_ADDRESSES) {
-    utils::hook::call(game::relocate(address), is_mod_loaded_stub);
-  }
-}
-
 float cl_key_state_yaw_speed_stub(void *key) {
   return game::cl::CL_KeyState(key) * cl_yaw_speed.get_float();
 }
@@ -536,14 +523,12 @@ public:
     replace_sd_allocator();
     disable_dw_userfile_writes();
 
-    if (!game::is_legacy_client()) {
-      snd_queue_add_hook.create(game::snd::SND_QueueAdd.get(),
-                                snd_queue_add_stub);
-    }
+    snd_queue_add_hook.create(game::snd::SND_QueueAdd.get(),
+                              snd_queue_add_stub);
     fix_mapswitch_crashes();
     CL_CompositeRender_hook.create(game::cl::CL_CompositeRender,
                                    CL_CompositeRender_stub);
-    if (game::is_new_client()) {
+    if (game::is_client()) {
       IN_SetActiveDevice_hook.create(game::in::IN_SetActiveDevice,
                                      IN_SetActiveDevice_stub);
     }
@@ -562,11 +547,7 @@ public:
     // Keep client ranked when mod loaded
     utils::hook::jump(game::scr::Scr_IsModLoaded, is_mod_loaded_stub);
 
-    if (game::is_legacy_client()) {
-      patch_legacy_is_mod_loaded_checks();
-    } else {
-      patch_is_mod_loaded_checks();
-    }
+    patch_is_mod_loaded_checks();
 
     // Kill Client/Server Index Mismatch error
     utils::hook::set<uint8_t>(
@@ -605,7 +586,7 @@ public:
     // Don't drop clients with MP_HOST_COMMS_FAILURE when a stat changes more
     // than the anti-boosting limits allow (65536 XP, 300 kills, etc), which
     // long matches or XP scales can hit. Treat the changes as valid instead
-    if (game::is_new_client()) {
+    if (game::is_client()) {
       utils::hook::call(
           game::live::stats::LiveStats_CompareStatsVsStableBuffer.offset(0x130),
           return_const<0>);
@@ -669,15 +650,13 @@ public:
     Com_FPSLimit_hook.create(
         game::com::Com_FPSLimit.get(),
         return_const<std::numeric_limits<uint32_t>::max()>);
-    if (!game::is_legacy_client()) {
-      utils::hook::call(game::com::Com_Frame_Try_Block_Function.offset(0x113),
-                        frame_limiter_sleep);
-    }
+    utils::hook::call(game::com::Com_Frame_Try_Block_Function.offset(0x113),
+                      frame_limiter_sleep);
 
     command::add("unmuteall", game::lobby::voice::UnMuteAllClients);
     command::add("muteall", game::lobby::voice::MuteAllClients);
 
-    if (game::is_new_client()) {
+    if (game::is_client()) {
       utils::hook::call(0x1400AAB93_g, register_config_string_print_stub);
       cl_log_config_strings = game::register_dvar_bool(
           "cl_logConfigStrings", false, game::dvarFlags_e::NONE,

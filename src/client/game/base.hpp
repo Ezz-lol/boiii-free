@@ -12,10 +12,8 @@ namespace game {
 uintptr_t get_engine_base();
 uint32_t header_checksum();
 
-bool is_new_client();
 bool is_server();
 bool is_client();
-bool is_legacy_client();
 std::filesystem::path game_directory();
 
 inline uintptr_t get_base() {

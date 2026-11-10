@@ -489,7 +489,7 @@ struct component final : generic_component {
       utils::hook::set<uint8_t>(game::select(0x14134D11B, 0x14134D0FB, 0x0),
                                 0xEB);
 
-      if (game::is_new_client()) {
+      if (game::is_client()) {
         utils::hook::jump(game::net::NET_GetDefaultPort.get(), first_free_port);
       }
     }

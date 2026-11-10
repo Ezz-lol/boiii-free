@@ -50,20 +50,18 @@ public:
         game::cinematic::Cinematic_StartPlayback,
         cinematic_start_playback_stub);
 
-    if (!game::is_legacy_client()) {
-      utils::hook::call(
-          game::cinematic::Cinematic_ResolvePaths_UsermapLoadedCall.get(),
-          ugc_video_loaded);
-      utils::hook::call(
-          game::cinematic::Cinematic_ResolvePaths_UsermapPathCall.get(),
-          ugc_video_root);
-      utils::hook::call(
-          game::cinematic::Cinematic_ResolvePath_UsermapLoadedCall.get(),
-          ugc_video_loaded);
-      utils::hook::call(
-          game::cinematic::Cinematic_ResolvePath_UsermapPathCall.get(),
-          ugc_video_root);
-    }
+    utils::hook::call(
+        game::cinematic::Cinematic_ResolvePaths_UsermapLoadedCall.get(),
+        ugc_video_loaded);
+    utils::hook::call(
+        game::cinematic::Cinematic_ResolvePaths_UsermapPathCall.get(),
+        ugc_video_root);
+    utils::hook::call(
+        game::cinematic::Cinematic_ResolvePath_UsermapLoadedCall.get(),
+        ugc_video_loaded);
+    utils::hook::call(
+        game::cinematic::Cinematic_ResolvePath_UsermapPathCall.get(),
+        ugc_video_root);
   }
 };
 } // namespace intro
