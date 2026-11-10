@@ -472,21 +472,7 @@ void HandleJoinResponse(ControllerIndex_t controllerIndex,
                 "from client ({:016X} @ {}): {}",
                 game::serialize(controllerIndex), fromXUID,
                 fromAdr->serialize(), msgData.serialize());
-
-    game::trace(
-        "HandleJoinResponse: fromAdr == "
-        "join::s_join->potentialHost.info.netAdr: {}. fromAdr: {}, "
-        "join::s_join->potentialHost.info.netAdr: {}",
-        ::serialize(*fromAdr == join::s_join->potentialHost.info.netAdr),
-        fromAdr->serialize(),
-        join::s_join->potentialHost.info.netAdr.serialize());
 #endif
-
-    if (join::s_join->potentialHost.info.netAdr.is_invalid()) {
-      game::trace("Join potentialHost was invalid. s_join: {}",
-                  join::s_join->serialize());
-      join::s_join->potentialHost.info.netAdr = *fromAdr;
-    }
 
     if (*fromAdr == join::s_join->potentialHost.info.netAdr) {
       if (static_cast<uint32_t>(msgData.lobbyType) >

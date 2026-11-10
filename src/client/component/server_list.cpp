@@ -104,7 +104,7 @@ void handle_server_list_response(const game::net::netadr_t &target,
   if (s.requesting) {
     master_query *matched = nullptr;
     for (master_query &m : s.masters) {
-      if (!m.responded && m.address == target) {
+      if (!m.responded && network::are_addresses_equal(m.address, target)) {
         matched = &m;
         break;
       }

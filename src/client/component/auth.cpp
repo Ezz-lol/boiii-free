@@ -279,18 +279,18 @@ bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,
 
   const std::string connect_data =
       serialize_connect_data(controllerIndex, data, length);
-  game::fragment_handler::fragment_data //
-      (connect_data.data(), connect_data.size(),
-       [&](const utils::byte_buffer &buffer) {
-         utils::byte_buffer packet_buffer{};
-         packet_buffer.write("connect ");
-         packet_buffer.write(buffer);
+  game::fragment_handler::fragment_data(
+      connect_data.data(), connect_data.size(),
+      [&](const utils::byte_buffer &buffer) {
+        utils::byte_buffer packet_buffer{};
+        packet_buffer.write("connect ");
+        packet_buffer.write(buffer);
 
-         const std::string &fragment_packet = packet_buffer.get_buffer();
+        const std::string &fragment_packet = packet_buffer.get_buffer();
 
-         game::net::NET_OutOfBandData(sock, adr, fragment_packet.data(),
-                                      static_cast<int>(fragment_packet.size()));
-       });
+        game::net::NET_OutOfBandData(sock, adr, fragment_packet.data(),
+                                     static_cast<int>(fragment_packet.size()));
+      });
   return true;
 }
 
@@ -360,7 +360,7 @@ void handle_new_player(const game::net::netadr_t &target) {
       // SV_UserinfoChanged has already set a player's XUID from their
       // userinfo. Bots share one XUID, so only take a bot that has none yet
       const game::XUID client_xuid = client.get_xuid();
-      if (client.address == target &&
+      if (network::are_addresses_equal(client.address, target) &&
           (client_xuid == 0 || (target.type != game::net::netadrtype_t::BOT &&
                                 client_xuid == xuid))) {
         // Every bot connects with the same XUID. Clients read its low byte

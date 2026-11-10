@@ -716,7 +716,8 @@ void handle_info_response(const game::net::netadr_t &target,
   get_server_queries().access([&](std::vector<server_query> &server_queries) {
     for (std::vector<server_query>::iterator i = server_queries.begin();
          i != server_queries.end(); ++i) {
-      if (i->host == target && i->challenge == info.get("challenge")) {
+      if (network::are_addresses_equal(i->host, target) &&
+          i->challenge == info.get("challenge")) {
         found_query = true;
         query = std::move(*i);
         i = server_queries.erase(i);
@@ -800,7 +801,8 @@ bool is_dedi_server(const game::net::netadr_t &addr) {
 }
 
 bool is_host(const game::net::netadr_t &addr) {
-  return get_connected_server() == addr || connect_host == addr;
+  return network::are_addresses_equal(get_connected_server(), addr) ||
+         network::are_addresses_equal(connect_host, addr);
 }
 
 uint16_t get_local_port() {

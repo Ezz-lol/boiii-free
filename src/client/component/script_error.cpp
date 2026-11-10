@@ -857,14 +857,15 @@ struct component final : generic_component {
     if (game::is_client()) {
       ReportObjLinkError2_hook.create(ReportObjLinkError2,
                                       ReportObjLinkError_Report);
-      network::on("serverError",
-                  [](const game::net::netadr_t &from,
-                     const network::data_view &data,
-                     const game::LocalClientNum_t localClientNum) {
-                    if (from == party::get_connected_server(localClientNum)) {
-                      show_error_popup(std::string(data.begin(), data.end()));
-                    }
-                  });
+      network::on(
+          "serverError",
+          [](const game::net::netadr_t &from, const network::data_view &data,
+             const game::LocalClientNum_t localClientNum) {
+            if (network::are_addresses_equal(
+                    from, party::get_connected_server(localClientNum))) {
+              show_error_popup(std::string(data.begin(), data.end()));
+            }
+          });
     }
   }
 };
