@@ -59,6 +59,9 @@ window::window(
 
   SendMessageA(this->handle_, WM_DPICHANGED, 0, 0);
   ShowWindow(this->handle_, SW_SHOW);
+  if (IsIconic(this->handle_)) {
+    ShowWindow(this->handle_, SW_RESTORE);
+  }
 
   RECT rect{};
   if (GetWindowRect(this->handle_, &rect)) {
