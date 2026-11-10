@@ -113,7 +113,7 @@ void handle_server_respone(
   server_list.access([&](servers &srvs) {
     size_t i = 0;
     for (; i < srvs.size(); ++i) {
-      if (srvs[i].address == host) {
+      if (network::are_addresses_equal(srvs[i].address, host)) {
         break;
       }
     }

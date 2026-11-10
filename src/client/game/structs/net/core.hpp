@@ -291,7 +291,7 @@ struct netadr_t {
     if (localNetID == other.localNetID || localNetID == netsrc_t::SERVER ||
         other.localNetID == netsrc_t::SERVER) {
 
-      if (type == netadrtype_t::IP) {
+      if (type == netadrtype_t::IP || type == netadrtype_t::RAWIP) {
         if (port == other.port) {
           return ipv4.cmp(other.ipv4);
         }

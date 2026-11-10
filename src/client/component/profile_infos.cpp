@@ -389,7 +389,7 @@ struct component final : generic_component {
           add_profile_info(xuid, info);
           if (from_lobby_peer) {
             for (const game::net::netadr_t &peer : nat::get_lobby_peers()) {
-              if (peer != server) {
+              if (!network::are_addresses_equal(peer, server)) {
                 distribute_profile_info_to_user(peer, xuid, info);
               }
             }
