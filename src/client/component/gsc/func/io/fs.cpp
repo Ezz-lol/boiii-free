@@ -29,10 +29,9 @@ namespace io {
 namespace fs {
 
 const std::filesystem::path &scriptdata_path() {
-  static const std::filesystem::path result = []() -> std::filesystem::path {
-    const utils::nt::library host{};
-    return host.get_folder() / "boiii" / "scriptdata";
-  }();
+  static const std::filesystem::path result =
+      path::cwd() / utils::flags::get<std::string>("scriptdata-path")
+                        .value_or("boiii/scriptdata");
 
   return result;
 }
@@ -66,14 +65,12 @@ void gscr_readfile(scriptInstance_t inst) {
   if (path != nullptr && is_safe_path(path)) {
     const std::filesystem::path full = resolve_path(path);
     std::string data;
-    if (utils::io::read_file(full.string(), &data)) {
-      push_string(inst, data.c_str());
-    } else {
-      push_string(inst, "");
+    if (utils::io::read_file(full, &data)) {
+      push_string(inst, data);
+      return;
     }
-  } else {
-    push_string(inst, "");
   }
+  push_string(inst, "");
 }
 
 void gscr_appendfile(scriptInstance_t inst) {
@@ -85,7 +82,7 @@ void gscr_appendfile(scriptInstance_t inst) {
     if (!parent.empty()) {
       utils::io::create_directory(parent);
     }
-    push(inst, utils::io::write_file(full.string(), data, true));
+    push(inst, utils::io::write_file(full, data, true));
   } else {
     push(inst, 0);
   }
@@ -94,7 +91,7 @@ void gscr_appendfile(scriptInstance_t inst) {
 void gscr_fileexists(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
   if (path != nullptr && is_safe_path(path)) {
-    push(inst, utils::io::file_exists(resolve_path(path).string()));
+    push(inst, utils::io::file_exists(resolve_path(path)));
   } else {
     push(inst, 0);
   }
@@ -127,8 +124,7 @@ void gscr_rm(scriptInstance_t inst) {
 void gscr_filesize(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
   if (path != nullptr && is_safe_path(path)) {
-    push(inst,
-         static_cast<int>(utils::io::file_size(resolve_path(path).string())));
+    push(inst, static_cast<int>(utils::io::file_size(resolve_path(path))));
   } else {
     push(inst, 0);
   }

@@ -60,14 +60,16 @@ std::string read_file(const std::filesystem::path &file) {
 }
 
 bool read_file(const std::filesystem::path &file, std::string *data) {
-  if (!data)
+  if (!data) {
     return false;
+  }
   data->clear();
 
   if (file_exists(file)) {
     std::ifstream stream(file, std::ios::binary);
-    if (!stream.is_open())
+    if (!stream.is_open()) {
       return false;
+    }
 
     stream.seekg(0, std::ios::end);
     const std::streamsize size = stream.tellg();

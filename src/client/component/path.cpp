@@ -131,9 +131,9 @@ bool try_replace_workshop_root(std::filesystem::path &path) {
 
 std::filesystem::path normalize(const std::filesystem::path &path) {
   static const ParentMatch parent_replacements[] = {
-      {players_directory(), boiii_players_directory()},
-      {root() / "LPC", lpc_directory()},
-      {"\\LPC", lpc_directory()}};
+      {.parent = players_directory(), .replacement = boiii_players_directory()},
+      {.parent = root() / "LPC", .replacement = lpc_directory()},
+      {.parent = "\\LPC", .replacement = lpc_directory()}};
 
   std::filesystem::path canonicalized = std::filesystem::weakly_canonical(path);
 
@@ -148,8 +148,7 @@ std::filesystem::path normalize(const std::filesystem::path &path) {
   const std::string path_str = utils::string::convert(path.native());
   const std::string canonicalized_str =
       utils::string::convert(canonicalized.native());
-  game::trace("[Path] Normalized \"{}\" -> \"{}\"", path_str,
-              canonicalized_str);
+  game::trace(R"([Path] Normalized "{}" -> "{}")", path_str, canonicalized_str);
 #endif
 
   return canonicalized;

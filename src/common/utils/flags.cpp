@@ -269,6 +269,11 @@ int32_t parse_flags(int argc, char *argv[]) {
             "boiii_players/user/master_servers.txt if present.")
       .default_value(std::string(""));
 
+  program.add_argument("-scriptdata-path", "--scriptdata-path")
+      .help("Path of root directory used for filesystem access in GSC and CSC "
+            "scripts.")
+      .default_value(std::string("boiii/scriptdata"));
+
 #ifndef NDEBUG
   add_debug_profile_arguments();
 #endif
