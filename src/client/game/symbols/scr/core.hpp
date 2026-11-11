@@ -32,6 +32,8 @@ WEAK symbol<ScrString_t(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetConstString{0x1412EB210, 0x140170BE0};
 WEAK symbol<float(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetFloat{0x1412EB5E0, 0x140170FB0};
+WEAK symbol<weapon::Weapon(scriptInstance_t inst, var::ScrVarIndex_t index)>
+    Scr_GetWeapon{0x1412EC110, 0x140171AC0};
 WEAK symbol<int(scriptInstance_t inst, var::ScrVarIndex_t index)> Scr_GetInt{
     0x1412EB810, 0x1401711E0};
 WEAK symbol<uint32_t(scriptInstance_t inst)> Scr_GetNumParam{0x1412EB950,

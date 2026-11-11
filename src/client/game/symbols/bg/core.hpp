@@ -29,6 +29,10 @@ WEAK symbol<bool(eModes mode, ControllerIndex_t controllerIndex,
     BG_UnlockablesCharacterCustomizationItemLocked{0x142628EC0, 0x0};
 WEAK symbol<int32_t(eModes mode, ControllerIndex_t controllerIndex)>
     BG_UnlockablesGetCustomClassCount{0x14262C790, 0x0};
+WEAK symbol<int32_t(eModes mode, const char *name)>
+    BG_UnlockablesGetItemIndexByName{0x14262DD20, 0x1406C5970};
+WEAK symbol<weapon::WeaponDef *(weapon::Weapon weapon)> BG_GetWeaponDef{
+    0x142670E50, 0x1406EB870};
 WEAK symbol<void(eModes mode)> BG_UnlockablesLoadItems{0x142625680,
                                                        0x1406BE160};
 WEAK symbol<bool(ControllerIndex_t controllerIndex,
