@@ -7,15 +7,6 @@
 
 #include <macros/macros.hpp>
 
-// std::tolower is not a constexpr
-alwaysinline constexpr char tolower(char c) noexcept {
-  return (c >= 'A' && c <= 'Z') ? c + ('a' - 'A') : c;
-}
-
-inline constexpr uint8_t tolower(uint8_t c) noexcept {
-  return static_cast<uint8_t>(tolower(static_cast<char>(c)));
-}
-
 typedef uint32_t hash32_t;
 typedef uint64_t hash64_t;
 

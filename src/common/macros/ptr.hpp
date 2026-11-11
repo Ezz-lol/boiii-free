@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <span>
 
+inline constexpr uintptr_t UINTPTR_NULLPTR = 0;
+
 /// @brief Checks if a pointer resides within any of the process's allocated
 /// heap blocks.
 /// @warning Walking the heap is extremely slow and blocks other threads. Do not
@@ -25,7 +27,9 @@ template <typename T> alwaysinline bool valid_heap_ptr(const T *ptr) {
 /// Safe to use in high-frequency loops.
 bool readable_ptr(uintptr_t ptr);
 
-template <typename T> alwaysinline bool readable_ptr(const T *ptr) {
+template <typename T>
+  requires(std::is_pointer_v<T>)
+alwaysinline bool readable_ptr(const T &ptr) {
   return readable_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 
@@ -38,7 +42,9 @@ alwaysinline constexpr bool nonnull(uintptr_t ptr) {
          ptr <= WIN_X86_64_MAX_ACCESSIBLE_MEMORY_ADDRESS;
 }
 
-template <typename T> alwaysinline constexpr bool nonnull(const T *ptr) {
+template <typename T>
+  requires(std::is_pointer_v<T>)
+alwaysinline constexpr bool nonnull(const T &ptr) {
   return nonnull(reinterpret_cast<uintptr_t>(ptr));
 }
 

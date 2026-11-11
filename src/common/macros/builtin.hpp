@@ -95,8 +95,11 @@
 #endif
 
 alwaysinline void ir_memory_barrier() {
-  // Ideal implementation: signal to LLVM pipeline that _any_ memory could be
-  // read or written here, so it cannot make any caching assumptions.
+/*
+  Ideal implementation: signal to optimization pipeline that _any_
+  memory could be read or written here, so it cannot make any caching
+  assumptions.
+*/
 #if GNUC_OR_CLANG
   __asm__ __volatile__("" ::: "memory");
 /*
@@ -110,7 +113,7 @@ alwaysinline void ir_memory_barrier() {
 }
 
 #ifndef PUSH_DISABLE_OPTIMIZATION
-#if defined(__clang__)
+#ifdef __clang__
 #define PUSH_DISABLE_OPTIMIZATION() _Pragma("clang optimize off")
 #elif defined(__GNUC__)
 #define PUSH_DISABLE_OPTIMIZATION()                                            \
@@ -121,7 +124,7 @@ alwaysinline void ir_memory_barrier() {
 #endif
 
 #ifndef POP_DISABLE_OPTIMIZATION
-#if defined(__clang__)
+#ifdef __clang__
 #define POP_DISABLE_OPTIMIZATION() _Pragma("clang optimize on")
 #elif defined(__GNUC__)
 #define POP_DISABLE_OPTIMIZATION() _Pragma("GCC pop_options")

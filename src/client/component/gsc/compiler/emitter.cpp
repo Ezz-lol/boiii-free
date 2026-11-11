@@ -3,7 +3,6 @@
 #include "emitter.hpp"
 #include <algorithm>
 #include <cstring>
-#include <utility>
 
 #include "component/gsc/func/func.hpp"
 

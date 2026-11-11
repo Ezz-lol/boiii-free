@@ -14,6 +14,8 @@ template <typename T>
 struct has_serialize<T, std::void_t<decltype(std::declval<T &>().serialize())>>
     : std::true_type {};
 
+// Lower snake-case is standard for type utilities
+// NOLINTNEXTLINE(readability-identifier-naming)
 template <typename T> constexpr bool has_serialize_v = has_serialize<T>::value;
 
 template <typename T>
@@ -32,7 +34,7 @@ inline constexpr const char *serialize(const T val) {
   return val ? "true" : "false";
 }
 
-inline constexpr std::string serialize(const char *val) {
+inline std::string serialize(const char *val) {
   return ::readable_ptr(val) ? std::format("\"{}\"", val) : "NULL";
 }
 
@@ -75,7 +77,7 @@ template <typename T>
            !std::is_same_v<T, bool> && !std::is_same_v<T, char>)
 [[nodiscard]] inline std::string serialize(const T *arr, const size_t N) {
   std::string result = "[";
-  if (N && arr) {
+  if (N > 0 && arr != nullptr) {
     result += std::format("0x{:X}", arr[0]);
 
     for (size_t i = 1; i < N; ++i) {
@@ -83,7 +85,6 @@ template <typename T>
     }
   }
   result += ']';
-  ;
   return result;
 }
 
@@ -93,7 +94,7 @@ template <typename T>
 [[nodiscard]] inline std::string serialize(const T *const *const arr,
                                            const size_t N) {
   std::string result = "[";
-  if (N && arr && arr[0]) {
+  if (N > 0 && arr != nullptr && arr[0] != NULL) {
     result += std::format("0x{:X}", *arr[0]);
 
     for (size_t i = 1; i < N; ++i) {
@@ -103,7 +104,6 @@ template <typename T>
     }
   }
   result += ']';
-  ;
   return result;
 }
 
@@ -112,7 +112,7 @@ template <typename T>
 [[nodiscard]] inline std::string serialize(const T *const *const arr,
                                            const size_t N) {
   std::string result = "[";
-  if (N && arr && arr[0]) {
+  if (N > 0 && arr != nullptr && arr[0] != NULL) {
     result += std::format("{}", *arr[0]);
 
     for (size_t i = 1; i < N; ++i) {
@@ -122,7 +122,6 @@ template <typename T>
     }
   }
   result += ']';
-  ;
   return result;
 }
 
@@ -130,7 +129,7 @@ template <typename T>
   requires(std::is_floating_point_v<T>)
 [[nodiscard]] inline std::string serialize(const T *arr, const size_t N) {
   std::string result = "[";
-  if (N && arr) {
+  if (N > 0 && arr != nullptr) {
     result += std::format("{}", arr[0]);
 
     for (size_t i = 1; i < N; ++i) {
@@ -138,7 +137,6 @@ template <typename T>
     }
   }
   result += ']';
-  ;
   return result;
 }
 
@@ -146,7 +144,7 @@ template <typename T>
   requires(std::is_enum_v<T> || std::is_same_v<T, bool>)
 [[nodiscard]] inline std::string serialize(const T *const arr, const size_t N) {
   std::string result = "[";
-  if (N && arr) {
+  if (N > 0 && arr != nullptr) {
     result += std::format(", {}", serialize(arr[0]));
 
     for (size_t i = 1; i < N; ++i) {
@@ -154,7 +152,6 @@ template <typename T>
     }
   }
   result += ']';
-  ;
   return result;
 }
 
@@ -164,7 +161,7 @@ template <typename T>
 [[nodiscard]] inline std::string serialize(const T *const *const arr,
                                            const size_t N) {
   std::string result = "[";
-  if (N && arr && arr[0]) {
+  if (N > 0 && arr != nullptr && arr[0] != NULL) {
     if constexpr (std::is_same_v<T, char>) {
       result += std::format(", {}", serialize(arr[0]));
     } else {
@@ -188,7 +185,7 @@ template <typename T>
 template <SerializablePtr T>
 [[nodiscard]] inline std::string serialize(const T arr, const size_t N) {
   std::string result = "[";
-  if (N && arr) {
+  if (N > 0 && arr != nullptr) {
     // Delegate to global ::serialize to allow recursive requirement resolution
     result += std::format("{}", ::serialize(arr[0]));
 
@@ -197,14 +194,13 @@ template <SerializablePtr T>
     }
   }
   result += ']';
-  ;
   return result;
 }
 
 template <SerializablePtr T>
 [[nodiscard]] inline std::string serialize(const T *arr, const size_t N) {
   std::string result = "[";
-  if (N && arr && arr[0]) {
+  if (N > 0 && arr != nullptr && arr[0] != NULL) {
     // Delegate to global ::serialize to allow recursive requirement resolution
     result += std::format("{}", ::serialize(arr[0]));
 
@@ -215,7 +211,6 @@ template <SerializablePtr T>
     }
   }
   result += ']';
-  ;
   return result;
 }
 

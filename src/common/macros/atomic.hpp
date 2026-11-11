@@ -73,7 +73,7 @@ alwaysinline T atomic_inc(volatile T *ptr) {
 template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_dec(volatile T *ptr) {
   constexpr T ONE = 1;
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_sub_fetch(ptr, ONE, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
   if constexpr (sizeof(T) == 1) {
@@ -97,7 +97,7 @@ alwaysinline T atomic_dec(volatile T *ptr) {
 
 template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_add(volatile T *ptr, T value) {
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
   if constexpr (sizeof(T) == 1) {
@@ -128,7 +128,7 @@ alwaysinline T atomic_add(volatile T *ptr, T value) {
 
 template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_sub(volatile T *ptr, T value) {
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_sub_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
   if constexpr (sizeof(T) == 1) {
@@ -160,7 +160,7 @@ alwaysinline T atomic_sub(volatile T *ptr, T value) {
 template <UnderlyingAtomicIntegral T>
 alwaysinline bool atomic_compare_exchange(volatile T *ptr, T *expected,
                                           T desired) {
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_compare_exchange_n(ptr, expected, desired, false,
                                      __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
@@ -201,7 +201,7 @@ alwaysinline bool atomic_compare_exchange(volatile T *ptr, T *expected,
 }
 template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_and(volatile T *ptr, T value) {
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_and_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
   if constexpr (sizeof(T) == 1) {
@@ -228,7 +228,7 @@ alwaysinline T atomic_and(volatile T *ptr, T value) {
 
 template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_or(volatile T *ptr, T value) {
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_or_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
   if constexpr (sizeof(T) == 1) {
@@ -255,7 +255,7 @@ alwaysinline T atomic_or(volatile T *ptr, T value) {
 
 template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_xor(volatile T *ptr, T value) {
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_xor_fetch(ptr, value, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
   if constexpr (sizeof(T) == 1) {
@@ -280,8 +280,11 @@ alwaysinline T atomic_xor(volatile T *ptr, T value) {
 #endif
 }
 
+// False positive - clang-tidy does not seem to handle the conditional
+// compilation used here correctly.
+// NOLINTNEXTLINE(readability-non-const-parameter)
 alwaysinline bool atomic_toggle(volatile bool *ptr) {
-#if defined(GNUC_OR_CLANG)
+#ifdef GNUC_OR_CLANG
   return __atomic_xor_fetch(ptr, true, __ATOMIC_SEQ_CST);
 #elif defined(MSC)
   // _InterlockedXor8 returns the old value; XOR with 1 and invert to get the

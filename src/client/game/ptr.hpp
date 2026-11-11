@@ -31,8 +31,6 @@ alwaysinline uint32_t PEB32() { return static_cast<uint32_t>(PEB()); }
 constexpr uintptr_t ENGINE_MODULE_BASE = 0x140000000;
 constexpr uintptr_t ENGINE_ADDRESS_SPACE_SIZE = 0x030000000;
 
-inline constexpr uintptr_t UINTPTR_NULLPTR = 0;
-
 alwaysinline uintptr_t relocate(const uintptr_t ptr) {
   return ptr == UINTPTR_NULLPTR
              ? UINTPTR_NULLPTR

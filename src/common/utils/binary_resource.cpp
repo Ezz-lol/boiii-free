@@ -2,7 +2,6 @@
 
 #include "io.hpp"
 #include "nt.hpp"
-#include <utility>
 
 namespace utils {
 namespace {

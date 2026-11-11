@@ -2,7 +2,6 @@
 
 #include <game/symbols/lua/hks.hpp>
 #include <game/symbols/sym_include.hpp>
-#include <utility>
 
 namespace game {
 namespace lua {

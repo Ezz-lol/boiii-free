@@ -13,7 +13,6 @@
 #include <component/toast.hpp>
 #include <loader/component_loader.hpp>
 
-#include <utility>
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 
