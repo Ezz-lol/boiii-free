@@ -1156,20 +1156,47 @@ void load_rawfiles() {
       };
 
   std::unordered_set<TreeDirectory> applicable_tree_dirs = {
-      {"lua", std::nullopt, true},        {"", std::nullopt, false},
-      {"aim_assist", std::nullopt, true}, {"con_restrict", std::nullopt, true},
-      {"devgui", std::nullopt, true},     {"fpstool", std::nullopt, true},
-      {"gamedata", std::nullopt, true},   {"leaderboards", std::nullopt, true},
-      {"radiant", std::nullopt, true},    {"scriptbundle", std::nullopt, true},
-      {"ui", std::nullopt, true},         {"ui_mp", std::nullopt, true},
-      {"vehicle", std::nullopt, true},    {"video", std::nullopt, true},
-      {"vision", std::nullopt, true},     {"zone", std::nullopt, true},
-      {"zone_source", std::nullopt, true}};
+      {.path = "lua", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "", .strip_base = std::nullopt, .load_recursively = false},
+      {.path = "aim_assist",
+       .strip_base = std::nullopt,
+       .load_recursively = true},
+      {.path = "con_restrict",
+       .strip_base = std::nullopt,
+       .load_recursively = true},
+      {.path = "devgui", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "fpstool", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "gamedata",
+       .strip_base = std::nullopt,
+       .load_recursively = true},
+      {.path = "leaderboards",
+       .strip_base = std::nullopt,
+       .load_recursively = true},
+      {.path = "radiant", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "scriptbundle",
+       .strip_base = std::nullopt,
+       .load_recursively = true},
+      {.path = "ui", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "ui_mp", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "vehicle", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "video", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "vision", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "zone", .strip_base = std::nullopt, .load_recursively = true},
+      {.path = "zone_source",
+       .strip_base = std::nullopt,
+       .load_recursively = true},
+      {.path = "animtrees",
+       .strip_base = std::nullopt,
+       .load_recursively = true}};
 
   if (game::is_client()) {
-    applicable_tree_dirs.insert({"ui", std::nullopt, true});
-    applicable_tree_dirs.insert({"ui_mp", std::nullopt, true});
-    applicable_tree_dirs.insert({"lui", std::nullopt, true});
+    applicable_tree_dirs.insert(
+        {.path = "ui", .strip_base = std::nullopt, .load_recursively = true});
+    applicable_tree_dirs.insert({.path = "ui_mp",
+                                 .strip_base = std::nullopt,
+                                 .load_recursively = true});
+    applicable_tree_dirs.insert(
+        {.path = "lui", .strip_base = std::nullopt, .load_recursively = true});
   }
 
   const std::optional<std::filesystem::path> map_name =

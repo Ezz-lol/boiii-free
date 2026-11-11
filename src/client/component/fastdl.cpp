@@ -76,15 +76,15 @@ std::string get_hash(const std::string &data) {
 
 bool is_game_asset(const std::filesystem::path &file) {
   constexpr frozen::string asset_file_ext_array[] = {
-      ".ani",       ".bin",       ".cfg",       ".csc",       ".csh",
-      ".csv",       ".cur",       ".d3bsp",     ".d3dbsp",    ".ddldata",
-      ".ddldata_0", ".ddldata_1", ".ddldata_2", ".ddldata_3", ".ddldata_4",
-      ".deps",      ".dll",       ".fd",        ".ff",        ".graph",
-      ".gsc",       ".gsh",       ".gz",        ".ico",       ".jpeg",
-      ".jpg",       ".json",      ".lua",       ".map",       ".md",
-      ".mkv",       ".patch",     ".png",       ".sabl",      ".sabs",
-      ".script",    ".ttf",       ".txt",       ".vision",    ".xpak",
-      ".zip",       ".zone",
+      ".atr",       ".ani",       ".bin",       ".cfg",       ".csc",
+      ".csh",       ".csv",       ".cur",       ".d3bsp",     ".d3dbsp",
+      ".ddldata",   ".ddldata_0", ".ddldata_1", ".ddldata_2", ".ddldata_3",
+      ".ddldata_4", ".deps",      ".dll",       ".fd",        ".ff",
+      ".graph",     ".gsc",       ".gsh",       ".gz",        ".ico",
+      ".jpeg",      ".jpg",       ".json",      ".lua",       ".map",
+      ".md",        ".mkv",       ".patch",     ".png",       ".sabl",
+      ".sabs",      ".script",    ".ttf",       ".txt",       ".vision",
+      ".xpak",      ".zip",       ".zone",
 
   };
   constexpr frozen::unordered_set<frozen::string,
