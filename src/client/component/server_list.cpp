@@ -282,13 +282,29 @@ void add_lan_server_from_string(const std::string &in) {
 } // namespace
 
 static std::vector<game::net::netadr_t> master_server_hosts{};
-constexpr std::string_view default_hosts[] = {"master.ezz.lol:20810",
+constexpr std::string_view DEFAULT_HOSTS[] = {"master.ezz.lol:20810",
                                               "m.ezz.lol:20810"};
 inline void parse_master_server_hosts() {
 
   std::string data;
-  if (utils::io::file_exists(MASTER_SERVER_PATH) &&
-      utils::io::read_file(MASTER_SERVER_PATH, &data)) {
+
+  const std::optional<std::string> master_server_list_flag =
+      utils::flags::get<std::string>("master-servers");
+  if (master_server_list_flag.has_value()) {
+    const std::vector<std::string> master_servers =
+        utils::string::split(master_server_list_flag.value(), ',');
+    std::string write;
+    for (const std::string &host : master_servers) {
+      const game::net::netadr_t addr = network::address_from_string(host);
+      if (addr.type != game::net::netadrtype_t::BAD) {
+        master_server_hosts.emplace_back(addr);
+      }
+      write.append(host);
+      write.push_back('\n');
+    }
+    utils::io::write_file(MASTER_SERVER_PATH, write);
+  } else if (utils::io::file_exists(MASTER_SERVER_PATH) &&
+             utils::io::read_file(MASTER_SERVER_PATH, &data)) {
     const std::vector<std::string> lines = utils::string::split(data, '\n');
     bool read_first = false;
     for (const std::string &line : lines) {
@@ -298,8 +314,7 @@ inline void parse_master_server_hosts() {
           master_server_hosts.clear();
           read_first = true;
         }
-        const game::net::netadr_t addr =
-            network::address_from_string(l.c_str());
+        const game::net::netadr_t addr = network::address_from_string(l);
         if (addr.type != game::net::netadrtype_t::BAD) {
           master_server_hosts.emplace_back(addr);
         }
@@ -308,7 +323,7 @@ inline void parse_master_server_hosts() {
   } else {
     // Write defaults
     std::string write;
-    for (const std::string_view &host : default_hosts) {
+    for (const std::string_view &host : DEFAULT_HOSTS) {
       const game::net::netadr_t addr = network::address_from_string(host);
       if (addr.type != game::net::netadrtype_t::BAD) {
         master_server_hosts.emplace_back(addr);

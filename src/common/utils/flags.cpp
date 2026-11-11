@@ -263,6 +263,11 @@ int32_t parse_flags(int argc, char *argv[]) {
             "engine modifications.")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-master-servers", "--master-servers")
+      .help("Specifies master servers used by the game, comma-separated. "
+            "Overrides the list provided in "
+            "boiii_players/user/master_servers.txt if present.")
+      .default_value(std::string(""));
 
 #ifndef NDEBUG
   add_debug_profile_arguments();
