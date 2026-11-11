@@ -857,10 +857,7 @@
     try {
       var ex = getExternal();
       if (ex && ex.workshopBrowse) {
-        ex.workshopBrowse(
-          workshopBrowseCurrentPage,
-          workshopBrowseFetchedSort
-        );
+        ex.workshopBrowse(workshopBrowseCurrentPage, workshopBrowseFetchedSort);
         pollWorkshopBrowseResults();
       } else {
         workshopBrowseLoading = false;

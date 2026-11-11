@@ -1017,10 +1017,18 @@ local function addSearch(menu, controller)
   end
 
   updateLabel()
-  menu:AddButtonCallbackFunction(button, controller, Enum.LUIButton.LUI_KEY_XBA_PSCROSS, "ENTER", openSearch, function(_, currentMenu)
-    CoD.Menu.SetButtonLabel(currentMenu, Enum.LUIButton.LUI_KEY_XBA_PSCROSS, "MENU_SELECT")
-    return true
-  end, false)
+  menu:AddButtonCallbackFunction(
+    button,
+    controller,
+    Enum.LUIButton.LUI_KEY_XBA_PSCROSS,
+    "ENTER",
+    openSearch,
+    function(_, currentMenu)
+      CoD.Menu.SetButtonLabel(currentMenu, Enum.LUIButton.LUI_KEY_XBA_PSCROSS, "MENU_SELECT")
+      return true
+    end,
+    false
+  )
   menu:AddButtonCallbackFunction(menu, controller, Enum.LUIButton.LUI_KEY_LSTICK_PRESSED, "S", openSearch, nil, false)
 
   local previousHandler = menu.m_eventHandlers and menu.m_eventHandlers.ui_keyboard_input
