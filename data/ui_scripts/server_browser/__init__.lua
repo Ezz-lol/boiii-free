@@ -974,6 +974,76 @@ end
 
 Engine.SteamServerBrowser_RequestPlayersInfo = function(serverIndex) end
 
+local searchKeyword = ""
+
+local function searchLabel()
+  if searchKeyword == "" then
+    return "SEARCH"
+  end
+  local shown = searchKeyword
+  if #shown > 16 then
+    shown = string.sub(shown, 1, 15) .. "..."
+  end
+  return "SEARCH: " .. string.upper(shown)
+end
+
+local function applySearch(menu, input)
+  searchKeyword = string.lower((input or ""):gsub("^%s+", ""):gsub("%s+$", ""))
+  local keywords = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_KEYWORDS
+  Engine.SteamServerBrowser_ClearFilter(keywords)
+  if searchKeyword ~= "" then
+    Engine.SteamServerBrowser_AddFilter(keywords, searchKeyword)
+  end
+  if not isCustomTab() then
+    RefreshLobbyServerBrowser(menu)
+  end
+end
+
+local function addSearch(menu, controller)
+  local button = CoD.FE_List1ButtonLarge_PH.new(menu, controller)
+  button:setLeftRight(true, false, 63, 263)
+  button:setTopBottom(true, false, 651, 683)
+  button.FEButtonWarning:setAlpha(0)
+
+  local function updateLabel()
+    button.btnDisplayText:setText(searchLabel())
+    button.btnDisplayTextStroke:setText(searchLabel())
+  end
+
+  local function openSearch()
+    Engine.SetDvar("ui_keyboard_dvar_edit", searchKeyword)
+    ShowKeyboard(menu, button, controller, "KEYBOARD_TYPE_SERVER_FILTER_KEYWORDS")
+    return true
+  end
+
+  updateLabel()
+  menu:AddButtonCallbackFunction(button, controller, Enum.LUIButton.LUI_KEY_XBA_PSCROSS, "ENTER", openSearch, function(_, currentMenu)
+    CoD.Menu.SetButtonLabel(currentMenu, Enum.LUIButton.LUI_KEY_XBA_PSCROSS, "MENU_SELECT")
+    return true
+  end, false)
+  menu:AddButtonCallbackFunction(menu, controller, Enum.LUIButton.LUI_KEY_LSTICK_PRESSED, "S", openSearch, nil, false)
+
+  local previousHandler = menu.m_eventHandlers and menu.m_eventHandlers.ui_keyboard_input
+  menu:registerEventHandler("ui_keyboard_input", function(element, event)
+    if event.type == Enum.KeyboardType.KEYBOARD_TYPE_SERVER_FILTER_KEYWORDS then
+      applySearch(menu, event.input)
+      updateLabel()
+      return true
+    end
+    if previousHandler then
+      return previousHandler(element, event)
+    end
+    return false
+  end)
+
+  menu:addElement(button)
+  menu.SearchButton = button
+  button.id = "SearchButton"
+  LUI.OverrideFunction_CallOriginalSecond(menu, "close", function(element)
+    element.SearchButton:close()
+  end)
+end
+
 if SB.CreateLobbyBrowser then
   LUI.createMenu.LobbyServerBrowserOnline = function(...)
     local ok, self = pcall(SB.CreateLobbyBrowser, ...)
@@ -985,6 +1055,7 @@ if SB.CreateLobbyBrowser then
         self.Tabs.Tabs.grid:setHorizontalCount(10)
       end
     end)
+    addSearch(self, ...)
     return self
   end
 end
@@ -1113,104 +1184,3 @@ pcall(function()
     false
   )
 end)
-
-local searchKeyword = ""
-
-local function searchLabel()
-  if searchKeyword == "" then
-    return "SEARCH"
-  end
-  local shown = searchKeyword
-  if #shown > 12 then
-    shown = string.sub(shown, 1, 11) .. "..."
-  end
-  return "SEARCH: " .. string.upper(shown)
-end
-
-local function applySearch(menu, controller, input)
-  searchKeyword = string.lower((input or ""):gsub("^%s+", ""):gsub("%s+$", ""))
-  local keywords = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_KEYWORDS
-  Engine.SteamServerBrowser_ClearFilter(keywords)
-  if searchKeyword ~= "" then
-    Engine.SteamServerBrowser_AddFilter(keywords, searchKeyword)
-  end
-  if not isCustomTab() and RefreshLobbyServerBrowser then
-    pcall(RefreshLobbyServerBrowser, menu, controller)
-  end
-end
-
-if CoD.ServerBrowserDetails and CoD.FE_List1ButtonLarge_PH then
-  local createDetails = CoD.ServerBrowserDetails.new
-  CoD.ServerBrowserDetails.new = function(menu, controller)
-    local self = createDetails(menu, controller)
-    if not self.favoriteButton or not self.joinButton then
-      return self
-    end
-
-    local button = CoD.FE_List1ButtonLarge_PH.new(menu, controller)
-    button:setLeftRight(true, false, 200, 369.67)
-    button:setTopBottom(true, false, 463.5, 495.5)
-    button.btnDisplayText:setText(searchLabel())
-    button.btnDisplayTextStroke:setText(searchLabel())
-    button.FEButtonWarning:setAlpha(0)
-    button:registerEventHandler("gain_focus", function(element, event)
-      local result
-      if element.gainFocus then
-        result = element:gainFocus(event)
-      elseif element.super.gainFocus then
-        result = element.super:gainFocus(event)
-      end
-      CoD.Menu.UpdateButtonShownState(element, menu, controller, Enum.LUIButton.LUI_KEY_XBA_PSCROSS)
-      return result
-    end)
-    button:registerEventHandler("lose_focus", function(element, event)
-      if element.loseFocus then
-        return element:loseFocus(event)
-      elseif element.super.loseFocus then
-        return element.super:loseFocus(event)
-      end
-    end)
-    menu:AddButtonCallbackFunction(button, controller, Enum.LUIButton.LUI_KEY_XBA_PSCROSS, "ENTER", function()
-      Engine.SetDvar("ui_keyboard_dvar_edit", searchKeyword)
-      ShowKeyboard(menu, button, controller, "KEYBOARD_TYPE_SERVER_FILTER_KEYWORDS")
-      return true
-    end, function(_, currentMenu)
-      CoD.Menu.SetButtonLabel(currentMenu, Enum.LUIButton.LUI_KEY_XBA_PSCROSS, "MENU_SELECT")
-      return true
-    end, false)
-
-    if not menu.boiiiSearchKeyboardHandler then
-      menu.boiiiSearchKeyboardHandler = true
-      local previousHandler = menu.m_eventHandlers and menu.m_eventHandlers.ui_keyboard_input
-      menu:registerEventHandler("ui_keyboard_input", function(element, event)
-        if event.type == Enum.KeyboardType.KEYBOARD_TYPE_SERVER_FILTER_KEYWORDS then
-          applySearch(menu, controller, event.input)
-          local label = searchLabel()
-          if menu.boiiiSearchButton then
-            menu.boiiiSearchButton.btnDisplayText:setText(label)
-            menu.boiiiSearchButton.btnDisplayTextStroke:setText(label)
-          end
-          return true
-        end
-        if previousHandler then
-          return previousHandler(element, event)
-        end
-        return false
-      end)
-    end
-
-    self:addElement(button)
-    self.searchButton = button
-    menu.boiiiSearchButton = button
-    button.id = "searchButton"
-    button.navigation = { up = self.favoriteButton, left = self.joinButton }
-    self.favoriteButton.navigation = self.favoriteButton.navigation or {}
-    self.favoriteButton.navigation.down = button
-    self.joinButton.navigation = self.joinButton.navigation or {}
-    self.joinButton.navigation.right = button
-    LUI.OverrideFunction_CallOriginalSecond(self, "close", function(element)
-      element.searchButton:close()
-    end)
-    return self
-  end
-end
