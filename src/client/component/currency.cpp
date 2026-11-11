@@ -860,17 +860,6 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
   LiveInventory_UpdatePlayerBalance(controller, 3, *balance - count);
   game::loot::s_lastResult->result = LootResultType::SUCCESS;
   game::loot::s_lastResult->isValid = true;
-
-  const std::string message =
-      count == 1 ? "Obtained 1 gum"
-                 : "Obtained " + std::to_string(count) + " gums";
-  scheduler::once(
-      [message] {
-        toast::reward("Doctor Monty's Factory", message,
-                      "uie_t7_menu_gobblegum_comsumable");
-      },
-      scheduler::pipeline::main, 3000ms);
-
   return true;
 }
 
