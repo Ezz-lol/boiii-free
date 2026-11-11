@@ -49,10 +49,7 @@ end
 local function isKitWeapon(model)
   local group = modelValue(model, "group")
   local slot = modelValue(model, "loadoutSlot")
-  return group
-    and group:match("^weapon_")
-    and group ~= "weapon_grenade"
-    and (slot == "primary" or slot == "secondary")
+  return group and group:match("^weapon_") and group ~= "weapon_grenade" and (slot == "primary" or slot == "secondary")
 end
 
 local function attachmentsByType(weaponIndex)
