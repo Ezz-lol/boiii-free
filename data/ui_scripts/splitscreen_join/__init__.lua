@@ -21,3 +21,18 @@ CoD.Menu.GamepadButton = function(menu, event)
   end
   return gamepadButton(menu, event)
 end
+
+require("ui.uieditor.widgets.Lobby.Common.FE_ListAdditonal")
+
+local createListAdditional = CoD.FE_ListAdditonal.new
+CoD.FE_ListAdditonal.new = function(menu, controller)
+  local self = createListAdditional(menu, controller)
+  for _, state in ipairs(self.stateConditions or {}) do
+    if state.stateName == "AddControllerState_Play" then
+      state.condition = function()
+        return IsWaitingForSignInToPlaySplitscreen() and ShouldShowAddController(menu, self, controller)
+      end
+    end
+  end
+  return self
+end
