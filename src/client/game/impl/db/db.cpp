@@ -258,6 +258,13 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   }
 }
 
+void Gfx_ReleaseImageTextures_Impl(XAssetHeader header) {
+
+  Gfx_TexturePool_ReleaseSingle(header.image->texture);
+  Gfx_TexturePool_ReleaseSingle(header.image->fallbackTexture);
+  header.image->mapType = 0;
+}
+
 namespace pool {
 static std::mutex reallocation_mutex;
 constexpr bool is_fixed_pool(const XAssetType type) {

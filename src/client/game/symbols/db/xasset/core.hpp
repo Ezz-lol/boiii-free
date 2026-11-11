@@ -21,6 +21,8 @@ WEAK symbol<bool(XAssetType type, const char *name)> DB_IsXAssetDefault{
     0x141422160, 0x1401D7260};
 WEAK symbol<void(XAssetType type, const char *name, int32_t waitedMsec)>
     PrintWaitedError{0x1414262E0, 0x1401DB3E0};
+WEAK symbol<void(XAssetHeader)> Gfx_ReleaseImageTextures{0x141CAA7F0,
+                                                         0x1403830A0};
 } // namespace xasset
 } // namespace db
 } // namespace game

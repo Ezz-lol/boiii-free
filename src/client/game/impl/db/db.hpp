@@ -33,6 +33,16 @@ DB_GetAssetEntryPoolEntryByName(const std::string_view &name) {
 }
 
 int32_t DB_GetXAssetTypeSize_Impl(XAssetType type);
+inline void Gfx_TexturePool_ReleaseSingle(gfx::GfxTexture &texture) {
+  if (texture.basemap != nullptr) {
+    if (game::is_client()) {
+      gfx::Gfx_TexturePool_ReleaseRef(texture, 0);
+    }
+    texture.release();
+    texture.basemap = nullptr;
+  }
+}
+void Gfx_ReleaseImageTextures_Impl(XAssetHeader header);
 
 namespace pool {
 void reallocate_asset_pool(const XAssetType type, const uint32_t new_size);
