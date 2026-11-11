@@ -3,6 +3,7 @@
 #include <loader/component_loader.hpp>
 
 #include "command.hpp"
+#include "component/path.hpp"
 #include "fastdl.hpp"
 #include "scheduler.hpp"
 #include "workshop/workshop.hpp"
@@ -37,7 +38,7 @@ int download_progress_cb(void *clientp, const curl_off_t /*dltotal*/,
   if (download_cancelled.load()) {
     return 1;
   }
-  if (ctx && ctx->ui) {
+  if (ctx != nullptr && ctx->ui != nullptr) {
     try {
       ctx->ui->file_progress(ctx->file, static_cast<size_t>(dlnow));
     } catch (...) {
@@ -55,7 +56,8 @@ size_t download_write_cb(void *contents, const size_t size, const size_t nmemb,
   }
   const size_t total_size = size * nmemb;
   download_stream_context *ctx = static_cast<download_stream_context *>(userp);
-  if (ctx && ctx->stream && contents && total_size > 0) {
+  if (ctx != nullptr && ctx->stream != nullptr && contents != nullptr &&
+      total_size > 0) {
     ctx->stream->write(static_cast<const char *>(contents),
                        static_cast<std::streamsize>(total_size));
     ctx->stream->flush();
@@ -75,7 +77,7 @@ std::string get_hash(const std::string &data) {
 }
 
 bool is_game_asset(const std::filesystem::path &file) {
-  constexpr frozen::string asset_file_ext_array[] = {
+  constexpr frozen::string ASSET_FILE_EXT_ARRAY[] = {
       ".atr",       ".ani",       ".bin",       ".cfg",       ".csc",
       ".csh",       ".csv",       ".cur",       ".d3bsp",     ".d3dbsp",
       ".ddldata",   ".ddldata_0", ".ddldata_1", ".ddldata_2", ".ddldata_3",
@@ -88,13 +90,13 @@ bool is_game_asset(const std::filesystem::path &file) {
 
   };
   constexpr frozen::unordered_set<frozen::string,
-                                  std::size(asset_file_ext_array)>
-      asset_file_exts = frozen::make_unordered_set(asset_file_ext_array);
+                                  std::size(ASSET_FILE_EXT_ARRAY)>
+      ASSET_FILE_EXTS = frozen::make_unordered_set(ASSET_FILE_EXT_ARRAY);
 
-  const std::filesystem::path fileExt = file.extension();
-  const std::string fileExtStr =
-      utils::string::to_lower(fileExt.generic_string());
-  return asset_file_exts.contains(std::string_view(fileExtStr));
+  const std::filesystem::path file_ext = file.extension();
+  const std::string file_ext_str =
+      utils::string::to_lower(file_ext.generic_string());
+  return ASSET_FILE_EXTS.contains(std::string_view(file_ext_str));
 }
 
 void show_ingame_error(const std::string &error) {
@@ -177,89 +179,95 @@ void download_file(const updater::file_info &file,
   }
 
   const std::string file_url = context->content_tree_uri + "/" + file.name;
-  const std::string out_relative =
-      file.name.starts_with("zone/") ? file.name : ("zone/" + file.name);
   const std::filesystem::path local_path =
-      std::filesystem::path(context->item_path) / file.name;
-  bool completed = false;
+      std::filesystem::absolute(std::filesystem::path(context->item_path) /
+                                file.name)
+          .lexically_normal();
+  if (path::has_parent(context->item_path, local_path)) {
+    bool completed = false;
 
-  try {
-    std::string empty{};
-    if (!utils::io::directory_exists(local_path.parent_path())) {
-      utils::io::create_directory(local_path.parent_path());
-    }
-    if (!utils::io::write_file(local_path, empty, false)) {
-      throw std::runtime_error(
-          utils::string::va("Failed to write file: %s", local_path.c_str()));
-    }
-
-    std::ofstream ofs(local_path, std::ios::binary);
-    if (!ofs) {
-      throw std::runtime_error(
-          utils::string::va("Failed to open file: %s", local_path.c_str()));
-    }
-
-    CURL *curl = curl_easy_init();
-    if (!curl) {
-      throw std::runtime_error("Failed to initialize curl");
-    }
-
-    auto curl_cleanup = gsl_lite::finally([&]() { curl_easy_cleanup(curl); });
-
-    curl_easy_setopt(curl, CURLOPT_URL, file_url.data());
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "fastdl/1.0");
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
-    curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
-                     utils::http::PREFERRED_ACCEPT_ENCODING_HEADER);
-    download_stream_context stream_ctx{&ui, file, &ofs};
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, download_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &stream_ctx);
-    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, download_progress_cb);
-    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &stream_ctx);
-    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0L);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 0L);
-
-    const CURLcode result_code = curl_easy_perform(curl);
-
-    ofs.close();
-
-    if (download_cancelled.load()) {
-      throw download_is_cancelled();
-    }
-
-    if (result_code != CURLE_OK) {
-      throw std::runtime_error(
-          utils::string::va("Failed to download: %s - curl error %d",
-                            file_url.data(), result_code));
-    }
-
-    if (utils::io::file_size(local_path) != file.size) {
-      throw std::runtime_error(utils::string::va(
-          "Downloaded file size mismatch: %s", local_path.c_str()));
-    }
-
-    {
-      std::ifstream ifs(local_path, std::ios::binary);
-      const std::string hash = get_hash(ifs);
-      ifs.close();
-
-      if (utils::string::to_lower(hash) != utils::string::to_lower(file.hash)) {
-        throw std::runtime_error(utils::string::va(
-            "Downloaded file hash mismatch for %s:\n %s != %s",
-            local_path.c_str(), hash.c_str(), file.hash.c_str()));
+    try {
+      std::string empty{};
+      if (!utils::io::directory_exists(local_path.parent_path())) {
+        utils::io::create_directory(local_path.parent_path());
       }
-    }
+      if (!utils::io::write_file(local_path, empty, false)) {
+        throw std::runtime_error(
+            utils::string::va("Failed to write file: %s", local_path.c_str()));
+      }
 
-    completed = true;
-  } catch (...) {
-    if (!completed) {
-      utils::io::remove_file(local_path);
+      std::ofstream ofs(local_path, std::ios::binary);
+      if (!ofs) {
+        throw std::runtime_error(
+            utils::string::va("Failed to open file: %s", local_path.c_str()));
+      }
+
+      CURL *curl = curl_easy_init();
+      if (curl == nullptr) {
+        throw std::runtime_error("Failed to initialize curl");
+      }
+
+      auto curl_cleanup = gsl_lite::finally([&]() { curl_easy_cleanup(curl); });
+
+      curl_easy_setopt(curl, CURLOPT_URL, file_url.data());
+      curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+      curl_easy_setopt(curl, CURLOPT_USERAGENT, "fastdl/1.0");
+      curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+      curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+      curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+      curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
+                       utils::http::PREFERRED_ACCEPT_ENCODING_HEADER);
+      download_stream_context stream_ctx{
+          .ui = &ui, .file = file, .stream = &ofs};
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, download_write_cb);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, &stream_ctx);
+      curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, download_progress_cb);
+      curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &stream_ctx);
+      curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+      curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0L);
+      curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 0L);
+
+      const CURLcode result_code = curl_easy_perform(curl);
+
+      ofs.close();
+
+      if (download_cancelled.load()) {
+        throw download_is_cancelled();
+      }
+
+      if (result_code != CURLE_OK) {
+        throw std::runtime_error(
+            utils::string::va("Failed to download: %s - curl error %d",
+                              file_url.data(), result_code));
+      }
+
+      if (utils::io::file_size(local_path) != file.size) {
+        throw std::runtime_error(utils::string::va(
+            "Downloaded file size mismatch: %s", local_path.c_str()));
+      }
+
+      {
+        std::ifstream ifs(local_path, std::ios::binary);
+        const std::string hash = get_hash(ifs);
+        ifs.close();
+
+        if (utils::string::to_lower(hash) !=
+            utils::string::to_lower(file.hash)) {
+          throw std::runtime_error(utils::string::va(
+              "Downloaded file hash mismatch for %s:\n %s != %s",
+              local_path.c_str(), hash.c_str(), file.hash.c_str()));
+        }
+      }
+
+      completed = true;
+    } catch (...) {
+      if (!completed) {
+        utils::io::remove_file(local_path);
+      }
+      throw;
     }
-    throw;
+  } else {
+    throw download_is_cancelled();
   }
 }
 
@@ -279,20 +287,26 @@ void download_workshop_file(const updater::file_info &file,
         utils::string::va("Failed to download: %s", file_url.data()));
   }
 
-  const std::string out_relative =
-      file.name.starts_with("zone/") ? file.name : ("zone/" + file.name);
   const std::filesystem::path local_path =
-      std::filesystem::path(context->item_path) / file.name;
-  if (!utils::io::write_file(local_path, *data, false)) {
-    throw std::runtime_error(
-        utils::string::va("Failed to write: %s", local_path.c_str()));
+      std::filesystem::absolute(std::filesystem::path(context->item_path) /
+                                file.name)
+          .lexically_normal();
+  if (path::has_parent(context->item_path, local_path)) {
+    if (!utils::io::write_file(local_path, *data, false)) {
+      throw std::runtime_error(
+          utils::string::va("Failed to write: %s", local_path.c_str()));
+    }
+  } else {
+    throw std::runtime_error(utils::string::va(
+        "Failed to write unsafe path: %s", local_path.c_str()));
   }
 }
 
 void download_files(const std::vector<updater::file_info> &files,
                     const std::shared_ptr<download_context> &context,
                     fastdl_ui &ui) {
-  /* Note: don't multi-thread these downloads.
+  /*
+     Note: don't multi-thread these downloads.
      For large usermaps or mods, in combination with a slow hard drive (writes
      buffered in memory for extended period), this results in catastrophically
      massive memory overhead.
@@ -302,8 +316,7 @@ void download_files(const std::vector<updater::file_info> &files,
      especially if more than one player is concurrently downloading the content.
   */
 
-  for (size_t index = 0; index < files.size(); ++index) {
-    const updater::file_info &file = files[index];
+  for (const updater::file_info &file : files) {
     ui.begin_file(file);
     download_file(file, context, ui);
     ui.end_file(file);
@@ -458,7 +471,7 @@ fastdl_ui::fastdl_ui() = default;
 fastdl_ui::~fastdl_ui() = default;
 
 void fastdl_ui::update_files(const std::vector<updater::file_info> &files) {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
   this->total_files_ = files;
   this->downloaded_files_.clear();
   this->downloading_files_.clear();
@@ -467,9 +480,7 @@ void fastdl_ui::update_files(const std::vector<updater::file_info> &files) {
 }
 
 void fastdl_ui::done_update() {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
-
-  const size_t total_size = this->get_total_size();
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   this->update_file_name();
 
@@ -483,14 +494,14 @@ void fastdl_ui::done_update() {
 }
 
 void fastdl_ui::begin_file(const updater::file_info &file) {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   this->file_progress(file, 0);
   this->update_file_name();
 }
 
 void fastdl_ui::end_file(const updater::file_info &file) {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   this->downloaded_files_.emplace_back(file);
   const downloadingFilesMap_t::iterator entry =
@@ -505,14 +516,14 @@ void fastdl_ui::end_file(const updater::file_info &file) {
 
 void fastdl_ui::file_progress(const updater::file_info &file,
                               const size_t progress) {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   this->downloading_files_[file.name] = {progress, file.size};
   this->update_progress();
 }
 
 void fastdl_ui::update_progress() {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
   const size_t downloaded = this->get_downloaded_size();
   const size_t tot = this->get_total_size();
 
@@ -531,16 +542,13 @@ void fastdl_ui::update_progress() {
 }
 
 void fastdl_ui::update_file_name() {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
-
-  const size_t downloaded_file_count = this->get_downloaded_files();
-  const size_t total_file_count = this->get_total_files();
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   this->current_filename_ = this->get_relevant_file_name();
 }
 
 size_t fastdl_ui::get_total_size() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   size_t total_size = 0;
   for (const updater::file_info &file : this->total_files_) {
@@ -551,7 +559,7 @@ size_t fastdl_ui::get_total_size() const {
 }
 
 size_t fastdl_ui::get_downloaded_size() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   size_t downloaded_size = 0;
   for (const updater::file_info &file : this->downloaded_files_) {
@@ -567,17 +575,17 @@ size_t fastdl_ui::get_downloaded_size() const {
 }
 
 size_t fastdl_ui::get_total_files() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
   return this->total_files_.size();
 }
 
 size_t fastdl_ui::get_downloaded_files() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
   return this->downloaded_files_.size();
 }
 
 std::string fastdl_ui::get_relevant_file_name() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   std::string name{};
   size_t smallest = std::numeric_limits<size_t>::max();
@@ -600,7 +608,7 @@ std::string fastdl_ui::get_relevant_file_name() const {
 
 namespace {
 std::filesystem::path content_folder(const char *zone_path) {
-  if (!zone_path || !zone_path[0]) {
+  if (zone_path == nullptr || zone_path[0] == NULL) {
     return {};
   }
   std::filesystem::path folder(zone_path);

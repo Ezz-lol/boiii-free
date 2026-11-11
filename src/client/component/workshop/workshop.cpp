@@ -1167,51 +1167,62 @@ void offer_download(game::ZoneType zoneType, const std::string_view &name,
       });
 }
 
+bool valid_workshop_name(const std::string_view &name) {
+  return std::ranges::all_of(name, [](unsigned char c) {
+    return std::isalnum(c) || c == '_' || c == '-';
+  });
+}
+
 bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
                   const std::string_view &workshop_id,
                   const std::string_view &base_uri,
                   std::function<void()> failure_callback = {}) {
-  std::string_view base = base_uri;
-  while (base.ends_with('/')) {
-    base.remove_suffix(1);
+  if (valid_workshop_name(name)) {
+    std::string_view base = base_uri;
+    while (base.ends_with('/')) {
+      base.remove_suffix(1);
+    }
+    const std::string folder =
+        std::format("{}s/{}", game::toString(zoneType), name);
+
+    std::shared_ptr<fastdl::download_context> context =
+        std::make_shared<fastdl::download_context>();
+
+    context->item_name = name;
+    context->pub_id = workshop_id.empty() ? name : workshop_id;
+    context->item_path = folder;
+    context->content_tree_uri = std::format("{}/{}", base, folder);
+    context->type = zoneType;
+    context->failure_callback = std::move(failure_callback);
+    context->success_callback = [title = std::string(name)] {
+      scheduler::once(
+          [title] {
+            game::ugc::UGC_LoadPools_Impl();
+            const std::string reconnect = get_pending_download_reconnect();
+            if (reconnect.empty()) {
+              toast::success("Download finished", title + " is ready.");
+              return;
+            }
+            download_overlay::show_confirmation(
+                "Download Complete",
+                title +
+                    " downloaded successfully!\n\nDo you want to connect to "
+                    "the server?",
+                [reconnect] {
+                  game::cbuf::Cbuf_AddText(
+                      game::LOCAL_CLIENT_0,
+                      utils::string::va("connect %s\n", reconnect.c_str()));
+                });
+          },
+          scheduler::main);
+    };
+    printf("[ Workshop ] Server has FastDL, attempting download for %s from "
+           "%s\n",
+           context->item_name.c_str(), context->content_tree_uri.c_str());
+    return fastdl::start_download(context);
   }
-  const std::string folder =
-      std::format("{}s/{}", game::toString(zoneType), name);
-
-  std::shared_ptr<fastdl::download_context> context =
-      std::make_shared<fastdl::download_context>();
-
-  context->item_name = name;
-  context->pub_id = workshop_id.empty() ? name : workshop_id;
-  context->item_path = folder;
-  context->content_tree_uri = std::format("{}/{}", base, folder);
-  context->type = zoneType;
-  context->failure_callback = failure_callback;
-  context->success_callback = [title = std::string(name)] {
-    scheduler::once(
-        [title] {
-          game::ugc::UGC_LoadPools_Impl();
-          const std::string reconnect = get_pending_download_reconnect();
-          if (reconnect.empty()) {
-            toast::success("Download finished", title + " is ready.");
-            return;
-          }
-          download_overlay::show_confirmation(
-              "Download Complete",
-              title + " downloaded successfully!\n\nDo you want to connect to "
-                      "the server?",
-              [reconnect] {
-                game::cbuf::Cbuf_AddText(
-                    game::LOCAL_CLIENT_0,
-                    utils::string::va("connect %s\n", reconnect.c_str()));
-              });
-        },
-        scheduler::main);
-  };
-  printf("[ Workshop ] Server has FastDL, attempting download for %s from "
-         "%s\n",
-         context->item_name.c_str(), context->content_tree_uri.c_str());
-  return fastdl::start_download(context);
+  failure_callback();
+  return true;
 }
 
 bool is_busy_downloading() {
