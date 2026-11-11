@@ -14,9 +14,10 @@ CoD.Menu.GamepadButton = function(menu, event)
     and not menu.m_inputDisabled
     and not menu.occludedBy
     and not Engine.IsControllerBeingUsed(event.controller)
+    and not Engine.IsControllerBeingUsed(1)
     and LuaUtils.LobbyProcessQueueEmpty()
   then
-    LobbyAddLocalClient(menu, event.controller)
+    LobbySplitscreenToggle(menu, event.controller)
     return true
   end
   return gamepadButton(menu, event)
