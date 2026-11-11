@@ -50,6 +50,7 @@ std::vector<item_details> catalog_items;
 catalog_status status{};
 std::string catalog_query;
 game::ZoneType catalog_type;
+std::string catalog_sort;
 std::atomic<uint64_t> catalog_request{0};
 std::unordered_map<std::string, uint64_t> known_sizes;
 
@@ -130,8 +131,19 @@ std::string strip_tags(const std::string_view &text) {
   return plain;
 }
 
+std::string_view browse_sort(const std::string_view &sort) {
+  if (sort == "subscribed") {
+    return "totaluniquesubscribers";
+  }
+  if (sort == "recent") {
+    return "mostrecent";
+  }
+  return "trend";
+}
+
 std::vector<item_details> fetch_page(int page, const std::string_view &query,
-                                     game::ZoneType type) {
+                                     game::ZoneType type,
+                                     const std::string_view &sort) {
   utils::http::headers headers;
   headers["User-Agent"] = USER_AGENT;
   headers["Accept-Language"] = "en-US,en;q=0.9";
@@ -143,8 +155,9 @@ std::vector<item_details> fetch_page(int page, const std::string_view &query,
       std::format("&requiredtags%5B%5D={}", game::toWorkshopKind(type)));
   std::vector<std::string> urls;
   if (query.empty()) {
-    urls.push_back(std::format(
-        "{}&section=readytouseitems&browsesort=trend&actualsort=trend", base));
+    urls.push_back(
+        std::format("{}&section=readytouseitems&browsesort={}&actualsort={}",
+                    base, browse_sort(sort), browse_sort(sort)));
   } else {
     const std::string search =
         std::format("&browsesort=textsearch&actualsort=textsearch&"
@@ -387,16 +400,18 @@ void apply_cover() {
 } // namespace
 
 void request_catalog_page(const std::string_view &query, int page,
-                          game::ZoneType type) {
+                          game::ZoneType type, const std::string_view &sort) {
   page = std::max(page, 1);
   {
     std::scoped_lock lock(catalog_mutex);
-    if (catalog_query == query && catalog_type == type && status.page == page &&
+    if (catalog_query == query && catalog_type == type &&
+        catalog_sort == sort && status.page == page &&
         (status.loading || !catalog_items.empty() || !status.error.empty())) {
       return;
     }
     catalog_query = query;
     catalog_type = type;
+    catalog_sort = sort;
     catalog_items.clear();
     status = {.loading = true,
               .has_more = false,
@@ -406,8 +421,9 @@ void request_catalog_page(const std::string_view &query, int page,
   }
 
   const uint64_t request = ++catalog_request;
-  std::thread([query = std::string(query), type, page, request] {
-    std::vector<item_details> items = fetch_page(page, query, type);
+  std::thread([query = std::string(query), type, sort = std::string(sort), page,
+               request] {
+    std::vector<item_details> items = fetch_page(page, query, type, sort);
     // Items tagged both Map and Mod would otherwise be hidden on one tab
     for (item_details &item : items) {
       item.type = type;

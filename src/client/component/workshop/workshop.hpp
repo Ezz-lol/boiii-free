@@ -186,7 +186,8 @@ struct catalog_status {
 std::unordered_map<std::string, uint64_t>
 parse_page_sizes(const std::string_view &html);
 void request_catalog_page(const std::string_view &query, int page,
-                          game::ZoneType type = game::ZoneType::USERMAP);
+                          game::ZoneType type = game::ZoneType::USERMAP,
+                          const std::string_view &sort = {});
 std::vector<item_details> get_catalog_page();
 catalog_status get_catalog_status();
 void request_preview(const std::string_view &id, const std::string_view &url);

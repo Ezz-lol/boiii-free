@@ -390,9 +390,9 @@ luaReturnCount_e httppost(lua_State *luaVM) {
 luaReturnCount_e getworkshopcatalog(lua_State *luaVM) {
   return call(luaVM,
               [](const std::string &query, const int page,
-                 const std::string &kind) -> table {
-                workshop::request_catalog_page(query, page,
-                                               game::fromWorkshopKind(kind));
+                 const std::string &kind, const std::string &sort) -> table {
+                workshop::request_catalog_page(
+                    query, page, game::fromWorkshopKind(kind), sort);
                 table result{};
                 int index = 1;
                 for (const workshop::item_details &item :
@@ -412,8 +412,9 @@ luaReturnCount_e getworkshopcatalog(lua_State *luaVM) {
 
 luaReturnCount_e requestworkshopcatalog(lua_State *luaVM) {
   return call(luaVM, [](const std::string &query, const int page,
-                        const std::string &kind) {
-    workshop::request_catalog_page(query, page, game::fromWorkshopKind(kind));
+                        const std::string &kind, const std::string &sort) {
+    workshop::request_catalog_page(query, page, game::fromWorkshopKind(kind),
+                                   sort);
   });
 }
 

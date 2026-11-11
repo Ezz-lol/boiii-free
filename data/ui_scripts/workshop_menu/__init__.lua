@@ -43,8 +43,14 @@ pcall(function()
 end)
 
 local currentFilter = "all"
-local currentSort = "name"
+local currentSort = nil
 local sortAscending = true
+local catalogSorts = {
+  { id = "trend", label = "POPULAR" },
+  { id = "subscribed", label = "MOST SUBSCRIBED" },
+  { id = "recent", label = "NEWEST" },
+}
+local catalogSortIndex = 1
 local currentPage = 1
 local searchQuery = ""
 
@@ -229,14 +235,14 @@ local function requestCatalog(page)
   end
   pcall(function()
     if game.requestworkshopcatalog then
-      game.requestworkshopcatalog(getSearchQuery(), currentPage, catalogKind())
+      game.requestworkshopcatalog(getSearchQuery(), currentPage, catalogKind(), catalogSorts[catalogSortIndex].id)
     end
   end)
 end
 
 local function fetchCatalogItems()
   local ok, items = pcall(function()
-    return game.getworkshopcatalog(getSearchQuery(), currentPage, catalogKind())
+    return game.getworkshopcatalog(getSearchQuery(), currentPage, catalogKind(), catalogSorts[catalogSortIndex].id)
   end)
   if not ok or type(items) ~= "table" then
     return {}
@@ -245,12 +251,16 @@ local function fetchCatalogItems()
 end
 
 local function sortItems(items)
+  local sortKey = currentSort or (currentFilter == "installed" and "name")
+  if not sortKey then
+    return
+  end
   table.sort(items, function(a, b)
     local va, vb
-    if currentSort == "kind" then
+    if sortKey == "kind" then
       va = string.lower(a.kind or "")
       vb = string.lower(b.kind or "")
-    elseif currentSort == "size" then
+    elseif sortKey == "size" then
       va = tonumber(a.file_size) or 0
       vb = tonumber(b.file_size) or 0
     else
@@ -1673,6 +1683,7 @@ LUI.createMenu.BoiiiWorkshopMenu = function(controller)
     text:setAlignment(Enum.LUIAlignment.LUI_ALIGNMENT_CENTER)
     text:setText(label)
     btn:addElement(text)
+    btn.label = text
     local function onClick()
       changePage(delta)
       return true
@@ -1694,7 +1705,24 @@ LUI.createMenu.BoiiiWorkshopMenu = function(controller)
   self:addElement(pageLabel)
   self.PageLabel = pageLabel
   local nextBtn = makePagerButton(400, 506, "NEXT", 1)
-  self.PagerWidgets = { prevBtn, pageLabel, nextBtn }
+  local sortBtn = makePagerButton(516, 764, "SORT: " .. catalogSorts[catalogSortIndex].label, 0)
+  local function cycleSort()
+    if currentFilter == "installed" or currentFilter == "queue" then
+      return true
+    end
+    catalogSortIndex = catalogSortIndex % #catalogSorts + 1
+    sortBtn.label:setText("SORT: " .. catalogSorts[catalogSortIndex].label)
+    currentSort = nil
+    requestCatalog(1)
+    rebuildList(self)
+    if self.refreshPages then
+      self.refreshPages()
+    end
+    return true
+  end
+  sortBtn:registerEventHandler("leftmouseup", cycleSort)
+  sortBtn:registerEventHandler("button_action", cycleSort)
+  self.PagerWidgets = { prevBtn, pageLabel, nextBtn, sortBtn }
 
   self.QueueWidgets = {}
   local function makeQueueButton(x1, x2, label, onClick)
