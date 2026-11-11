@@ -11,7 +11,7 @@ namespace fs {
 const std::filesystem::path &scriptdata_path();
 
 inline std::filesystem::path resolve_path(const std::filesystem::path &path) {
-  return std::filesystem::weakly_canonical(scriptdata_path() / path);
+  return std::filesystem::absolute(scriptdata_path() / path).lexically_normal();
 }
 
 inline bool is_safe_path(const std::filesystem::path &path) {
