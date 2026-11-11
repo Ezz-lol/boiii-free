@@ -497,16 +497,20 @@ void join_lobby(const game::net::netadr_t &host,
 
   const std::string &mod = content[0];
   const std::string &map = content[1];
+  const std::string &usermap = content[2];
+  const std::string host_mod =
+      mod.empty() && !usermap.empty() ? std::string{"usermaps"} : mod;
   const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
-  if (game_join_fallback &&
-      mod != (loaded_mod == "usermaps" ? std::string{} : loaded_mod)) {
+  const bool same_mod =
+      loaded_mod == host_mod || (host_mod.empty() && loaded_mod == "usermaps");
+  if (game_join_fallback && !same_mod) {
     fail({});
     return;
   }
 
   if (!workshop::check_valid_mod_id(mod, {}) ||
       (target == game::lobby::LobbyType::GAME && !map.empty() &&
-       !workshop::check_valid_usermap_id(map, content[2], {}, {}))) {
+       !workshop::check_valid_usermap_id(map, usermap, {}, {}))) {
     game_join_fallback = {};
     if (joining.friend_id) {
       friends::remember_browser_route(joining.friend_id, FRIEND_REJOIN_ROUTE);
@@ -515,8 +519,8 @@ void join_lobby(const game::net::netadr_t &host,
     return;
   }
 
-  if (mod != (loaded_mod == "usermaps" ? std::string{} : loaded_mod)) {
-    workshop::setup_same_mod_as_host(game::LOCAL_CLIENT_0, {}, mod);
+  if (!same_mod) {
+    workshop::setup_same_mod_as_host(game::LOCAL_CLIENT_0, usermap, host_mod);
     scheduler::once(
         [friend_id = joining.friend_id] {
           friends::connect_to_friend(friend_id);
@@ -679,13 +683,19 @@ void receive_lobby_join(const game::net::netadr_t &sender,
 
   add_peer(peer, sender);
   const std::string mod = workshop::get_mod_publisher_id();
-  const std::string map(game::get_dvar_string("ui_mapname").value_or(""));
+  const game::ugc::UGCItem &active_usermap = *game::ugc::active_usermap;
+  const bool on_usermap = mod == "usermaps" && active_usermap.publisherId[0];
+  const std::string map =
+      on_usermap
+          ? std::string(active_usermap.internalName)
+          : std::string(game::get_dvar_string("ui_mapname").value_or(""));
 
   const game::ugc::OptionalUGCItemRef usermap_item =
       game::ugc::UGC_GetUsermapByInternalName(map);
   const std::optional<std::string_view> usermap_id =
       usermap_item.has_value() ? std::optional(usermap_item->get().publisherId)
-                               : std::nullopt;
+      : on_usermap ? std::optional(std::string_view(active_usermap.publisherId))
+                   : std::nullopt;
   network::send(sender, "lobbyHost",
                 std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0],
                             host->xuid,
