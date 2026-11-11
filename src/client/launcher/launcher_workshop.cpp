@@ -706,16 +706,29 @@ void workshop_search_fetch_thread(const std::string &search_text,
   finish_browse_request(request_token);
 }
 
-workshop_fetch_result fetch_all_workshop_items(const uint64_t request_token) {
+std::string workshop_browse_sort_query(const std::string &sort) {
+  if (sort == "mostsubs") {
+    return "browsesort=totaluniquesubscribers&actualsort="
+           "totaluniquesubscribers";
+  }
+  if (sort == "trendweek") {
+    return "browsesort=trend&actualsort=trend&days=7";
+  }
+  return "browsesort=mostrecent&actualsort=mostrecent";
+}
+
+workshop_fetch_result fetch_all_workshop_items(const uint64_t request_token,
+                                               const std::string &sort) {
+  const bool recent = sort == "mostrecent";
   try {
+    const std::string sort_query = workshop_browse_sort_query(sort);
     const auto listing = scrape_workshop_listing_pages(
         [&](const int page) {
           return "https://steamcommunity.com/workshop/browse/"
-                 "?appid=311210&browsesort=mostrecent&section="
-                 "readytouseitems&actualsort=mostrecent&p=" +
-                 std::to_string(page);
+                 "?appid=311210&section=readytouseitems&" +
+                 sort_query + "&p=" + std::to_string(page);
         },
-        20, 200, request_token);
+        recent ? 20 : 5, 200, request_token);
 
     if (!listing.success) {
       return {false, "[]",
@@ -731,13 +744,14 @@ workshop_fetch_result fetch_all_workshop_items(const uint64_t request_token) {
   }
 }
 
-void workshop_browse_fetch_thread(int /*page_num*/,
+void workshop_browse_fetch_thread(const std::string &sort,
                                   const uint64_t request_token) {
-  const auto result = fetch_all_workshop_items(request_token);
+  const auto result = fetch_all_workshop_items(request_token, sort);
 
   if (is_current_browse_request(request_token)) {
     if (result.success) {
-      if (!result.items_json.empty() && result.items_json != "[]") {
+      if (sort == "mostrecent" && !result.items_json.empty() &&
+          result.items_json != "[]") {
         save_workshop_backup(result.items_json);
       }
       set_browse_request_items(request_token, result.items_json, "network");
@@ -996,23 +1010,20 @@ void register_callbacks(html_frame *frame) {
   frame->register_callback(
       "workshopBrowse",
       [](const std::vector<html_argument> &params) -> CComVariant {
-        int page = 1;
-        if (!params.empty() && params[0].is_string()) {
-          try {
-            page = std::stoi(params[0].get_string());
-          } catch (...) {
-            page = 1;
-          }
+        std::string sort = params.size() > 1 && params[1].is_string()
+                               ? params[1].get_string()
+                               : "";
+        if (sort != "mostsubs" && sort != "trendweek") {
+          sort = "mostrecent";
         }
-        if (page < 1)
-          page = 1;
 
         const auto request_token =
             workshop_browse_request_token.fetch_add(1) + 1;
-        const auto cached_items = load_workshop_backup();
+        const auto cached_items =
+            sort == "mostrecent" ? load_workshop_backup() : std::string{};
         begin_browse_request(request_token, "browse", "", cached_items,
                              cached_items.empty() ? "none" : "cache");
-        std::thread(workshop_browse_fetch_thread, page, request_token).detach();
+        std::thread(workshop_browse_fetch_thread, sort, request_token).detach();
         return CComVariant("Fetching...");
       });
 

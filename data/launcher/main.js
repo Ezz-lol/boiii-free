@@ -190,6 +190,7 @@
   var workshopBrowseError = "";
   var workshopBrowseSource = "none";
   var workshopBrowseCacheKey = "workshopBrowseCache";
+  var workshopBrowseFetchedSort = "";
   var _workshopBrowsePollInterval = null;
 
   var workshopViewMode = "grid";
@@ -835,8 +836,17 @@
     workshopBrowseItems = Array.isArray(state.items) ? state.items : [];
   }
 
+  function workshopBrowseSort() {
+    var sort = workshopFilterSelect ? workshopFilterSelect.value : "";
+    return sort === "mostsubs" || sort === "trendweek" ? sort : "mostrecent";
+  }
+
   function loadWorkshopBrowse(page) {
     cancelWorkshopPoll();
+    if (workshopBrowseFetchedSort !== workshopBrowseSort()) {
+      workshopBrowseItems = [];
+    }
+    workshopBrowseFetchedSort = workshopBrowseSort();
     workshopBrowseLoading = true;
     workshopBrowseMode = "browse";
     workshopBrowseError = "";
@@ -847,7 +857,10 @@
     try {
       var ex = getExternal();
       if (ex && ex.workshopBrowse) {
-        ex.workshopBrowse(workshopBrowseCurrentPage);
+        ex.workshopBrowse(
+          workshopBrowseCurrentPage,
+          workshopBrowseFetchedSort
+        );
         pollWorkshopBrowseResults();
       } else {
         workshopBrowseLoading = false;
@@ -1519,6 +1532,13 @@
       if (select)
         select.onchange = function () {
           workshopBrowseCurrentPage = 1;
+          if (
+            workshopBrowseMode === "browse" &&
+            workshopBrowseFetchedSort !== workshopBrowseSort()
+          ) {
+            loadWorkshopBrowse(1);
+            return;
+          }
           renderWorkshopBrowse();
         };
     }
