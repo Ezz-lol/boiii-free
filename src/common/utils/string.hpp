@@ -8,10 +8,6 @@
 
 namespace utils::string {
 
-inline constexpr uint8_t tolower(uint8_t c) noexcept {
-  return static_cast<uint8_t>(tolower(static_cast<char>(c)));
-}
-
 template <size_t Buffers, size_t MinBufferSize> class va_provider final {
 public:
   static_assert(Buffers != 0 && MinBufferSize != 0,
@@ -102,7 +98,7 @@ inline constexpr bool iequal(const std::string_view &a,
 constexpr std::string to_lower(std::string text) {
   std::transform(text.begin(), text.end(), text.begin(),
                  [](const unsigned char input) {
-                   return static_cast<char>(std::tolower(input));
+                   return static_cast<char>(tolower(input));
                  });
 
   return text;
@@ -111,7 +107,7 @@ constexpr std::string to_lower(std::string text) {
 constexpr std::string to_upper(std::string text) {
   std::transform(text.begin(), text.end(), text.begin(),
                  [](const unsigned char input) {
-                   return static_cast<char>(std::toupper(input));
+                   return static_cast<char>(toupper(input));
                  });
 
   return text;
