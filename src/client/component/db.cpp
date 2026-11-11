@@ -7,6 +7,7 @@
 #include "workshop/workshop.hpp"
 
 #include "game/impl/db/db.hpp"
+#include "game/impl/gfx/gfx.hpp"
 #include <game/utils.hpp>
 
 #include <utils/hook.hpp>
@@ -156,6 +157,8 @@ public:
         Com_GametypeSettings_SetGametype_GetOrInitGameTypeSettingsDDL);
     utils::hook::jump(game::db::xasset::Gfx_ReleaseImageTextures,
                       game::db::xasset::Gfx_ReleaseImageTextures_Impl);
+    utils::hook::jump(game::gfx::GfxImage_AssignDefaultTexture,
+                      game::gfx::GfxImage_AssignDefaultTexture_Impl);
 
     PrintWaitedError_hook.create(PrintWaitedError.get(), PrintWaitedError_stub);
     db_log_missing_assets = register_dvar_bool(
