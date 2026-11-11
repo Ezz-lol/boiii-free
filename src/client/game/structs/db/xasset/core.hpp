@@ -10,9 +10,18 @@
 
 namespace game {
 
+namespace player {
+namespace fx {
+struct PlayerFXTable;
+}
+} // namespace player
+
 namespace weapon {
 struct WeaponVariantDef;
-}
+struct WeaponCamo;
+struct WeaponAttachmentUnique;
+struct WeaponAttachment;
+} // namespace weapon
 
 namespace vehicle {
 struct VehicleDef;
@@ -442,11 +451,8 @@ inline constexpr const char *serialize(const XAssetType type) {
   }
 }
 
-template <IntegralLike<std::underlying_type_t<XAssetType>> Value>
-inline constexpr bool valid_xassettype(Value val_arg) {
-  const std::underlying_type_t<XAssetType> val =
-      static_cast<std::underlying_type_t<XAssetType>>(val_arg);
-  return val >= +XAssetType::PHYSPRESET && val < +XAssetType::COUNT;
+inline constexpr bool validate(XAssetType val) {
+  return val >= XAssetType::PHYSPRESET && val < XAssetType::COUNT;
 }
 
 /*
@@ -494,7 +500,7 @@ struct TagFxSetHandles {
   SetPtr tagFX;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"handle\": {}, \"count\": {}, \"tagFX\": {:p} }}",
+    return std::format(R"({{ "handle": {}, "count": {}, "tagFX": {:p} }})",
                        ::serialize(handle), count,
                        reinterpret_cast<const void *>(tagFX));
   }
@@ -505,8 +511,7 @@ template <typename T> struct FxRange {
   T amplitude;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"base\": {}, \"amplitude\": {} }}", base,
-                       amplitude);
+    return std::format(R"({{ "base": {}, "amplitude": {} }})", base, amplitude);
   }
 };
 
@@ -524,7 +529,7 @@ struct FxSpawnDefLooping {
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"intervalMsec\": {}, \"count\": {}, \"spawnCount\": {} }}",
+        R"({{ "intervalMsec": {}, "count": {}, "spawnCount": {} }})",
         intervalMsec, count, spawnCount.serialize());
   }
 };
@@ -535,7 +540,7 @@ struct FxSpawnDefOneShot {
   FxIntRange count;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"count\": {} }}", count.serialize());
+    return std::format(R"({{ "count": {} }})", count.serialize());
   }
 };
 ASSERT_SIZE(FxSpawnDefOneShot, 0x8);
@@ -546,7 +551,7 @@ union FxSpawnDef {
   FxSpawnDefOneShot oneShot;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"looping\": {} }}", looping.serialize());
+    return std::format(R"({{ "looping": {} }})", looping.serialize());
   }
 };
 ASSERT_SIZE(FxSpawnDef, 0x10);
@@ -636,7 +641,7 @@ union FxEffectDefRef {
   FxEffectDefHandleRaw handle;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {} }}", ::serialize(name));
+    return std::format(R"({{ "name": {} }})", ::serialize(name));
   }
 };
 ASSERT_SIZE(FxEffectDefRef, 0x8);
@@ -648,7 +653,7 @@ struct FxElemSound {
   uint8_t _padding0C[4];
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"sound\": {}, \"soundAlias\": 0x{:08X} }}",
+    return std::format(R"({{ "sound": {}, "soundAlias": 0x{:08X} }})",
                        ::serialize(sound), soundAlias);
   }
 };
@@ -683,10 +688,10 @@ union FxElemVisuals {
   gfx::GfxLightDef *lightDef;
   gfx::GfxLightDescription *lightDescription;
   FxLensFlareVisualDef lensFlareVisualDef;
-  char editorEffectName[64];
+  str64_t editorEffectName;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"anonymous\": {:p} }}", anonymous);
+    return std::format(R"({{ "anonymous": {:p} }})", anonymous);
   }
 };
 
@@ -697,7 +702,7 @@ union FxElemDefVisuals {
   FxElemVisuals instance;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"instance\": {} }}", instance.serialize());
+    return std::format(R"({{ "instance": {} }})", instance.serialize());
   }
 };
 ASSERT_SIZE(FxElemDefVisuals, 0x40);
@@ -713,7 +718,7 @@ union FxElemExtendedDefPtr {
   void *unknownDef; // verbatim name of title in engine
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"unknownDef\": {:p} }}", unknownDef);
+    return std::format(R"({{ "unknownDef": {:p} }})", unknownDef);
   }
 };
 ASSERT_SIZE(FxElemExtendedDefPtr, 0x8);
@@ -722,7 +727,7 @@ union FxElemDefUnion {
   FxIntRange cloudDensityRange;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"cloudDensityRange\": {} }}",
+    return std::format(R"({{ "cloudDensityRange": {} }})",
                        cloudDensityRange.serialize());
   }
 };
@@ -738,11 +743,11 @@ struct FxElemDef {
   float spawnFrustumCullRadius;
   FxIntRange spawnDelayMsec;
   FxIntRange lifeSpanMsec;
-  FxFloatRange spawnOrigin[3];
+  vec3<FxFloatRange> spawnOrigin;
   FxFloatRange spawnOffsetRadius;
   FxFloatRange spawnOffsetHeight;
-  FxFloatRange spawnAngles[3];
-  FxFloatRange angularVelocity[3];
+  vec3<FxFloatRange> spawnAngles;
+  vec3<FxFloatRange> angularVelocity;
   FxFloatRange initialRotation;
   uint32_t rotationAxis;
   FxFloatRange gravity;
@@ -938,7 +943,7 @@ struct EntityImpactPositionsFx {
   FxEffectDefHandle entityImpactPositions[6];
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"entityImpactPositions\": {} }}",
+    return std::format(R"({{ "entityImpactPositions": {} }})",
                        ::serialize(entityImpactPositions));
   }
 };
@@ -949,7 +954,7 @@ struct EntityFxImpacts : public NamedXAsset {
   EntityImpactPositionsFx entityImpacts[11];
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"name\": {}, \"entityImpacts\": {} }}",
+    return std::format(R"({{ "name": {}, "entityImpacts": {} }})",
                        ::serialize(name), ::serialize(entityImpacts));
   }
 };
@@ -968,7 +973,7 @@ struct FxImpactTable : public NamedXAsset {
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"name\": {}, \"surfaceFX\": {:p}, \"entityFXImpacts\": {} }}",
+        R"({{ "name": {}, "surfaceFX": {:p}, "entityFXImpacts": {} }})",
         ::serialize(name), reinterpret_cast<const void *>(surfaceFX),
         ::serialize(entityFXImpacts));
   }
@@ -978,7 +983,7 @@ struct FxElemMarkVisuals {
   FxMaterialHandle materials[3];
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"materials\": {:p} }}",
+    return std::format(R"({{ "materials": {:p} }})",
                        reinterpret_cast<const void *>(materials));
   }
 };
@@ -1476,9 +1481,9 @@ union XAssetHeader {
   font::FontIcon *fontIcon;
   LocalizeEntry *localize;
   weapon::WeaponVariantDef *weapon;
-  // WeaponAttachment *attachment;
-  // WeaponAttachmentUnique *attachmentUnique;
-  // WeaponCamo *weaponCamo;
+  weapon::WeaponAttachment *attachment;
+  weapon::WeaponAttachmentUnique *attachmentUnique;
+  weapon::WeaponCamo *weaponCamo;
   CustomizationTable *customizationTable;
   CustomizationTable_FEImages *customizationTable_feimages;
   CustomizationColorInfo *customizationColorInfo;
@@ -1490,8 +1495,8 @@ union XAssetHeader {
   // SoundsImpactTable *impactSounds;
   // CgMediaTable *cgMedia;
   // PlayerSoundsTable *playerSounds;
-  // PlayerFXTable *playerFX;
-  // SharedWeaponSounds *sharedWeaponSounds;
+  player::fx::PlayerFXTable *playerFX;
+  SharedWeaponSounds *sharedWeaponSounds;
 
   // E.g. compiled lua scripts, game CFGs,
   // some DDL files, vision and anim scripts

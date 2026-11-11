@@ -4,6 +4,11 @@
 #include "db/xasset/xmodel.hpp"
 #include <cstdint>
 namespace game {
+namespace snd {
+struct SurfaceSoundDef;
+typedef SurfaceSoundDef *SurfaceSoundDefPtr;
+} // namespace snd
+
 namespace scr {
 typedef uint32_t ScrString_t;
 }
@@ -1075,6 +1080,7 @@ PACKED(struct WeaponCamoMaterialSet {
   }
 });
 
+// Verified
 PACKED(struct WeaponCamo {
   const char *name;
   WeaponCamoMaterialSet *camoMaterials;
@@ -1088,6 +1094,7 @@ PACKED(struct WeaponCamo {
         numCamoMaterials);
   }
 });
+ASSERT_SIZE(WeaponCamo, 0x18);
 
 PACKED(struct WeaponAttachmentUnique {
   const char *szInternalName;
@@ -1233,6 +1240,8 @@ PACKED(struct WeaponAttachmentUnique {
   bool customBool4;
   bool customBool5;
   uint8_t _padding832[6];
+  // Added to pad struct to known-correct size of 0x840.
+  uint8_t _unknown838[8];
 
   [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
@@ -1384,6 +1393,8 @@ PACKED(struct WeaponAttachmentUnique {
         ::serialize(customBool4), ::serialize(customBool5));
   }
 });
+// Verified
+ASSERT_SIZE(WeaponAttachmentUnique, 0x840);
 typedef WeaponAttachmentUnique *WeaponAttachmentUniquePtr;
 
 enum class WeaponDobjInfoSlot : int32_t {
@@ -2120,7 +2131,8 @@ constexpr const char *serialize(const WeapOverlayInteface_t iface) {
   }
 }
 
-struct __attribute__((aligned(4))) WeaponAttachment {
+// Verified
+PACKED(struct WeaponAttachment {
   const char *szInternalName;
   const char *szDisplayName;
   eAttachment attachmentType;
@@ -2131,6 +2143,7 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   float fHipIdleAmount;
   bool bAltWeaponAdsOnly;
   bool bAltWeaponDisableSwitching;
+  uint8_t _padding2A[2];
   float altScopeADSTransInTime;
   float altScopeADSTransOutTime;
   bool bSilenced;
@@ -2140,6 +2153,7 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   bool bUseAsMelee;
   bool bDualWield;
   bool sharedAmmo;
+  uint8_t _padding3B[1];
   float fMasterDamageRangeScale;
   float damageScale[6];
   float damageRangeScale[6];
@@ -2175,9 +2189,11 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   float fAdsScopeBlurAmount;
   float fAdsScopeBlurStart;
   bool adsSwayViewInsteadOfGun;
+  uint8_t _padding115[3];
   float fkickAlignedInputScalar;
   float fkickOpposedInputScalar;
   bool swayOverride;
+  uint8_t _padding121[3];
   float swayMaxAngle;
   float swayLerpSpeed;
   float swayPitchScale;
@@ -2185,6 +2201,7 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   float swayHorizScale;
   float swayVertScale;
   bool adsSwayOverride;
+  uint8_t _padding13D[3];
   float adsSwayMaxAngle;
   float adsSwayLerpSpeed;
   float adsSwayTransitionLerpSpeed;
@@ -2213,6 +2230,7 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   float fReloadQuickEmptyAddTimeScale;
   bool mmsWeapon;
   bool mmsInScope;
+  uint8_t _padding1B2[2];
   float mmsFOV;
   float mmsAspect;
   float mmsMaxDist;
@@ -2221,6 +2239,7 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   uint32_t stackFire;
   float stackFireSpread;
   float stackFireAccuracyDecay;
+  uint8_t _padding1D4[4];
   const char *luiReticle;
   uint32_t perks[4];
   float customFloat0;
@@ -2229,12 +2248,12 @@ struct __attribute__((aligned(4))) WeaponAttachment {
   float customFloat3;
   float customFloat4;
   float customFloat5;
-  bool customBool0;
-  bool customBool1;
-  bool customBool2;
-  bool customBool3;
-  bool customBool4;
-  bool customBool5;
+  qboolean customBool0;
+  qboolean customBool1;
+  qboolean customBool2;
+  qboolean customBool3;
+  qboolean customBool4;
+  qboolean customBool5;
 
   [[nodiscard]] std::string serialize() const noexcept {
     return std::format(
@@ -2344,11 +2363,13 @@ struct __attribute__((aligned(4))) WeaponAttachment {
         iClipSize, stackFire, stackFireSpread, stackFireAccuracyDecay,
         ::serialize(luiReticle), ::serialize(perks), customFloat0, customFloat1,
         customFloat2, customFloat3, customFloat4, customFloat5,
-        ::serialize(customBool0), ::serialize(customBool1),
-        ::serialize(customBool2), ::serialize(customBool3),
-        ::serialize(customBool4), ::serialize(customBool5));
+        customBool0.serialize(), customBool1.serialize(),
+        customBool2.serialize(), customBool3.serialize(),
+        customBool4.serialize(), customBool5.serialize());
   }
-};
+});
+ASSERT_SIZE(WeaponAttachment, 0x220);
+
 typedef WeaponAttachment *WeaponAttachmentPtr;
 
 enum class guidedMissileType_t : int32_t {
@@ -3925,6 +3946,16 @@ PACKED(struct weaponParms {
   bool reflected;
   uint8_t _padding59[7];
 });
+
+// Verified
+PACKED(struct SharedWeaponSounds {
+  const char *name;
+  snd::SurfaceSoundDefPtr meleeSurfaceSound;
+  snd::SurfaceSoundDefPtr meleeSurfaceSoundPlayer;
+  db::xasset::EntityFxImpactsPtr sharedMeleeSounds[13];
+  snd::SndAliasId sharedSounds[28];
+});
+ASSERT_SIZE(SharedWeaponSounds, 0xF0);
 
 } // namespace weapon
 } // namespace game

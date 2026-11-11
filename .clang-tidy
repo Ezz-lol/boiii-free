@@ -33,6 +33,7 @@ Checks:
   - "-cppcoreguidelines-pro-bounds-constant-array-index"
   - "-cppcoreguidelines-special-member-functions"
   - "-cppcoreguidelines-pro-type-member-init"
+  - "-cert-dcl37-c"
   - "-cert-err33-c"
   - "-cert-err58-cpp"
   - "-hicpp-use-auto"
@@ -44,6 +45,7 @@ Checks:
   - "-modernize-concat-nested-namespaces"
   - "-performance-no-int-to-ptr"
   - "-readability-identifier-length"
+  - "-readability-redundant-inline-specifier"
   - "-readability-trailing-comma"
   - "-readability-uppercase-literal-suffix"
 

@@ -172,13 +172,13 @@ public:
 
       scheduler::schedule(
           [] {
-            if (!com::Com_IsRunningUILevel()) {
-              return scheduler::cond_continue;
+            if (com::Com_IsRunningUILevel()) {
+              utils::thread::create_named_thread("Mode Preload",
+                                                 preload_mode_files)
+                  .detach();
+              return scheduler::cond_end;
             }
-            utils::thread::create_named_thread("Mode Preload",
-                                               preload_mode_files)
-                .detach();
-            return scheduler::cond_end;
+            return scheduler::cond_continue;
           },
           scheduler::main, 1s);
     }

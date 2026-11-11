@@ -31,8 +31,9 @@ parse_page_sizes(const std::string_view &html) {
     const size_t id_digits = html.find_first_of("0123456789", id_at + 16);
     const size_t id_end = html.find_first_not_of("0123456789", id_digits);
     const uint64_t bytes = std::strtoull(html.data() + digits, nullptr, 10);
-    if (bytes && id_digits < id_at + 64 && id_end - id_digits >= 6)
+    if (bytes && id_digits < id_at + 64 && id_end - id_digits >= 6) {
       sizes[std::string(html.substr(id_digits, id_end - id_digits))] = bytes;
+    }
   }
   return sizes;
 }
@@ -118,12 +119,13 @@ std::string strip_tags(const std::string_view &text) {
   std::string plain;
   bool in_tag = false;
   for (const char c : text) {
-    if (c == '<')
+    if (c == '<') {
       in_tag = true;
-    else if (c == '>')
+    } else if (c == '>') {
       in_tag = false;
-    else if (!in_tag)
+    } else if (!in_tag) {
       plain.push_back(c);
+    }
   }
   return plain;
 }
@@ -155,36 +157,36 @@ std::vector<item_details> fetch_page(int page, const std::string_view &query,
   for (const std::string &url : urls) {
     const std::optional<std::string> html =
         utils::http::get_data(url, headers, {}, 15);
-    if (!html)
-      continue;
-
-    std::vector<std::string> ids;
-    std::unordered_set<std::string> seen;
-    for (const char *prefix :
-         {"filedetails/?id=", "sharedfile_", "PublishedFileId\":\""}) {
-      collect_ids(*html, prefix, ids, seen);
+    if (html) {
+      std::vector<std::string> ids;
+      std::unordered_set<std::string> seen;
+      for (const char *prefix :
+           {"filedetails/?id=", "sharedfile_", "PublishedFileId\":\""}) {
+        collect_ids(*html, prefix, ids, seen);
+      }
+      if (!ids.empty()) {
+        std::vector<item_details> items;
+        {
+          std::scoped_lock lock(catalog_mutex);
+          remember_page_sizes(*html);
+        }
+        for (item_details &item : get_details(ids)) {
+          if (query.empty() || matches_query(item, query)) {
+            item.description = strip_tags(item.description);
+            std::scoped_lock lock(catalog_mutex);
+            if (item.file_size) {
+              known_sizes[item.id] = item.file_size;
+            } else if (known_sizes.contains(item.id)) {
+              item.file_size = known_sizes[item.id];
+            }
+            items.push_back(std::move(item));
+          }
+        }
+        if (!items.empty()) {
+          return items;
+        }
+      }
     }
-    if (ids.empty())
-      continue;
-
-    std::vector<item_details> items;
-    {
-      std::lock_guard lock(catalog_mutex);
-      remember_page_sizes(*html);
-    }
-    for (item_details &item : get_details(ids)) {
-      if (!query.empty() && !matches_query(item, query))
-        continue;
-      item.description = strip_tags(item.description);
-      std::lock_guard lock(catalog_mutex);
-      if (item.file_size)
-        known_sizes[item.id] = item.file_size;
-      else if (known_sizes.contains(item.id))
-        item.file_size = known_sizes[item.id];
-      items.push_back(std::move(item));
-    }
-    if (!items.empty())
-      return items;
   }
   return {};
 }
@@ -217,8 +219,9 @@ std::string og_image(const std::string_view &html) {
   std::string url(html.substr(start, html.find('"', start) - start));
   // The page HTML-escapes the URL's '&'
   for (size_t pos = url.find("&amp;"); pos != std::string::npos;
-       pos = url.find("&amp;", pos + 1))
+       pos = url.find("&amp;", pos + 1)) {
     url.replace(pos, 5, "&");
+  }
   return url;
 }
 
@@ -237,8 +240,9 @@ bool save_preview(const std::string_view &id, const std::string &data) {
     if (!stbir_resize_uint8_srgb(
             reinterpret_cast<const uint8_t *>(decoded.data.data()), width,
             height, 0, reinterpret_cast<uint8_t *>(scaled.data()), scaled_width,
-            scaled_height, 0, STBIR_RGBA))
+            scaled_height, 0, STBIR_RGBA)) {
       return false;
+    }
 
     std::string png;
     const auto append = [](void *context, void *bytes, int size) {
@@ -246,14 +250,16 @@ bool save_preview(const std::string_view &id, const std::string &data) {
                                                   size);
     };
     if (!stbi_write_png_to_func(append, &png, scaled_width, scaled_height, 4,
-                                scaled.data(), scaled_width * 4))
+                                scaled.data(), scaled_width * 4)) {
       return false;
+    }
 
     const std::filesystem::path path = preview_path(id);
     std::filesystem::path temp = path;
     temp += ".tmp";
-    if (!utils::io::write_file(temp, png))
+    if (!utils::io::write_file(temp, png)) {
       return false;
+    }
     std::error_code ec;
     std::filesystem::rename(temp, path, ec);
     return !ec;
@@ -266,8 +272,9 @@ bool save_preview(const std::string_view &id, const std::string &data) {
 // works offline
 std::optional<std::string> read_installed_preview(const std::string_view &id) {
   const std::filesystem::path folder = find_installed(id);
-  if (folder.empty())
+  if (folder.empty()) {
     return std::nullopt;
+  }
   std::error_code ec;
   for (const std::filesystem::path &dir : {folder, folder / "zone"}) {
     for (const std::filesystem::directory_entry &entry :
@@ -281,8 +288,9 @@ std::optional<std::string> read_installed_preview(const std::string_view &id) {
       if (stem.starts_with("previewimage") &&
           (ext == ".png" || ext == ".jpg" || ext == ".jpeg")) {
         std::string data;
-        if (utils::io::read_file(entry.path(), &data))
+        if (utils::io::read_file(entry.path(), &data)) {
           return data;
+        }
       }
     }
   }
@@ -306,17 +314,18 @@ bool download_preview(const std::string &id, const std::string &url) {
   for (size_t i = 0; i < urls.size(); ++i) {
     const std::optional<std::string> body =
         utils::http::get_data(urls[i], headers, {}, 10);
-    if (!body)
-      continue;
-    if (is_engine_image(*body)) {
-      if (save_preview(id, *body))
-        return true;
-      continue;
-    }
-    const std::string image = og_image(*body);
-    if (!image.empty() && i + 1 == urls.size()) {
-      urls.push_back(image + "?imw=512&ima=fit&impolicy=Letterbox");
-      urls.push_back(image);
+    if (body) {
+      if (is_engine_image(*body)) {
+        if (save_preview(id, *body)) {
+          return true;
+        }
+      } else {
+        const std::string image = og_image(*body);
+        if (!image.empty() && i + 1 == urls.size()) {
+          urls.push_back(image + "?imw=512&ima=fit&impolicy=Letterbox");
+          urls.push_back(image);
+        }
+      }
     }
   }
   return false;
@@ -325,21 +334,21 @@ bool download_preview(const std::string &id, const std::string &url) {
 void bind_cover(const game::gfx::GfxTexture &loaded) {
   game::gfx::GfxImage *image =
       game::db::xasset::DB_FindXAssetHeader(game::db::xasset::XAssetType::IMAGE,
-                                            "img_t7_mod_preview", 1, -1)
+                                            "img_t7_mod_preview", true, -1)
           .image;
-  if (!image)
-    return;
-  if (image->texture.basemap) {
-    game::gfx::Gfx_TexturePool_ReleaseRef(image->texture, 0);
-    image->texture.basemap->lpVtbl->Release(image->texture.basemap);
+  if (image != nullptr) {
+    if (image->texture.basemap != nullptr) {
+      game::gfx::Gfx_TexturePool_ReleaseRef(image->texture, 0);
+      image->texture.basemap->release();
+    }
+    game::gfx::GfxTexture texture = loaded;
+    if (texture.basemap == nullptr) {
+      texture = (*game::gfx::loadedGfxImage.get())->texture;
+      game::gfx::Gfx_TexturePool_AddRef(texture, 0);
+      texture.basemap->add_ref();
+    }
+    image->texture = texture;
   }
-  game::gfx::GfxTexture texture = loaded;
-  if (!texture.basemap) {
-    texture = (*game::gfx::loadedGfxImage.get())->texture;
-    game::gfx::Gfx_TexturePool_AddRef(texture, 0);
-    texture.basemap->lpVtbl->AddRef(texture.basemap);
-  }
-  image->texture = texture;
 }
 
 void apply_cover() {
@@ -347,33 +356,32 @@ void apply_cover() {
   static std::string applied_id;
   static bool applied_final = true;
   std::string id;
-  bool failed;
+  bool failed = false;
   {
-    std::lock_guard lock(preview_mutex);
+    std::scoped_lock lock(preview_mutex);
     id = cover_id;
     failed = preview_failed.contains(id);
   }
-  if (id == applied_id && applied_final)
-    return;
+  if (id != applied_id || !applied_final) {
+    const bool ready = !id.empty() && has_preview(id);
+    const bool final = id.empty() || ready || failed;
+    if (id != applied_id || final) {
+      applied_id = id;
+      applied_final = final;
 
-  const bool ready = !id.empty() && has_preview(id);
-  const bool final = id.empty() || ready || failed;
-  if (id == applied_id && !final)
-    return;
-  applied_id = id;
-  applied_final = final;
-
-  // No preview at all falls back to the default image
-  if (ready) {
-    bind_cover(
-        game::gfx::Gfx_LoadTextureFromPng(preview_path(id).string().c_str()));
-  } else if (final) {
-    bind_cover({});
-  } else {
-    const std::filesystem::path loading =
-        game::get_appdata_path() /
-        "data/ui_scripts/workshop_menu/loadingworkshop.png";
-    bind_cover(game::gfx::Gfx_LoadTextureFromPng(loading.string().c_str()));
+      // No preview at all falls back to the default image
+      if (ready) {
+        bind_cover(game::gfx::Gfx_LoadTextureFromPng(
+            preview_path(id).string().c_str()));
+      } else if (final) {
+        bind_cover({});
+      } else {
+        const std::filesystem::path loading =
+            game::get_appdata_path() /
+            "data/ui_scripts/workshop_menu/loadingworkshop.png";
+        bind_cover(game::gfx::Gfx_LoadTextureFromPng(loading.string().c_str()));
+      }
+    }
   }
 }
 } // namespace
@@ -382,14 +390,19 @@ void request_catalog_page(const std::string_view &query, int page,
                           game::ZoneType type) {
   page = std::max(page, 1);
   {
-    std::lock_guard lock(catalog_mutex);
+    std::scoped_lock lock(catalog_mutex);
     if (catalog_query == query && catalog_type == type && status.page == page &&
-        (status.loading || !catalog_items.empty() || !status.error.empty()))
+        (status.loading || !catalog_items.empty() || !status.error.empty())) {
       return;
+    }
     catalog_query = query;
     catalog_type = type;
     catalog_items.clear();
-    status = {true, false, page, status.generation + 1, {}};
+    status = {.loading = true,
+              .has_more = false,
+              .page = page,
+              .generation = status.generation + 1,
+              .error = {}};
   }
 
   const uint64_t request = ++catalog_request;
@@ -399,68 +412,72 @@ void request_catalog_page(const std::string_view &query, int page,
     for (item_details &item : items) {
       item.type = type;
     }
-    for (const item_details &item : items)
+    for (const item_details &item : items) {
       request_preview(item.id, item.preview_url);
+    }
 
-    std::lock_guard lock(catalog_mutex);
-    if (request != catalog_request)
-      return;
-    status.has_more = items.size() >= PAGE_SIZE;
-    status.loading = false;
-    status.error = items.empty() ? (query.empty() ? "No items on this page."
-                                                  : "No search results.")
-                                 : "";
-    ++status.generation;
-    catalog_items = std::move(items);
+    std::scoped_lock lock(catalog_mutex);
+    if (request == catalog_request) {
+      status.has_more = items.size() >= PAGE_SIZE;
+      status.loading = false;
+      status.error = items.empty() ? (query.empty() ? "No items on this page."
+                                                    : "No search results.")
+                                   : "";
+      ++status.generation;
+      catalog_items = std::move(items);
+    }
   }).detach();
 }
 
 std::vector<item_details> get_catalog_page() {
-  std::lock_guard lock(catalog_mutex);
+  std::scoped_lock lock(catalog_mutex);
   return catalog_items;
 }
 
 catalog_status get_catalog_status() {
-  std::lock_guard lock(catalog_mutex);
+  std::scoped_lock lock(catalog_mutex);
   return status;
 }
 
 void request_preview(const std::string_view &id, const std::string_view &url) {
-  if (id.empty() || has_preview(id))
-    return;
-  {
-    std::lock_guard lock(preview_mutex);
-    if (preview_failed.contains(std::string(id)) ||
-        !preview_busy.insert(std::string(id)).second)
-      return;
-  }
-
-  const bool selected = [&] {
-    std::lock_guard lock(preview_mutex);
-    return cover_id == id;
-  }();
-
-  // Own copies: the caller's strings are gone once this returns
-  std::thread([id = std::string(id), url = std::string(url), selected] {
-    // Local files don't need a download slot
-    const std::optional<std::string> local = read_installed_preview(id);
-    bool saved = local && save_preview(id, *local);
-    if (!saved) {
-      std::counting_semaphore<> &slots = selected ? cover_slots : preview_slots;
-      slots.acquire();
-      const auto _ = gsl_lite::finally([&slots] { slots.release(); });
-      saved = download_preview(id, url);
+  if (!id.empty() && !has_preview(id)) {
+    {
+      std::scoped_lock lock(preview_mutex);
+      if (preview_failed.contains(std::string(id)) ||
+          !preview_busy.insert(std::string(id)).second) {
+        return;
+      }
     }
 
-    std::lock_guard lock(preview_mutex);
-    preview_busy.erase(id);
-    if (!saved)
-      preview_failed.insert(id);
-  }).detach();
+    const bool selected = [&] {
+      std::scoped_lock lock(preview_mutex);
+      return cover_id == id;
+    }();
+
+    // Own copies: the caller's strings are gone once this returns
+    std::thread([id = std::string(id), url = std::string(url), selected] {
+      // Local files don't need a download slot
+      const std::optional<std::string> local = read_installed_preview(id);
+      bool saved = local && save_preview(id, *local);
+      if (!saved) {
+        std::counting_semaphore<> &slots =
+            selected ? cover_slots : preview_slots;
+        slots.acquire();
+        const auto _ = gsl_lite::finally([&slots] { slots.release(); });
+        saved = download_preview(id, url);
+      }
+
+      std::scoped_lock lock(preview_mutex);
+      preview_busy.erase(id);
+      if (!saved) {
+        preview_failed.insert(id);
+      }
+    }).detach();
+  }
 }
 
 void set_preview_cover(const std::string_view &id) {
-  std::lock_guard lock(preview_mutex);
+  std::scoped_lock lock(preview_mutex);
   cover_id = id;
 }
 

@@ -102,15 +102,15 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::PLAYERSOUNDS:
     return 0x448;
   case XAssetType::PLAYERFX:
-    return 0x98;
+    return sizeof(db::xasset::player::fx::PlayerFXTable);
   case XAssetType::SHAREDWEAPONSOUNDS:
-    return 0xF0;
+    return sizeof(weapon::SharedWeaponSounds);
   case XAssetType::ATTACHMENT:
-    return 0x220;
+    return sizeof(weapon::WeaponAttachment);
   case XAssetType::ATTACHMENT_UNIQUE:
-    return 0x840;
+    return sizeof(weapon::WeaponAttachmentUnique);
   case XAssetType::WEAPON_CAMO:
-    return 0x18;
+    return sizeof(weapon::WeaponCamo);
   case XAssetType::CUSTOMIZATION_TABLE:
     return sizeof(CustomizationTable);
   case XAssetType::CUSTOMIZATION_TABLE_FE_IMAGES:
@@ -291,8 +291,7 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
     std::scoped_lock<std::mutex> reallocation_lock(reallocation_mutex);
 
     // Skip if pool already meets or exceeds requested size
-    if (!pool->isSingleton &&
-        pool->itemCount < static_cast<int32_t>(new_size)) {
+    if (!pool->isSingleton && std::cmp_less(pool->itemCount, new_size)) {
       fprintf(stdout, "Reallocating asset pool type %d: %d -> %u entries\n",
               +type, pool->itemCount, new_size);
       fflush(stdout);
@@ -310,12 +309,12 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
 
       for (uint32_t i = 0; i + 1 < count; ++i) {
         reinterpret_cast<AssetLink *>(block +
-                                      static_cast<size_t>(entry_size) * i)
+                                      (static_cast<size_t>(entry_size) * i))
             ->next = reinterpret_cast<AssetLink *>(
-            block + static_cast<size_t>(entry_size) * (i + 1));
+            block + (static_cast<size_t>(entry_size) * (i + 1)));
       }
-      reinterpret_cast<AssetLink *>(block + static_cast<size_t>(entry_size) *
-                                                (count - 1))
+      reinterpret_cast<AssetLink *>(
+          block + (static_cast<size_t>(entry_size) * (count - 1)))
           ->next = empty ? nullptr : pool->freeHead;
       pool->freeHead = reinterpret_cast<AssetLink *>(block);
       if (empty || pool->pool == nullptr) {
@@ -327,7 +326,7 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
       fflush(stdout);
 
       pool->itemSize = entry_size;
-      pool->itemCount = new_size;
+      pool->itemCount = static_cast<int32_t>(new_size);
     }
   }
 }
@@ -371,6 +370,7 @@ void *DB_AssetPoolAlloc_Impl(XAssetType type) {
 
   return freeHead;
 }
+
 } // namespace pool
 } // namespace xasset
 } // namespace db

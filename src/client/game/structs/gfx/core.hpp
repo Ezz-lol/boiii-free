@@ -133,14 +133,12 @@ union GfxSortKey {
   uint64_t packed;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"fields\": {}, \"packed\": 0x{:016X} }}",
+    return std::format(R"({{ "fields": {}, "packed": 0x{:016X} }})",
                        fields.serialize(), packed);
   }
 };
 
-#pragma pack(push, 1)
-// sizeof=0x20
-struct XPakEntryInfo {
+PACKED(struct XPakEntryInfo {
   uint64_t key;
   int64_t offset;
   uint64_t size;
@@ -159,20 +157,15 @@ struct XPakEntryInfo {
         "{}, "
         "\"compressed\": {}, \"valid\": {}, \"adjacentLeftType\": {}, "
         "\"adjacentRightType\": {}, "
-        "\"adjacentLeft\": {}, \"adjacentRight\": {}, \"padding\": {} }}",
+        "\"adjacentLeft\": {}, \"adjacentRight\": {} }}",
         key, offset, size, static_cast<uint64_t>(xpakIndex),
         static_cast<bool>(compressed), static_cast<bool>(valid),
-        static_cast<uint64_t>(adjacentLeftType),
-        static_cast<uint64_t>(adjacentRightType),
-        static_cast<uint64_t>(adjacentLeft),
-        static_cast<uint64_t>(adjacentRight), static_cast<uint64_t>(padding));
+        adjacentLeftType, adjacentRightType, adjacentLeft, adjacentRight);
   }
-};
+});
 ASSERT_SIZE(XPakEntryInfo, 0x20);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct GfxStreamedPartInfo {
+PACKED(struct GfxStreamedPartInfo {
   uint32_t levelCountAndSize;
   uint16_t width;
   uint16_t height;
@@ -183,10 +176,8 @@ struct GfxStreamedPartInfo {
                        "\"height\": {}, \"xpakEntry\": {} }}",
                        levelCountAndSize, width, height, xpakEntry.serialize());
   }
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
 struct _GUID {
   uint32_t Data1;
   uint16_t Data2;
@@ -200,39 +191,69 @@ struct _GUID {
         Data1, Data2, Data3, ::serialize(Data4));
   }
 };
-#pragma pack(pop)
+ASSERT_SIZE(_GUID, 0x10);
 typedef struct _GUID GUID;
 typedef GUID IID;
 
 struct IUnknown;
 
-#pragma pack(push, 8)
 struct IUnknownVtbl {
-  stdcallPtr_t<int32_t, IUnknown *, const IID *const, void **> QueryInterface;
-  stdcallPtr_t<uint32_t, IUnknown *> AddRef;
-  stdcallPtr_t<uint32_t, IUnknown *> Release;
+  stdcallPtr_t<int32_t(IUnknown * /*this*/, const IID *const guid, void **out)>
+      QueryInterface;
+  stdcallPtr_t<uint32_t(IUnknown * /*this*/)> AddRef;
+  stdcallPtr_t<uint32_t(IUnknown * /*this*/)> Release;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"QueryInterface\": {:p}, \"AddRef\": {:p}, \"Release\": {:p} }}",
+        R"({{ "QueryInterface": {:p}, "AddRef": {:p}, "Release": {:p} }})",
         reinterpret_cast<const void *>(QueryInterface),
         reinterpret_cast<const void *>(AddRef),
         reinterpret_cast<const void *>(Release));
   }
 };
 ASSERT_SIZE(IUnknownVtbl, 0x18);
-#pragma pack(pop)
 
-#pragma pack(push, 8)
 struct IUnknown {
   IUnknownVtbl *lpVtbl;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"lpVtbl\": {:p} }}",
+    return std::format(R"({{ "lpVtbl": {:p} }})",
                        reinterpret_cast<const void *>(lpVtbl));
   }
+
+  // Probably mutated by function internally; assuming struct is const here
+  // could lead to erroneous compiler optimizations.
+  // NOLINTNEXTLINE(readability-make-member-function-const)
+  inline uint32_t release() noexcept {
+    if (nonnull(lpVtbl) && nonnull(lpVtbl->Release)) {
+      return lpVtbl->Release(this);
+    }
+
+    return 0;
+  }
+
+  // Probably mutated by function internally; assuming struct is const here
+  // could lead to erroneous compiler optimizations.
+  // NOLINTNEXTLINE(readability-make-member-function-const)
+  inline uint32_t add_ref() noexcept {
+    if (nonnull(lpVtbl) && nonnull(lpVtbl->AddRef)) {
+      return lpVtbl->AddRef(this);
+    }
+
+    return 0;
+  }
+
+  // Probably mutated by function internally; assuming struct is const here
+  // could lead to erroneous compiler optimizations.
+  // NOLINTNEXTLINE(readability-make-member-function-const)
+  inline int32_t query_interface(const IID *const guid, void **out) noexcept {
+    if (nonnull(lpVtbl) && nonnull(lpVtbl->QueryInterface)) {
+      return lpVtbl->QueryInterface(this, guid, out);
+    }
+
+    return -1;
+  }
 };
-#pragma pack(pop)
 
 struct ID3D11DeviceChild : public IUnknown {};
 
@@ -241,8 +262,7 @@ struct ID3D11View : public ID3D11DeviceChild {};
 struct ID3D11ShaderResourceView : public ID3D11View {};
 
 // Unverified
-#pragma pack(push, 1)
-struct GfxImageLoadDef {
+PACKED(struct GfxImageLoadDef {
   char levelCount;
   char numElements;
   char pad[2];
@@ -260,9 +280,8 @@ struct GfxImageLoadDef {
         static_cast<int>(levelCount), static_cast<int>(numElements),
         ::serialize(pad), flags, format, resourceSize, ::serialize(data));
   }
-};
+});
 ASSERT_SIZE(GfxImageLoadDef, 0x14);
-#pragma pack(pop)
 
 union GfxTexture {
   ID3D11ShaderResourceView *basemap;
@@ -271,6 +290,27 @@ union GfxTexture {
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"basemap\": {:p} }}",
                        reinterpret_cast<const void *>(basemap));
+  }
+
+  // Probably mutated by function internally; assuming struct is const here
+  // could lead to erroneous compiler optimizations.
+  // NOLINTNEXTLINE(readability-make-member-function-const)
+  inline uint32_t release() noexcept {
+    return nonnull(basemap) ? basemap->release() : 0;
+  }
+
+  // Probably mutated by function internally; assuming struct is const here
+  // could lead to erroneous compiler optimizations.
+  // NOLINTNEXTLINE(readability-make-member-function-const)
+  inline uint32_t add_ref() noexcept {
+    return nonnull(basemap) ? basemap->add_ref() : 0;
+  }
+
+  // Probably mutated by function internally; assuming struct is const here
+  // could lead to erroneous compiler optimizations.
+  // NOLINTNEXTLINE(readability-make-member-function-const)
+  inline int32_t query_interface(const IID *const guid, void **out) noexcept {
+    return nonnull(basemap) ? basemap->query_interface(guid, out) : -1;
   }
 };
 

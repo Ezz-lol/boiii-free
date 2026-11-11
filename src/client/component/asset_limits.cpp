@@ -55,7 +55,7 @@ std::vector<pool_config> parse_list(std::string &data) {
       const std::optional<int32_t> parsed_type_val =
           parse_int<int32_t>(parts[0]);
       if (parsed_type_val.has_value() &&
-          valid_xassettype(parsed_type_val.value())) {
+          validate(static_cast<XAssetType>(parsed_type_val.value()))) {
         const std::optional<uint32_t> parsed_size_val =
             parse_int<uint32_t>(parts[parts.size() - 1]);
         if (parsed_size_val.has_value()) {

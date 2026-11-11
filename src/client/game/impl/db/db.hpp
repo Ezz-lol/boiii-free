@@ -45,9 +45,9 @@ inline void Gfx_TexturePool_ReleaseSingle(gfx::GfxTexture &texture) {
 void Gfx_ReleaseImageTextures_Impl(XAssetHeader header);
 
 namespace pool {
-void reallocate_asset_pool(const XAssetType type, const uint32_t new_size);
-pool::XAssetEntryPoolEntry *
-DB_GetAssetEntryPoolEntryByName(const char *name, const XAssetType type);
+void reallocate_asset_pool(XAssetType type, uint32_t new_size);
+pool::XAssetEntryPoolEntry *DB_GetAssetEntryPoolEntryByName(const char *name,
+                                                            XAssetType type);
 void DB_InitBSPGlobals_Impl();
 void *DB_AssetPoolAlloc_Impl(XAssetType type);
 } // namespace pool
