@@ -1142,6 +1142,77 @@ LobbyVM.Devmap = function(event)
   Lobby.ProcessQueue.AddToQueue("Devmap", Lobby.Process.Devmap(event.controller, event.mainMode))
 end
 
+local function startMapTarget(mainMode)
+  local lan = Engine.GetLobbyNetworkMode() == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LAN
+  if mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_ZM then
+    return lan and LobbyData.UITargets.UI_ZMLOBBYLANGAME or LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME
+  elseif mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_CP then
+    if Dvar.ui_gametype:get() == "cpzm" then
+      return lan and LobbyData.UITargets.UI_CP2LOBBYLANGAME or LobbyData.UITargets.UI_CP2LOBBYONLINECUSTOMGAME
+    end
+    return lan and LobbyData.UITargets.UI_CPLOBBYLANGAME or LobbyData.UITargets.UI_CPLOBBYONLINECUSTOMGAME
+  end
+  return lan and LobbyData.UITargets.UI_MPLOBBYLANGAME or LobbyData.UITargets.UI_MPLOBBYONLINECUSTOMGAME
+end
+
+LobbyVM.StartMap = function(event)
+  local controller = event.controller
+  local target = startMapTarget(event.mainMode)
+  local gameType = Dvar.ui_gametype:get()
+  local mapName = Dvar.ui_mapname:get()
+  local failed = Lobby.Interrupt.ErrorMsg(Lobby.ProcessNavigate.GameLobbyInterrupt, {
+    controller = controller,
+    errorTarget = LobbyData:UITargetFromId(Engine.GetLobbyUIScreen()),
+  }, Engine.Localize("MENU_FAILED_TO_HOST_LOBBY"))
+  local xuid = { xuid = Engine.GetXUID64(controller) }
+  local campaignMode = LuaUtils.IsCPZMTarget(target.id) and Enum.CampaignMode.CAMPAIGNMODE_ZOMBIES
+    or Enum.CampaignMode.CAMPAIGNMODE_DEFAULT
+  local actions = {
+    Lobby.Actions.WaitForJoiningClients(5000),
+    Lobby.Actions.ExecuteScript(function()
+      Engine.SetSessionStatus(Enum.LobbyType.LOBBY_TYPE_PRIVATE, Enum.SessionStatus.SESSION_STATUS_JOIN)
+    end),
+    Lobby.Actions.SwitchMode(controller, Lobby.Core.GetMainModeStr(target.mainMode)),
+    Lobby.Actions.SwitchCampaignMode(controller, campaignMode),
+    Lobby.Actions.LobbySettings(controller, target),
+    Lobby.Actions.ExecuteScript(function()
+      Engine.SetGametype(gameType)
+      Engine.GameLobbySetMap(mapName)
+      Engine.SetModelValue(Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.selectedMapId"), mapName)
+    end),
+    Lobby.Actions.LobbyHostStart(
+      controller,
+      target.mainMode,
+      Enum.LobbyType.LOBBY_TYPE_GAME,
+      target.lobbyMode,
+      target.maxClients
+    ),
+    Lobby.Actions.LobbyInfoProbe(controller, xuid),
+    Lobby.Actions.LobbyJoinXUID(controller, xuid, Enum.JoinType.JOIN_TYPE_PARTY),
+    Lobby.Actions.LobbyVMCall(Lobby.Timer.HostingLobby, {
+      controller = controller,
+      lobbyType = Enum.LobbyType.LOBBY_TYPE_GAME,
+      mainMode = target.mainMode,
+      lobbyTimerType = target.lobbyTimerType,
+    }),
+    Lobby.Actions.WaitForJoiningClients(5000),
+    Lobby.Actions.ExecuteScript(function()
+      Engine.SetSessionStatus(Enum.LobbyType.LOBBY_TYPE_PRIVATE, Enum.SessionStatus.SESSION_STATUS_IDLE)
+      Engine.Exec(controller, "lobbyLaunchGame " .. Enum.LobbyType.LOBBY_TYPE_GAME .. " " .. mapName .. " " .. gameType)
+    end),
+  }
+  for index = 1, #actions - 1 do
+    Lobby.Process.AddActions(actions[index], actions[index + 1], failed, failed)
+  end
+  Lobby.Process.AddActions(actions[#actions], nil, failed, failed)
+  Lobby.ProcessQueue.AddToQueue("StartMap", {
+    head = actions[1],
+    interrupt = Lobby.Interrupt.NONE,
+    force = false,
+    cancellable = false,
+  })
+end
+
 LobbyVM.DevmapClient = function(event)
   Lobby.ProcessQueue.AddToQueue("DevmapClient", Lobby.Process.DevmapClient(event.controller))
 end

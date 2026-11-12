@@ -198,11 +198,6 @@ bool is_frontend_ready() {
          game::live::Live_IsDemonwareFetchingDone(game::CONTROLLER_INDEX_FIRST);
 }
 
-bool is_mode_ready(const GameModeConfiguration &mode) {
-  return game::com::Com_SessionMode_IsMode(mode.mode) &&
-         workshop::is_xzone_loaded(utils::string::va("%s_common", mode.name));
-}
-
 const char *lobby_main_mode(const game::eModes mode) {
   switch (mode) {
   case game::eModes::ZOMBIES:
@@ -220,9 +215,7 @@ ui_scripting::table lua_globals() {
 
 void launch_from_frontend(const GameModeConfiguration mode,
                           const std::string &mapname) {
-  enum class stage : uint8_t { mod, lobby, launch };
-  stage current = stage::mod;
-  int32_t ready_ticks = 0;
+  bool mod_ready = false;
 
   scheduler::schedule(
       [=]() mutable {
@@ -232,60 +225,33 @@ void launch_from_frontend(const GameModeConfiguration mode,
 
         try {
           const ui_scripting::table globals = lua_globals();
-          const ui_scripting::table engine = globals["Engine"];
-          const int32_t game_lobby =
-              globals["Enum"]["LobbyType"]["LOBBY_TYPE_GAME"].as<int32_t>();
 
-          if (current == stage::mod) {
-            if (globals["CoD"]["mapsTable"][mapname]
-                    .is<ui_scripting::table>() ||
-                globals["LuaUtils"]["Mods_IsUsingMods"]()[0].as<bool>()) {
-              current = stage::lobby;
-            } else {
+          if (!mod_ready) {
+            mod_ready = true;
+            if (!globals["CoD"]["mapsTable"][mapname]
+                     .is<ui_scripting::table>() &&
+                !globals["LuaUtils"]["Mods_IsUsingMods"]()[0].as<bool>()) {
               globals["LuaUtils"]["Mods_LoadMod"]("usermaps");
-              current = stage::lobby;
               return scheduler::cond_continue;
             }
           }
 
-          if (current == stage::lobby) {
-            const std::string_view gametype =
-                game::com::Com_SessionMode_IsMode(mode.mode)
-                    ? game::get_dvar_string("ui_gametype").value_or("")
-                    : "";
-            game::Dvar_SetFromStringByName("ui_mapname", mapname.c_str(), true);
-            if (gametype.empty() || gametype == "frontend") {
-              game::Dvar_SetFromStringByName("ui_gametype", mode.gametype,
-                                             true);
-            }
-
-            ui_scripting::table params{};
-            params.set("controller", 0);
-            params.set(
-                "mainMode",
-                globals["Enum"]["LobbyMainMode"][lobby_main_mode(mode.mode)]
-                    .as<int32_t>());
-            engine["LobbyVM_CallFunc"]("Devmap", params);
-            current = stage::launch;
-            return scheduler::cond_continue;
+          const std::string_view gametype =
+              game::com::Com_SessionMode_IsMode(mode.mode)
+                  ? game::get_dvar_string("ui_gametype").value_or("")
+                  : "";
+          game::Dvar_SetFromStringByName("ui_mapname", mapname.c_str(), true);
+          if (gametype.empty() || gametype == "frontend") {
+            game::Dvar_SetFromStringByName("ui_gametype", mode.gametype, true);
           }
 
-          if (!is_mode_ready(mode) ||
-              !engine["IsLobbyActive"](game_lobby)[0].as<bool>() ||
-              !engine["IsLobbyHost"](game_lobby)[0].as<bool>()) {
-            ready_ticks = 0;
-            return scheduler::cond_continue;
-          }
-          if (++ready_ticks < 2) {
-            return scheduler::cond_continue;
-          }
-
-          game::cbuf::Cbuf_AddText(
-              game::LOCAL_CLIENT_0,
-              utils::string::va(
-                  "lobbyLaunchGame %d %s %s\n", game_lobby, mapname.c_str(),
-                  std::string(game::get_dvar_string("ui_gametype").value_or(""))
-                      .c_str()));
+          ui_scripting::table params{};
+          params.set("controller", 0);
+          params.set(
+              "mainMode",
+              globals["Enum"]["LobbyMainMode"][lobby_main_mode(mode.mode)]
+                  .as<int32_t>());
+          globals["Engine"]["LobbyVM_CallFunc"]("StartMap", params);
         } catch (const std::exception &e) {
           printf("[Map] Could not start %s: %s\n", mapname.c_str(), e.what());
         }
