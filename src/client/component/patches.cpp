@@ -226,6 +226,15 @@ void hkVisualDebugger_serve_stub(
 // The demo keeps the XAnims used during a match in a fixed list and never
 // checks its size. Custom maps can use more, which overwrites the list after it
 // and crashes the host the next time the demo writes the list out
+utils::hook::detour UI_DrawRoot_hook;
+void UI_DrawRoot_stub(const game::LocalClientNum_t localClientNum,
+                      const char *rootName, game::lua::hks::lua_State *luaVM) {
+  if (!game::lua::lui::LUI_GetRootElement(rootName, luaVM)) {
+    return;
+  }
+  UI_DrawRoot_hook.invoke<void>(localClientNum, rootName, luaVM);
+}
+
 utils::hook::detour Demo_AddXAnim_hook;
 void Demo_AddXAnim_stub(const game::scr::ScrString_t name, const int32_t type) {
   if (*game::demo::demo_xanimCount < game::demo::DEMO_MAX_XANIMS) {
@@ -402,6 +411,8 @@ struct component final : generic_component {
           game::live::stats::LiveStats_ReadClientStats, read_client_stats_stub);
       add_server_command_hook.create(game::sv::SV_AddServerCommand,
                                      add_server_command_stub);
+      UI_DrawRoot_hook.create(game::lua::lui::UI_DrawRoot.get(),
+                              UI_DrawRoot_stub);
       game_event::on_any(clear_sent_configstrings);
     }
     Sys_Error_hook.create(game::sys::Sys_Error, Sys_Error_LogCaller);
