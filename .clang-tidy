@@ -46,6 +46,7 @@ Checks:
   - "-performance-no-int-to-ptr"
   - "-readability-identifier-length"
   - "-readability-redundant-inline-specifier"
+  - "-readability-static-accessed-through-instance"
   - "-readability-trailing-comma"
   - "-readability-uppercase-literal-suffix"
 

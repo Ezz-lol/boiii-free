@@ -35,6 +35,7 @@
 #include "macros.hpp"        // IWYU pragma: export
 #include "mantle.hpp"        // IWYU pragma: export
 #include "misc.hpp"          // IWYU pragma: export
+#include "mixer.hpp"         // IWYU pragma: export
 #include "net/net.hpp"       // IWYU pragma: export
 #include "pcache.hpp"        // IWYU pragma: export
 #include "phys.hpp"          // IWYU pragma: export
@@ -61,3 +62,5 @@
 #include "ui/ui.hpp"         // IWYU pragma: export
 #include "vehicle.hpp"       // IWYU pragma: export
 #include "voice.hpp"         // IWYU pragma: export
+#include "wave.hpp"          // IWYU pragma: export
+#include "winmm.hpp"         // IWYU pragma: export

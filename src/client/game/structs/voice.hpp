@@ -28,8 +28,9 @@ namespace voice {
   relatively large fields.
 */
 PACKED(struct dsound_sample_t {
+  uint8_t _unknown00[0x800];
   IDirectSoundCaptureBuffer *DSCB;
-  IDirectSoundBuffer *DSB;
+  IDirectSoundBuffer *DSB; // Verified
   uint32_t dwBufferSize;
   uint32_t dwCaptureOffset;
   uint32_t currentOffset;
@@ -49,6 +50,7 @@ PACKED(struct dsound_sample_t {
   uint8_t playMode;
   uint8_t _padding4D[3];
 });
-ASSERT_SIZE(dsound_sample_t, 0x50);
+ASSERT_SIZE(dsound_sample_t, 0x850);
+ASSERT_OFFSET(dsound_sample_t, DSB, 0x808);
 } // namespace voice
 } // namespace game

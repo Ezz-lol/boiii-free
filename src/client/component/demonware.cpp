@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <std_include.hpp>
 
 #include <loader/component_loader.hpp>
@@ -167,7 +168,9 @@ int getsockname_stub(const SOCKET s, sockaddr *addr, socklen_t *addrlen) {
 
 hostent *gethostbyname_stub(const char *name) {
 #ifndef NDEBUG
-  printf("[ network ]: [gethostbyname]: \"%s\"\n", name);
+  if (name) {
+    game::trace("[DW][network][gethostbyname] {}", name);
+  }
 #endif
 
   base_server *server = tcp_servers.find(name);
@@ -201,9 +204,11 @@ hostent *gethostbyname_stub(const char *name) {
 
 int connect_stub(const SOCKET s, const struct sockaddr *addr, const int len) {
   if (len == sizeof(sockaddr_in)) {
-    const auto *in_addr = reinterpret_cast<const sockaddr_in *>(addr);
-    if (socket_link(s, in_addr->sin_addr.s_addr))
+    const sockaddr_in *const in_addr =
+        reinterpret_cast<const sockaddr_in *>(addr);
+    if (socket_link(s, in_addr->sin_addr.s_addr)) {
       return 0;
+    }
   }
 
   return connect(s, addr, len);
@@ -217,9 +222,9 @@ int closesocket_stub(const SOCKET s) {
 }
 
 int send_stub(const SOCKET s, const char *buf, const int len, const int flags) {
-  auto *server = find_server(s);
+  tcp_server *server = find_server(s);
 
-  if (server) {
+  if (server != nullptr) {
     server->handle_input(buf, len);
     return len;
   }
@@ -228,9 +233,9 @@ int send_stub(const SOCKET s, const char *buf, const int len, const int flags) {
 }
 
 int recv_stub(const SOCKET s, char *buf, const int len, const int flags) {
-  auto *server = find_server(s);
+  tcp_server *server = find_server(s);
 
-  if (server) {
+  if (server != nullptr) {
     if (server->pending_data()) {
       return static_cast<int>(server->handle_output(buf, len));
     }
@@ -243,10 +248,10 @@ int recv_stub(const SOCKET s, char *buf, const int len, const int flags) {
 
 int sendto_stub(const SOCKET s, const char *buf, const int len, const int flags,
                 const sockaddr *to, const int tolen) {
-  const auto *in_addr = reinterpret_cast<const sockaddr_in *>(to);
-  auto *server = udp_servers.find(in_addr->sin_addr.s_addr);
+  const sockaddr_in *in_addr = reinterpret_cast<const sockaddr_in *>(to);
+  udp_server *server = udp_servers.find(in_addr->sin_addr.s_addr);
 
-  if (server) {
+  if (server != nullptr) {
     server->handle_input(buf, len, {s, to, tolen});
     return len;
   }
@@ -269,7 +274,7 @@ int recvfrom_stub(const SOCKET s, char *buf, const int len, const int flags,
     }
   });
 
-  if (result) {
+  if (result != 0u) {
     return static_cast<int>(result);
   }
 
@@ -318,19 +323,17 @@ int select_stub(const int nfds, fd_set *readfds, fd_set *writefds,
     timeout->tv_usec = 0;
   }
 
-  result = select(nfds, readfds, writefds, exceptfds, timeout);
-  if (result < 0)
-    result = 0;
+  result = std::max(select(nfds, readfds, writefds, exceptfds, timeout), 0);
 
-  for (const auto &socket : read_sockets) {
-    if (readfds) {
+  for (const SOCKET &socket : read_sockets) {
+    if (readfds != nullptr) {
       FD_SET(socket, readfds);
       result++;
     }
   }
 
-  for (const auto &socket : write_sockets) {
-    if (writefds) {
+  for (const SOCKET &socket : write_sockets) {
+    if (writefds != nullptr) {
       FD_SET(socket, writefds);
       result++;
     }
@@ -352,10 +355,12 @@ void register_hook(const std::string &process, void *stub) {
   const utils::nt::library game_module{};
 
   std::optional<std::pair<void *, void *>> result{};
-  if (!result)
+  if (!result) {
     result = utils::hook::iat(game_module, "wsock32.dll", process, stub);
-  if (!result)
+  }
+  if (!result) {
     result = utils::hook::iat(game_module, "WS2_32.dll", process, stub);
+  }
 
   if (!result) {
     throw std::runtime_error("Failed to hook: " + process);
@@ -414,36 +419,35 @@ struct component final : generic_component {
     utils::hook::copy_string(game::select(0x1430395A0, 0x140EE4C68),
                              "http://prod.umbrella.demonware.net");
 
-    if (game::is_server()) {
-      return;
+    if (game::is_client()) {
+
+      // HTTPS -> HTTP
+      utils::hook::copy_string(game::select(0x143039AA0, 0x0),
+                               "http://prod.uno.demonware.net/v1.0");
+
+      // HTTPS -> HTTP
+      utils::hook::set<uint8_t>(game::select(0x1430396CC, 0x0), 0x0);
+      // HTTPS -> HTTP
+      utils::hook::copy_string(game::select(0x143039288, 0x0),
+                               "http://%s:%d/auth/");
+
+      utils::hook::set<uint32_t>(
+          game::select(0x141EB8030, 0x0),
+          0xC3D08948); // Skip publisher file signature stuff
+      utils::hook::call(game::select(0x141EB7A6C, 0x0),
+                        get_ffotd_name); // Return unlocalized ffotd name
+      utils::hook::set<uint64_t>(game::select(0x141EF7D80, 0x0),
+                                 0xC300000001B8); // Kill LPC_File_SafeWrite
+      utils::hook::set<uint64_t>(game::select(0x141EF69B0, 0x0),
+                                 0xC300000001B8); // Kill LPC_DeleteStale
+
+      utils::hook::set<uint8_t>(
+          game::select(0x141DFDF8B, 0x0),
+          0xEB); // Release un-handled reportReward spamming loop
+
+      localized_strings::override("MENU_CONNECTING_DW",
+                                  "Emulating Online Service");
     }
-
-    // HTTPS -> HTTP
-    utils::hook::copy_string(game::select(0x143039AA0, 0x0),
-                             "http://prod.uno.demonware.net/v1.0");
-
-    // HTTPS -> HTTP
-    utils::hook::set<uint8_t>(game::select(0x1430396CC, 0x0), 0x0);
-    // HTTPS -> HTTP
-    utils::hook::copy_string(game::select(0x143039288, 0x0),
-                             "http://%s:%d/auth/");
-
-    utils::hook::set<uint32_t>(
-        game::select(0x141EB8030, 0x0),
-        0xC3D08948); // Skip publisher file signature stuff
-    utils::hook::call(game::select(0x141EB7A6C, 0x0),
-                      get_ffotd_name); // Return unlocalized ffotd name
-    utils::hook::set<uint64_t>(game::select(0x141EF7D80, 0x0),
-                               0xC300000001B8); // Kill LPC_File_SafeWrite
-    utils::hook::set<uint64_t>(game::select(0x141EF69B0, 0x0),
-                               0xC300000001B8); // Kill LPC_DeleteStale
-
-    utils::hook::set<uint8_t>(
-        game::select(0x141DFDF8B, 0x0),
-        0xEB); // Release un-handled reportReward spamming loop
-
-    localized_strings::override("MENU_CONNECTING_DW",
-                                "Emulating Online Service");
   }
 
   void pre_destroy() override {

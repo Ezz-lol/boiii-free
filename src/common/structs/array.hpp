@@ -5,6 +5,7 @@
 #include <bit>
 #include <cassert>
 #include <cstdint>
+#include <span>
 
 #include "macros/byte.hpp"          // IWYU pragma: keep
 #include "macros/type/integral.hpp" // IWYU pragma: keep
@@ -159,3 +160,93 @@ byteswap(std::array<char, sizeof(uint16_t)> val) {
   return std::bit_cast<std::array<char, sizeof(uint16_t)>>(
       byteswap(std::bit_cast<uint16_t>(val)));
 }
+
+template <typename T, const IntegralLike<size_t> auto SIZE,
+          typename index_t = size_t>
+struct Pool {
+
+  T pool[SIZE];
+
+  constexpr void assert_range([[maybe_unused]] index_t index) const {
+    assert(index < SIZE &&
+           "index to Pool must satisfy range 0 <= index < SIZE");
+  }
+
+  template <IntegralLike<index_t> Index>
+  constexpr const T &get(Index index_arg) const noexcept {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike<index_t> Index>
+  constexpr T &get(Index index_arg) noexcept {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike<index_t> Index>
+  constexpr const T &operator[](Index index) const noexcept {
+    return get(index);
+  }
+
+  template <IntegralLike<index_t> Index>
+  constexpr T &operator[](Index index) noexcept {
+    return get(index);
+  }
+
+  operator const T *() const noexcept { return pool; }
+  operator T *() noexcept { return pool; }
+
+  operator const void *() const noexcept { return pool; }
+  operator void *() noexcept { return pool; }
+
+  operator const std::array<T, SIZE> &() const noexcept { return pool; }
+  operator std::array<T, SIZE> &() noexcept { return pool; }
+
+  operator std::span<const T, SIZE>() const noexcept {
+    return std::span<const T, SIZE>(pool);
+  }
+
+  operator std::span<T, SIZE>() noexcept { return std::span<T, SIZE>(pool); }
+
+  static inline constexpr auto size() noexcept { return SIZE; }
+
+  [[nodiscard]] static constexpr bool empty() noexcept { return SIZE == 0; }
+
+  constexpr auto ssize() const noexcept {
+    return static_cast<std::ptrdiff_t>(SIZE);
+  }
+
+  constexpr T *data() noexcept { return pool; }
+  constexpr const T *data() const noexcept { return pool; }
+
+  constexpr T *begin() noexcept { return pool; }
+  constexpr const T *begin() const noexcept { return pool; }
+  constexpr const T *cbegin() const noexcept { return pool; }
+
+  constexpr T *end() noexcept { return pool + SIZE; }
+  constexpr const T *end() const noexcept { return pool + SIZE; }
+  constexpr const T *cend() const noexcept { return pool + SIZE; }
+
+  constexpr std::reverse_iterator<T *> rbegin() noexcept {
+    return std::reverse_iterator<T *>(end());
+  }
+  constexpr std::reverse_iterator<const T *> rbegin() const noexcept {
+    return std::reverse_iterator<const T *>(end());
+  }
+  constexpr std::reverse_iterator<const T *> crbegin() const noexcept {
+    return std::reverse_iterator<const T *>(end());
+  }
+
+  constexpr std::reverse_iterator<T *> rend() noexcept {
+    return std::reverse_iterator<T *>(begin());
+  }
+  constexpr std::reverse_iterator<const T *> rend() const noexcept {
+    return std::reverse_iterator<const T *>(begin());
+  }
+  constexpr std::reverse_iterator<const T *> crend() const noexcept {
+    return std::reverse_iterator<const T *>(begin());
+  }
+};
