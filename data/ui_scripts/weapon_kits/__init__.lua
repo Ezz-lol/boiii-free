@@ -2,6 +2,26 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
+if not __boiiiAttachmentImageGuard then
+  __boiiiAttachmentImageGuard = true
+  local getAttachmentImageFromIndex = GetAttachmentImageFromIndex
+  GetAttachmentImageFromIndex = function(controller, slot, attachmentIndex)
+    local ok, image = pcall(getAttachmentImageFromIndex, controller, slot, attachmentIndex)
+    if ok then
+      return image
+    end
+    local index = tonumber(attachmentIndex)
+    if not index or index <= CoD.CraftUtility.Gunsmith.EMPTY_ITEM_INDEX then
+      return ""
+    end
+    return Engine.GetAttachmentUniqueImageByAttachmentIndex(
+      CoD.CraftUtility.GetCraftMode(),
+      CoD.GetCustomization(controller, "weapon_index"),
+      index
+    ) or ""
+  end
+end
+
 for _, file in ipairs({
   "ui/uieditor/menus/Craft/WeaponBuildKits/WeaponBuildKitsCategorySelect.lua",
   "ui/uieditor/widgets/Craft/WeaponBuildKits/WeaponBuildKitsVariantAttachments.lua",
