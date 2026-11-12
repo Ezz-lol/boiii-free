@@ -38,6 +38,10 @@ inline std::string serialize(const char *val) {
   return ::readable_ptr(val) ? std::format("\"{}\"", val) : "NULL";
 }
 
+inline std::string serialize(const std::string_view &val) {
+  return std::format("\"{}\"", val);
+}
+
 template <SerializablePtr T> inline std::string serialize(const T &ptr) {
   return ::readable_ptr(ptr) ? ptr->serialize() : "NULL";
 }

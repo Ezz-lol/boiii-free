@@ -183,7 +183,7 @@ void download_file(const updater::file_info &file,
       std::filesystem::absolute(std::filesystem::path(context->item_path) /
                                 file.name)
           .lexically_normal();
-  if (path::has_parent(context->item_path, local_path)) {
+  if (path::has_parent(local_path, context->item_path)) {
     bool completed = false;
 
     try {
@@ -291,7 +291,7 @@ void download_workshop_file(const updater::file_info &file,
       std::filesystem::absolute(std::filesystem::path(context->item_path) /
                                 file.name)
           .lexically_normal();
-  if (path::has_parent(context->item_path, local_path)) {
+  if (path::has_parent(local_path, context->item_path)) {
     if (!utils::io::write_file(local_path, *data, false)) {
       throw std::runtime_error(
           utils::string::va("Failed to write: %s", local_path.c_str()));

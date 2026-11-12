@@ -1190,7 +1190,7 @@ bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
 
     context->item_name = name;
     context->pub_id = workshop_id.empty() ? name : workshop_id;
-    context->item_path = folder;
+    context->item_path = std::filesystem::absolute(folder).lexically_normal();
     context->content_tree_uri = std::format("{}/{}", base, folder);
     context->type = zoneType;
     context->failure_callback = std::move(failure_callback);
