@@ -846,7 +846,7 @@ void ui_shutdown_stub() {
 }
 
 constexpr std::string_view LOADING_SCREEN_OVERRIDE = R"(
-if LUI.createMenu.Loading and not __boiiiLoadingWrapped then
+if LUI.createMenu.Loading and CoD.Loading and not __boiiiLoadingWrapped then
   __boiiiLoadingWrapped = true
   local createLoading = LUI.createMenu.Loading
   local fadeInTime = CoD.Loading.FadeInTime
