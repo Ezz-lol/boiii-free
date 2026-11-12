@@ -142,7 +142,7 @@ void patch_zombies_stats_table(StringTable *zm, const StringTable *mp) {
   }
   const StringTableCell allocation = cell(zm, *customizable, COLUMN_ALLOCATION);
   const StringTableCell unlock_level = cell(zm, *unlocked, COLUMN_UNLOCK_LEVEL);
-  const StringTableCell unlock_prestige =
+  const StringTableCell empty_cell =
       cell(zm, *no_prestige, COLUMN_UNLOCK_PRESTIGE);
 
   std::vector<StringTableCell> values = copy_values(zm);
@@ -150,7 +150,7 @@ void patch_zombies_stats_table(StringTable *zm, const StringTable *mp) {
     values[start + COLUMN_UNLOCK_LEVEL] = unlock_level;
     values[start + COLUMN_ALLOCATION] = allocation;
     values[start + COLUMN_LOADOUT_SLOT] = cell(mp, source, COLUMN_LOADOUT_SLOT);
-    values[start + COLUMN_UNLOCK_PRESTIGE] = unlock_prestige;
+    values[start + COLUMN_UNLOCK_PRESTIGE] = empty_cell;
   };
 
   for (const std::string_view &ref : KIT_WEAPONS) {
@@ -178,7 +178,7 @@ void patch_zombies_stats_table(StringTable *zm, const StringTable *mp) {
     }
 
     const size_t start = values.size();
-    values.resize(start + zm->columnCount);
+    values.resize(start + zm->columnCount, empty_cell);
     for (int32_t column = 0;
          column < std::min(zm->columnCount, mp->columnCount); ++column) {
       values[start + column] = cell(mp, *source, column);
