@@ -1,7 +1,7 @@
 -- Lets a second player join split-screen by pressing A / Cross on their
 -- controller. The stock menus only handle this press on console.
 
-if Engine.IsInGame() or not CoD.isPC then
+if Engine.GetCurrentMap() ~= "core_frontend" or not CoD.isPC then
   return
 end
 
@@ -23,7 +23,13 @@ CoD.Menu.GamepadButton = function(menu, event)
   return gamepadButton(menu, event)
 end
 
-require("ui.uieditor.widgets.Lobby.Common.FE_ListAdditonal")
+if not CoD.FE_ListAdditonal then
+  pcall(require, "ui.uieditor.widgets.Lobby.Common.FE_ListAdditonal")
+end
+
+if not CoD.FE_ListAdditonal then
+  return
+end
 
 local createListAdditional = CoD.FE_ListAdditonal.new
 CoD.FE_ListAdditonal.new = function(menu, controller)
