@@ -669,6 +669,13 @@ constexpr bool validate(const ControllerIndex_t controllerIndex) {
          controllerIndex < ControllerIndex_t::CONTROLLER_INDEX_COUNT;
 }
 
+enum gamepadType_e : int32_t {
+  GAMEPAD_TYPE_ORBIS = 0x0,
+  GAMEPAD_TYPE_DURANGO = 0x1,
+  GAMEPAD_TYPE_STEAM = 0x2,
+  GAMEPAD_TYPE_COUNT = 0x3,
+};
+
 enum LocalClientNum_t : int32_t {
   INVALID_LOCAL_CLIENT = -1,
   LOCAL_CLIENT_0 = 0x0,
