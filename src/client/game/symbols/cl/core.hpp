@@ -26,6 +26,9 @@ WEAK symbol<void(LocalClientNum_t localClientNum, const char *pszMapName,
     CL_SetupForNewServerMap{0x14135CD40, 0x0};
 WEAK symbol<void(game::LocalClientNum_t localClientNum, bool active)>
     CL_LocalClient_SetActive{0x1427C1940, 0x0};
+WEAK symbol<void(int32_t serverChecksum)> CL_CheckClientFieldChecksum{
+    0x140843FE0, 0x0};
+WEAK symbol<int32_t> cl_clientFieldChecksum{0x1456BA9B0, 0x0};
 
 WEAK symbol<const char *(int32_t configStringIndex)> CL_GetConfigString{
     0x141321130, 0x14017CCC0};

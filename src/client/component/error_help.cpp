@@ -8,6 +8,7 @@
 #include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
+#include <utils/nt.hpp>
 #include <utils/string.hpp>
 
 namespace error_help {
@@ -309,6 +310,97 @@ void Com_Error_ServerTimeout(const char *file, const int32_t line,
   Com_Error_Explained(file, line, code, explain_server_timeout(), fmt);
 }
 
+std::string clientfield_report;
+
+std::string loose_script_file(const std::string &name) {
+  const std::string relative = script::script_path(name);
+  for (const std::filesystem::path &root :
+       {utils::nt::library{}.get_folder() / "boiii", game::get_data_path()}) {
+    std::error_code ec;
+    if (std::filesystem::exists(root / relative, ec)) {
+      return (root / relative).generic_string();
+    }
+  }
+  return relative;
+}
+
+bool script_contains(const game::scr::ScriptParseTree *tree,
+                     const std::string &needle) {
+  return tree && tree->name && tree->buffer &&
+         std::string_view(reinterpret_cast<const char *>(tree->buffer),
+                          tree->len)
+                 .find(needle) != std::string_view::npos;
+}
+
+std::vector<std::string> scripts_registering(const std::string &field) {
+  struct search {
+    std::string needle;
+    std::vector<std::string> files;
+  } data{field + '\0', {}};
+
+  script::for_each_loaded_script([&](const game::scr::ScriptParseTree &tree) {
+    if (script_contains(&tree, data.needle)) {
+      data.files.push_back(loose_script_file(tree.name));
+    }
+  });
+
+  game::db::xasset::DB_EnumXAssets(
+      game::db::xasset::XAssetType::SCRIPTPARSETREE,
+      [](const game::db::xasset::XAssetHeader header, void *context) {
+        search &data = *static_cast<search *>(context);
+        const game::scr::ScriptParseTree *tree = header.scriptParseTree;
+        if (!script_contains(tree, data.needle)) {
+          return;
+        }
+        std::string file = tree->name;
+        if (const game::scr::ScriptParseTree *loose =
+                script::get_loaded_script(tree->name);
+            loose && loose != tree) {
+          file += ", replaced by " + loose_script_file(tree->name);
+        }
+        data.files.push_back(std::move(file));
+      },
+      &data, true);
+
+  return data.files;
+}
+
+void clientfield_mismatches_printf(game::consoleChannel_e, game::consoleLabel_e,
+                                   const char *, const char *mismatches) {
+  clientfield_report.clear();
+  std::vector<std::string> fields;
+  for (const std::string &line :
+       utils::string::split(std::string(mismatches), '\n')) {
+    const size_t end = line.rfind('\'');
+    const size_t start =
+        end == std::string::npos || end == 0 ? end : line.rfind('\'', end - 1);
+    if (start == std::string::npos) {
+      continue;
+    }
+    std::string field = line.substr(start + 1, end - start - 1);
+    if (std::ranges::find(fields, field) != fields.end()) {
+      continue;
+    }
+    clientfield_report += line + "\n";
+    for (const std::string &file : scripts_registering(field)) {
+      clientfield_report += "  " + file + "\n";
+    }
+    fields.push_back(std::move(field));
+  }
+}
+
+utils::hook::detour cl_check_clientfield_checksum_hook;
+void cl_check_clientfield_checksum_stub(const int32_t server_checksum) {
+  game::EngineDependentDvarMut debug = *game::com_clientfieldsdebug;
+  if (server_checksum != *game::cl::cl_clientFieldChecksum &&
+      !debug.get_bool()) {
+    debug.set(true);
+    scheduler::once([] { (*game::com_clientfieldsdebug).set(false); },
+                    scheduler::main);
+  }
+  cl_check_clientfield_checksum_hook.invoke<void>(server_checksum);
+}
+
 utils::hook::detour ui_error_popup_hook;
 void ui_error_popup_stub(const game::LocalClientNum_t local_client,
                          const game::errorCode error_code,
@@ -322,6 +414,18 @@ void ui_error_popup_stub(const game::LocalClientNum_t local_client,
 void Com_Error_ServerDisconnected(const char *file, const int32_t line,
                                   const game::errorParm code, const char *fmt,
                                   const char *message) {
+  if (!clientfield_report.empty()) {
+    const std::string report = std::exchange(clientfield_report, {});
+    Com_Error_Explained(
+        file, line, code,
+        "^1Your game and the server scripts register different clientfields:"
+        "\n^7" +
+            report +
+            "^3Fix: ^7Remove or update the script that is replaced or only "
+            "registers the field on one side.",
+        fmt, message);
+    return;
+  }
   const std::string_view text(message);
   if (text.ends_with(" 57475")) {
     Com_Error_Explained(
@@ -466,6 +570,12 @@ struct component final : generic_component {
       hook_calls({0x14134CAE2}, {}, Com_Error_ServerDisconnected);
       ui_error_popup_hook.create(game::ui::UI_OpenErrorPopupWithMessage,
                                  ui_error_popup_stub);
+      cl_check_clientfield_checksum_hook.create(
+          game::cl::CL_CheckClientFieldChecksum.get(),
+          cl_check_clientfield_checksum_stub);
+      utils::hook::call(
+          game::bg::BG_PrintClientFieldMismatches_PrintfCall.get(),
+          clientfield_mismatches_printf);
     }
 
     hook_calls({0x1414251A9}, {0x1401DA2BE}, Com_Error_ZoneNotFound);
