@@ -76,7 +76,6 @@ WEAK symbol<void(move::pmove_t *pm, vehicle::VehicleState *vehicleState,
                  const cm::GroundTrace *groundTrace, bool gravity, float dt)>
     BG_VehicleAirMove{0x0, 0x1406CD500};
 
-WEAK symbol<uint8_t> BG_PrintClientFieldMismatches_PrintfCall{0x140136987,
-                                                              0x0};
+WEAK symbol<uint8_t> BG_PrintClientFieldMismatches_PrintfCall{0x140136987, 0x0};
 } // namespace bg
 } // namespace game

@@ -9,6 +9,7 @@
 
 #include <game/impl/cg/cg.hpp>
 #include <game/impl/cl/cl.hpp>
+#include <game/impl/in/in.hpp>
 #include <game/impl/snd/sd/sd.hpp>
 #include <game/impl/snd/snd.hpp>
 #include <game/impl/sv/sv.hpp>
@@ -549,6 +550,8 @@ public:
     if (game::is_client()) {
       IN_SetActiveDevice_hook.create(game::in::IN_SetActiveDevice,
                                      IN_SetActiveDevice_stub);
+      utils::hook::jump(game::in::GPad_IsDurangoGamepad.get(),
+                        game::in::GPad_IsDurangoGamepad_Impl);
     }
 
     fix_amd_cpu_stuttering();
