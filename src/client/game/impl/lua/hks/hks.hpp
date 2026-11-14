@@ -45,7 +45,7 @@ alwaysinline HksRegister *operator_outofline(HksRegister *retstr, lua_State *s,
     return op::OpcodeUnm(retstr, s, left, right, PC);
   }
 
-  unreachable();
+  std::unreachable();
   return {};
 }
 

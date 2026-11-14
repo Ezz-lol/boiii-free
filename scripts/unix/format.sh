@@ -86,7 +86,7 @@ kill_all_jobs() {
 trap 'kill_all_jobs' EXIT SIGINT SIGTERM SIGQUIT SIGTSTP
 
 # shellcheck disable=SC2119
-check_dependencies "git" "clang-format" "stylua" "shfmt" "yarn" "dos2unix" "kill"
+check_dependencies "git" "clang-format-22" "stylua" "shfmt" "yarn" "dos2unix" "kill"
 
 if ! chdir "${REPO_DIR}" yarn install; then
 	echo "Error: Failed to install \`yarn\` dependencies. Exiting." >&2
@@ -127,7 +127,7 @@ format_file() {
 			"vlg" | "vt" | \
 			"vh" | "verilog" | \
 			"vo" | "vqm" | "vcd")
-			if ! chdir "${REPO_DIR}" clang-format -i --style=file "$path" || ! chdir "$REPO_DIR" dos2unix --quiet "$path"; then
+			if ! chdir "${REPO_DIR}" clang-format-22 -i --style=file "$path" || ! chdir "$REPO_DIR" dos2unix --quiet "$path"; then
 				return 1
 			fi
 			;;

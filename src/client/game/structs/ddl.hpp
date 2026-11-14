@@ -221,6 +221,36 @@ public:
     return at(coord.column, coord.row);
   }
 
+  [[nodiscard]] constexpr OptionalStringTableCellRef
+  operator[](const size_t column, const size_t row = 0) noexcept {
+    return at(column, row);
+  }
+
+  [[nodiscard]] constexpr OptionalStringTableCellRef
+  operator[](const size_t column, const size_t row = 0) const noexcept {
+    return at(column, row);
+  }
+
+  [[nodiscard]] constexpr OptionalStringTableCellRef
+  operator[](const StringTableCoordinate &coord) noexcept {
+    return at(coord);
+  }
+
+  [[nodiscard]] constexpr OptionalStringTableCellRef
+  operator[](const StringTableCoordinate &coord) const noexcept {
+    return at(coord);
+  }
+
+  [[nodiscard]] constexpr std::optional<std::span<StringTableCell>>
+  operator[](const size_t row_idx) noexcept {
+    return row(row_idx);
+  }
+
+  [[nodiscard]] constexpr std::optional<std::span<const StringTableCell>>
+  operator[](const size_t row_idx) const noexcept {
+    return row(row_idx);
+  }
+
   [[nodiscard]] constexpr std::optional<std::span<const StringTableCell>>
   row(const size_t row_idx) const noexcept {
     return valid_row(row_idx) ? std::optional(std::span<const StringTableCell>{

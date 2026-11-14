@@ -17,6 +17,7 @@ Checks:
   - "-bugprone-tagged-union-member-count"
   - "-bugprone-throwing-static-initialization"
   - "-bugprone-derived-method-shadowing-base-method"
+  - "-bugprone-reserved-identifier"
   - "-cppcoreguidelines-pro-type-vararg"
   - "-cppcoreguidelines-avoid-c-arrays"
   - "-cppcoreguidelines-avoid-non-const-global-variables"
