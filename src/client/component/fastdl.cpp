@@ -362,6 +362,13 @@ get_outdated_files(const std::vector<updater::file_info> &files,
   return outdated_files;
 }
 
+void resolve_requires_download(const std::shared_ptr<download_context> &context,
+                               const bool requires_download) {
+  if (!std::exchange(context->set_requires_download, true)) {
+    context->requires_download.set_value(requires_download);
+  }
+}
+
 void perform_download(const std::shared_ptr<download_context> &context) {
   try {
     download_active = true;
@@ -370,6 +377,7 @@ void perform_download(const std::shared_ptr<download_context> &context) {
     const auto [files, workshop_json] = get_manifest_files(context);
     if (files.empty() || workshop_json.name.empty()) {
       download_active = false;
+      resolve_requires_download(context, true);
       show_ingame_error(
           "Failed to download content manifest file or manifest is empty.");
       return;
@@ -380,14 +388,11 @@ void perform_download(const std::shared_ptr<download_context> &context) {
     if (outdated_files.empty()) {
       download_workshop_file(workshop_json, context);
       download_active = false;
-      context->requires_download.set_value(false);
-      context->set_requires_download = true;
-
+      resolve_requires_download(context, false);
       return;
     }
 
-    context->requires_download.set_value(true);
-    context->set_requires_download = true;
+    resolve_requires_download(context, true);
 
     size_t total_download_size = 0;
     for (const updater::file_info &file : outdated_files) {
@@ -429,17 +434,11 @@ void perform_download(const std::shared_ptr<download_context> &context) {
       context->success_callback();
     }
   } catch (const download_is_cancelled &) {
-    if (context->set_requires_download) {
-      context->requires_download.set_value(true);
-      context->set_requires_download = true;
-    }
+    resolve_requires_download(context, true);
     download_active = false;
     show_ingame_error("Download was cancelled.");
   } catch (const std::exception &e) {
-    if (context->set_requires_download) {
-      context->requires_download.set_value(true);
-      context->set_requires_download = true;
-    }
+    resolve_requires_download(context, true);
     download_active = false;
     show_ingame_error(e.what());
     if (context->failure_callback) {
