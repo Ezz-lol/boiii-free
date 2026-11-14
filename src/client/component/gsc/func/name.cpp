@@ -13,11 +13,13 @@
 #include <component/command.hpp>
 #include <component/game_event.hpp>
 #include <component/name.hpp>
+#include <component/scheduler.hpp>
 #include <component/toast.hpp>
 #include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
+#include <utils/string.hpp>
 
 #include <rapidjson/writer.h>
 
@@ -27,78 +29,71 @@ using namespace game::scr;
 namespace gsc {
 namespace func {
 namespace name {
-std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
-    client_dvar_changes;
+constexpr uint32_t PROTECTED_DVAR_FLAGS = static_cast<uint32_t>(
+    dvarFlags_e::USERINFO | dvarFlags_e::LATCH | dvarFlags_e::ROM |
+    dvarFlags_e::INIT | dvarFlags_e::CHEAT);
 
-std::string trim_copy(std::string value) {
+std::unordered_map<std::string, std::string> server_dvar_originals;
+
+std::string trim_copy(const std::string_view value) {
   const size_t start = value.find_first_not_of(" \t");
-  if (start == std::string::npos) {
+  if (start == std::string_view::npos) {
     return {};
   }
-
   const size_t end = value.find_last_not_of(" \t");
-  return value.substr(start, end - start + 1);
+  return std::string(value.substr(start, end - start + 1));
 }
 
-std::optional<std::string> extract_dvar_name(const char *dvar_cmd) {
-  if (!dvar_cmd || !dvar_cmd[0]) {
-    return {};
-  }
-
-  const std::string trimmed = trim_copy(dvar_cmd);
-  if (trimmed.empty()) {
-    return {};
-  }
-
-  std::function<std::string(size_t &)> next_token =
-      [&](size_t &cursor) -> std::string {
-    while (cursor < trimmed.size() &&
-           (trimmed[cursor] == ' ' || trimmed[cursor] == '\t')) {
-      cursor++;
-    }
-
-    const size_t start = cursor;
-    while (cursor < trimmed.size() && trimmed[cursor] != ' ' &&
-           trimmed[cursor] != '\t') {
-      cursor++;
-    }
-
-    return trimmed.substr(start, cursor - start);
-  };
-
-  size_t cursor = 0;
-  std::string first = next_token(cursor);
-  if (first.empty()) {
-    return {};
-  }
-
+std::optional<std::pair<std::string, std::string>>
+parse_dvar_command(const std::string_view command) {
+  std::string rest = trim_copy(command);
+  size_t split = rest.find_first_of(" \t");
+  const std::string first = rest.substr(0, split);
   const std::string lowered = gsc::func::command::normalize_command_name(first);
-  if (lowered == "set" || lowered == "seta" || lowered == "sets" ||
-      lowered == "reset") {
-    std::string second = next_token(cursor);
-    if (!second.empty()) {
-      return second;
-    }
+  if (lowered == "set" || lowered == "seta" || lowered == "sets") {
+    rest = split == std::string::npos ? "" : trim_copy(rest.substr(split));
+    split = rest.find_first_of(" \t");
   }
 
-  return first;
+  std::string name = rest.substr(0, split);
+  std::string value =
+      split == std::string::npos ? "" : trim_copy(rest.substr(split));
+  if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
+    value = value.substr(1, value.size() - 2);
+  }
+  if (name.empty() || value.find('"') != std::string::npos) {
+    return std::nullopt;
+  }
+  return std::make_pair(std::move(name), std::move(value));
 }
 
-void reset_tracked_client_dvars() {
-  for (const std::pair<const game::ClientNum_t, std::unordered_set<std::string>>
-           &pair : client_dvar_changes) {
-    const game::ClientNum_t &client_num = pair.first;
-    const std::unordered_set<std::string> &dvars = pair.second;
-
-    if (game::validate(client_num)) {
-
-      for (const std::string &dvar_name : dvars) {
-        sv::SV_GameSendServerCommand(
-            client_num, game::net::svscmd_type::CAN_IGNORE,
-            utils::string::va("c \"reset %s\"", dvar_name.c_str()));
-      }
-    }
+void restore_server_dvars() {
+  for (const auto &[name, value] : server_dvar_originals) {
+    Dvar_SetFromStringByName(name.c_str(), value.c_str(), false);
   }
+  server_dvar_originals.clear();
+}
+
+void handle_unknown_server_command() {
+  const CmdArgs *args = sys::Cmd_Argv();
+  const int32_t nesting = args->nesting;
+  const char *command = args->argv[nesting][0];
+  if (args->argc[nesting] != 3 ||
+      command[0] !=
+          static_cast<char>(sv::ReliableCommand::RESERVED_UNUSED_UNDERSCORE) ||
+      command[1] != '\0') {
+    return;
+  }
+
+  const char *name = args->argv[nesting][1];
+  const char *value = args->argv[nesting][2];
+  EngineDependentDvarMut dvar = Dvar_FindVar(name);
+  if (!dvar || (dvar.flags()._raw & PROTECTED_DVAR_FLAGS)) {
+    return;
+  }
+  server_dvar_originals.try_emplace(utils::string::to_lower(name),
+                                    Dvar_DisplayableValue(dvar));
+  Dvar_SetFromStringByName(name, value, false);
 }
 
 // =====================================================
@@ -207,19 +202,19 @@ namespace gscr_setclientdvar {
 void set(scriptInstance_t inst, game::ClientNum_t client_num,
          uint32_t command_index) {
   const char *dvar_cmd = game::scr::Scr_GetString(inst, command_index);
-  if (game::validate(client_num) && dvar_cmd) {
-    const std::optional<std::string> dvar_name =
-        dvar_cmd ? extract_dvar_name(dvar_cmd) : std::nullopt;
-    if (dvar_name.has_value()) {
-      client_dvar_changes[client_num].insert(*dvar_name);
-    }
-
-    sv::SV_GameSendServerCommand(client_num, game::net::svscmd_type::CAN_IGNORE,
-                                 utils::string::va("c \"%s\"", dvar_cmd));
-  } else {
+  const std::optional<std::pair<std::string, std::string>> dvar =
+      dvar_cmd ? parse_dvar_command(dvar_cmd) : std::nullopt;
+  if (!game::validate(client_num) || !dvar) {
     Scr_ParamError(inst, command_index,
                    "^1[setclientdvar] Invalid arguments\n");
+    return;
   }
+
+  sv::SV_GameSendServerCommand(
+      client_num, game::net::svscmd_type::CAN_IGNORE,
+      utils::string::va("%c %s \"%s\"",
+                        sv::ReliableCommand::RESERVED_UNUSED_UNDERSCORE,
+                        dvar->first.c_str(), dvar->second.c_str()));
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
@@ -255,12 +250,21 @@ struct component final : generic_component {
     register_builtin(SCRIPTINSTANCE_SERVER, "setclientdvar",
                      gscr_setclientdvar::method, 1);
 
-    game_event::on_g_shutdown_game([]() {
-      reset_tracked_client_dvars();
-      client_dvar_changes.clear();
-    });
-    game_event::on_g_init_game([]() { client_dvar_changes.clear(); });
+    if (game::is_client()) {
+      utils::hook::call(
+          game::cg::CG_DeployServerCommand_UnknownCommandCall.get(),
+          handle_unknown_server_command);
+      scheduler::loop(
+          [] {
+            if (!server_dvar_originals.empty() && !game::com::Com_IsInGame()) {
+              restore_server_dvars();
+            }
+          },
+          scheduler::pipeline::main, 1s);
+    }
   }
+
+  void pre_destroy() override { restore_server_dvars(); }
 };
 } // namespace name
 } // namespace func

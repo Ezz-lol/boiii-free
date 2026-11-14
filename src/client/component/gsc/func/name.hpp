@@ -4,9 +4,6 @@
 
 namespace gsc {
 namespace func {
-namespace name {
-extern std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
-    client_dvar_changes;
-}
+namespace name {}
 } // namespace func
 } // namespace gsc
