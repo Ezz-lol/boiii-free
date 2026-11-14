@@ -558,7 +558,7 @@ void join_lobby(const game::net::netadr_t &host,
           // or if a newer lobby request is already is already finished
           if (joining.active || lobby_joining.active ||
               lobby_joining.expires != request_expiry) {
-            return scheduler::cond_end;
+            return scheduler::COND_END;
           }
           // once local party exists again, filesystem and asset loads have settled,
           // and active mod is usermaps, we can try rejoining
@@ -570,16 +570,16 @@ void join_lobby(const game::net::netadr_t &host,
               std::string_view(game::ugc::UGC_ActiveMod_PublisherId()) ==
                   "usermaps") {
             request_lobby(host, token, fallback);
-            return scheduler::cond_end;
+            return scheduler::COND_END;
           }
           if (std::chrono::steady_clock::now() >= deadline) {
             show_error(
                 "Custom Maps did not finish loading. Try joining again.");
-            return scheduler::cond_end;
+            return scheduler::COND_END;
           }
-          return scheduler::cond_continue;
+          return scheduler::COND_CONTINUE;
         },
-        scheduler::main, 250ms);
+        scheduler::pipeline::main, 250ms);
     return;
   }
 

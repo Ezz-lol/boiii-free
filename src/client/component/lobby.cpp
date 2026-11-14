@@ -242,15 +242,15 @@ void prepare_guest_usermap() {
         if (guest_should_load_usermaps()) {
           if (ugc::active_mod->loadState == ugc::ModLoadState::LOADING ||
               workshop::are_xzones_loading()) {
-            return scheduler::cond_continue;
+            return scheduler::COND_CONTINUE;
           }
           // load usermaps mod
           ugc::UGC_LoadModByPublisherId_Impl(LOCAL_CLIENT_0, "usermaps", true);
         }
         scheduled = false;
-        return scheduler::cond_end;
+        return scheduler::COND_END;
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 class component final : public generic_component {
