@@ -991,14 +991,13 @@ thread_local bool external_url_input = false;
 std::atomic<bool> external_url_pending = false;
 
 LRESULT CALLBACK track_external_url_mouse(int code, WPARAM message,
-                                         LPARAM data) {
+                                          LPARAM data) {
   if (code == HC_ACTION && message == WM_LBUTTONDOWN) {
     const auto *event = reinterpret_cast<const MSLLHOOKSTRUCT *>(data);
     const HWND foreground = GetForegroundWindow();
     DWORD process = 0;
     GetWindowThreadProcessId(foreground, &process);
-    if (!(event->flags & LLMHF_INJECTED) &&
-        process == GetCurrentProcessId() &&
+    if (!(event->flags & LLMHF_INJECTED) && process == GetCurrentProcessId() &&
         GetAncestor(WindowFromPoint(event->pt), GA_ROOT) == foreground) {
       external_url_mouse_input.store(GetTickCount64());
     }
@@ -1015,7 +1014,7 @@ void process_ui_events_stub(const char *root_name) {
 }
 
 void cl_key_event_stub(game::LocalClientNum_t client, int32_t key, int32_t down,
-                      uint32_t time) {
+                       uint32_t time) {
   const bool previous = external_url_input;
   external_url_input = down == 1;
   const auto restore =
@@ -1035,11 +1034,12 @@ luaReturnCount_e request_external_url(lua_State *state) {
     const auto base = game::get_engine_base();
     // Return addresses for the native gamepad-to-LUI dispatch in the
     // supported client executable. Lua events cannot supply these frames.
-    constexpr std::array<uintptr_t, 4> gamepad_dispatch{
-        0x1F1D571, 0x133F7CE, 0x133FAA8, 0x2286F97};
+    constexpr std::array<uintptr_t, 4> gamepad_dispatch{0x1F1D571, 0x133F7CE,
+                                                        0x133FAA8, 0x2286F97};
     const auto dispatch = std::ranges::search(
-        std::span(frames, count), gamepad_dispatch, {},
-        [base](void *frame) { return reinterpret_cast<uintptr_t>(frame) - base; });
+        std::span(frames, count), gamepad_dispatch, {}, [base](void *frame) {
+          return reinterpret_cast<uintptr_t>(frame) - base;
+        });
     gamepad_input = !dispatch.empty();
   }
   if (!external_url_input && !mouse_input && !gamepad_input) {
@@ -1127,12 +1127,14 @@ void patch_unsafe_lua_functions() {
   external_url_mouse_thread = std::jthread([](std::stop_token stop) {
     MSG message{};
     PeekMessageW(&message, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
-    const auto stop_loop = std::stop_callback(stop, [id = GetCurrentThreadId()] {
-      PostThreadMessageW(id, WM_QUIT, 0, 0);
-    });
+    const auto stop_loop =
+        std::stop_callback(stop, [id = GetCurrentThreadId()] {
+          PostThreadMessageW(id, WM_QUIT, 0, 0);
+        });
     const HHOOK hook = SetWindowsHookExW(
         WH_MOUSE_LL, track_external_url_mouse,
-        utils::nt::library::get_by_address(track_external_url_mouse).get_handle(),
+        utils::nt::library::get_by_address(track_external_url_mouse)
+            .get_handle(),
         0);
     if (!hook) {
       return;
