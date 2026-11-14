@@ -642,9 +642,9 @@ std::string report_text(const report &report, const std::string &outcome) {
 } // namespace
 
 void print_report(const report &report, const std::string &outcome) {
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s",
-                        report_text(report, outcome).c_str());
+  std::string text = report_text(report, outcome);
+  text.pop_back();
+  script::print_script_log(text.c_str());
 }
 
 void report_runaway_loop(const game::scr::scriptInstance_t inst,

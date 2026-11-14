@@ -5,6 +5,7 @@ namespace script {
 using namespace game::db::xasset;
 using namespace game::scr;
 void load_rawfiles();
+void print_script_log(const char *message);
 
 ScriptParseTree *get_loaded_script(const std::string &name);
 RawFile *get_loaded_rawfile(const std::string &name);
