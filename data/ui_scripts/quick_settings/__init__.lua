@@ -456,6 +456,7 @@ DataSources.BoiiiQuickSettingsTabs = DataSourceHelpers.ListSetup("BoiiiQuickSett
   return {
     { models = { tabIcon = CoD.buttonStrings.shoulderl }, properties = { m_mouseDisabled = true } },
     tab("GENERAL", "BoiiiQuickSettings", "General"),
+    tab("STATS", "MPStatsSettings", "Stats"),
     tab("VIDEO", "BoiiiQuickSettingsVideo", "Video"),
     tab("GAME", "BoiiiQuickSettingsGame", "Game"),
     tab("XP BAR", "BoiiiQuickSettingsXpBar", "XP Bar"),
@@ -509,7 +510,7 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   local TabList = CoD.FE_TabBar.new(self, controller)
   TabList:setLeftRight(true, false, 0, 2496)
   TabList:setTopBottom(true, false, 84, 123)
-  TabList.Tabs.grid:setHorizontalCount(7)
+  TabList.Tabs.grid:setHorizontalCount(8)
   TabList.Tabs.grid:setDataSource("BoiiiQuickSettingsTabs")
   self:addElement(TabList)
   self.TabList = TabList

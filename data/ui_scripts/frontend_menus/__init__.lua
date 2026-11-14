@@ -24,15 +24,6 @@ local function addWorkshopButton(controller, menuId, buttonTable)
   utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.WORKSHOP, modsIndex and modsIndex + 1)
 end
 
-local statsButton = {
-  stringRef = "STATS",
-  action = function(self, element, controller, param, menu)
-    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
-    OpenPopup(menu, "BoiiiStatsMenu", controller)
-  end,
-  customId = "btnMPStats",
-}
-
 local quickSettingsButton = {
   stringRef = "^8" .. Engine.Localize("BOIII SETTINGS"),
   action = function(self, element, controller, param, menu)
@@ -143,7 +134,6 @@ local enableLargeServerBrowserButton = true -- toggle large server browser butto
 require("datasources_start_menu_tabs")
 require("datasources_change_map_categories")
 
-CoD.LobbyButtons.STATS = statsButton
 CoD.LobbyButtons.QUICK_SETTINGS = quickSettingsButton
 CoD.LobbyButtons.FRIENDS_PARTY = friendsPartyButton
 require("datasources_gamesettingsflyout_buttons")
@@ -340,7 +330,6 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     or (LobbyData.UITargets.UI_CPLOBBYONLINE and menuId == LobbyData.UITargets.UI_CPLOBBYONLINE.id)
     or (LobbyData.UITargets.UI_CPLOBBYLANGAME and menuId == LobbyData.UITargets.UI_CPLOBBYLANGAME.id)
   then
-    utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.STATS)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.QUICK_SETTINGS)
   end
 
@@ -424,7 +413,7 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     if bgbIndex ~= nil then
       utils.AddSpacer(buttonTable, bgbIndex - 1)
     end
-    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.STATS))
+    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.QUICK_SETTINGS))
   end
 end
 
