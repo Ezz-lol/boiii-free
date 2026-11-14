@@ -683,19 +683,35 @@ void receive_lobby_join(const game::net::netadr_t &sender,
 
   add_peer(peer, sender);
   const std::string mod = workshop::get_mod_publisher_id();
+  // engine's record of custom map that's actually loaded right now
   const game::ugc::UGCItem &active_usermap = *game::ugc::active_usermap;
-  const bool on_usermap = mod == "usermaps" && active_usermap.publisherId[0];
-  const std::string map =
-      on_usermap
-          ? std::string(active_usermap.internalName)
-          : std::string(game::get_dvar_string("ui_mapname").value_or(""));
+  // the currently selected map in menu, maybe not quite yet loaded
+  std::string map(game::get_dvar_string("ui_mapname").value_or(""));
+  std::string usermap_id;
+  if (hosting_match() && active_usermap.publisherId[0]) {
+    // ingame the loaded map is authorative
+    map = active_usermap.internalName[0] ? active_usermap.internalName
+                                         : active_usermap.publisherId;
+    usermap_id = active_usermap.publisherId;
+  } else {
+    // in menus the map picker may have selected a map already,
+    // but engine hasn't yet had time to load the map
+    auto item = game::ugc::UGC_GetUsermapByInternalName(map);
+    if (!item && utils::string::is_numeric(map)) {
+      item = game::ugc::UGC_GetUsermapByPublisherId(map.c_str());
+    }
+    if (item) {
+      usermap_id = item->get().publisherId;
+      if (item->get().internalName[0]) {
+        map = item->get().internalName;
+      }
+    } else if (utils::string::is_numeric(map)) {
+      // if unable to resolve, we can at least preserve the workshop id
+      // so guests can identidy and check the map
+      usermap_id = map;
+    }
+  }
 
-  const game::ugc::OptionalUGCItemRef usermap_item =
-      game::ugc::UGC_GetUsermapByInternalName(map);
-  const std::optional<std::string_view> usermap_id =
-      usermap_item.has_value() ? std::optional(usermap_item->get().publisherId)
-      : on_usermap ? std::optional(std::string_view(active_usermap.publisherId))
-                   : std::nullopt;
   network::send(sender, "lobbyHost",
                 std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0],
                             host->xuid,
@@ -705,7 +721,7 @@ void receive_lobby_join(const game::net::netadr_t &sender,
                             to_hex(&host->secKey, sizeof(host->secKey)),
                             game_lobby ? "game" : "party",
                             mod == "usermaps" ? std::string{} : mod, map,
-                            usermap_id.value_or(""), host->name));
+                            usermap_id, host->name));
 }
 
 bool from_lobby_request(const game::net::netadr_t &sender,
