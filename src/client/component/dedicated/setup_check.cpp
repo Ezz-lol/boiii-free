@@ -79,7 +79,7 @@ void check_data_files() {
   const std::filesystem::path script = std::filesystem::path("lobby_scripts") /
                                        "server_lobby_selector" / "__init__.lua";
   if (!path_exists(data / script) &&
-      !path_exists(host.get_folder() / "boiii" / script)) {
+      !path_exists(game::get_boiii_dir_path() / script)) {
     warn(std::format("The server lobby script is missing: {}. The server "
                      "can't start a match without it. Start boiii.exe once "
                      "without -noupdate so it can download its data files.",
@@ -87,7 +87,7 @@ void check_data_files() {
   }
 
   if (!path_exists(data / "gamesettings") &&
-      !path_exists(host.get_folder() / "boiii" / "gamesettings")) {
+      !path_exists(game::get_boiii_dir_path() / "gamesettings")) {
     warn(std::format("The gamesettings folder is missing: {}. Some game "
                      "modes may not play correctly. Start boiii.exe once "
                      "without -noupdate so it can download its data files.",

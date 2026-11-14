@@ -73,8 +73,7 @@ resolve_insert_file(const std::string &insert_path,
     }
 
     // 3) Game folder: boiii/ and boiii/scripts/
-    const std::filesystem::path host_boiii =
-        utils::nt::library{}.get_folder() / "boiii";
+    const std::filesystem::path &host_boiii = game::get_boiii_dir_path();
     candidate = host_boiii / norm_path;
     result = try_read_file(candidate);
     if (!result.empty()) {

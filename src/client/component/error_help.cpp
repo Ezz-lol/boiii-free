@@ -313,9 +313,9 @@ void Com_Error_ServerTimeout(const char *file, const int32_t line,
 std::string clientfield_report;
 
 std::string loose_script_file(const std::string &name) {
-  const std::string relative = script::script_path(name);
+  std::string relative = script::script_path(name);
   for (const std::filesystem::path &root :
-       {utils::nt::library{}.get_folder() / "boiii", game::get_data_path()}) {
+       {game::get_boiii_dir_path(), game::get_data_path()}) {
     std::error_code ec;
     if (std::filesystem::exists(root / relative, ec)) {
       return (root / relative).generic_string();

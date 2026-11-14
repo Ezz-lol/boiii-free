@@ -72,4 +72,9 @@ const std::filesystem::path &get_game_path() {
   static const std::filesystem::path cwd = std::filesystem::current_path();
   return cwd;
 }
+
+const std::filesystem::path &get_boiii_dir_path() {
+  static const std::filesystem::path result = get_game_path() / "boiii";
+  return result;
+}
 } // namespace game
