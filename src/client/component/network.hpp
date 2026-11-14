@@ -20,8 +20,7 @@ typedef std::function<void(game::net::netadr_t address)> resolvedAddrCallback_t;
 game::net::netadr_t address_from_string(const std::string_view &address);
 game::net::netadr_t address_from_ip(uint32_t ip, uint16_t port);
 
-void address_from_string_async(std::string_view address,
-                               resolvedAddrCallback_t cb);
+void address_from_string_async(std::string address, resolvedAddrCallback_t cb);
 
 bool are_addresses_equal(const game::net::netadr_t &a,
                          const game::net::netadr_t &b);

@@ -299,11 +299,10 @@ game::net::netadr_t address_from_string(const std::string_view &address) {
   return addr;
 }
 
-void address_from_string_async(std::string_view address,
-                               resolvedAddrCallback_t cb) {
-  scheduler::once(
-      [address, cb = std::move(cb)]() { cb(address_from_string(address)); },
-      scheduler::pipeline::async);
+void address_from_string_async(std::string address, resolvedAddrCallback_t cb) {
+  scheduler::once([address = std::move(address),
+                   cb = std::move(cb)]() { cb(address_from_string(address)); },
+                  scheduler::pipeline::async);
 }
 
 game::net::netadr_t address_from_ip(const uint32_t ip, const uint16_t port) {
