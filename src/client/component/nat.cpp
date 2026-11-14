@@ -742,7 +742,8 @@ void receive_lobby_follow(const game::net::netadr_t &sender,
       return network::are_addresses_equal(peer.second, sender);
     });
   }
-  scheduler::once([server] { party::connect(server); }, scheduler::pipeline::main);
+  scheduler::once([server] { party::connect(server); },
+                  scheduler::pipeline::main);
 }
 
 void receive_lobby_game(const game::net::netadr_t &sender,
@@ -756,7 +757,8 @@ void receive_lobby_game(const game::net::netadr_t &sender,
   if (parts.size() > 1) {
     const game::net::netadr_t server = network::address_from_string(parts[1]);
     if (network::is_connectable_address(server)) {
-      scheduler::once([server] { connect_to(server); }, scheduler::pipeline::main);
+      scheduler::once([server] { connect_to(server); },
+                      scheduler::pipeline::main);
       return;
     }
     if (valid_token(parts[1])) {
@@ -766,7 +768,8 @@ void receive_lobby_game(const game::net::netadr_t &sender,
     }
   }
   scheduler::once(
-      fallback ? fallback : [sender] { connect_to(sender); }, scheduler::pipeline::main);
+      fallback ? fallback : [sender] { connect_to(sender); },
+      scheduler::pipeline::main);
 }
 
 void receive_register_ack(const game::net::netadr_t &sender,
@@ -1100,7 +1103,8 @@ void refresh_friends(const std::vector<game::XUID> &steam_ids,
     send_rendezvous("friendLookup",
                     utils::string::va("1 %s %llu", request.c_str(), steam_id));
 
-  scheduler::once([request] { finish_lookup(request); }, scheduler::pipeline::main, 2s);
+  scheduler::once([request] { finish_lookup(request); },
+                  scheduler::pipeline::main, 2s);
 }
 
 class component final : public generic_component {
@@ -1138,7 +1142,8 @@ public:
     network::on("lobbyFollow", receive_lobby_follow);
 
     scheduler::loop(update_punching, scheduler::pipeline::main, 250ms);
-    scheduler::loop(update_hosting, scheduler::pipeline::main, REGISTER_INTERVAL);
+    scheduler::loop(update_hosting, scheduler::pipeline::main,
+                    REGISTER_INTERVAL);
   }
 
   void pre_destroy() override {

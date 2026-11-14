@@ -950,8 +950,10 @@ void *consume_items(ControllerIndex_t controller, uint32_t *ids, int32_t count,
   }
   const std::ranges::borrowed_iterator_t<
       const std::vector<gum, std::allocator<gum>> &>
-      found = std::ranges::find_if(pool.begin(), pool.end(),
-                           [&](const gum &item) { return item.id == ids[0]; });
+      found =
+          std::ranges::find_if(pool.begin(), pool.end(), [&](const gum &item) {
+            return item.id == ids[0];
+          });
   if (found == pool.end()) {
     return consume_hook.invoke<void *>(controller, ids, count, amounts);
   }

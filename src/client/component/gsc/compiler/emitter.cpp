@@ -186,9 +186,9 @@ struct emitter_state {
   void record_hash(const std::string &name, int32_t line = 0,
                    uint8_t params = 0, bool function_def = false) {
     std::string lower = name;
-    std::ranges::transform(lower.begin(), lower.end(), lower.begin(), [](uint8_t c) {
-      return static_cast<char>(std::tolower(c));
-    });
+    std::ranges::transform(
+        lower.begin(), lower.end(), lower.begin(),
+        [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
     ScrVarCanonicalName_t h = gsc::gsc_hash(lower);
     gsc::hash_name_pair pair = {
         .hash = h, .name = lower, .line = line, .params = params};
@@ -543,20 +543,21 @@ int infer_local_function_params(const emitter_state &s,
   std::string normalized_ref =
       normalize_ns(ref_ns.empty() ? s.script_name : ref_ns);
   std::string normalized_self = normalize_ns(s.script_name);
-  std::ranges::transform(normalized_ref.begin(), normalized_ref.end(),
-                 normalized_ref.begin(),
-                 [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
-  std::ranges::transform(normalized_self.begin(), normalized_self.end(),
-                 normalized_self.begin(),
-                 [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
+  std::ranges::transform(
+      normalized_ref.begin(), normalized_ref.end(), normalized_ref.begin(),
+      [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
+  std::ranges::transform(
+      normalized_self.begin(), normalized_self.end(), normalized_self.begin(),
+      [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
 
   if (normalized_ref != normalized_self) {
     return -1;
   }
 
   std::string lower_name = func_name;
-  std::ranges::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
-                 [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
+  std::ranges::transform(
+      lower_name.begin(), lower_name.end(), lower_name.begin(),
+      [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
 
   const auto it = s.local_function_params.find(lower_name);
   if (it == s.local_function_params.end()) {
@@ -568,8 +569,9 @@ int infer_local_function_params(const emitter_state &s,
 
 bool is_builtin(const std::string &name) {
   std::string lower = name;
-  std::ranges::transform(lower.begin(), lower.end(), lower.begin(),
-                 [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
+  std::ranges::transform(
+      lower.begin(), lower.end(), lower.begin(),
+      [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
   return lower == "isdefined" || lower == "vectorscale" || lower == "gettime" ||
          lower == "firstarraykey" || lower == "nextarraykey" ||
          lower == "getfirstarraykey" || lower == "getnextarraykey" ||
@@ -579,8 +581,9 @@ bool is_builtin(const std::string &name) {
 bool try_emit_builtin(emitter_state &s, const std::string &name,
                       uint64_t line) {
   std::string lower = name;
-  std::ranges::transform(lower.begin(), lower.end(), lower.begin(),
-                 [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
+  std::ranges::transform(
+      lower.begin(), lower.end(), lower.begin(),
+      [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
 
   if (lower == "isdefined") {
     s.emit<Opcode>(Opcode::IsDefined, line);
@@ -1871,9 +1874,9 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
       break;
     }
     }
-    std::ranges::transform(pname.begin(), pname.end(), pname.begin(), [](uint8_t c) {
-      return static_cast<char>(std::tolower(c));
-    });
+    std::ranges::transform(
+        pname.begin(), pname.end(), pname.begin(),
+        [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
     s.current_func->add_local(gsc::gsc_hash(pname), pass);
     param_names.push_back(pname);
   }
@@ -2258,9 +2261,9 @@ emitter_result emit(scriptInstance_t inst, const ast_ptr &root,
                 normalize_ns(target_ns.empty() ? state.script_name : target_ns);
             std::string rs = normalize_ns(replace_ns);
             std::string tfn = target_fn;
-            std::ranges::transform(tfn.begin(), tfn.end(), tfn.begin(), [](uint8_t c) {
-              return static_cast<char>(std::tolower(c));
-            });
+            std::ranges::transform(
+                tfn.begin(), tfn.end(), tfn.begin(),
+                [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
 
             // std::string(std::string script)
             const auto strip_script_ext =
