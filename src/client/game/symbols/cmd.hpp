@@ -29,5 +29,6 @@ WEAK symbol<void(int localClientNum, ControllerIndex_t localControllerIndex,
                  CmdArgs *args)>
     Cmd_TokenizeStringKernel{0x1420E25E0, 0x1404FA300};
 WEAK symbol<void()> Cmd_EndTokenizedString{0x1420E0750, 0x1404F8420};
+WEAK symbol<void()> Cmd_Exec_f{0x0, 0x1404F8470};
 } // namespace cmd
 } // namespace game
