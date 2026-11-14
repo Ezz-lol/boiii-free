@@ -24,7 +24,7 @@ local function toggle(controller, dvar, name, description)
   }, nil, updateDvar)
 end
 
-DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings", function(controller)
+DataSources.BoiiiQuickSettingsCinematics = DataSourceHelpers.ListSetup("BoiiiQuickSettingsCinematics", function(controller)
   return {
     CoD.OptionsUtility.CreateDvarSettings(
       controller,
@@ -52,18 +52,6 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
       "boiii_skipCinematics",
       "Skip All Cinematics",
       "Skip every cinematic and video, including map videos."
-    ),
-    toggle(
-      controller,
-      "boiii_ultrawide",
-      "Ultrawide Support",
-      "Use the full width of ultrawide screens. Requires a restart."
-    ),
-    toggle(
-      controller,
-      "boiii_allowCheats",
-      "Allow Cheats",
-      "Allow cheat commands like noclip and god mode. Only this setting can turn cheats on, maps and scripts can't."
     ),
   }
 end)
@@ -209,6 +197,16 @@ DataSources.BoiiiQuickSettingsVideo = DataSourceHelpers.ListSetup("BoiiiQuickSet
       },
       nil,
       updateDvar
+    )
+  )
+
+  table.insert(
+    optionsTable,
+    toggle(
+      controller,
+      "boiii_ultrawide",
+      "Ultrawide Support",
+      "Use the full width of ultrawide screens. Requires a restart."
     )
   )
 
@@ -366,6 +364,16 @@ DataSources.BoiiiQuickSettingsGame = DataSourceHelpers.ListSetup("BoiiiQuickSett
     )
   )
 
+  table.insert(
+    optionsTable,
+    toggle(
+      controller,
+      "boiii_allowCheats",
+      "Allow Cheats",
+      "Allow cheat commands like noclip and god mode. Only this setting can turn cheats on, maps and scripts can't."
+    )
+  )
+
   return optionsTable
 end)
 
@@ -455,10 +463,10 @@ DataSources.BoiiiQuickSettingsTabs = DataSourceHelpers.ListSetup("BoiiiQuickSett
 
   return {
     { models = { tabIcon = CoD.buttonStrings.shoulderl }, properties = { m_mouseDisabled = true } },
-    tab("GENERAL", "BoiiiQuickSettings", "General"),
     tab("STATS", "MPStatsSettings", "Stats"),
     tab("VIDEO", "BoiiiQuickSettingsVideo", "Video"),
     tab("GAME", "BoiiiQuickSettingsGame", "Game"),
+    tab("CINEMATICS", "BoiiiQuickSettingsCinematics", "Cinematics"),
     tab("XP BAR", "BoiiiQuickSettingsXpBar", "XP Bar"),
     tab("CONSOLE", "BoiiiQuickSettingsConsole", "Console"),
     { models = { tabIcon = CoD.buttonStrings.shoulderr }, properties = { m_mouseDisabled = true } },
@@ -498,10 +506,10 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   local Options = CoD.Competitive_SettingsList.new(self, controller)
   Options:setLeftRight(true, false, 26, 741)
   Options:setTopBottom(true, false, 135, 720)
-  Options.Title.DescTitle:setText(Engine.Localize("General"))
+  Options.Title.DescTitle:setText(Engine.Localize("Stats"))
   Options.Title.DescTitle:setRGB(1, 0.55, 0.1)
   Options.ButtonList:setVerticalCount(11)
-  Options.ButtonList:setDataSource("BoiiiQuickSettings")
+  Options.ButtonList:setDataSource("MPStatsSettings")
   Options.ButtonList:setVerticalScrollbar(CoD.verticalScrollbar)
   Options.ButtonList.verticalScrollbar:setLeftRight(true, false, 549, 559)
   self:addElement(Options)
