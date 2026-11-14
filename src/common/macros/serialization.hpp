@@ -149,7 +149,7 @@ template <typename T>
 [[nodiscard]] inline std::string serialize(const T *const arr, const size_t N) {
   std::string result = "[";
   if (N > 0 && arr != nullptr) {
-    result += std::format(", {}", serialize(arr[0]));
+    result += std::format("{}", serialize(arr[0]));
 
     for (size_t i = 1; i < N; ++i) {
       result += std::format(", {}", serialize(arr[i]));
@@ -167,9 +167,9 @@ template <typename T>
   std::string result = "[";
   if (N > 0 && arr != nullptr && arr[0] != NULL) {
     if constexpr (std::is_same_v<T, char>) {
-      result += std::format(", {}", serialize(arr[0]));
+      result += std::format("{}", serialize(arr[0]));
     } else {
-      result += std::format(", {}", serialize(*arr[0]));
+      result += std::format("{}", serialize(*arr[0]));
     }
 
     for (size_t i = 1; i < N; ++i) {
