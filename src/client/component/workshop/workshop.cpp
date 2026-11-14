@@ -116,6 +116,12 @@ bool has_mod(const std::string_view &pub_id) {
 }
 
 bool has_usermap(const std::string_view &internal_id) {
+  // lobby metadata can omit either identifier
+  // treat empty lookup as absent
+  if (internal_id.empty()) {
+    return false;
+  }
+
   for (uint32_t i = 0; i < game::ugc::usermapsPool.count; ++i) {
     const game::ugc::UGCItem *usermap = &game::ugc::usermapsPool.data[i];
     if (usermap->publisherId == internal_id ||

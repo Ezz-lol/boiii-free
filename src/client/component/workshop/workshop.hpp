@@ -22,6 +22,13 @@ int get_workshop_retry_attempts();
 
 std::string get_mod_publisher_id();
 std::string get_mod_resized_name();
+/**
+ * @brief Look for a custom map in BOIII's locally discovered map pool
+ * @param map The Workshop publisher ID or internal map name
+ * @return True if either identifier matches a local entry. An empty
+ * identifier always returns false
+ */
+bool has_usermap(const std::string_view &map);
 bool check_valid_usermap_id(const std::string_view &mapname,
                             const std::string_view &pub_id,
                             const std::string_view &workshop_id,

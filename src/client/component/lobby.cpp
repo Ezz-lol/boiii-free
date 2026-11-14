@@ -1,10 +1,15 @@
 #include <std_include.hpp>
 
+#include "lobby.hpp"
+
+#include <game/impl/ugc/ugc.hpp>
 #include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 
 #include "network.hpp"
 #include "party.hpp"
+#include "scheduler.hpp"
+#include "workshop/workshop.hpp"
 
 #include <utils/hook.hpp>
 
@@ -55,6 +60,33 @@ void server_status_not_running_stub(session::LobbyGameData *gameData) {
   }
 }
 
+bool guest_should_load_usermaps() {
+  // distinguish between a guest in a private match lobby vs a host running it
+  if (!com::Com_IsRunningUILevel() || party::cl_connected_to_dedi.get_bool() ||
+      !client::LobbyClient_IsActive(LobbyType::GAME) ||
+      client::LobbyClient_IsHost(LobbyType::GAME)) {
+    return false;
+  }
+
+  const auto *session = client::LobbyClientData_GetSession(LobbyType::GAME);
+  // game data may be unavailable while the session is recovering
+  if (!session || session->mode != LobbyMode::CUSTOM || session->inRecovery ||
+      session->lobbyData.type == nullptr ||
+      *session->lobbyData.type != LobbyType::GAME) {
+    return false;
+  }
+
+  if (ugc::UGC_ActiveMod_PublisherId()[0]) {
+    return false;
+  }
+
+  const auto &game_data = session->lobbyData.lobbyGame;
+  // lobby can indentify the map by internal name or workshop id
+  // only queue a mod load for an installed map
+  return workshop::has_usermap(game_data.mapName) ||
+         workshop::has_usermap(game_data.ugcInfo.publisherId);
+}
+
 utils::hook::detour connect_from_lobby_hook;
 void connect_from_lobby_stub(ControllerIndex_t controllerIndex,
                              net::XSESSION_INFO *hostInfo,
@@ -91,6 +123,32 @@ session::SessionClient *add_client_at_position_stub(
       joinOrder, reason);
 }
 } // namespace
+
+void prepare_guest_usermap() {
+  // repeated lobby updates share one pending load
+  static bool scheduled = false;
+  if (scheduled || !guest_should_load_usermaps()) {
+    return;
+  }
+
+  scheduled = true;
+  scheduler::schedule(
+      [] {
+        // read current lobby again, something may have changed
+        if (guest_should_load_usermaps()) {
+          if (ugc::active_mod->loadState == ugc::ModLoadState::LOADING ||
+              workshop::are_xzones_loading()) {
+            return scheduler::cond_continue;
+          }
+          // load usermaps mod
+          ugc::UGC_LoadModByPublisherId_Impl(LOCAL_CLIENT_0, "usermaps", true);
+        }
+        scheduled = false;
+        return scheduler::cond_end;
+      },
+      scheduler::main);
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lobby");
 
