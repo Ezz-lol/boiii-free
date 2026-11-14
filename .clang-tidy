@@ -35,9 +35,10 @@ Checks:
   - "-cppcoreguidelines-special-member-functions"
   - "-cppcoreguidelines-pro-type-member-init"
   - "-cert-dcl37-c"
+  - "-cert-dcl50-cpp" # Duplicate of modernize-avoid-variadic-functions
+  - "-cert-dcl51-cpp"
   - "-cert-err33-c"
   - "-cert-err58-cpp"
-  - "-cert-dcl50-cpp" # Duplicate of modernize-avoid-variadic-functions
   - "-hicpp-use-auto"
   - "modernize-*"
   - "-modernize-use-trailing-return-type"

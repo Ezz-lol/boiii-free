@@ -28,108 +28,113 @@
   }
 #endif
 
+#ifndef IMPL_ENUM_OPS_WARN_PUSH
+#if defined(__clang__)
+#define IMPL_ENUM_OPS_WARN_PUSH                                                \
+  _Pragma("clang diagnostic push")                                             \
+      _Pragma("clang diagnostic ignored \"-Wunused-function\"")
+#define IMPL_ENUM_OPS_WARN_POP _Pragma("clang diagnostic pop")
+#elif defined(__GNUC__)
+#define IMPL_ENUM_OPS_WARN_PUSH                                                \
+  _Pragma("GCC diagnostic push")                                               \
+      _Pragma("GCC diagnostic ignored \"-Wunused-function\"")
+#define IMPL_ENUM_OPS_WARN_POP _Pragma("GCC diagnostic pop")
+#elif defined(_MSC_VER)
+#define IMPL_ENUM_OPS_WARN_PUSH                                                \
+  __pragma(warning(push)) __pragma(warning(disable : 4505))
+#define IMPL_ENUM_OPS_WARN_POP __pragma(warning(pop))
+#else
+#define IMPL_ENUM_OPS_WARN_PUSH
+#define IMPL_ENUM_OPS_WARN_POP
+#endif
+
 #ifndef IMPL_ENUM_OPERATORS
 #define IMPL_ENUM_OPERATORS(Enum)                                              \
+  IMPL_ENUM_OPS_WARN_PUSH                                                      \
   inline constexpr Enum &operator++(Enum &s) noexcept {                        \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    s = static_cast<Enum>(static_cast<Underlying>(s) + 1);                     \
+    s = static_cast<Enum>(std::to_underlying(s) + 1);                          \
     return s;                                                                  \
   }                                                                            \
   inline constexpr Enum operator++(Enum &s, int) noexcept {                    \
-    Enum temp = s;                                                             \
+    Enum t = s;                                                                \
     ++s;                                                                       \
-    return temp;                                                               \
+    return t;                                                                  \
   }                                                                            \
   inline constexpr Enum &operator--(Enum &s) noexcept {                        \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    s = static_cast<Enum>(static_cast<Underlying>(s) - 1);                     \
+    s = static_cast<Enum>(std::to_underlying(s) - 1);                          \
     return s;                                                                  \
   }                                                                            \
   inline constexpr Enum operator--(Enum &s, int) noexcept {                    \
-    Enum temp = s;                                                             \
+    Enum t = s;                                                                \
     --s;                                                                       \
-    return temp;                                                               \
+    return t;                                                                  \
   }                                                                            \
-                                                                               \
   inline constexpr std::underlying_type_t<Enum> operator+(Enum s) noexcept {   \
-    return static_cast<std::underlying_type_t<Enum>>(s);                       \
+    return std::to_underlying(s);                                              \
   }                                                                            \
   inline constexpr Enum operator-(Enum s) noexcept {                           \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    return static_cast<Enum>(-static_cast<Underlying>(s));                     \
+    using U = std::underlying_type_t<Enum>;                                    \
+    using UU = std::make_unsigned_t<U>;                                        \
+    return static_cast<Enum>(                                                  \
+        static_cast<U>(0u - static_cast<UU>(std::to_underlying(s))));          \
   }                                                                            \
   inline constexpr Enum operator~(Enum s) noexcept {                           \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    return static_cast<Enum>(~static_cast<Underlying>(s));                     \
+    return static_cast<Enum>(~std::to_underlying(s));                          \
   }                                                                            \
                                                                                \
   inline constexpr Enum &operator+=(Enum &a, Enum b) noexcept {                \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) +                         \
-                          static_cast<Underlying>(b));                         \
+    a = static_cast<Enum>(std::to_underlying(a) + std::to_underlying(b));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator+(Enum a, Enum b) noexcept { return a += b; }  \
                                                                                \
   inline constexpr Enum &operator-=(Enum &a, Enum b) noexcept {                \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) -                         \
-                          static_cast<Underlying>(b));                         \
+    a = static_cast<Enum>(std::to_underlying(a) - std::to_underlying(b));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator-(Enum a, Enum b) noexcept { return a -= b; }  \
                                                                                \
   inline constexpr Enum &operator*=(Enum &a, Enum b) noexcept {                \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) *                         \
-                          static_cast<Underlying>(b));                         \
+    a = static_cast<Enum>(std::to_underlying(a) * std::to_underlying(b));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator*(Enum a, Enum b) noexcept { return a *= b; }  \
                                                                                \
   inline constexpr Enum &operator/=(Enum &a, Enum b) noexcept {                \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) /                         \
-                          static_cast<Underlying>(b));                         \
+    a = static_cast<Enum>(std::to_underlying(a) / std::to_underlying(b));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator/(Enum a, Enum b) noexcept { return a /= b; }  \
                                                                                \
   inline constexpr Enum &operator%=(Enum &a, Enum b) noexcept {                \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) %                         \
-                          static_cast<Underlying>(b));                         \
+    a = static_cast<Enum>(std::to_underlying(a) % std::to_underlying(b));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator%(Enum a, Enum b) noexcept { return a %= b; }  \
                                                                                \
   inline constexpr Enum &operator&=(Enum &a, Enum b) noexcept {                \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) &                         \
-                          static_cast<Underlying>(b));                         \
+    a = static_cast<Enum>(std::to_underlying(a) & std::to_underlying(b));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator&(Enum a, Enum b) noexcept { return a &= b; }  \
                                                                                \
   inline constexpr Enum &operator|=(Enum &a, Enum b) noexcept {                \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) |                         \
-                          static_cast<Underlying>(b));                         \
+    a = static_cast<Enum>(std::to_underlying(a) | std::to_underlying(b));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator|(Enum a, Enum b) noexcept { return a |= b; }  \
                                                                                \
   inline constexpr Enum &operator^=(Enum &a, Enum b) noexcept {                \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) ^                         \
-                          static_cast<Underlying>(b));                         \
+    a = static_cast<Enum>(std::to_underlying(a) ^ std::to_underlying(b));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator^(Enum a, Enum b) noexcept { return a ^= b; }  \
                                                                                \
   inline constexpr Enum &operator<<=(Enum &a, int shift) noexcept {            \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) << shift);                \
+    using U = std::underlying_type_t<Enum>;                                    \
+    using UU = std::make_unsigned_t<U>;                                        \
+    a = static_cast<Enum>(                                                     \
+        static_cast<U>(static_cast<UU>(std::to_underlying(a)) << shift));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator<<(Enum a, int shift) noexcept {               \
@@ -137,13 +142,18 @@
   }                                                                            \
                                                                                \
   inline constexpr Enum &operator>>=(Enum &a, int shift) noexcept {            \
-    using Underlying = std::underlying_type_t<Enum>;                           \
-    a = static_cast<Enum>(static_cast<Underlying>(a) >> shift);                \
+    using U = std::underlying_type_t<Enum>;                                    \
+    using UU = std::make_unsigned_t<U>;                                        \
+    a = static_cast<Enum>(                                                     \
+        static_cast<U>(static_cast<UU>(std::to_underlying(a)) >> shift));      \
     return a;                                                                  \
   }                                                                            \
   inline constexpr Enum operator>>(Enum a, int shift) noexcept {               \
     return a >>= shift;                                                        \
-  }
+  }                                                                            \
+  IMPL_ENUM_OPS_WARN_POP
+
+#endif
 #endif
 
 template <typename T, T Actual, T Expected>

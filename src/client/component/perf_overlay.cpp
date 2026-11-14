@@ -14,6 +14,32 @@ namespace {
 constexpr float VIRTUAL_HEIGHT = 480.0f;
 constexpr float BASELINE = 35.0f;
 constexpr float SIZES[] = {0.7f, 1.0f, 1.3f};
+constexpr const char COLOR_HELP[] =
+    "0 = automatic, 1 = white, 2 = yellow, 3 = green, 4 = orange, "
+    "5 = red, 6 = cyan";
+
+enum class DrawColor : uint8_t {
+  WHITE = 0x0,
+  YELLOW = 0x1,
+  GREEN = 0x2,
+  ORANGE = 0x3,
+  RED = 0x4,
+  CYAN = 0x5,
+  COUNT = 0x6
+};
+IMPL_ENUM_OPERATORS(DrawColor);
+
+enum class DvarDrawColor : uint8_t {
+  AUTOMATIC = 0x0,
+  WHITE = 0x1,
+  YELLOW = 0x2,
+  GREEN = 0x3,
+  ORANGE = 0x4,
+  RED = 0x5,
+  CYAN = 0x6,
+  COUNT = 0x7
+};
+IMPL_ENUM_OPERATORS(DvarDrawColor);
 
 constexpr game::vec4_t WHITE = {.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
 constexpr game::vec4_t YELLOW = {.r = 1.0f, .g = 1.0f, .b = 0.0f, .a = 1.0f};
@@ -21,7 +47,8 @@ constexpr game::vec4_t GREEN = {.r = 0.3f, .g = 0.9f, .b = 0.3f, .a = 1.0f};
 constexpr game::vec4_t ORANGE = {.r = 1.0f, .g = 0.6f, .b = 0.1f, .a = 1.0f};
 constexpr game::vec4_t RED = {.r = 1.0f, .g = 0.25f, .b = 0.2f, .a = 1.0f};
 constexpr game::vec4_t CYAN = {.r = 0.3f, .g = 0.85f, .b = 1.0f, .a = 1.0f};
-constexpr game::vec4_t COLORS[] = {WHITE, YELLOW, GREEN, ORANGE, RED, CYAN};
+constexpr game::vec4_t COLORS[+DrawColor::COUNT] = {WHITE,  YELLOW, GREEN,
+                                                    ORANGE, RED,    CYAN};
 
 game::EngineDependentDvarMut fps_size;
 game::EngineDependentDvarMut fps_color;
@@ -35,12 +62,16 @@ const uint32_t *console_font() {
   return reinterpret_cast<const uint32_t *>(0x1432D2A30_g);
 }
 
-const game::vec4_t &pick_color(const int32_t option, const bool good,
+const game::vec4_t &pick_color(const DvarDrawColor option, const bool good,
                                const bool okay) {
-  if (option > 0 && option <= static_cast<int32_t>(std::size(COLORS))) {
-    return COLORS[option - 1];
+  if (option > DvarDrawColor::AUTOMATIC && (+option - 1) < +DrawColor::COUNT) {
+    return COLORS[+option - 1];
   }
-  return good ? GREEN : okay ? ORANGE : RED;
+  if (good) {
+    return GREEN;
+  }
+
+  return okay ? ORANGE : RED;
 }
 
 float size_of(game::EngineDependentDvarMut dvar) {
@@ -106,14 +137,17 @@ void draw_overlay() {
     draw_text(text,
               static_cast<float>(game::r::vidConfig->displayWidth) -
                   text_width(text, scale),
-              scale, pick_color(fps_color.get_int(), fps >= 60, fps >= 30));
+              scale,
+              pick_color(static_cast<DvarDrawColor>(fps_color.get_int()),
+                         fps >= 60, fps >= 30));
   }
 
   const int32_t ping = current_ping;
   if (ping >= 0) {
     const float scale = screen_scale * size_of(ping_size);
     draw_text(utils::string::va("%d ms", ping), text_width(" ", scale), scale,
-              pick_color(ping_color.get_int(), ping < 60, ping <= 120));
+              pick_color(static_cast<DvarDrawColor>(ping_color.get_int()),
+                         ping < 60, ping <= 120));
   }
 }
 
@@ -124,13 +158,11 @@ struct component final : client_component {
   DEFINE_COMPONENT_NAME("perf_overlay");
 
   void post_unpack() override {
-    constexpr const char *COLOR_HELP =
-        "0 = automatic, 1 = white, 2 = yellow, 3 = green, 4 = orange, "
-        "5 = red, 6 = cyan";
     fps_size = game::register_dvar_int("boiii_fpsSize", 1, 0, 2,
                                        game::dvarFlags_e::ARCHIVE,
                                        "FPS counter size: 0-2");
-    fps_color = game::register_dvar_int("boiii_fpsColor", 0, 0, 6,
+    fps_color = game::register_dvar_int("boiii_fpsColor", 0, 0,
+                                        +DvarDrawColor::AUTOMATIC,
                                         game::dvarFlags_e::ARCHIVE, COLOR_HELP);
     draw_ping = game::register_dvar_bool("boiii_drawPing", false,
                                          game::dvarFlags_e::ARCHIVE,
@@ -139,12 +171,13 @@ struct component final : client_component {
         game::register_dvar_int("boiii_pingSize", 0, 0, 2,
                                 game::dvarFlags_e::ARCHIVE, "Ping size: 0-2");
     ping_color = game::register_dvar_int(
-        "boiii_pingColor", 0, 0, 6, game::dvarFlags_e::ARCHIVE, COLOR_HELP);
+        "boiii_pingColor", 0, 0, +DvarDrawColor::AUTOMATIC,
+        game::dvarFlags_e::ARCHIVE, COLOR_HELP);
 
     utils::hook::call(game::cl::CL_UpdateScreen_DrawFpsCall.get(),
                       skip_engine_fps);
-    scheduler::loop(update_ping, scheduler::main);
-    scheduler::loop(draw_overlay, scheduler::renderer);
+    scheduler::loop(update_ping, scheduler::pipeline::main);
+    scheduler::loop(draw_overlay, scheduler::pipeline::renderer);
   }
 };
 } // namespace perf_overlay
