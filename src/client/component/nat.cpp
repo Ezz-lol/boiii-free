@@ -507,20 +507,40 @@ void join_lobby(const game::net::netadr_t &host,
   // mismatching mod being loaded is handled existing mod mismatch path
   const bool needs_usermaps =
       host_mod == "usermaps" && !usermap.empty() && loaded_mod.empty();
+  // for the server connect route parts[0] is set to "match"
+  const bool friend_lobby = parts[0] != "match";
+  // check a named map for GAME lobbies, and for
+  // PRIVATE parties only when host provides a map's workshop id
+  const bool check_map =
+      !map.empty() &&
+      (target == game::lobby::LobbyType::GAME || !usermap.empty());
+  const bool check_friend_map = friend_lobby && check_map;
+  const auto check_selected_map = [&] {
+    return workshop::check_valid_usermap_id(map, usermap, usermap, {});
+  };
+  const auto stop_for_missing_content = [] {
+    game_join_fallback = {};
+    if (joining.friend_id) {
+      friends::remember_browser_route(joining.friend_id, FRIEND_REJOIN_ROUTE);
+      workshop::set_pending_download_reconnect(FRIEND_REJOIN_ROUTE);
+    }
+  };
+  // check map before a mod mismatch can send the code execution down another fallback path
+  if (check_friend_map && !check_selected_map()) {
+    stop_for_missing_content();
+    return;
+  }
+
   // if guest is unable to join the host due to mismatching mod and fallback is registered
   if (game_join_fallback && !same_mod && !needs_usermaps) {
     fail({});
     return;
   }
 
+  // if map or mod validation fails
   if (!workshop::check_valid_mod_id(mod, {}) ||
-      (target == game::lobby::LobbyType::GAME && !map.empty() &&
-       !workshop::check_valid_usermap_id(map, usermap, {}, {}))) {
-    game_join_fallback = {};
-    if (joining.friend_id) {
-      friends::remember_browser_route(joining.friend_id, FRIEND_REJOIN_ROUTE);
-      workshop::set_pending_download_reconnect(FRIEND_REJOIN_ROUTE);
-    }
+      (!friend_lobby && check_map && !check_selected_map())) {
+    stop_for_missing_content();
     return;
   }
 
