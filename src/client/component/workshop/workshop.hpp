@@ -29,6 +29,16 @@ std::string get_mod_resized_name();
  * identifier always returns false
  */
 bool has_usermap(const std::string_view &map);
+/**
+ * @brief Show a confirmation before queuing a Workshop download
+ * @param zone_type The kind of content to download
+ * @param name The content name shown in the dialog
+ * @param workshop_id The ID of the item to download
+ * @param on_queued Optional callback run after the item is queued
+ */
+void offer_download(game::ZoneType zone_type, const std::string_view &name,
+                    const std::string_view &workshop_id,
+                    std::function<void()> on_queued = {});
 bool check_valid_usermap_id(const std::string_view &mapname,
                             const std::string_view &pub_id,
                             const std::string_view &workshop_id,

@@ -9,6 +9,7 @@
 #include <component/friends.hpp>
 #include <component/getinfo.hpp>
 #include <component/gpu.hpp>
+#include <component/lobby.hpp>
 #include <component/lua/lua_state.hpp>
 #include <component/name.hpp>
 #include <component/scheduler.hpp>
@@ -21,7 +22,6 @@
 #include <steam/voice.hpp>
 
 #include <utils/http.hpp>
-#include <utils/string.hpp>
 
 namespace game_lua {
 using namespace game::db;
@@ -462,6 +462,19 @@ luaReturnCount_e getworkshopdownload(lua_State *luaVM) {
   });
 }
 
+/**
+ * @brief Expose the Workshop map offer to the lobby script.
+ * @param luaVM The calling Lua state, with the map ID as its first argument.
+ * @return One Lua boolean indicating whether BOIII handles the map ID.
+ */
+luaReturnCount_e offermissingguestusermap(lua_State *luaVM) {
+  // LobbyVM has its own stack, separate from the main UI VM
+  const char *id = lua_tostring(luaVM, 1);
+  lua_pushboolean(luaVM, game::is_client() && id &&
+                             ::lobby::offer_missing_guest_usermap(id));
+  return luaReturnCount_e::ONE;
+}
+
 luaReturnCount_e queueworkshopitem(lua_State *luaVM) {
   return call(luaVM,
               [](const std::string &id, const std::string &kind,
@@ -724,6 +737,8 @@ public:
                                   setworkshopcover>(),
         lua_state::luaL_LoggedReg<"game", "getworkshopdownload",
                                   getworkshopdownload>(),
+        lua_state::luaL_LoggedReg<"game", "offermissingguestusermap",
+                                  offermissingguestusermap>(),
         lua_state::luaL_LoggedReg<"game", "queueworkshopitem",
                                   queueworkshopitem>(),
         lua_state::luaL_LoggedReg<"game", "getworkshopqueue",

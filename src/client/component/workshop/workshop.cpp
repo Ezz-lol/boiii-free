@@ -14,6 +14,7 @@
 
 #include <component/download_overlay.hpp>
 #include <component/fastdl.hpp>
+#include <component/lobby.hpp>
 #include <component/network.hpp>
 #include <component/party.hpp>
 #include <component/path.hpp>
@@ -1155,7 +1156,8 @@ workshop_info get_steam_workshop_info(const std::string_view &workshop_id) {
 }
 
 void offer_download(game::ZoneType zoneType, const std::string_view &name,
-                    const std::string_view &workshop_id) {
+                    const std::string_view &workshop_id,
+                    std::function<void()> on_queued) {
   const workshop_info info = get_steam_workshop_info(workshop_id);
   std::string message =
       std::format("{}  '{}' was not found.\n", game::toString(zoneType), name);
@@ -1168,8 +1170,11 @@ void offer_download(game::ZoneType zoneType, const std::string_view &name,
   message += "\nDo you want to download it from the Steam Workshop?";
   download_overlay::show_confirmation(
       std::format("Download {}?", game::toString(zoneType)), message,
-      [id = std::string(workshop_id), zoneType] {
-        start_download(id, zoneType);
+      [id = std::string(workshop_id), zoneType,
+       on_queued = std::move(on_queued)] {
+        if (queue::add(id, zoneType) && on_queued) {
+          on_queued();
+        }
       });
 }
 
@@ -1574,8 +1579,10 @@ public:
 
       command::add("userContentReload", [](const command::params &params) {
         game::ugc::UGC_LoadPools_Impl();
-        if (!game::is_server())
+        if (!game::is_server()) {
+          ::lobby::refresh_downloaded_usermap_preview();
           toast::info("Workshop", "User content reloaded");
+        }
       });
       command::add("workshop_config", [](const command::params &params) {
         printf("[ Workshop ] workshop_retry_attempts: %d (set in game or "
