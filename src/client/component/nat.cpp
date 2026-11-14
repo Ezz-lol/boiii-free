@@ -503,7 +503,12 @@ void join_lobby(const game::net::netadr_t &host,
   const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
   const bool same_mod =
       loaded_mod == host_mod || (host_mod.empty() && loaded_mod == "usermaps");
-  if (game_join_fallback && !same_mod) {
+  // flag for guest joining a custam map, without usermaps mod loaded
+  // mismatching mod being loaded is handled existing mod mismatch path
+  const bool needs_usermaps =
+      host_mod == "usermaps" && !usermap.empty() && loaded_mod.empty();
+  // if guest is unable to join the host due to mismatching mod and fallback is registered
+  if (game_join_fallback && !same_mod && !needs_usermaps) {
     fail({});
     return;
   }
@@ -516,6 +521,45 @@ void join_lobby(const game::net::netadr_t &host,
       friends::remember_browser_route(joining.friend_id, FRIEND_REJOIN_ROUTE);
       workshop::set_pending_download_reconnect(FRIEND_REJOIN_ROUTE);
     }
+    return;
+  }
+
+  if (needs_usermaps) {
+    const auto request_expiry = lobby_joining.expires;
+    const auto deadline = std::chrono::steady_clock::now() + 20s;
+    // save old callback and clear it
+    const auto fallback = std::exchange(game_join_fallback, {});
+    // load usermaps mod
+    game::ugc::UGC_LoadModByPublisherId_Impl(game::LOCAL_CLIENT_0, "usermaps",
+                                             true);
+    scheduler::schedule(
+        [host, token = parts[0], request_expiry, deadline, fallback] {
+          // dont retry if a newer join is already active
+          // or if a newer lobby request is already is already finished
+          if (joining.active || lobby_joining.active ||
+              lobby_joining.expires != request_expiry) {
+            return scheduler::cond_end;
+          }
+          // once local party exists again, filesystem and asset loads have settled,
+          // and active mod is usermaps, we can try rejoining
+          // re-request lobby before rejoining though, because it may have had time to change meanwhile
+          if (lobby_host_info() &&
+              game::ugc::active_mod->loadState !=
+                  game::ugc::ModLoadState::LOADING &&
+              !workshop::are_xzones_loading() &&
+              std::string_view(game::ugc::UGC_ActiveMod_PublisherId()) ==
+                  "usermaps") {
+            request_lobby(host, token, fallback);
+            return scheduler::cond_end;
+          }
+          if (std::chrono::steady_clock::now() >= deadline) {
+            show_error(
+                "Custom Maps did not finish loading. Try joining again.");
+            return scheduler::cond_end;
+          }
+          return scheduler::cond_continue;
+        },
+        scheduler::main, 250ms);
     return;
   }
 
