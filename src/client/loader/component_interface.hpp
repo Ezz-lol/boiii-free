@@ -42,7 +42,7 @@ struct generic_component {
 
   virtual void post_unpack() {}
 
-  virtual component_priority priority() const {
+  [[nodiscard]] virtual component_priority priority() const {
     return component_priority::min;
   }
 };

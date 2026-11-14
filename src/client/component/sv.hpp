@@ -1,12 +1,11 @@
 #pragma once
 
-#include <functional>
 #include <game/game.hpp>
 namespace sv {
-using EnterWorldTask = std::function<void(
+using EnterWorldTask = fastcallPtr_t<void(
     (game::sv::client_s * client, game::user::usercmd_t *cmd))>;
 using RemoveTask =
-    std::function<void(game::sv::client_s *client, const char *reason)>;
+    fastcallPtr_t<void(game::sv::client_s *client, const char *reason)>;
 
 void on_cliententerworld(const EnterWorldTask &callback);
 void on_removeclient(const RemoveTask &callback);

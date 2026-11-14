@@ -197,7 +197,7 @@ qboolean WINAPI mini_dump_write_dump_stub(
   if (GetFinalPathNameByHandleW(h_file, filename, std::size(filename),
                                 VOLUME_NAME_DOS)) {
     std::wstring path = filename;
-    if (path.find(L"\\\\?\\") == 0) {
+    if (path.starts_with(L"\\\\?\\")) {
       path = path.substr(4);
     }
 
@@ -388,13 +388,14 @@ bool ask_restart(const std::string &text,
   constexpr int32_t RESTART_BUTTON = 100;
   constexpr int32_t CLOSE_BUTTON = 101;
   const TASKDIALOG_BUTTON buttons[] = {
-      {RESTART_BUTTON, L"Restart game\nClose the game and start it again."},
-      {CLOSE_BUTTON, L"Close game"},
+      {.nButtonID = RESTART_BUTTON,
+       .pszButtonText = L"Restart game\nClose the game and start it again."},
+      {.nButtonID = CLOSE_BUTTON, .pszButtonText = L"Close game"},
   };
-  constexpr std::string_view repeated_headline = "The game crashed: ";
+  constexpr std::string_view REPEATED_HEADLINE = "The game crashed: ";
   std::string body = text;
-  if (body.starts_with(repeated_headline)) {
-    body.erase(0, repeated_headline.size());
+  if (body.starts_with(REPEATED_HEADLINE)) {
+    body.erase(0, REPEATED_HEADLINE.size());
     body[0] = static_cast<char>(std::toupper(body[0]));
   }
   const std::wstring content = utils::string::convert(body);

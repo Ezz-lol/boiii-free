@@ -92,7 +92,7 @@ void dlc_popup_thread_func() {
                     "Missing DLC map: %s\n\nOpening download page...\n%s",
                     map_copy.c_str(), link));
           },
-          scheduler::main);
+          scheduler::pipeline::main);
       ShellExecuteA(nullptr, "open", link, nullptr, nullptr, SW_SHOWNORMAL);
     }
   }
@@ -1130,7 +1130,7 @@ void watch_server_content() {
                            game::ugc::active_mod->absolutePathZoneFiles);
         }
       },
-      scheduler::main, 5s);
+      scheduler::pipeline::main, 5s);
 }
 
 workshop_info get_steam_workshop_info(const std::string_view &workshop_id) {
@@ -1214,7 +1214,7 @@ bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
                       utils::string::va("connect %s\n", reconnect.c_str()));
                 });
           },
-          scheduler::main);
+          scheduler::pipeline::main);
     };
     printf("[ Workshop ] Server has FastDL, attempting download for %s from "
            "%s\n",
@@ -1235,7 +1235,7 @@ bool is_busy_downloading() {
               "You are already downloading an item in the background. You can "
               "download only one item at a time.");
         },
-        scheduler::main);
+        scheduler::pipeline::main);
     return true;
   }
   return false;
@@ -1281,7 +1281,7 @@ void report_version_mismatch(game::ZoneType zoneType,
         game::ui::UI_OpenErrorPopupWithMessage(
             game::LOCAL_CLIENT_0, game::errorCode::UI, message.c_str());
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 bool check_valid_usermap_id(const std::string_view &mapname,
@@ -1304,7 +1304,7 @@ bool check_valid_usermap_id(const std::string_view &mapname,
                 "You are already downloading a map in the background. You can "
                 "download only one item at a time.");
           },
-          scheduler::main);
+          scheduler::pipeline::main);
       return false;
     }
 
@@ -1342,7 +1342,7 @@ bool check_valid_usermap_id(const std::string_view &mapname,
                       "Workshop, or ask the server to set sv_wwwBaseURL.",
                       name_copy.c_str()));
             },
-            scheduler::main);
+            scheduler::pipeline::main);
       }
       return false;
     }
@@ -1369,7 +1369,7 @@ void offer_mod_from_workshop(const std::string &mod,
                   "server and does not have FastDL setup",
                   mod.c_str()));
         },
-        scheduler::main);
+        scheduler::pipeline::main);
   } else {
     offer_download(game::ZoneType::MOD, mod, resolved_id);
   }
@@ -1471,7 +1471,7 @@ void com_error_missing_map_stub(const char *file, int line,
               game::LOCAL_CLIENT_0,
               utils::string::va("connect %s\n", addr_copy.c_str()));
         },
-        scheduler::main, 3s);
+        scheduler::pipeline::main, 3s);
 
     game::com::Com_Error_(file, line, code, "%s",
                           "You don't have this map. Reconnecting to download "

@@ -27,7 +27,7 @@ namespace func {
 
 namespace command {
 std::string normalize_command_name(std::string value) {
-  std::transform(
+  std::ranges::transform(
       value.begin(), value.end(), value.begin(),
       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return value;

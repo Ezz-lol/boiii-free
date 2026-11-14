@@ -329,6 +329,10 @@ struct netadr_t {
   constexpr bool operator==(const netadr_t &other) const noexcept {
     return cmp(other) == 0;
   }
+
+  [[nodiscard]] constexpr bool ip_addr() const noexcept {
+    return type == netadrtype_t::IP || type == netadrtype_t::RAWIP;
+  }
 };
 ASSERT_SIZE(netadr_t, 0x10);
 

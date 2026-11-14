@@ -78,7 +78,7 @@ inline bool enable_debug_dvars() {
     for (const game::symbol<game::EngineDependentDvarMut> &dependency :
          dependencies) {
       if (!*dependency.get()) {
-        return scheduler::cond_continue;
+        return scheduler::COND_CONTINUE;
       }
     }
 
@@ -96,7 +96,7 @@ inline bool enable_debug_dvars() {
     for (const game::symbol<game::EngineDependentDvarMut> &dependency :
          dependencies) {
       if (!*dependency.get()) {
-        return scheduler::cond_continue;
+        return scheduler::COND_CONTINUE;
       }
     }
     dvar_bool_force<true>(*game::lobby_showSVDebug);
@@ -115,12 +115,12 @@ inline bool enable_debug_dvars() {
   for (const game::symbol<game::EngineDependentDvarMut> &dependency :
        dependencies) {
     if (!*dependency.get()) {
-      return scheduler::cond_continue;
+      return scheduler::COND_CONTINUE;
     }
   }
 
   dvar_bool_force<true>(*game::com_clientfieldsdebug);
-  return scheduler::cond_end;
+  return scheduler::COND_END;
 }
 #endif
 
@@ -402,9 +402,9 @@ public:
             apply_cheats_setting({});
             Dvar_SetModifiedCallback(Dvar_FindVar("boiii_allowCheats"),
                                      apply_cheats_setting);
-            return scheduler::cond_end;
+            return scheduler::COND_END;
           }
-          return scheduler::cond_continue;
+          return scheduler::COND_CONTINUE;
         },
         scheduler::pipeline::main);
   }

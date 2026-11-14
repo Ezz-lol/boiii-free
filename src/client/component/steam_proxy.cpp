@@ -256,12 +256,12 @@ void clean_up_on_error() {
   scheduler::schedule(
       [] {
         if (perform_cleanup_if_needed()) {
-          return scheduler::cond_end;
+          return scheduler::COND_END;
         }
 
-        return scheduler::cond_continue;
+        return scheduler::COND_CONTINUE;
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 ownership_state start_mod_unsafe(const std::string &title, size_t app_id) {

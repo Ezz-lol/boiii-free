@@ -17,8 +17,8 @@ using RemoveTasks = std::vector<RemoveTask>;
 utils::concurrency::container<RemoveTasks> sv_live_removeclient_tasks;
 
 utils::hook::detour SV_ClientEnterWorld_hook;
-void SV_ClientEnterWorld_stub(game::sv::client_s *client,
-                              game::user::usercmd_t *cmd) {
+void SV_ClientEnterWorld_ExecCallbacks(game::sv::client_s *client,
+                                       game::user::usercmd_t *cmd) {
   SV_ClientEnterWorld_hook.invoke(client, cmd);
   sv_cliententerworld_tasks.access([client, cmd](EnterWorldTasks &tasks) {
     for (const EnterWorldTask &func : tasks) {
@@ -28,7 +28,8 @@ void SV_ClientEnterWorld_stub(game::sv::client_s *client,
 }
 
 utils::hook::detour SV_Live_RemoveClient_hook;
-void SV_Live_RemoveClient_stub(game::sv::client_s *client, const char *reason) {
+void SV_Live_RemoveClient_ExecCallbacks(game::sv::client_s *client,
+                                        const char *reason) {
   sv_live_removeclient_tasks.access([client, reason](RemoveTasks &tasks) {
     for (const RemoveTask &func : tasks) {
       func(client, reason);
@@ -104,9 +105,9 @@ class component final : public generic_component {
 public:
   void post_unpack() override {
     SV_ClientEnterWorld_hook.create(game::sv::SV_ClientEnterWorld.get(),
-                                    SV_ClientEnterWorld_stub);
+                                    SV_ClientEnterWorld_ExecCallbacks);
     SV_Live_RemoveClient_hook.create(game::sv::SV_Live_RemoveClient.get(),
-                                     SV_Live_RemoveClient_stub);
+                                     SV_Live_RemoveClient_ExecCallbacks);
   }
 };
 } // namespace sv

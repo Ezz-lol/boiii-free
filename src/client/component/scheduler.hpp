@@ -1,41 +1,38 @@
 #pragma once
 
+#include <chrono>
+#include <memory>
 #include <std_include.hpp>
+#include <utils/concurrency.hpp>
+#include <vector>
 
 namespace scheduler {
-enum pipeline {
-  // Asynchronuous pipeline, disconnected from the game
-  async = 0,
-
-  // The game's rendering pipeline
-  renderer,
-
-  // The game's server thread
-  server,
-
-  // The game's main thread
-  main,
-
-  // Dvars flags have been patched, ready to be set from config file
-  dvars_flags_patched,
-
-  // Dvars are done loading from the config file
-  dvars_loaded,
-
-  count,
+enum class pipeline : uint8_t {
+  first = 0x0,
+  async = 0x0,
+  renderer = 0x1,
+  server = 0x2,
+  main = 0x3,
+  dvars_flags_patched = 0x4,
+  dvars_loaded = 0x5,
+  count = 0x6,
 };
+IMPL_ENUM_OPERATORS(pipeline);
 
-static constexpr bool cond_continue = false;
-static constexpr bool cond_end = true;
+static constexpr bool COND_CONTINUE = false;
+static constexpr bool COND_END = true;
+
+typedef std::function<bool()> conditionalSchedulerCallback_t;
+typedef std::function<void()> schedulerCallback_t;
 
 void execute(pipeline type);
 
-void schedule(const std::function<bool()> &callback, pipeline type,
+void schedule(const conditionalSchedulerCallback_t &callback, pipeline type,
               std::chrono::milliseconds delay = 0ms);
-void loop(const std::function<void()> &callback, pipeline type,
+
+void loop(const schedulerCallback_t &callback, pipeline type,
           std::chrono::milliseconds delay = 0ms);
-void once(const std::function<void()> &callback, pipeline type,
+void once(const schedulerCallback_t &callback, pipeline type,
           std::chrono::milliseconds delay = 0ms);
-void on_game_initialized(const std::function<void()> &callback, pipeline type,
-                         std::chrono::milliseconds delay = 0ms);
+
 } // namespace scheduler

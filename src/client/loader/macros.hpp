@@ -6,8 +6,8 @@
 #else
 #define DEFINE_COMPONENT_NAME(component_name)                                  \
   const std::string_view &name() override {                                    \
-    static constexpr std::string_view name = component_name;                   \
-    return name;                                                               \
+    static constexpr std::string_view NAME = component_name;                   \
+    return NAME;                                                               \
   }
 #endif
 #endif

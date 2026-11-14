@@ -552,6 +552,8 @@ if #env_lib > 0 then
   syslibdirs(env_lib)
 end
 
+defines({ "NOMINMAX" })
+
 generate_buildinfo(workspace())
 
 if _OPTIONS["copy-to"] then

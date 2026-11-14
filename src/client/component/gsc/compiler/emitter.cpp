@@ -186,7 +186,7 @@ struct emitter_state {
   void record_hash(const std::string &name, int32_t line = 0,
                    uint8_t params = 0, bool function_def = false) {
     std::string lower = name;
-    std::transform(lower.begin(), lower.end(), lower.begin(), [](uint8_t c) {
+    std::ranges::transform(lower.begin(), lower.end(), lower.begin(), [](uint8_t c) {
       return static_cast<char>(std::tolower(c));
     });
     ScrVarCanonicalName_t h = gsc::gsc_hash(lower);
@@ -543,10 +543,10 @@ int infer_local_function_params(const emitter_state &s,
   std::string normalized_ref =
       normalize_ns(ref_ns.empty() ? s.script_name : ref_ns);
   std::string normalized_self = normalize_ns(s.script_name);
-  std::transform(normalized_ref.begin(), normalized_ref.end(),
+  std::ranges::transform(normalized_ref.begin(), normalized_ref.end(),
                  normalized_ref.begin(),
                  [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
-  std::transform(normalized_self.begin(), normalized_self.end(),
+  std::ranges::transform(normalized_self.begin(), normalized_self.end(),
                  normalized_self.begin(),
                  [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
 
@@ -555,7 +555,7 @@ int infer_local_function_params(const emitter_state &s,
   }
 
   std::string lower_name = func_name;
-  std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+  std::ranges::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
                  [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
 
   const auto it = s.local_function_params.find(lower_name);
@@ -568,7 +568,7 @@ int infer_local_function_params(const emitter_state &s,
 
 bool is_builtin(const std::string &name) {
   std::string lower = name;
-  std::transform(lower.begin(), lower.end(), lower.begin(),
+  std::ranges::transform(lower.begin(), lower.end(), lower.begin(),
                  [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
   return lower == "isdefined" || lower == "vectorscale" || lower == "gettime" ||
          lower == "firstarraykey" || lower == "nextarraykey" ||
@@ -579,7 +579,7 @@ bool is_builtin(const std::string &name) {
 bool try_emit_builtin(emitter_state &s, const std::string &name,
                       uint64_t line) {
   std::string lower = name;
-  std::transform(lower.begin(), lower.end(), lower.begin(),
+  std::ranges::transform(lower.begin(), lower.end(), lower.begin(),
                  [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
 
   if (lower == "isdefined") {
@@ -1310,7 +1310,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
 
       if (expr->type == node_type::n_call) {
         std::string call_name = std::string(expr->value);
-        std::transform(
+        std::ranges::transform(
             call_name.begin(), call_name.end(), call_name.begin(),
             [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
 
@@ -1326,28 +1326,29 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
               std::string rs =
                   normalize_ns(replace_ns.empty() ? s.script_name : replace_ns);
               std::string tfn = target_fn;
-              std::transform(
+              std::ranges::transform(
                   tfn.begin(), tfn.end(), tfn.begin(),
                   [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
               std::string rfn = replace_fn;
-              std::transform(
+              std::ranges::transform(
                   rfn.begin(), rfn.end(), rfn.begin(),
                   [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
 
-              const std::function<std::string(std::string & script)>
-                  strip_script_ext = [](std::string script) {
-                    for (char &c : script) {
-                      if (c == '\\') {
-                        c = '/';
-                      }
-                    }
-                    if (script.size() >= 4 &&
-                        (script.substr(script.size() - 4) == ".gsc" ||
-                         script.substr(script.size() - 4) == ".csc")) {
-                      script = script.substr(0, script.size() - 4);
-                    }
-                    return script;
-                  };
+              //  std::string(std::string & script)>
+              const auto strip_script_ext =
+                  [](std::string script) -> std::string {
+                for (char &c : script) {
+                  if (c == '\\') {
+                    c = '/';
+                  }
+                }
+                if (script.size() >= 4 &&
+                    (script.substr(script.size() - 4) == ".gsc" ||
+                     script.substr(script.size() - 4) == ".csc")) {
+                  script = script.substr(0, script.size() - 4);
+                }
+                return script;
+              };
 
               std::string target_script = strip_script_ext(ts);
               std::string replace_script = strip_script_ext(rs);
@@ -1870,7 +1871,7 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
       break;
     }
     }
-    std::transform(pname.begin(), pname.end(), pname.begin(), [](uint8_t c) {
+    std::ranges::transform(pname.begin(), pname.end(), pname.begin(), [](uint8_t c) {
       return static_cast<char>(std::tolower(c));
     });
     s.current_func->add_local(gsc::gsc_hash(pname), pass);
@@ -2211,7 +2212,7 @@ emitter_result emit(scriptInstance_t inst, const ast_ptr &root,
         state.record_hash(child->value);
       } else if (child->type == node_type::n_function_def) {
         std::string lower = child->value;
-        std::transform(
+        std::ranges::transform(
             lower.begin(), lower.end(), lower.begin(),
             [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
         const uint8_t param_count =
@@ -2250,17 +2251,19 @@ emitter_result emit(scriptInstance_t inst, const ast_ptr &root,
                 child->children.size() > 1
                     ? static_cast<int>(child->children[1]->children.size())
                     : -1;
-            std::transform(
+            std::ranges::transform(
                 replace_fn.begin(), replace_fn.end(), replace_fn.begin(),
                 [](uint8_t c) { return static_cast<char>(std::tolower(c)); });
             std::string ts =
                 normalize_ns(target_ns.empty() ? state.script_name : target_ns);
             std::string rs = normalize_ns(replace_ns);
             std::string tfn = target_fn;
-            std::transform(tfn.begin(), tfn.end(), tfn.begin(), [](uint8_t c) {
+            std::ranges::transform(tfn.begin(), tfn.end(), tfn.begin(), [](uint8_t c) {
               return static_cast<char>(std::tolower(c));
             });
-            std::function<std::string(std::string script)> strip_script_ext =
+
+            // std::string(std::string script)
+            const auto strip_script_ext =
                 [](std::string script) -> std::string {
               for (char &c : script) {
                 if (c == '\\') {

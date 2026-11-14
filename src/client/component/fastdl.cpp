@@ -105,7 +105,7 @@ void show_ingame_error(const std::string &error) {
         game::ui::UI_OpenErrorPopupWithMessage(
             game::LOCAL_CLIENT_0, game::errorCode::UI, error.data());
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 std::vector<updater::file_info> parse_manifest(const std::string &json) {
@@ -455,7 +455,7 @@ bool start_download(const std::shared_ptr<download_context> context) {
 
   if (download_active.compare_exchange_strong(expected, true)) {
     scheduler::once([context]() { perform_download(context); },
-                    scheduler::async);
+                    scheduler::pipeline::async);
     return requires_download_fut.get();
   }
 

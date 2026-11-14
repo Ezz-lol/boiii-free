@@ -502,7 +502,7 @@ class catalog final : public client_component {
 
 public:
   void post_unpack() override {
-    scheduler::loop(apply_cover, scheduler::main, 50ms);
+    scheduler::loop(apply_cover, scheduler::pipeline::main, 50ms);
   }
 };
 } // namespace workshop

@@ -525,7 +525,7 @@ void join_lobby(const game::net::netadr_t &host,
         [friend_id = joining.friend_id] {
           friends::connect_to_friend(friend_id);
         },
-        scheduler::main, 3s);
+        scheduler::pipeline::main, 3s);
     return;
   }
 
@@ -724,7 +724,7 @@ void receive_lobby_host(const game::net::netadr_t &sender,
   const std::vector<std::string> parts = fields(payload_string(data));
   if (parts.size() >= 7 && from_lobby_request(sender, parts[0]))
     scheduler::once([sender, parts] { join_lobby(sender, parts); },
-                    scheduler::main);
+                    scheduler::pipeline::main);
 }
 
 void receive_lobby_follow(const game::net::netadr_t &sender,
@@ -742,7 +742,7 @@ void receive_lobby_follow(const game::net::netadr_t &sender,
       return network::are_addresses_equal(peer.second, sender);
     });
   }
-  scheduler::once([server] { party::connect(server); }, scheduler::main);
+  scheduler::once([server] { party::connect(server); }, scheduler::pipeline::main);
 }
 
 void receive_lobby_game(const game::net::netadr_t &sender,
@@ -756,17 +756,17 @@ void receive_lobby_game(const game::net::netadr_t &sender,
   if (parts.size() > 1) {
     const game::net::netadr_t server = network::address_from_string(parts[1]);
     if (network::is_connectable_address(server)) {
-      scheduler::once([server] { connect_to(server); }, scheduler::main);
+      scheduler::once([server] { connect_to(server); }, scheduler::pipeline::main);
       return;
     }
     if (valid_token(parts[1])) {
       scheduler::once([token = parts[1]] { begin_join(token, {}, 0); },
-                      scheduler::main);
+                      scheduler::pipeline::main);
       return;
     }
   }
   scheduler::once(
-      fallback ? fallback : [sender] { connect_to(sender); }, scheduler::main);
+      fallback ? fallback : [sender] { connect_to(sender); }, scheduler::pipeline::main);
 }
 
 void receive_register_ack(const game::net::netadr_t &sender,
@@ -876,7 +876,7 @@ void receive_friend_presence(const game::net::netadr_t &sender,
   }
   if (complete) {
     scheduler::once([request = parts[1]] { finish_lookup(request); },
-                    scheduler::main);
+                    scheduler::pipeline::main);
   }
 }
 
@@ -902,7 +902,7 @@ void receive_friend_status(const game::net::netadr_t &sender,
   }
   if (complete) {
     scheduler::once([request = parts[1]] { finish_lookup(request); },
-                    scheduler::main);
+                    scheduler::pipeline::main);
   }
 }
 
@@ -971,12 +971,12 @@ void join_match_lobby(const game::net::netadr_t &host,
   scheduler::schedule(
       [=] {
         if (!lobby_host_info() && std::chrono::steady_clock::now() < deadline) {
-          return scheduler::cond_continue;
+          return scheduler::COND_CONTINUE;
         }
         request_lobby(host, "match", fallback);
-        return scheduler::cond_end;
+        return scheduler::COND_END;
       },
-      scheduler::main, 250ms);
+      scheduler::pipeline::main, 250ms);
 }
 
 bool has_party_lobby() {
@@ -1082,7 +1082,7 @@ void refresh_friends(const std::vector<game::XUID> &steam_ids,
           if (done)
             done(std::vector<friend_presence>{});
         },
-        scheduler::main);
+        scheduler::pipeline::main);
     return;
   }
 
@@ -1092,14 +1092,15 @@ void refresh_friends(const std::vector<game::XUID> &steam_ids,
     do {
       request = new_token();
     } while (lookup_requests.contains(request));
-    lookup_requests.emplace(request,
-                            lookup_state{pending, {}, std::move(callback)});
+    lookup_requests.emplace(request, lookup_state{.pending = pending,
+                                                  .results = {},
+                                                  .done = std::move(callback)});
   }
   for (const game::XUID steam_id : pending)
     send_rendezvous("friendLookup",
                     utils::string::va("1 %s %llu", request.c_str(), steam_id));
 
-  scheduler::once([request] { finish_lookup(request); }, scheduler::main, 2s);
+  scheduler::once([request] { finish_lookup(request); }, scheduler::pipeline::main, 2s);
 }
 
 class component final : public generic_component {
@@ -1122,7 +1123,7 @@ public:
           game::register_dvar_bool("nat_open", false, game::dvarFlags_e::NONE,
                                    "Allow friends to join this match");
         },
-        scheduler::main);
+        scheduler::pipeline::main);
 
     network::on("privRegisterAck", receive_register_ack);
     network::on("privPeer", receive_peer);
@@ -1136,8 +1137,8 @@ public:
     network::on("lobbyGame", receive_lobby_game);
     network::on("lobbyFollow", receive_lobby_follow);
 
-    scheduler::loop(update_punching, scheduler::main, 250ms);
-    scheduler::loop(update_hosting, scheduler::main, REGISTER_INTERVAL);
+    scheduler::loop(update_punching, scheduler::pipeline::main, 250ms);
+    scheduler::loop(update_hosting, scheduler::pipeline::main, REGISTER_INTERVAL);
   }
 
   void pre_destroy() override {

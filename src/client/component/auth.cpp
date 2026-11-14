@@ -343,7 +343,7 @@ void refresh_bot_emblem(const game::XUID xuid) {
         game::pcache::PCache_InvalidatePlayerEmblem(
             game::CONTROLLER_INDEX_FIRST, xuid);
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 void handle_new_player(const game::net::netadr_t &target) {
@@ -560,7 +560,7 @@ void handle_connect_packet_fragment(const game::net::netadr_t &target,
           [t = target, p = std::move(final_packet), client_num = client_num] {
             dispatch_connect_packet(t, p, client_num);
           },
-          scheduler::server);
+          scheduler::pipeline::server);
     }
   }
 }

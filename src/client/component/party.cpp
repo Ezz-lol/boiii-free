@@ -16,7 +16,6 @@
 #include "toast.hpp"
 #include "workshop/workshop.hpp"
 
-#include <game/utils.hpp>
 #include <utils/concurrency.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/hook.hpp>
@@ -109,9 +108,9 @@ void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
   game::net::XSESSION_INFO info{};
 
   int32_t public_slots = 0;
-  for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
-       localClientIdx < game::LOCAL_CLIENT_COUNT; ++localClientIdx) {
-    if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
+  for (game::LocalClientNum_t local_client_idx = game::LOCAL_CLIENT_0;
+       local_client_idx < game::LOCAL_CLIENT_COUNT; ++local_client_idx) {
+    if (game::com::Com_LocalClient_IsBeingUsed(local_client_idx)) {
       ++public_slots;
     }
   }
@@ -132,7 +131,7 @@ void launch_mode(const game::eModes mode) {
                                   game::com::Com_SessionMode_GetMode(), mode,
                                   6);
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 struct GameModeConfiguration {
@@ -182,7 +181,7 @@ constexpr frozen::unordered_map<frozen::string, GameModeConfiguration,
 
 constexpr std::optional<GameModeConfiguration>
 get_default_gamemode_config_for_map(const std::string_view &map) {
-  const size_t prefix_idx = map.find("_");
+  const size_t prefix_idx = map.find('_');
   if (prefix_idx != std::string_view::npos) {
     const std::string_view prefix = map.substr(0, prefix_idx);
     if (DEFAULT_GAMEMODE_CONFIGURATIONS.contains(prefix)) {
@@ -220,7 +219,7 @@ void launch_from_frontend(const GameModeConfiguration mode,
   scheduler::schedule(
       [=]() mutable {
         if (!is_frontend_ready()) {
-          return scheduler::cond_continue;
+          return scheduler::COND_CONTINUE;
         }
 
         try {
@@ -232,7 +231,7 @@ void launch_from_frontend(const GameModeConfiguration mode,
                      .is<ui_scripting::table>() &&
                 !globals["LuaUtils"]["Mods_IsUsingMods"]()[0].as<bool>()) {
               globals["LuaUtils"]["Mods_LoadMod"]("usermaps");
-              return scheduler::cond_continue;
+              return scheduler::COND_CONTINUE;
             }
           }
 
@@ -255,9 +254,9 @@ void launch_from_frontend(const GameModeConfiguration mode,
         } catch (const std::exception &e) {
           printf("[Map] Could not start %s: %s\n", mapname.c_str(), e.what());
         }
-        return scheduler::cond_end;
+        return scheduler::COND_END;
       },
-      scheduler::main, 250ms);
+      scheduler::pipeline::main, 250ms);
 }
 
 utils::hook::detour sv_map_hook;
@@ -335,12 +334,12 @@ void with_party_lobby(const std::function<void()> &callback) {
         if (!nat::has_party_lobby() &&
             std::chrono::steady_clock::now() < deadline) {
           call_lobby_vm("StartPartyLobby");
-          return scheduler::cond_continue;
+          return scheduler::COND_CONTINUE;
         }
         callback();
-        return scheduler::cond_end;
+        return scheduler::COND_END;
       },
-      scheduler::main, 100ms);
+      scheduler::pipeline::main, 100ms);
 }
 
 // A map restart or rotation keeps players connected, so the XP scales they got
@@ -400,8 +399,11 @@ void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
                      const std::string_view &mod_id,
                      const std::string_view &lobby_view) {
   // The lambdas below run later, so they need their own copies
-  const std::string map{mapname}, type{gametype}, usermap{usermap_id},
-      mod{mod_id}, lobby{lobby_view};
+  const std::string map{mapname};
+  const std::string type{gametype};
+  const std::string usermap{usermap_id};
+  const std::string mod{mod_id};
+  const std::string lobby{lobby_view};
   const auto connect = [=] {
     game::com::Com_SessionMode_SetGameMode(
         game::eGameModes::MATCHMAKING_PLAYLIST);
@@ -427,23 +429,24 @@ void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
   }
 
   launch_mode(mode);
-  const auto deadline = std::chrono::steady_clock::now() + 15s;
+  const std::chrono::steady_clock::time_point deadline =
+      std::chrono::steady_clock::now() + 15s;
   scheduler::schedule(
       [=] {
         if (ensure_networkmode_online() &&
             game::com::Com_SessionMode_IsMode(mode)) {
           connect();
-          return scheduler::cond_end;
+          return scheduler::COND_END;
         }
         if (std::chrono::steady_clock::now() < deadline) {
-          return scheduler::cond_continue;
+          return scheduler::COND_CONTINUE;
         }
         printf("Connect failed: Could not switch to the server's game mode.\n");
         toast::show("Connect failed", "Could not switch to the server's mode",
                     "t7_icon_connect_overlays");
-        return scheduler::cond_end;
+        return scheduler::COND_END;
       },
-      scheduler::main, 250ms);
+      scheduler::pipeline::main, 250ms);
 }
 
 void handle_connect_query_response(const bool success,
@@ -593,7 +596,7 @@ void handle_connect_query_response(const bool success,
           workshop::set_pending_download_reconnect(addr_str);
         }
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 void connect_finish(const game::net::netadr_t &target) {
@@ -629,7 +632,7 @@ void connect_stub(const char *address) {
 
     toast::show("Connecting", address_copy, "t7_icon_connect_overlays");
 
-    network::resolvedAddrCallback_t resolve_cb =
+    const network::resolvedAddrCallback_t resolve_cb =
         [address_copy](game::net::netadr_t target) -> void {
       scheduler::once(
           [address_copy, target] {
@@ -653,7 +656,7 @@ void connect_stub(const char *address) {
 
             connect_finish(target);
           },
-          scheduler::main);
+          scheduler::pipeline::main);
     };
     // Resolve the address on a background thread.
     network::address_from_string_async(address_copy, resolve_cb);
@@ -840,8 +843,8 @@ struct component final : client_component {
 
     network::on("infoResponse", handle_info_response);
 
-    scheduler::loop(cleanup_queried_servers, scheduler::async, 100ms);
-    scheduler::loop(update_server_lobby, scheduler::main, 500ms);
+    scheduler::loop(cleanup_queried_servers, scheduler::pipeline::async, 100ms);
+    scheduler::loop(update_server_lobby, scheduler::pipeline::main, 500ms);
 
     sv_map_hook.create(game::sv::SV_Map_f.get(),
                        sv_map_in_mode_stub<&sv_map_hook>);

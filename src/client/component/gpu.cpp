@@ -177,7 +177,7 @@ struct component final : client_component {
                         "settings.");
           }
         },
-        scheduler::main, 1s);
+        scheduler::pipeline::main, 1s);
   }
 };
 } // namespace gpu

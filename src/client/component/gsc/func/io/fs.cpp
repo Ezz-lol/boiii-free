@@ -169,7 +169,7 @@ void gscr_ls(scriptInstance_t inst) {
 
       std::vector<std::string> str_entries;
       str_entries.reserve(entries.size());
-      std::transform(entries.begin(), entries.end(),
+      std::ranges::transform(entries.begin(), entries.end(),
                      std::back_inserter(str_entries),
                      [](const std::filesystem::path &p) -> std::string {
                        return relative_path(p).string();

@@ -475,7 +475,7 @@ void print_error(const std::string &error) {
                 game::LOCAL_CLIENT_0, game::errorCode::UI, popup_msg.c_str());
           }
         },
-        scheduler::main, 1s);
+        scheduler::pipeline::main, 1s);
   }
 }
 
@@ -772,7 +772,7 @@ void ui_cod_lobbyui_init_stub() {
           }
         }
       },
-      scheduler::main, 500ms);
+      scheduler::pipeline::main, 500ms);
 }
 
 void inject_discord_score_subscriptions() {
@@ -1565,7 +1565,7 @@ void lua_cod_luastatemanager_error_stub(const char *error, lua_State *luaVM) {
                                            popup_text.c_str());
             }
           },
-          scheduler::main, 500ms);
+          scheduler::pipeline::main, 500ms);
     }
   }
 }

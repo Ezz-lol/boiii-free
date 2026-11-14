@@ -36,6 +36,7 @@ Checks:
   - "-cert-dcl37-c"
   - "-cert-err33-c"
   - "-cert-err58-cpp"
+  - "-cert-dcl50-cpp" # Duplicate of modernize-avoid-variadic-functions
   - "-hicpp-use-auto"
   - "modernize-*"
   - "-modernize-use-trailing-return-type"
@@ -47,6 +48,7 @@ Checks:
   - "-readability-identifier-length"
   - "-readability-redundant-inline-specifier"
   - "-readability-static-accessed-through-instance"
+  - "-readability-static-definition-in-anonymous-namespace"
   - "-readability-trailing-comma"
   - "-readability-uppercase-literal-suffix"
 

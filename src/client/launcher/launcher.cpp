@@ -620,7 +620,7 @@ bool is_safe_workshop_item_path(const std::filesystem::path &target) {
 
   const auto lower_path = [](const std::filesystem::path &path) {
     std::wstring value = path.wstring();
-    std::transform(
+    std::ranges::transform(
         value.begin(), value.end(), value.begin(),
         [](const wchar_t c) { return static_cast<wchar_t>(::towlower(c)); });
     return value;

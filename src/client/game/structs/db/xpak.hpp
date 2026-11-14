@@ -13,7 +13,7 @@ struct XPakLoadedPackFileRef {
   stream::stream_fileid fh; // offset 13
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"size\": {}, \"refCount\": {}, \"fh\": 0x{:08X} }}",
+    return std::format(R"({{ "size": {}, "refCount": {}, "fh": 0x{:08X} }})",
                        size, refCount, fh);
   }
 };

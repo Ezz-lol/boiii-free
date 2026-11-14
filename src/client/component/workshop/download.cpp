@@ -124,7 +124,7 @@ download_result run_download(const std::string_view &id, game::ZoneType type,
         [] {
           toast::warn("Workshop", "Wait for the launcher download to finish.");
         },
-        scheduler::main);
+        scheduler::pipeline::main);
     return download_result::failed;
   }
 
@@ -183,7 +183,7 @@ download_result run_download(const std::string_view &id, game::ZoneType type,
             toast::success("Download finished", title + " is ready.");
           }
         },
-        scheduler::main);
+        scheduler::pipeline::main);
   } else {
     scheduler::once(
         [result] {
@@ -192,7 +192,7 @@ download_result run_download(const std::string_view &id, game::ZoneType type,
           else
             toast::error("Workshop", describe(result));
         },
-        scheduler::main);
+        scheduler::pipeline::main);
   }
   return result;
 }

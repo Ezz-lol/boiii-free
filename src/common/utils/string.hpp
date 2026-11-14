@@ -96,19 +96,17 @@ inline constexpr bool iequal(const std::string_view &a,
 }
 
 constexpr std::string to_lower(std::string text) {
-  std::transform(text.begin(), text.end(), text.begin(),
-                 [](const unsigned char input) {
-                   return static_cast<char>(tolower(input));
-                 });
+  std::ranges::transform(text, text.begin(), [](const unsigned char input) {
+    return static_cast<char>(tolower(input));
+  });
 
   return text;
 }
 
 constexpr std::string to_upper(std::string text) {
-  std::transform(text.begin(), text.end(), text.begin(),
-                 [](const unsigned char input) {
-                   return static_cast<char>(toupper(input));
-                 });
+  std::ranges::transform(text, text.begin(), [](const unsigned char input) {
+    return static_cast<char>(toupper(input));
+  });
 
   return text;
 }

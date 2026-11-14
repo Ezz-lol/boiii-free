@@ -336,7 +336,7 @@ std::vector<std::string> scripts_registering(const std::string &field) {
   struct search {
     std::string needle;
     std::vector<std::string> files;
-  } data{field + '\0', {}};
+  } data{.needle = field + '\0', .files = {}};
 
   script::for_each_loaded_script([&](const game::scr::ScriptParseTree &tree) {
     if (script_contains(&tree, data.needle)) {
@@ -396,7 +396,7 @@ void cl_check_clientfield_checksum_stub(const int32_t server_checksum) {
       !debug.get_bool()) {
     debug.set(true);
     scheduler::once([] { (*game::com_clientfieldsdebug).set(false); },
-                    scheduler::main);
+                    scheduler::pipeline::main);
   }
   cl_check_clientfield_checksum_hook.invoke<void>(server_checksum);
 }

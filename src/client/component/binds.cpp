@@ -70,7 +70,7 @@ void schedule_save() {
         save_scheduled = false;
         save_binds();
       },
-      scheduler::main, 3s);
+      scheduler::pipeline::main, 3s);
 }
 
 void flush_pending() {
@@ -147,7 +147,7 @@ void queue_op(pending_op op) {
           return;
         flush_pending();
       },
-      scheduler::main, 100ms);
+      scheduler::pipeline::main, 100ms);
 }
 
 game::cmd::cmd_function_s *find_command(const char *name) {
@@ -305,7 +305,7 @@ struct component final : client_component {
         [] {
           init_hooks_and_load();
           if (!original_bind_fn) {
-            scheduler::once(init_hooks_and_load, scheduler::main, 3s);
+            scheduler::once(init_hooks_and_load, scheduler::pipeline::main, 3s);
           }
         },
         scheduler::pipeline::dvars_loaded);
