@@ -1,10 +1,9 @@
 #pragma once
-#include "memory.hpp"
+
 #include <algorithm>
-#include <cstdarg>
-#include <macros/macros.hpp>
-#include <stdexcept>
-#include <string>
+
+#include "memory.hpp"
+#include "str.hpp"
 
 namespace utils::string {
 
@@ -13,7 +12,7 @@ public:
   static_assert(Buffers != 0 && MinBufferSize != 0,
                 "Buffers and MinBufferSize mustn't be 0");
 
-  va_provider() : current_buffer_(0) {}
+  va_provider() = default;
 
   char *get(const char *format, const va_list ap) {
     ++this->current_buffer_ %= std::size(this->string_pool_);
@@ -26,10 +25,12 @@ public:
     while (true) {
       const int res =
           vsnprintf_s(entry->buffer, entry->size, _TRUNCATE, format, ap);
-      if (res > 0)
+      if (res > 0) {
         break; // Success
-      if (res == 0)
+      }
+      if (res == 0) {
         return nullptr; // Error
+      }
 
       entry->double_size();
     }
@@ -40,22 +41,23 @@ public:
 private:
   class entry final {
   public:
-    entry(const size_t _size = MinBufferSize) : size(_size), buffer(nullptr) {
-      if (this->size < MinBufferSize)
-        this->size = MinBufferSize;
+    entry(const size_t _size = MinBufferSize) : size(_size) {
+      this->size = std::max(this->size, MinBufferSize);
       this->allocate();
     }
 
     ~entry() {
-      if (this->buffer)
+      if (this->buffer != nullptr) {
         memory::get_allocator()->free(this->buffer);
+      }
       this->size = 0;
       this->buffer = nullptr;
     }
 
     void allocate() {
-      if (this->buffer)
+      if (this->buffer != nullptr) {
         memory::get_allocator()->free(this->buffer);
+      }
       this->buffer =
           memory::get_allocator()->allocate_array<char>(this->size + 1);
     }
@@ -110,6 +112,7 @@ constexpr std::string to_upper(std::string text) {
 
   return text;
 }
+
 bool contains(const std::string_view &text, const std::string_view &substring);
 bool starts_with(const std::string_view &text,
                  const std::string_view &substring);
@@ -131,23 +134,56 @@ std::wstring convert(const std::string &str);
 std::string replace(std::string str, const std::string &from,
                     const std::string &to);
 
-void trim(std::string &str);
+inline std::string_view &ltrim(std::string_view &str) {
+  while (!str.empty() && std::isspace(str[0]) != 0) {
+    str = str.substr(1);
+  }
+  return str;
+}
 
-std::string_view &ltrim(std::string_view &str);
-std::string_view &rtrim(std::string_view &str);
+inline std::string_view &rtrim(std::string_view &str) {
+  while (!str.empty() && std::isspace(str[str.size() - 1]) != 0) {
+    str = str.substr(0, str.size() - 1);
+  }
+  return str;
+}
+
+inline std::string &ltrim(std::string &str) {
+  str.erase(str.begin(), std::ranges::find_if(str.begin(), str.end(),
+                                              [](const unsigned char input) {
+                                                return !std::isspace(input);
+                                              }));
+
+  return str;
+}
+
+inline std::string &rtrim(std::string &str) {
+  str.erase(std::ranges::find_if(
+                str.rbegin(), str.rend(),
+                [](const unsigned char input) { return !std::isspace(input); })
+                .base(),
+            str.end());
+
+  return str;
+}
+
+inline void trim(std::string &str) { ltrim(rtrim(str)); }
 inline std::string_view &trim(std::string_view &str) {
   return ltrim(rtrim(str));
 }
 
-void copy(char *dest, size_t max_size, const char *src);
-std::string join(std::vector<std::string> strings,
-                 const std::string &separator);
-std::string join(std::vector<std::string_view> strings,
-                 const std::string &separator);
+inline void copy(char *dest, const size_t max_size, const char *src) {
+  strscpy(dest, src, max_size);
+}
 
 template <size_t Size> void copy(char (&dest)[Size], const char *src) {
   copy(dest, Size, src);
 }
+
+std::string join(std::vector<std::string> strings,
+                 const std::string &separator);
+std::string join(std::vector<std::string_view> strings,
+                 const std::string &separator);
 
 std::string hexdump(uintptr_t ptr, size_t size);
 template <typename T> inline std::string hexdump(const T *ptr, size_t size) {

@@ -65,15 +65,6 @@ inline constexpr auto BINARY_PAYLOAD_SIZE = 0x14000000;
 #include <d3d11.h>   // IWYU pragma: export
 #include <dxgi1_6.h> // IWYU pragma: export
 
-// min and max is required by gdi, therefore NOMINMAX won't work
-#ifdef max
-#undef max
-#endif
-
-#ifdef min
-#undef min
-#endif
-
 #undef GetObject
 
 #include <cassert> // IWYU pragma: export

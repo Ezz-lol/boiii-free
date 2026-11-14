@@ -6,14 +6,6 @@
 #include "nt.hpp"
 #include "string.hpp"
 
-#ifdef max
-#undef max
-#endif
-
-#ifdef min
-#undef min
-#endif
-
 namespace utils::hook {
 namespace {
 std::string describe_address(const void *address) {

@@ -1,7 +1,47 @@
 #pragma once
 
+#include "macros/type/set.hpp"
+
 #include "macros/builtin.hpp"
+
 #include <array>
+#include <span>
+
+/**
+ * @brief Traits helper for array types providing element type and size.
+ */
+template <typename T> struct array_traits;
+
+template <typename T, std::size_t N> struct array_traits<T[N]> {
+  using element_type = T;
+  using value = T;
+  // Lower snakecase is standard for type utilities
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  static constexpr std::size_t size = N;
+};
+
+template <typename T, std::size_t N> struct array_traits<std::array<T, N>> {
+  using element_type = T;
+  using value = T;
+  // Lower snakecase is standard for type utilities
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  static constexpr std::size_t size = N;
+};
+
+template <typename T, std::size_t N> struct array_traits<std::span<T, N>> {
+  using element_type = T;
+  using value = T;
+  // Lower snakecase is standard for type utilities
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  static constexpr std::size_t size = N;
+};
+
+template <typename Array,
+          typename Element =
+              array_traits<std::remove_cvref_t<Array>>::element_type,
+          size_t Count = array_traits<std::remove_cvref_t<Array>>::size>
+concept ArrayLike = AnyOf<std::remove_cvref_t<Array>>::template In<
+    Element[Count], std::array<Element, Count>, std::span<Element, Count>>;
 
 #ifdef ARRAYSIZE
 #undef ARRAYSIZE
@@ -11,10 +51,7 @@
 /**
  * @brief Returns the compile-time size of a C-style or std::array.
  */
-template <typename Element, const size_t Count, typename Array>
-  requires(
-      std::is_same_v<std::remove_cvref_t<Array>, Element[Count]> ||
-      std::is_same_v<std::remove_cvref_t<Array>, std::array<Element, Count>>)
+template <typename Element, size_t Count, ArrayLike<Element, Count> Array>
 alwaysinline constexpr size_t
 ARRAYSIZE([[maybe_unused]] const Array & /*unused*/) {
   return Count;
@@ -22,29 +59,10 @@ ARRAYSIZE([[maybe_unused]] const Array & /*unused*/) {
 #endif
 
 /**
- * @brief Traits helper for array types providing element type and size.
- */
-template <typename T> struct array_traits;
-
-template <typename T, std::size_t N> struct array_traits<T[N]> {
-  using element_type = T;
-  // Lower snakecase is standard for type utilities
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  static constexpr std::size_t size = N;
-};
-
-template <typename T, std::size_t N> struct array_traits<std::array<T, N>> {
-  using element_type = T;
-  // Lower snakecase is standard for type utilities
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  static constexpr std::size_t size = N;
-};
-
-/**
  * @brief Extracts the base element type of an array type.
  */
 template <typename T>
-using element_of = array_traits<std::remove_cvref_t<T>>::element_type;
+using element_type_t = array_traits<std::remove_cvref_t<T>>::element_type;
 
 /**
  * @brief Helper variable template to retrieve the size of an array type at
@@ -56,12 +74,16 @@ template <typename T>
 inline constexpr std::size_t array_size_v =
     array_traits<std::remove_cvref_t<T>>::size;
 
+template <typename F, typename Array>
+concept ArrayMapCallback =
+    ArrayLike<Array> && std::is_invocable_v<F, element_type_t<Array>>;
+
 /**
  * @brief Templated type alias computing the resulting mapped std::array type.
  */
-template <typename Array, typename Func>
+template <ArrayLike Array, ArrayMapCallback<Array> Func>
 using mapped_array_v =
-    std::array<std::decay_t<std::invoke_result_t<Func, element_of<Array>>>,
+    std::array<std::decay_t<std::invoke_result_t<Func, element_type_t<Array>>>,
                array_size_v<Array>>;
 
 /**
