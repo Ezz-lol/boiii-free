@@ -29,9 +29,11 @@
 #include <frozen/string.h>
 #include <frozen/unordered_set.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <filesystem>
+#include <span>
 #include <unordered_map>
 
 using namespace game::db;
@@ -980,14 +982,166 @@ void hook_unsafe_function(const game::base_symbol<T> &sym) {
 #define HOOK_UNSAFE_FUNCTION(name, addr) hook_unsafe_function<#name>(addr)
 
 utils::hook::detour Lua_CoD_LuaCall_OpenURL_hook;
+utils::hook::detour cl_key_event_hook;
+utils::hook::detour process_ui_events_hook;
+std::jthread external_url_mouse_thread;
+std::atomic<ULONGLONG> external_url_mouse_input = 0;
+thread_local bool processing_ui_events = false;
+thread_local bool external_url_input = false;
+std::atomic<bool> external_url_pending = false;
+
+LRESULT CALLBACK track_external_url_mouse(int code, WPARAM message,
+                                         LPARAM data) {
+  if (code == HC_ACTION && message == WM_LBUTTONDOWN) {
+    const auto *event = reinterpret_cast<const MSLLHOOKSTRUCT *>(data);
+    const HWND foreground = GetForegroundWindow();
+    DWORD process = 0;
+    GetWindowThreadProcessId(foreground, &process);
+    if (!(event->flags & LLMHF_INJECTED) &&
+        process == GetCurrentProcessId() &&
+        GetAncestor(WindowFromPoint(event->pt), GA_ROOT) == foreground) {
+      external_url_mouse_input.store(GetTickCount64());
+    }
+  }
+  return CallNextHookEx(nullptr, code, message, data);
+}
+
+void process_ui_events_stub(const char *root_name) {
+  const bool previous = processing_ui_events;
+  processing_ui_events = true;
+  const auto restore =
+      gsl_lite::finally([previous] { processing_ui_events = previous; });
+  process_ui_events_hook.invoke<void>(root_name);
+}
+
+void cl_key_event_stub(game::LocalClientNum_t client, int32_t key, int32_t down,
+                      uint32_t time) {
+  const bool previous = external_url_input;
+  external_url_input = down == 1;
+  const auto restore =
+      gsl_lite::finally([previous] { external_url_input = previous; });
+  cl_key_event_hook.invoke<void>(client, key, down, time);
+}
+
+luaReturnCount_e request_external_url(lua_State *state) {
+  const auto mouse_press = external_url_mouse_input.load();
+  const bool mouse_input = processing_ui_events && mouse_press != 0 &&
+                           GetTickCount64() - mouse_press <= 150;
+  bool gamepad_input = false;
+  if (!external_url_input && !mouse_input) {
+    void *frames[48]{};
+    const auto count =
+        RtlCaptureStackBackTrace(0, std::size(frames), frames, nullptr);
+    const auto base = game::get_engine_base();
+    // Return addresses for the native gamepad-to-LUI dispatch in the
+    // supported client executable. Lua events cannot supply these frames.
+    constexpr std::array<uintptr_t, 4> gamepad_dispatch{
+        0x1F1D571, 0x133F7CE, 0x133FAA8, 0x2286F97};
+    const auto dispatch = std::ranges::search(
+        std::span(frames, count), gamepad_dispatch, {},
+        [base](void *frame) { return reinterpret_cast<uintptr_t>(frame) - base; });
+    gamepad_input = !dispatch.empty();
+  }
+  if (!external_url_input && !mouse_input && !gamepad_input) {
+    return luaReturnCount_e::NONE;
+  }
+  if (lua_gettop(state) != 1 ||
+      lua_gettype(state, 1) != HksObjectType::TSTRING) {
+    return luaReturnCount_e::NONE;
+  }
+
+  size_t length = 0;
+  const char *value = lua_tostring(state, 1, &length);
+  if (!value || length > 512) {
+    return luaReturnCount_e::NONE;
+  }
+
+  const std::string_view url(value, length);
+  if (!url.starts_with("https://") ||
+      !std::ranges::all_of(url, [](unsigned char c) {
+        return c >= 0x21 && c <= 0x7e && c != '\\' && c != '"';
+      })) {
+    return luaReturnCount_e::NONE;
+  }
+
+  const auto host_start = std::string_view("https://").size();
+  const auto host_end = url.find_first_of("/?#", host_start);
+  const auto host = url.substr(host_start, host_end - host_start);
+  if (host.empty() || host.front() == '.' || host.back() == '.' ||
+      host.find('.') == std::string_view::npos ||
+      !std::ranges::all_of(host, [](unsigned char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+               (c >= '0' && c <= '9') || c == '.' || c == '-';
+      })) {
+    return luaReturnCount_e::NONE;
+  }
+
+  const HWND owner = GetForegroundWindow();
+  DWORD process = 0;
+  if (!owner || !GetWindowThreadProcessId(owner, &process) ||
+      process != GetCurrentProcessId()) {
+    return luaReturnCount_e::NONE;
+  }
+  if (external_url_pending.exchange(true)) {
+    return luaReturnCount_e::NONE;
+  }
+
+  external_url_input = false;
+  if (mouse_input) {
+    auto expected = mouse_press;
+    if (!external_url_mouse_input.compare_exchange_strong(expected, 0)) {
+      external_url_pending = false;
+      return luaReturnCount_e::NONE;
+    }
+  }
+  // Leave the Lua and input stacks before entering the native modal loop.
+  scheduler::once(
+      [owner, url = std::wstring(url.begin(), url.end()),
+       host = std::wstring(host.begin(), host.end())] {
+        const auto release =
+            gsl_lite::finally([] { external_url_pending = false; });
+        if (GetForegroundWindow() != owner) {
+          return;
+        }
+
+        const std::wstring message =
+            L"Open this link in your browser?\n\nHost: " + host + L"\n\n" + url;
+        const int result =
+            MessageBoxW(owner, message.c_str(), L"BOIII - External link",
+                        MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2);
+        if (result == IDYES) {
+          ShellExecuteW(owner, L"open", url.c_str(), nullptr, nullptr,
+                        SW_SHOWNORMAL);
+        }
+      },
+      scheduler::main);
+  return luaReturnCount_e::NONE;
+}
+
 void patch_unsafe_lua_functions() {
-  /*
-     Disable the `OpenURL` API function. This is never required for in-game
-     functionality, and has historically almost always been used for obnoxious
-     advertising.
-  */
+  cl_key_event_hook.create(game::cl::CL_KeyEvent, cl_key_event_stub);
+  process_ui_events_hook.create(game::ui::UI_CoD_ProcessEvents,
+                                process_ui_events_stub);
   Lua_CoD_LuaCall_OpenURL_hook.create(api::Lua_CoD_LuaCall_OpenURL,
-                                      lua_stub_func);
+                                      request_external_url);
+  external_url_mouse_thread = std::jthread([](std::stop_token stop) {
+    MSG message{};
+    PeekMessageW(&message, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
+    const auto stop_loop = std::stop_callback(stop, [id = GetCurrentThreadId()] {
+      PostThreadMessageW(id, WM_QUIT, 0, 0);
+    });
+    const HHOOK hook = SetWindowsHookExW(
+        WH_MOUSE_LL, track_external_url_mouse,
+        utils::nt::library::get_by_address(track_external_url_mouse).get_handle(),
+        0);
+    if (!hook) {
+      return;
+    }
+    while (GetMessageW(&message, nullptr, 0, 0) > 0) {
+      DispatchMessageW(&message);
+    }
+    UnhookWindowsHookEx(hook);
+  });
 
   if (utils::flags::has_flag("unsafe-lua")) {
     unsafe_lua_approved_for_session.store(true, std::memory_order_release);
@@ -2589,6 +2743,13 @@ inline void apply_ui_model_patches() {
 }
 
 class component final : public generic_component {
+  void pre_destroy() override {
+    if (external_url_mouse_thread.joinable()) {
+      external_url_mouse_thread.request_stop();
+      external_url_mouse_thread.join();
+    }
+  }
+
   DEFINE_COMPONENT_NAME("lua/ui_scripting");
 
 public:
