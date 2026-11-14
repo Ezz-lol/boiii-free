@@ -37,13 +37,21 @@ prune() {
 	[ "$PRUNE" -eq 1 ]
 }
 
+OUTPUT_SYSROOT="/opt/x86_64-unknown-windows-msvc"
+SDK_VERSION="10.0.28000"
+CRT_VERSION="14.52"
+MANIFEST_VERSION="18"
+
 print_usage() {
 	echo "x86_64-unknown-windows-msvc toolchain system root generator."
 	echo "Usage: $0 [OPTIONS]"
 	echo "Options:"
-	echo "  --output,-output,-o        Specify output sysroot path."
-	echo "  --prune,-prune,-p          Prune output libraries, restricting to only those actively in use by boiii."
-	echo "  --help, -h                 Show this help message and exit."
+	echo "  --output,-output,-o                          Specify output sysroot path (default: ${OUTPUT_SYSROOT})."
+	echo "  --prune,-prune,-p                            Prune output libraries, restricting contents to only what is actively in use by boiii."
+	echo "  --sdk-version, -sdk-version, -sdk            Specify version of Windows SDK to install (default: ${SDK_VERSION})"
+	echo "  --crt-version, -crt-version, -crt            Specify version of Visual C CRT to install (default: ${CRT_VERSION})"
+	echo "  --manifest-version, -manifest-version, -m    Specify version of download manifest to use (default: ${MANIFEST_VERSION})"
+	echo "  --help, -h                                   Show this help message and exit."
 }
 
 TEMP_COREUTILS_PATH=""
@@ -269,6 +277,7 @@ declare -A LIBRARIES_IN_USE=(["advapi32"]=1
 	["setupapi"]=1
 	["shell32"]=1
 	["shlwapi"]=1
+	["synchronization"]=1
 	["urlmon"]=1
 	["user32"]=1
 	["uuid"]=1
@@ -548,14 +557,14 @@ trap 'cleanup_exit 1' INT TERM HUP QUIT
 
 mkdir -p "${XWIN_CACHE}"
 
-OUTPUT_SYSROOT=""
-
 while [ "$#" -gt 0 ]; do
 
 	case "$1" in
 	--output | -output | -o)
 		if [ "$#" -gt 1 ]; then
-			OUTPUT_SYSROOT="$2"
+			if [ -n "$2" ]; then
+				OUTPUT_SYSROOT="$2"
+			fi
 			shift 2
 		else
 			shift
@@ -564,6 +573,36 @@ while [ "$#" -gt 0 ]; do
 	--prune | -prune | -p)
 		PRUNE=1
 		shift
+		;;
+	--manifest-version | -manifest-version | -m)
+		if [ "$#" -gt 1 ]; then
+			if [ -n "$2" ]; then
+				MANIFEST_VERSION="$2"
+			fi
+			shift 2
+		else
+			shift
+		fi
+		;;
+	--sdk-version | -sdk-version | -sdk)
+		if [ "$#" -gt 1 ]; then
+			if [ -n "$2" ]; then
+				SDK_VERSION="$2"
+			fi
+			shift 2
+		else
+			shift
+		fi
+		;;
+	--crt-version | -crt-version | -crt)
+		if [ "$#" -gt 1 ]; then
+			if [ -n "$2" ]; then
+				CRT_VERSION="$2"
+			fi
+			shift 2
+		else
+			shift
+		fi
 		;;
 	--help | -help | -h)
 		print_usage
@@ -575,10 +614,6 @@ while [ "$#" -gt 0 ]; do
 		;;
 	esac
 done
-
-if [ -z "$OUTPUT_SYSROOT" ]; then
-	OUTPUT_SYSROOT="/opt/x86_64-unknown-windows-msvc"
-fi
 
 OUTPUT_SYSROOT="$(normalize_path "$OUTPUT_SYSROOT")"
 
@@ -607,6 +642,9 @@ XWIN_SPLAT_DIR="${XWIN_CACHE}/splat"
 XWIN_CMD=("xwin"
 	"--cache-dir" "$XWIN_CACHE"
 	"--accept-license"
+	"--manifest-version" "$MANIFEST_VERSION"
+	"--crt-version" "$CRT_VERSION"
+	"--sdk-version" "$SDK_VERSION"
 	"--channel=release"
 	"--arch=x86_64"
 	"--include-atl"

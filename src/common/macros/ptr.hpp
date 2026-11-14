@@ -2,7 +2,6 @@
 
 #include "macros/builtin.hpp"
 #include "macros/type/integral.hpp"
-#include <cstdint>
 #include <span>
 
 inline constexpr uintptr_t UINTPTR_NULLPTR = 0;

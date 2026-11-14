@@ -299,12 +299,10 @@ game::net::netadr_t address_from_string(const std::string_view &address) {
   return addr;
 }
 
-void address_from_string_async(const std::string &address,
-                               resolvedAddrCallback_t &cb) {
-  std::thread([address, cb]() {
-    const game::net::netadr_t resolved = address_from_string(address);
-    cb(resolved);
-  }).detach();
+void address_from_string_async(const std::string_view &address,
+                               const resolvedAddrCallback_t &cb) {
+  scheduler::once([&address, &cb]() { cb(address_from_string(address)); },
+                  scheduler::pipeline::async);
 }
 
 game::net::netadr_t address_from_ip(const uint32_t ip, const uint16_t port) {
@@ -430,7 +428,8 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("network");
 
   void post_unpack() override {
-    scheduler::loop(game::fragment_handler::clean, scheduler::async, 5s);
+    scheduler::loop(game::fragment_handler::clean, scheduler::pipeline::async,
+                    5s);
 
     // don't increment data pointer to optionally skip socket byte
     utils::hook::nop(game::sys::Sys_GetPacket.offset(0x106), 4);
@@ -492,7 +491,7 @@ struct component final : generic_component {
 
     // TODO: Fix that
     // TODO: what was the prior TODO referring to?
-    scheduler::once(create_ip_socket, scheduler::main);
+    scheduler::once(create_ip_socket, scheduler::pipeline::main);
 
     net_adr_to_string_hook.create(game::select(0x14211A3B0, 0x140515800),
                                   net_adr_to_string_stub);
@@ -503,13 +502,14 @@ struct component final : generic_component {
     // Set cl_maxpackets to 100
     utils::hook::set<uint8_t>(game::select(0x1412ff362, 0x140177A32), 100 - 15);
 
-    command::add("listBots", client_listing_command<game::foreach_test_client>);
+    command::add("listBots",
+                 &client_listing_command<game::foreach_test_client>);
 
     command::add("listConnected",
-                 client_listing_command<game::foreach_connected_client>);
+                 &client_listing_command<game::foreach_connected_client>);
 
     command::add("listActive",
-                 client_listing_command<game::foreach_active_client>);
+                 &client_listing_command<game::foreach_active_client>);
   }
 };
 } // namespace network

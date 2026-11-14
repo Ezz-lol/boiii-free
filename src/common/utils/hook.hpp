@@ -1,24 +1,26 @@
 #pragma once
 
+#include <utils/nt.hpp>
+
 #include "macros/builtin.hpp"
 #include <asmjit/core/jit_runtime.h>
 #include <asmjit/x86/x86_assembler.h>
 
 #include <optional>
 #include <string>
-#include <utils/nt.hpp>
 #include <vector>
 
 using namespace asmjit::x86;
 
 namespace utils::hook {
 namespace detail {
-template <size_t Entries> std::vector<size_t (*)()> get_iota_functions() {
+typedef thiscallPtr_t<size_t(void * /* this */)> iotaFunction_t;
+template <size_t Entries> std::vector<iotaFunction_t> get_iota_functions() {
   if constexpr (Entries == 0) {
-    std::vector<size_t (*)()> functions;
+    std::vector<iotaFunction_t> functions;
     return functions;
   } else {
-    std::vector<size_t (*)()> functions = get_iota_functions<Entries - 1>();
+    std::vector<iotaFunction_t> functions = get_iota_functions<Entries - 1>();
     functions.emplace_back([]() { return Entries - 1; });
     return functions;
   }
@@ -35,17 +37,16 @@ template <size_t Entries = 100, typename Class, typename T, typename... Args>
 void **get_vtable_entry(Class *obj, T (Class::*entry)(Args...)) {
   union {
     decltype(entry) func;
-    void *pointer;
+    detail::iotaFunction_t pointer;
   };
 
   func = entry;
 
-  std::vector<size_t (*)()> iota_functions =
+  std::vector<detail::iotaFunction_t> iota_functions =
       detail::get_iota_functions<Entries>();
-  auto *object = iota_functions.data();
+  detail::iotaFunction_t *object = iota_functions.data();
 
-  using fake_func = size_t(__thiscall *)(void *self);
-  size_t index = static_cast<fake_func>(pointer)(&object);
+  size_t index = pointer(static_cast<void *>(&object));
 
   void **obj_v_table = *reinterpret_cast<void ***>(obj);
   return &obj_v_table[index];
@@ -69,11 +70,11 @@ public:
     this->restore_stack_after_call();
   }
 
-  inline asmjit::Error call(Mem target) { return get().call(target); }
+  inline asmjit::Error call(const Mem &target) { return get().call(target); }
   inline asmjit::Error call(void *target) { return get().call(target); }
   inline asmjit::Error call(uintptr_t target) { return get().call(target); }
 
-  inline asmjit::Error jmp(Mem target) { return get().jmp(target); }
+  inline asmjit::Error jmp(const Mem &target) { return get().jmp(target); }
   inline asmjit::Error jmp(void *target) { return get().jmp(target); }
   inline asmjit::Error jmp(uintptr_t target) { return get().jmp(target); }
 
@@ -84,7 +85,9 @@ public:
   }
 
   inline constexpr Assembler &get() noexcept { return wrapped; }
-  inline constexpr const Assembler &get() const noexcept { return wrapped; }
+  [[nodiscard]] inline constexpr const Assembler &get() const noexcept {
+    return wrapped;
+  }
 };
 
 std::vector<uint8_t> move_hook(void *pointer);
@@ -130,21 +133,19 @@ public:
   template <typename T>
     requires(!std::is_same_v<T, void>)
   inline void create(T *place, T *target) {
-    return create(reinterpret_cast<void *>(place),
-                  reinterpret_cast<void *>(target));
+    create(reinterpret_cast<void *>(place), reinterpret_cast<void *>(target));
   }
 
   template <typename P, typename T>
     requires(!std::is_same_v<P, T>)
   inline void create(P *place, T *target) {
-    return create(reinterpret_cast<void *>(place),
-                  reinterpret_cast<void *>(target));
+    create(reinterpret_cast<void *>(place), reinterpret_cast<void *>(target));
   }
 
   void clear();
   alwaysinline void move() { moved_data_ = move_hook(place_); }
 
-  alwaysinline void *get_place() const { return place_; }
+  [[nodiscard]] alwaysinline void *get_place() const { return place_; }
 
   [[nodiscard]] alwaysinline void *get_original() const { return original_; }
 
@@ -170,7 +171,7 @@ public:
   template <typename T, typename... Args>
     requires(!std::is_same_v<void, T>)
   alwaysinline T invoke(Args... args) {
-    return (get<T(Args...)>())(args...);
+    return get<T(Args...)>()(args...);
   }
 
   // Seen note above prior overload
@@ -178,11 +179,11 @@ public:
   alwaysinline void invoke(Args... args)
     requires(std::is_same_v<void, T>)
   {
-    (get<void(Args...)>())(args...);
+    get<void(Args...)>()(args...);
   }
 
 private:
-  std::vector<uint8_t> moved_data_{};
+  std::vector<uint8_t> moved_data_;
   void *place_{};
   void *original_{};
 
@@ -195,19 +196,19 @@ std::optional<std::pair<void *, void *>> iat(const nt::library &library,
                                              void *stub);
 
 void cmp(void *pointer, void *data);
-void cmp(const size_t pointer, void *data);
-void cmp(const size_t pointer, const size_t data);
+void cmp(size_t pointer, void *data);
+void cmp(size_t pointer, size_t data);
 
 void lea(void *pointer, void *data);
-void lea(const size_t pointer, void *data);
-void lea(const size_t pointer, const size_t data);
+void lea(size_t pointer, void *data);
+void lea(size_t pointer, size_t data);
 
 void cmovz(void *pointer, void *data);
-void cmovz(const size_t pointer, void *data);
-void cmovz(const size_t pointer, const size_t data);
+void cmovz(size_t pointer, void *data);
+void cmovz(size_t pointer, size_t data);
 void mov(void *pointer, void *data);
-void mov(const size_t pointer, void *data);
-void mov(const size_t pointer, const size_t data);
+void mov(size_t pointer, void *data);
+void mov(size_t pointer, size_t data);
 
 void nop(void *place, size_t length);
 void nop(size_t place, size_t length);
@@ -222,27 +223,26 @@ bool is_relatively_far(const void *pointer, const void *data, int offset = 5);
 bool is_relatively_far(size_t pointer, size_t data, int offset = 5);
 
 void call(void *pointer, const void *data);
-void call(const size_t pointer, const void *data);
-void call(const size_t pointer, const size_t data);
+void call(size_t pointer, const void *data);
+void call(size_t pointer, size_t data);
 template <typename F, typename H> inline void call(F *pointer, const H *data) {
-  return call(reinterpret_cast<void *>(pointer),
-              reinterpret_cast<const void *>(data));
+  call(reinterpret_cast<void *>(pointer), reinterpret_cast<const void *>(data));
 }
 
 template <typename H> inline void call(const size_t pointer, const H *data) {
-  return call(pointer, reinterpret_cast<const void *>(data));
+  call(pointer, reinterpret_cast<const void *>(data));
 }
 
 template <typename H>
   requires(!std::is_pointer_v<H>)
 inline void call(const size_t pointer, const H &data) {
-  return call(pointer, reinterpret_cast<const void *>(&data));
+  call(pointer, reinterpret_cast<const void *>(&data));
 }
 
 template <typename H>
   requires(!std::is_pointer_v<H>)
 inline void call(const size_t pointer, const H data) {
-  return call(pointer, reinterpret_cast<const void *>(&data));
+  call(pointer, reinterpret_cast<const void *>(&data));
 }
 
 void jump(void *pointer, const void *data, bool use_far = false,
@@ -298,14 +298,14 @@ void nop_branch(uint8_t *address);
 template <typename T>
   requires(!std::is_same_v<T, uint8_t>)
 inline void nop_branch(T *address) {
-  return nop_branch(reinterpret_cast<uint8_t *>(
+  nop_branch(reinterpret_cast<uint8_t *>(
       const_cast<std::remove_const_t<std::remove_volatile_t<T>> *>(address)));
 }
 inline void nop_branch(const uintptr_t address) {
-  return nop_branch(reinterpret_cast<const uint8_t *>(address));
+  nop_branch(reinterpret_cast<const uint8_t *>(address));
 }
 
 inline void nop_branch(const intptr_t address) {
-  return nop_branch(reinterpret_cast<const uint8_t *>(address));
+  nop_branch(reinterpret_cast<const uint8_t *>(address));
 }
 } // namespace utils::hook

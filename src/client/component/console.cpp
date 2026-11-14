@@ -1745,7 +1745,7 @@ struct component final : generic_component {
           printf("Entry Point: 0x%llX\n",
                  reinterpret_cast<uint64_t>(game_module.get_entry_point()));
         },
-        scheduler::main);
+        scheduler::pipeline::main);
 #endif
   }
 

@@ -799,7 +799,7 @@ public:
                                        game::dvarFlags_e::ARCHIVE,
                                        "Microphone used for voice chat");
           },
-          scheduler::main);
+          scheduler::pipeline::main);
     }
   }
 };

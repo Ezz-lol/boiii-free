@@ -8,20 +8,28 @@
 #include <utils/thread.hpp>
 
 namespace scheduler {
-namespace {
+
 struct task {
-  std::function<bool()> handler{};
+  conditionalSchedulerCallback_t handler;
   std::chrono::milliseconds interval{};
-  std::chrono::high_resolution_clock::time_point last_call{};
+  std::chrono::high_resolution_clock::time_point last_call;
+
+  task() = default;
+  ~task() = default;
+  task(const task &) = delete;
+  task &operator=(const task &) = delete;
+  task(task &&) noexcept = default;
+  task &operator=(task &&) noexcept = default;
 };
 
 using task_list = std::vector<task>;
 
 class task_pipeline {
 public:
-  void add(task &&task) {
-    new_callbacks_.access(
-        [&task](task_list &tasks) { tasks.emplace_back(std::move(task)); });
+  void add(task &&new_task) {
+    new_callbacks_.access([&new_task](task_list &tasks) {
+      tasks.emplace_back(std::move(new_task));
+    });
   }
 
   void execute() {
@@ -31,20 +39,20 @@ public:
       for (task_list::iterator i = tasks.begin(); i != tasks.end();) {
         const std::chrono::high_resolution_clock::time_point now =
             std::chrono::high_resolution_clock::now();
-        const auto diff = now - i->last_call;
+        const std::chrono::high_resolution_clock::duration diff =
+            now - i->last_call;
 
         if (diff < i->interval) {
           ++i;
-          continue;
-        }
-
-        i->last_call = now;
-
-        const auto res = i->handler();
-        if (res == cond_end) {
-          i = tasks.erase(i);
         } else {
-          ++i;
+          i->last_call = now;
+
+          const bool res = i->handler();
+          if (res == COND_END) {
+            i = tasks.erase(i);
+          } else {
+            ++i;
+          }
         }
       }
     });
@@ -59,69 +67,70 @@ private:
       new_callbacks_.access([&](task_list &new_tasks) {
         tasks.insert(tasks.end(), std::move_iterator(new_tasks.begin()),
                      std::move_iterator(new_tasks.end()));
-        new_tasks = {};
+        new_tasks.clear();
       });
     });
   }
 };
 
+static task_pipeline pipelines[+pipeline::count];
 static std::atomic_bool kill = false;
-std::thread async_thread;
-task_pipeline pipelines[count];
+static std::thread async_thread;
 
+namespace {
 utils::hook::detour r_end_frame_hook;
 utils::hook::detour main_frame_hook;
 
 void r_end_frame_stub() {
-  execute(renderer);
+  execute(pipeline::renderer);
   r_end_frame_hook.invoke<void>();
 }
 
 utils::hook::detour server_frame_hook;
 void server_frame_stub() {
   server_frame_hook.invoke();
-  execute(server);
+  execute(pipeline::server);
 }
 
 void main_frame_stub() {
   main_frame_hook.invoke<void>();
-  execute(main);
+  execute(pipeline::main);
 }
 } // namespace
 
 void execute(const pipeline type) {
-  assert(type >= 0 && type < pipeline::count);
-  pipelines[type].execute();
+  assert(type >= pipeline::first && type < pipeline::count);
+  pipelines[+type].execute();
 }
 
-void schedule(const std::function<bool()> &callback, const pipeline type,
-              const std::chrono::milliseconds delay) {
-  assert(type >= 0 && type < pipeline::count);
+void schedule(const conditionalSchedulerCallback_t &callback, pipeline type,
+              std::chrono::milliseconds delay) {
+  assert(type >= pipeline::first && type < pipeline::count);
 
-  task task;
-  task.handler = callback;
-  task.interval = delay;
-  task.last_call = std::chrono::high_resolution_clock::now();
+  task new_task{};
+  new_task.handler = callback;
+  new_task.interval = delay;
+  new_task.last_call = std::chrono::high_resolution_clock::now();
 
-  pipelines[type].add(std::move(task));
+  pipelines[+type].add(std::move(new_task));
 }
 
-void loop(const std::function<void()> &callback, const pipeline type,
+void loop(const schedulerCallback_t &callback, const pipeline type,
           const std::chrono::milliseconds delay) {
   schedule(
       [callback]() {
         callback();
-        return cond_continue;
+        return COND_CONTINUE;
       },
       type, delay);
 }
 
-void once(const std::function<void()> &callback, const pipeline type,
+void once(const schedulerCallback_t &callback, const pipeline type,
           const std::chrono::milliseconds delay) {
   schedule(
       [callback]() {
         callback();
-        return cond_end;
+        return COND_END;
       },
       type, delay);
 }
@@ -129,17 +138,12 @@ void once(const std::function<void()> &callback, const pipeline type,
 
 namespace scheduler {
 struct component final : generic_component {
-#ifndef NDEBUG
-  const std::string_view &name() override {
-    static constexpr std::string_view name = "scheduler";
-    return name;
-  }
-#endif
+  DEFINE_COMPONENT_NAME("scheduler");
 
   void post_load() override {
     async_thread = utils::thread::create_named_thread("Async Scheduler", []() {
       while (!kill.load(std::memory_order_acquire)) {
-        execute(async);
+        execute(pipeline::async);
         std::this_thread::sleep_for(10ms);
       }
     });

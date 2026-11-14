@@ -6,6 +6,7 @@
 #include <loader/component_loader.hpp>
 
 #include <utils/flags.hpp>
+#include <utils/hook.hpp>
 #include <utils/io.hpp>
 
 namespace settings {
@@ -18,6 +19,35 @@ void apply_flags() {
       setting->dvar.set(true);
     }
   }
+}
+
+// The engine's XP scale dvars aren't saved, so these keep the player's choice
+EngineDependentDvarMut boiii_xpScale;
+EngineDependentDvarMut boiii_gunXpScale;
+
+void apply_xp_scales() {
+  const auto xp_scale = static_cast<float>(boiii_xpScale.get_int());
+  scr_xpscalemp->set(xp_scale);
+  scr_xpscalezm->set(xp_scale);
+
+  const auto gun_xp_scale = static_cast<float>(boiii_gunXpScale.get_int());
+  scr_gunxpscalemp->set(gun_xp_scale);
+  scr_gunxpscalezm->set(gun_xp_scale);
+}
+
+void handle_xp_scale_change([[maybe_unused]] EngineDependentDvarMut dvar) {
+  apply_xp_scales();
+}
+
+utils::hook::detour playlist_run_rules_hook;
+
+// Starting a match resets the XP scale dvars from the playlist's configs
+bool playlist_run_rules_stub(const ControllerIndex_t controller_index,
+                             const int32_t playlist_id) {
+  const bool result =
+      playlist_run_rules_hook.invoke<bool>(controller_index, playlist_id);
+  apply_xp_scales();
+  return result;
 }
 } // namespace
 
@@ -49,8 +79,25 @@ public:
         "boiii_advancedBots", false, game::dvarFlags_e::ARCHIVE,
         "Multiplayer bots use the advanced AI from custom_bots.gsc");
 
+    boiii_xpScale = game::register_dvar_int(
+        "boiii_xpScale", 1, 1, 3, game::dvarFlags_e::ARCHIVE,
+        "XP scale for matches you host in Multiplayer and Zombies");
+    boiii_gunXpScale = game::register_dvar_int(
+        "boiii_gunXpScale", 1, 1, 3, game::dvarFlags_e::ARCHIVE,
+        "Weapon XP scale for matches you host in Multiplayer and Zombies");
+    playlist_run_rules_hook.create(game::playlist::Playlist_RunRules.get(),
+                                   playlist_run_rules_stub);
+
     apply_flags();
-    scheduler::once(apply_flags, scheduler::pipeline::dvars_loaded);
+    scheduler::once(
+        [] {
+          apply_flags();
+          apply_xp_scales();
+          game::Dvar_SetModifiedCallback(boiii_xpScale, handle_xp_scale_change);
+          game::Dvar_SetModifiedCallback(boiii_gunXpScale,
+                                         handle_xp_scale_change);
+        },
+        scheduler::pipeline::dvars_loaded);
   }
 };
 } // namespace settings

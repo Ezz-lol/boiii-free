@@ -20,8 +20,8 @@ typedef std::function<void(game::net::netadr_t address)> resolvedAddrCallback_t;
 game::net::netadr_t address_from_string(const std::string_view &address);
 game::net::netadr_t address_from_ip(uint32_t ip, uint16_t port);
 
-void address_from_string_async(const std::string &address,
-                               resolvedAddrCallback_t &cb);
+void address_from_string_async(const std::string_view &address,
+                               const resolvedAddrCallback_t &cb);
 
 bool are_addresses_equal(const game::net::netadr_t &a,
                          const game::net::netadr_t &b);
@@ -35,14 +35,13 @@ namespace std {
 
 template <> struct hash<game::net::netadr_t> {
   size_t operator()(const game::net::netadr_t &x) const noexcept {
-    const auto type_hash = hash<uint32_t>()(+x.type);
+    size_t result = hash<uint32_t>()(+x.type);
 
-    if (x.type != game::net::netadrtype_t::IP &&
-        x.type != game::net::netadrtype_t::RAWIP) {
-      return type_hash;
+    if (x.ip_addr()) {
+      result ^= hash<uint32_t>()(x.addr) ^ hash<uint16_t>()(x.port);
     }
 
-    return type_hash ^ hash<uint32_t>()(x.addr) ^ hash<uint16_t>()(x.port);
+    return result;
   }
 };
 } // namespace std

@@ -377,6 +377,10 @@ std::string compute(std::ifstream &data, bool hex = false);
 namespace sha256 {
 std::string compute(const std::string &data, bool hex = false);
 std::string compute(const uint8_t *data, size_t length, bool hex = false);
+inline std::string compute(const std::span<const uint8_t> data,
+                           bool hex = false) {
+  return compute(data.data(), data.size(), hex);
+}
 } // namespace sha256
 
 namespace sha512 {

@@ -54,13 +54,13 @@ void stop_intro_if_needed() {
               [] {
                 if (game::sys::Sys_IsDatabaseReady()) {
                   game::cinematic::Cinematic_StopPlayback(0, true);
-                  return scheduler::cond_end;
+                  return scheduler::COND_END;
                 }
-                return scheduler::cond_continue;
+                return scheduler::COND_CONTINUE;
               },
-              scheduler::main);
+              scheduler::pipeline::main);
         },
-        scheduler::main, 15s);
+        scheduler::pipeline::main, 15s);
   }
 }
 
@@ -492,7 +492,7 @@ void IN_SetActiveDevice_stub(const game::ControllerIndex_t controllerIndex,
       [=] {
         IN_SetActiveDevice_hook.invoke<void>(controllerIndex, device, force);
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 utils::hook::detour Com_FPSLimit_hook;

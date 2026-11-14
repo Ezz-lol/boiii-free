@@ -445,7 +445,7 @@ targetdir("%{wks.location}/bin/%{cfg.platform}/%{cfg.buildcfg}")
 configurations({ "Debug", "Release" })
 
 language("C++")
-cppdialect("C++20")
+cppdialect("C++23")
 
 architecture("x86_64")
 platforms("x64")
@@ -551,6 +551,8 @@ end
 if #env_lib > 0 then
   syslibdirs(env_lib)
 end
+
+defines({ "NOMINMAX" })
 
 generate_buildinfo(workspace())
 

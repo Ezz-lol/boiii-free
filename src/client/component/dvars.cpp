@@ -126,7 +126,7 @@ void schedule_dvar_write() {
         dvar_write_scheduled = false;
         write_archive_dvars();
       },
-      scheduler::main, 10s);
+      scheduler::pipeline::main, 10s);
 }
 
 void dvar_set_variant_stub(game::EngineDependentDvar dvar,

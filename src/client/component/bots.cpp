@@ -207,7 +207,7 @@ struct component final : generic_component {
                               +i + 1, static_cast<size_t>(count));
                 }
               },
-              scheduler::server);
+              scheduler::pipeline::server);
         }
       }
     });

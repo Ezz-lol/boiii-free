@@ -25,20 +25,6 @@
 #define __no_optimize __attribute__((optnone))
 #endif
 
-#ifndef unreachable
-#ifdef NDEBUG
-#if GNUC_OR_CLANG
-#define unreachable() __builtin_unreachable()
-#elif defined(_MSC_VER)
-#define unreachable() __assume(false)
-#else
-#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
-#endif
-#else
-#define unreachable() assert(false && "This code should be unreachable.")
-#endif
-#endif
-
 #ifndef __trivial_abi
 #if defined(__clang__) && __has_cpp_attribute(clang::trivial_abi)
 #define __trivial_abi [[clang::trivial_abi]]

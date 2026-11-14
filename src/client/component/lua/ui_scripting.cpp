@@ -475,7 +475,7 @@ void print_error(const std::string &error) {
                 game::LOCAL_CLIENT_0, game::errorCode::UI, popup_msg.c_str());
           }
         },
-        scheduler::main, 1s);
+        scheduler::pipeline::main, 1s);
   }
 }
 
@@ -680,7 +680,7 @@ void start() {
   const utils::nt::library host{};
   const char *folder = game::is_server() ? "lobby_scripts/" : "ui_scripts/";
   load_scripts((game::get_data_path() / folder).string());
-  load_scripts((host.get_folder() / "boiii" / folder).string());
+  load_scripts((game::get_boiii_dir_path() / folder).string());
 }
 
 void try_start() {
@@ -772,7 +772,7 @@ void ui_cod_lobbyui_init_stub() {
           }
         }
       },
-      scheduler::main, 500ms);
+      scheduler::pipeline::main, 500ms);
 }
 
 void inject_discord_score_subscriptions() {
@@ -1565,7 +1565,7 @@ void lua_cod_luastatemanager_error_stub(const char *error, lua_State *luaVM) {
                                            popup_text.c_str());
             }
           },
-          scheduler::main, 500ms);
+          scheduler::pipeline::main, 500ms);
     }
   }
 }
@@ -1968,7 +1968,7 @@ inline void register_lui_commands() {
             reload_dir(dir);
 
             const utils::nt::library host{};
-            reload_dir((host.get_folder() / "boiii" / "ui_scripts").string());
+            reload_dir((game::get_boiii_dir_path() / "ui_scripts").string());
 
             game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                                   game::consoleLabel_e::DEFAULT,

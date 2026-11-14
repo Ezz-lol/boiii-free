@@ -179,11 +179,11 @@ public:
               utils::thread::create_named_thread("Mode Preload",
                                                  preload_mode_files)
                   .detach();
-              return scheduler::cond_end;
+              return scheduler::COND_END;
             }
-            return scheduler::cond_continue;
+            return scheduler::COND_CONTINUE;
           },
-          scheduler::main, 1s);
+          scheduler::pipeline::main, 1s);
     }
   }
 };

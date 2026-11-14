@@ -6,7 +6,6 @@
 
 #include <gsl-lite/gsl-lite.hpp>
 
-#undef max
 using namespace std::string_literals;
 
 /// http://www.opensource.apple.com/source/CommonCrypto/CommonCrypto-55010/Source/libtomcrypt/doc/libTomCryptDoc.pdf

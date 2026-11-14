@@ -157,7 +157,7 @@ void notify_ui() {
               game::ui::UI_Model_ForceNotify(model);
           }
         },
-        scheduler::main, delay);
+        scheduler::pipeline::main, delay);
   }
 }
 
@@ -385,12 +385,12 @@ struct component final : generic_component {
       });
 
       network::on(sync_packet_name, receive_override);
-      scheduler::loop(clear_on_disconnect, scheduler::main, 1s);
+      scheduler::loop(clear_on_disconnect, scheduler::pipeline::main, 1s);
     }
 
     sv::on_cliententerworld(on_enter_world);
     sv::on_removeclient(on_remove_client);
-    scheduler::loop(enforce_overrides, scheduler::server);
+    scheduler::loop(enforce_overrides, scheduler::pipeline::server);
 
     game_event::on_any(clear_all);
   }

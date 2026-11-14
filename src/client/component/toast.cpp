@@ -87,7 +87,7 @@ void show_as(const std::string &state, const std::string &title,
       escaped_state.c_str(), escaped_title.c_str(), escaped_description.c_str(),
       escaped_icon.c_str());
 
-  scheduler::once([code] { execute_lua(code); }, scheduler::main);
+  scheduler::once([code] { execute_lua(code); }, scheduler::pipeline::main);
 }
 
 const char *zombie_toast_patch = R"lua(
@@ -146,7 +146,7 @@ void precache_icon(const std::string &material) {
                         "  end\n"
                         "end)\n",
                         escaped.c_str());
-  scheduler::once([code] { execute_lua(code); }, scheduler::main);
+  scheduler::once([code] { execute_lua(code); }, scheduler::pipeline::main);
 }
 
 void show(const std::string &title, const std::string &description,

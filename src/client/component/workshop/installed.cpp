@@ -333,7 +333,7 @@ bool delete_installed(const std::string_view &id, std::string &error) {
     error = "Item is not installed.";
     return false;
   }
-  scheduler::once(reload_now, scheduler::main);
+  scheduler::once(reload_now, scheduler::pipeline::main);
   return true;
 }
 
@@ -348,7 +348,7 @@ void request_content_reload(const std::string_view &finished_title) {
         std::lock_guard lock(reload_mutex);
         finished_in_match.push_back(std::string(finished_title));
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 class installed final : public client_component {
@@ -374,7 +374,7 @@ public:
                              : std::to_string(titles.size()) +
                                    " downloaded items are now available.");
         },
-        scheduler::main, 2s);
+        scheduler::pipeline::main, 2s);
   }
 };
 } // namespace workshop

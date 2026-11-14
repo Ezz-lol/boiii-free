@@ -1,16 +1,23 @@
 #include "string.hpp"
-#include <algorithm>
+
 #include <cassert>
-#include <cstdarg>
 #include <windows.h>
 
-#include <str.hpp>
+#include "macros/ptr.hpp"
 
 namespace utils::string {
+// Defined primarily as a utility function to be used where the engine's `va`
+// function is hooked or would be called in a decompiled function
+// NOLINTNEXTLINE(modernize-avoid-variadic-functions)
 const char *va(const char *fmt, ...) {
-  thread_local va_provider<8, 256> provider;
+  constexpr size_t VA_PROVIDER_MIN_BUFFER_SIZE =
+      static_cast<size_t>(std::numeric_limits<uint8_t>::max());
+  constexpr size_t VA_PROVIDER_BUFFER_COUNT = 8;
+  thread_local va_provider<VA_PROVIDER_BUFFER_COUNT,
+                           VA_PROVIDER_MIN_BUFFER_SIZE>
+      provider;
 
-  va_list ap;
+  va_list ap = nullptr;
   va_start(ap, fmt);
 
   const char *result = provider.get(fmt, ap);
@@ -55,7 +62,7 @@ std::vector<std::string> split(const std::string &s,
 
 bool starts_with(const std::string_view &text,
                  const std::string_view &substring) {
-  return text.find(substring) == 0;
+  return text.starts_with(substring);
 }
 
 bool contains(const std::string_view &text, const std::string_view &substr) {
@@ -64,14 +71,13 @@ bool contains(const std::string_view &text, const std::string_view &substr) {
 
 bool ends_with(const std::string_view &text,
                const std::string_view &substring) {
-  if (substring.size() > text.size())
-    return false;
-  return std::equal(substring.rbegin(), substring.rend(), text.rbegin());
+  return substring.size() <= text.size() &&
+         std::equal(substring.rbegin(), substring.rend(), text.rbegin());
 }
 
 bool is_numeric(const std::string_view &text) {
   std::string_view::const_iterator it = text.begin();
-  while (it != text.end() && std::isdigit(static_cast<uint8_t>(*it))) {
+  while (it != text.end() && std::isdigit(static_cast<uint8_t>(*it)) != 0) {
     ++it;
   }
 
@@ -82,25 +88,25 @@ std::string dump_hex(const std::string_view &data,
                      const std::string_view &separator) {
   std::string result;
 
-  for (uint32_t i = 0; i < data.size(); ++i) {
+  for (size_t i = 0; i < data.size(); ++i) {
     if (i > 0) {
       result.append(separator);
     }
 
-    result.append(va("%02X", data[i] & 0xFF));
+    result.append(va("%02X", static_cast<uint8_t>(data[i])));
   }
 
   return result;
 }
 
 std::string get_clipboard_data() {
-  if (OpenClipboard(nullptr)) {
+  if (OpenClipboard(nullptr) != 0) {
     std::string data;
 
     HANDLE clipboard_data = GetClipboardData(1u);
-    if (clipboard_data) {
+    if (clipboard_data != nullptr) {
       char *const cliptext = static_cast<char *>(GlobalLock(clipboard_data));
-      if (cliptext) {
+      if (cliptext != nullptr) {
         data.append(cliptext);
         GlobalUnlock(clipboard_data);
       }
@@ -113,8 +119,8 @@ std::string get_clipboard_data() {
 }
 
 void strip(const char *in, char *out, size_t max) {
-  assert(max);
-  if (in && out) {
+  assert(max > 0);
+  if (in != nullptr && out != nullptr) {
     max--;
     size_t current = 0;
     while (*in != '\0' && current < max) {
@@ -136,8 +142,8 @@ void strip(const char *in, char *out, size_t max) {
 }
 
 void strip_material(const char *in, char *out, size_t max) {
-  assert(max);
-  if (in && out) {
+  assert(max > 0);
+  if (in != nullptr && out != nullptr) {
     size_t i = 0;
     while (*in != '\0' && i < max - 1) {
       if (*in != '$' && *in != '{' && *in != '}') {
@@ -188,39 +194,6 @@ std::string replace(std::string str, const std::string &from,
   return str;
 }
 
-std::string_view &ltrim(std::string_view &str) {
-  while (str.size() && std::isspace(str[0])) {
-    str = str.substr(1);
-  }
-  return str;
-}
-
-std::string_view &rtrim(std::string_view &str) {
-  while (str.size() && std::isspace(str[str.size() - 1])) {
-    str = str.substr(0, str.size() - 1);
-  }
-  return str;
-}
-
-std::string &ltrim(std::string &str) {
-  str.erase(str.begin(),
-            std::find_if(str.begin(), str.end(), [](const unsigned char input) {
-              return !std::isspace(input);
-            }));
-
-  return str;
-}
-
-std::string &rtrim(std::string &str) {
-  str.erase(std::find_if(
-                str.rbegin(), str.rend(),
-                [](const unsigned char input) { return !std::isspace(input); })
-                .base(),
-            str.end());
-
-  return str;
-}
-
 std::string join(std::vector<std::string> strings,
                  const std::string &separator) {
   std::string result;
@@ -253,24 +226,20 @@ std::string join(std::vector<std::string_view> strings,
   return result;
 }
 
-void trim(std::string &str) { ltrim(rtrim(str)); }
-
-void copy(char *dest, const size_t max_size, const char *src) {
-  strscpy(dest, src, max_size);
-}
-
+constexpr uint8_t NIBBLE_MASK = 0x0F;
 std::string hexdump(uintptr_t ptr, size_t size) {
-  if (ptr && size > 0) {
+  if (ptr != UINTPTR_NULLPTR && size > 0) {
 
-    static constexpr char hex_digits[] = "0123456789ABCDEF";
+    static constexpr char HEX_DIGITS[] = "0123456789ABCDEF";
     const uint8_t *bytes = reinterpret_cast<const uint8_t *>(ptr);
 
     std::string hex_str;
     hex_str.reserve(size * 2);
 
     for (size_t i = 0; i < size; ++i) {
-      hex_str.push_back(hex_digits[(bytes[i] >> 4) & 0x0F]); // High nibble
-      hex_str.push_back(hex_digits[bytes[i] & 0x0F]);        // Low nibble
+      hex_str.push_back(
+          HEX_DIGITS[(bytes[i] >> 4) & NIBBLE_MASK]);        // High nibble
+      hex_str.push_back(HEX_DIGITS[bytes[i] & NIBBLE_MASK]); // Low nibble
     }
 
     return hex_str;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -13,7 +14,14 @@ bool move_file(const std::filesystem::path &src,
 bool file_exists(const std::filesystem::path &file);
 
 bool write_file_bytes(const std::filesystem::path &file, const uint8_t *data,
-                      size_t size, const bool append = false);
+                      size_t size, bool append = false);
+
+inline bool write_file_bytes(const std::filesystem::path &file,
+                             const std::span<const uint8_t> data,
+                             const bool append = false) {
+  return write_file_bytes(file, data.data(), data.size(), append);
+}
+
 inline bool write_file(const std::filesystem::path &file,
                        const std::vector<uint8_t> &data, bool append = false) {
   return write_file_bytes(file, data.data(), data.size(), append);

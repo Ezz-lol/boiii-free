@@ -124,7 +124,7 @@ void refresh_cached_profile(const game::XUID xuid) {
         game::pcache::PCache_InvalidatePlayerEmblem(
             game::CONTROLLER_INDEX_FIRST, xuid);
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 // A profile can arrive while the game's own request for it is still out. That
@@ -164,7 +164,7 @@ void refresh_missed_profiles() {
           }
         }
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 utils::hook::detour PCache_GetPublicProfilesSuccess_hook;
@@ -242,7 +242,7 @@ void request_profile_infos(std::vector<game::XUID> &xuids) {
           buffer.write_vector(xuids);
           network::send(server, "profileInfoRequest", buffer.get_buffer());
         },
-        scheduler::main);
+        scheduler::pipeline::main);
   }
 }
 
@@ -335,7 +335,7 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("profile_infos");
 
   void post_unpack() override {
-    scheduler::loop(clean_cached_profile_infos, scheduler::main, 5s);
+    scheduler::loop(clean_cached_profile_infos, scheduler::pipeline::main, 5s);
 
     if (game::is_client()) {
       PCache_GetPublicProfilesSuccess_hook.create(

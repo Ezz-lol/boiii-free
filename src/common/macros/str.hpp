@@ -1,8 +1,8 @@
 #pragma once
 
 #include "macros/builtin.hpp"
-#include <cstdint>
-#include <type_traits>
+#include "macros/type/set.hpp"
+#include <string>
 
 template <typename T>
 concept CharLike = sizeof(T) == sizeof(char);
@@ -48,4 +48,48 @@ template <CharLike T> alwaysinline constexpr T toupper(const T c) noexcept {
   return is_lowercase(c)
              ? static_cast<T>(c + static_cast<T>(LOWER_TO_UPPER_INC))
              : c;
+}
+
+template <typename T>
+concept CharArrayLike =
+    std::is_array_v<std::remove_cvref_t<T>> &&
+    CharLike<std::remove_all_extents_t<std::remove_cvref_t<T>>>;
+
+template <typename T>
+concept CharPtrLike =
+    AnyOf<std::remove_cvref_t<T>>::template In<char *> ||
+    (CharArrayLike<T> &&
+     !std::is_const_v<std::remove_all_extents_t<std::remove_cvref_t<T>>>);
+
+template <typename T>
+concept ConstCharPtrLike =
+    AnyOf<std::remove_cvref_t<T>>::template In<const char *, char *> ||
+    (CharArrayLike<T> &&
+     std::is_const_v<std::remove_all_extents_t<std::remove_cvref_t<T>>>);
+
+template <typename T>
+concept StringLike = CharPtrLike<T> || requires(T t) {
+  { t.data() } -> std::same_as<char *>;
+};
+
+template <typename T>
+concept ConstStringLike =
+    StringLike<T> || ConstCharPtrLike<T> || requires(const T t) {
+      { t.data() } -> std::same_as<const char *>;
+    };
+
+template <ConstStringLike T> const char *stringlike_data(const T &str) {
+  if constexpr (ConstCharPtrLike<T> || CharPtrLike<T>) {
+    return str;
+  } else {
+    return str.data();
+  }
+}
+
+template <StringLike T> char *stringlike_data(T &str) {
+  if constexpr (CharPtrLike<T>) {
+    return str;
+  } else {
+    return str.data();
+  }
 }

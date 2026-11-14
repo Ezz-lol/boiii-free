@@ -2,10 +2,6 @@
 
 #include "sl.hpp"
 
-#if defined(_MSC_VER) && !defined(__clang__) && !defined(__GNUC__)
-#include <windows.h>
-#endif
-
 namespace game {
 namespace sl {
 

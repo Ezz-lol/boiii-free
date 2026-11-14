@@ -71,7 +71,7 @@ void queue_social_update() {
           return;
         game::ui::UI_Model_SetInt(update, ++social_update_revision);
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 void save_friends() {
@@ -313,7 +313,7 @@ void receive_invite(const game::net::netadr_t &sender,
                         " invited you to play. Join from Social > Friends.",
                     "uie_t7_icon_menu_invite_sent");
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 void receive_invite_failed(const game::net::netadr_t &sender,
@@ -331,7 +331,7 @@ void receive_invite_failed(const game::net::netadr_t &sender,
                                   " is offline and can't be invited right "
                                   "now.");
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 } // namespace
 
@@ -532,7 +532,7 @@ bool connect_to_friend(game::XUID steam_id) {
                     "friends."
                   : "Your friend is offline.");
         },
-        scheduler::main);
+        scheduler::pipeline::main);
     return false;
   }
 
@@ -714,7 +714,7 @@ struct component final : client_component {
     load_recent_players();
     network::on("friendInvite", receive_invite);
     network::on("friendInviteFailed", receive_invite_failed);
-    scheduler::loop(record_recent_players, scheduler::main, 10s);
+    scheduler::loop(record_recent_players, scheduler::pipeline::main, 10s);
 
     game::register_dvar_bool("friends_open", false, game::dvarFlags_e::NONE,
                              "Advertise this private match to saved friends");

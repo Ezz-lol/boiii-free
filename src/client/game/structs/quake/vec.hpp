@@ -56,6 +56,10 @@ template <typename T = vec_t> union vec2 {
     T x;
     T y;
   };
+  struct {
+    T row;
+    T column;
+  };
 
   inline constexpr const T &operator[](size_t index) const { return v[index]; }
   inline constexpr T &operator[](size_t index) { return v[index]; }

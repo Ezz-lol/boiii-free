@@ -17,7 +17,7 @@ bool is_client();
 std::filesystem::path game_directory();
 
 inline uintptr_t get_base() {
-  return reinterpret_cast<uintptr_t>(GetModuleHandleW(NULL));
+  return reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
 }
 
 size_t current_module_size();

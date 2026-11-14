@@ -2,6 +2,7 @@
 
 #include <loader/component_loader.hpp>
 
+#include "command.hpp"
 #include "scheduler.hpp"
 
 #include <game/utils.hpp>
@@ -77,7 +78,7 @@ inline bool enable_debug_dvars() {
     for (const game::symbol<game::EngineDependentDvarMut> &dependency :
          dependencies) {
       if (!*dependency.get()) {
-        return scheduler::cond_continue;
+        return scheduler::COND_CONTINUE;
       }
     }
 
@@ -95,7 +96,7 @@ inline bool enable_debug_dvars() {
     for (const game::symbol<game::EngineDependentDvarMut> &dependency :
          dependencies) {
       if (!*dependency.get()) {
-        return scheduler::cond_continue;
+        return scheduler::COND_CONTINUE;
       }
     }
     dvar_bool_force<true>(*game::lobby_showSVDebug);
@@ -114,12 +115,12 @@ inline bool enable_debug_dvars() {
   for (const game::symbol<game::EngineDependentDvarMut> &dependency :
        dependencies) {
     if (!*dependency.get()) {
-      return scheduler::cond_continue;
+      return scheduler::COND_CONTINUE;
     }
   }
 
   dvar_bool_force<true>(*game::com_clientfieldsdebug);
-  return scheduler::cond_end;
+  return scheduler::COND_END;
 }
 #endif
 
@@ -309,6 +310,31 @@ GScr_GetGunXPScaled_Server([[maybe_unused]] ClientNum_t clientNum,
   return value;
 }
 
+utils::hook::detour cmd_exec_f_hook;
+
+// default_xboxlive.cfg resets the XP scales, and every gametype config execs
+// it, so loading a gametype would undo the ones server.cfg sets
+void Cmd_Exec_f_Server() {
+  const command::params params{};
+  if (!utils::string::ends_with(params[1], "default_xboxlive.cfg")) {
+    cmd_exec_f_hook.invoke<void>();
+    return;
+  }
+
+  std::array dvars{*scr_xpscalemp, *scr_xpscalezm, *scr_gunxpscalemp,
+                   *scr_gunxpscalezm};
+  std::array<float, dvars.size()> scales{};
+  for (size_t i = 0; i < dvars.size(); ++i) {
+    scales[i] = dvars[i].get_float();
+  }
+
+  cmd_exec_f_hook.invoke<void>();
+
+  for (size_t i = 0; i < dvars.size(); ++i) {
+    dvars[i].set(scales[i]);
+  }
+}
+
 bool return_false() { return false; }
 bool return_true() { return true; }
 } // namespace
@@ -376,9 +402,9 @@ public:
             apply_cheats_setting({});
             Dvar_SetModifiedCallback(Dvar_FindVar("boiii_allowCheats"),
                                      apply_cheats_setting);
-            return scheduler::cond_end;
+            return scheduler::COND_END;
           }
-          return scheduler::cond_continue;
+          return scheduler::COND_CONTINUE;
         },
         scheduler::pipeline::main);
   }
@@ -396,6 +422,7 @@ public:
     utils::hook::jump(game::scr::gscr::GetXPScale.get(), GetXPScale_Server);
     utils::hook::jump(game::scr::gscr::GScr_GetGunXPScaled.get(),
                       GScr_GetGunXPScaled_Server);
+    cmd_exec_f_hook.create(game::cmd::Cmd_Exec_f.get(), Cmd_Exec_f_Server);
 
     // Enable or disable both (??) sv_cheats dvars immediately after
     // registration

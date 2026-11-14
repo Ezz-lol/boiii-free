@@ -5,6 +5,10 @@
 // Local SQLite store for data DW's servers would normally keep, such as
 // inventory items and currency balances.
 namespace local_db {
+
+constexpr const char *DB_DIRECTORY = "boiii_players/user";
+constexpr const char *DB_FILE = "boiii_players/user/dw.db";
+
 struct item {
   uint32_t quantity;
   uint32_t expire_time;
@@ -18,6 +22,8 @@ std::optional<item> get_item(uint32_t item_id);
 bool set_item(uint32_t item_id, uint32_t quantity, uint32_t expire_time = 0,
               uint32_t obtained_time = 0);
 
+typedef std::function<bool()> transactionBody_t;
+
 // Runs `body` in one transaction, which is rolled back if it returns false.
-bool transaction(const std::function<bool()> &body);
+bool transaction(const transactionBody_t &body);
 } // namespace local_db

@@ -108,7 +108,7 @@ void unmap_port(const uint16_t port) {
 void open_port(const uint16_t port) {
   if (port < 1024 || operation_running.exchange(true))
     return;
-  scheduler::once([port] { map_port(port); }, scheduler::async);
+  scheduler::once([port] { map_port(port); }, scheduler::pipeline::async);
 }
 
 void close_port() {
@@ -120,7 +120,7 @@ void close_port() {
     mapped_endpoint.clear();
   }
   if (port)
-    scheduler::once([port] { unmap_port(port); }, scheduler::async);
+    scheduler::once([port] { unmap_port(port); }, scheduler::pipeline::async);
 }
 
 std::string external_endpoint() {

@@ -24,37 +24,40 @@ local function toggle(controller, dvar, name, description)
   }, nil, updateDvar)
 end
 
-DataSources.BoiiiQuickSettingsCinematics = DataSourceHelpers.ListSetup("BoiiiQuickSettingsCinematics", function(controller)
-  return {
-    CoD.OptionsUtility.CreateDvarSettings(
-      controller,
-      "Loading Screen",
-      "Show the map image with a loading bar or the map's cinematic while a game loads. Default lets the game pick.",
-      "QuickSettings_boiii_loadingScreen",
-      "boiii_loadingScreen",
-      {
-        { option = "Default", value = 0, default = true },
-        { option = "Map Image", value = 1 },
-        { option = "Cinematic", value = 2 },
-      },
-      nil,
-      updateDvar
-    ),
-    toggle(controller, "boiii_skipIntro", "Skip Intro", "Skip the intro video on startup."),
-    toggle(
-      controller,
-      "boiii_skipForestCinematic",
-      "Skip Forest Video",
-      "Skip only the forest video before joining a Zombies game. Map videos still play."
-    ),
-    toggle(
-      controller,
-      "boiii_skipCinematics",
-      "Skip All Cinematics",
-      "Skip every cinematic and video, including map videos."
-    ),
-  }
-end)
+DataSources.BoiiiQuickSettingsCinematics = DataSourceHelpers.ListSetup(
+  "BoiiiQuickSettingsCinematics",
+  function(controller)
+    return {
+      CoD.OptionsUtility.CreateDvarSettings(
+        controller,
+        "Loading Screen",
+        "Show the map image with a loading bar or the map's cinematic while a game loads. Default lets the game pick.",
+        "QuickSettings_boiii_loadingScreen",
+        "boiii_loadingScreen",
+        {
+          { option = "Default", value = 0, default = true },
+          { option = "Map Image", value = 1 },
+          { option = "Cinematic", value = 2 },
+        },
+        nil,
+        updateDvar
+      ),
+      toggle(controller, "boiii_skipIntro", "Skip Intro", "Skip the intro video on startup."),
+      toggle(
+        controller,
+        "boiii_skipForestCinematic",
+        "Skip Forest Video",
+        "Skip only the forest video before joining a Zombies game. Map videos still play."
+      ),
+      toggle(
+        controller,
+        "boiii_skipCinematics",
+        "Skip All Cinematics",
+        "Skip every cinematic and video, including map videos."
+      ),
+    }
+  end
+)
 
 DataSources.BoiiiQuickSettingsVideo = DataSourceHelpers.ListSetup("BoiiiQuickSettingsVideo", function(controller)
   local optionsTable = {}
@@ -426,7 +429,22 @@ DataSources.BoiiiQuickSettingsXpBar = DataSourceHelpers.ListSetup("BoiiiQuickSet
     )
   end
 
+  local function scale()
+    return {
+      { option = "1x", value = 1, default = true },
+      { option = "2x", value = 2 },
+      { option = "3x", value = 3 },
+    }
+  end
+
   return {
+    setting("XP Scale", "XP earned in Multiplayer and Zombies matches you host.", "boiii_xpScale", scale()),
+    setting(
+      "Weapon XP Scale",
+      "Weapon XP earned in Multiplayer and Zombies matches you host.",
+      "boiii_gunXpScale",
+      scale()
+    ),
     setting("XP Bar", "Show an XP progress bar in Multiplayer and Zombies.", "boiii_xpBar", {
       { option = "MENU_DISABLED", value = 0, default = true },
       { option = "MENU_ENABLED", value = 1 },
@@ -467,7 +485,7 @@ DataSources.BoiiiQuickSettingsTabs = DataSourceHelpers.ListSetup("BoiiiQuickSett
     tab("VIDEO", "BoiiiQuickSettingsVideo", "Video"),
     tab("GAME", "BoiiiQuickSettingsGame", "Game"),
     tab("CINEMATICS", "BoiiiQuickSettingsCinematics", "Cinematics"),
-    tab("XP BAR", "BoiiiQuickSettingsXpBar", "XP Bar"),
+    tab("XP", "BoiiiQuickSettingsXpBar", "XP"),
     tab("CONSOLE", "BoiiiQuickSettingsConsole", "Console"),
     { models = { tabIcon = CoD.buttonStrings.shoulderr }, properties = { m_mouseDisabled = true } },
   }

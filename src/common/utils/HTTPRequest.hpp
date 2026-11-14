@@ -713,7 +713,7 @@ std::pair<Iterator, std::string> parseFieldValue(const Iterator begin,
 
   // trim white spaces
   result.erase(
-      std::find_if(result.rbegin(), result.rend(),
+      std::ranges::find_if(result.rbegin(), result.rend(),
                    [](const char c) noexcept { return !isWhiteSpaceChar(c); })
           .base(),
       result.end());
@@ -1057,7 +1057,7 @@ public:
           const auto toLower = [](const char c) noexcept {
             return (c >= 'A' && c <= 'Z') ? c - ('A' - 'a') : c;
           };
-          std::transform(fieldName.begin(), fieldName.end(), fieldName.begin(),
+          std::ranges::transform(fieldName.begin(), fieldName.end(), fieldName.begin(),
                          toLower);
 
           auto fieldValue = std::move(headerFieldResult.second.second);

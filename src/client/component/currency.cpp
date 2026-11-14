@@ -754,7 +754,7 @@ bool burn_duplicates(ControllerIndex_t controller,
   update_cryptokey_balances(controller);
   // The game only waits for the result once this returns
   scheduler::once([controller, on_success] { on_success(controller); },
-                  scheduler::main);
+                  scheduler::pipeline::main);
   return true;
 }
 
@@ -950,7 +950,7 @@ void *consume_items(ControllerIndex_t controller, uint32_t *ids, int32_t count,
   }
   const std::ranges::borrowed_iterator_t<
       const std::vector<gum, std::allocator<gum>> &>
-      found = std::find_if(pool.begin(), pool.end(),
+      found = std::ranges::find_if(pool.begin(), pool.end(),
                            [&](const gum &item) { return item.id == ids[0]; });
   if (found == pool.end()) {
     return consume_hook.invoke<void *>(controller, ids, count, amounts);

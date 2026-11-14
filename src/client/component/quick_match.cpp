@@ -86,7 +86,7 @@ void finish() {
                       "t7_icon_connect_overlays");
         }
       },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 
 void handle_response(const bool success, const game::net::netadr_t &host,
@@ -246,7 +246,7 @@ struct component final : client_component {
         "Find Match is waiting in the public lobby for a server");
     command::add("quickmatch",
                  [](const command::params &params) { start(params); });
-    scheduler::loop(update, scheduler::main, 1s);
+    scheduler::loop(update, scheduler::pipeline::main, 1s);
   }
 };
 } // namespace quick_match

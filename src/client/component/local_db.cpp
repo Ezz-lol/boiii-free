@@ -10,8 +10,6 @@
 
 namespace local_db {
 namespace {
-constexpr const char *db_directory = "boiii_players/user";
-constexpr const char *db_file = "boiii_players/user/dw.db";
 
 struct balance_row {
   int32_t currency;
@@ -28,7 +26,7 @@ struct item_row {
 auto make_storage() {
   using namespace sqlite_orm;
   return sqlite_orm::make_storage(
-      db_file,
+      DB_FILE,
       make_table("balances",
                  make_column("currency", &balance_row::currency, primary_key()),
                  make_column("value", &balance_row::value)),
@@ -46,112 +44,116 @@ std::recursive_mutex db_mutex;
 std::unique_ptr<storage> db;
 // Reads are served from memory: the game asks for item quantities very often.
 bool cached = false;
-std::unordered_map<int32_t, uint32_t> balances;
-std::unordered_map<uint32_t, item> items;
+typedef std::unordered_map<int32_t, uint32_t> balanceMap_t;
+static balanceMap_t balances{};
+typedef std::unordered_map<uint32_t, item> itemMap_t;
+static itemMap_t items{};
 
 storage *open() {
-  if (db) {
-    return db.get();
-  }
-  try {
-    utils::io::create_directory(db_directory);
-    auto opened = std::make_unique<storage>(make_storage());
-    opened->open_forever();
-    opened->sync_schema(true);
-    db = std::move(opened);
-  } catch (const std::exception &) {
-    return nullptr;
+  if (!db) {
+    try {
+      utils::io::create_directory(DB_DIRECTORY);
+      auto opened = std::make_unique<storage>(make_storage());
+      opened->open_forever();
+      opened->sync_schema(true);
+      db = std::move(opened);
+    } catch (const std::exception &) {
+      return nullptr;
+    }
   }
   return db.get();
 }
 
 void load(bool reload = false) {
-  if (cached && !reload) {
-    return;
-  }
-  cached = true;
-  balances.clear();
-  items.clear();
-  storage *database = open();
-  if (!database) {
-    return;
-  }
-  try {
-    for (const balance_row &row : database->get_all<balance_row>()) {
-      balances[row.currency] = row.value;
+  if (!cached || reload) {
+    cached = true;
+    balances.clear();
+    items.clear();
+    storage *database = open();
+    if (database != nullptr) {
+      try {
+        for (const balance_row &row : database->get_all<balance_row>()) {
+          balances[row.currency] = row.value;
+        }
+        for (const item_row &row : database->get_all<item_row>()) {
+          items[row.item_id] = {.quantity = row.quantity,
+                                .expire_time = row.expire_time,
+                                .obtained_time = row.obtained_time};
+        }
+      } catch (const std::exception &) {
+      }
     }
-    for (const item_row &row : database->get_all<item_row>()) {
-      items[row.item_id] = {row.quantity, row.expire_time, row.obtained_time};
-    }
-  } catch (const std::exception &) {
   }
 }
 } // namespace
 
 uint32_t balance(int32_t currency) {
-  std::lock_guard _(db_mutex);
+  std::scoped_lock _(db_mutex);
   load();
   const auto found = balances.find(currency);
   return found != balances.end() ? found->second : 0;
 }
 
 bool set_balance(int32_t currency, uint32_t value) {
-  std::lock_guard _(db_mutex);
+  std::scoped_lock _(db_mutex);
   load();
   storage *database = open();
-  if (!database) {
-    return false;
+  if (database != nullptr) {
+    try {
+      database->replace(balance_row{.currency = currency, .value = value});
+      balances[currency] = value;
+      return true;
+
+    } catch (const std::exception &) {
+    }
   }
-  try {
-    database->replace(balance_row{currency, value});
-  } catch (const std::exception &) {
-    return false;
-  }
-  balances[currency] = value;
-  return true;
+
+  return false;
 }
 
 std::optional<item> get_item(uint32_t item_id) {
-  std::lock_guard _(db_mutex);
+  std::scoped_lock _(db_mutex);
   load();
-  const auto found = items.find(item_id);
-  if (found == items.end()) {
-    return std::nullopt;
-  }
-  return found->second;
+  const itemMap_t::iterator found = items.find(item_id);
+  return found == items.end() ? std::nullopt : std::optional(found->second);
 }
 
 bool set_item(uint32_t item_id, uint32_t quantity, uint32_t expire_time,
               uint32_t obtained_time) {
-  std::lock_guard _(db_mutex);
+  std::scoped_lock _(db_mutex);
   load();
   storage *database = open();
-  if (!database) {
-    return false;
+  if (database != nullptr) {
+    try {
+      database->replace(item_row{.item_id = item_id,
+                                 .quantity = quantity,
+                                 .expire_time = expire_time,
+                                 .obtained_time = obtained_time});
+      items[item_id] = {.quantity = quantity,
+                        .expire_time = expire_time,
+                        .obtained_time = obtained_time};
+      return true;
+
+    } catch (const std::exception &) {
+    }
   }
-  try {
-    database->replace(item_row{item_id, quantity, expire_time, obtained_time});
-  } catch (const std::exception &) {
-    return false;
-  }
-  items[item_id] = {quantity, expire_time, obtained_time};
-  return true;
+
+  return false;
 }
 
-bool transaction(const std::function<bool()> &body) {
-  std::lock_guard _(db_mutex);
+bool transaction(const transactionBody_t &body) {
+  std::scoped_lock _(db_mutex);
   load();
   storage *database = open();
-  if (!database) {
-    return false;
-  }
   bool committed = false;
-  try {
-    committed = database->transaction([&] { return body(); });
-  } catch (const std::exception &) {
-  }
-  if (!committed) {
-    load(true);
+  if (database != nullptr) {
+    try {
+      committed = database->transaction([&] { return body(); });
+    } catch (const std::exception &) {
+    }
+    if (!committed) {
+      load(true);
+    }
   }
   return committed;
 }
@@ -160,7 +162,7 @@ struct component final : client_component {
   DEFINE_COMPONENT_NAME("local_db");
 
   void pre_destroy() override {
-    std::lock_guard _(db_mutex);
+    std::scoped_lock _(db_mutex);
     db.reset();
   }
 };

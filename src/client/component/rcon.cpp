@@ -84,7 +84,7 @@ void rcon_handler(const game::net::netadr_t &target,
       std::string(reinterpret_cast<const char *>(data.data()), data.size());
   scheduler::once(
       [target, s = std::move(str_data)] { rcon_executer(target, s); },
-      scheduler::main);
+      scheduler::pipeline::main);
 }
 } // namespace
 

@@ -464,7 +464,7 @@ struct component final : client_component {
             }
           });
         },
-        scheduler::async, 200ms);
+        scheduler::pipeline::async, 200ms);
 
     lua_server_info_to_table_hook.create(game::select(0x141F13590, 0x0),
                                          lua_server_info_to_table_stub);
@@ -474,7 +474,7 @@ struct component final : client_component {
           read_favorite_servers();
           read_recent_servers();
         },
-        scheduler::main);
+        scheduler::pipeline::main);
 
     command::add("lan_add", [](const command::params &params) {
       if (params.size() > 1) {
