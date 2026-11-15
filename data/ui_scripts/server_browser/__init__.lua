@@ -236,9 +236,21 @@ if not __sb_originals then
     SetAttributeFilter = Engine.SteamServerBrowser_SetAttributeFilter,
     ClearAttributeFilters = Engine.SteamServerBrowser_ClearAttributeFilters,
     GetCurrentServerRequestType = Engine.SteamServerBrowser_GetCurrentServerRequestType,
+    AddFavoriteServer = Engine.SteamServerBrowser_AddFavoriteServer,
   }
 end
 local SB = __sb_originals
+
+-- The custom tabs index the raw server list, which the engine's favorite and history lookup doesn't use
+if SB.AddFavoriteServer then
+  Engine.SteamServerBrowser_AddFavoriteServer = function(serverIndex, history)
+    if isCustomTab() then
+      game.addrawserverfavorite(serverIndex, history)
+    else
+      SB.AddFavoriteServer(serverIndex, history)
+    end
+  end
+end
 
 if SB.RequestServers then
   Engine.SteamServerBrowser_RequestServers = function(serverType)

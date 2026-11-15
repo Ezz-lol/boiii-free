@@ -11,7 +11,9 @@
 #include <component/gpu.hpp>
 #include <component/lua/lua_state.hpp>
 #include <component/name.hpp>
+#include <component/network.hpp>
 #include <component/scheduler.hpp>
+#include <component/server_list.hpp>
 #include <component/toast.hpp>
 #include <component/workshop/workshop.hpp>
 #include <loader/component_loader.hpp>
@@ -620,6 +622,26 @@ luaReturnCount_e isserverlistrefreshing(lua_State *luaVM) {
               []() -> bool { return steam::is_server_list_refreshing(); });
 }
 
+// The custom server browser tabs index the raw server list, which the engine's
+// favorite and history functions can't look up
+luaReturnCount_e addrawserverfavorite(lua_State *luaVM) {
+  return call(luaVM, [](const int32_t index, const bool history) {
+    const steam::gameserveritem_t *item =
+        steam::get_raw_internet_server_item(index);
+    if (!item) {
+      return;
+    }
+
+    const game::net::netadr_t addr = network::address_from_ip(
+        htonl(item->m_NetAdr.m_unIP), item->m_NetAdr.m_usConnectionPort);
+    if (history) {
+      server_list::add_recent_server(addr);
+    } else {
+      server_list::add_favorite_server(addr);
+    }
+  });
+}
+
 luaReturnCount_e getrawserverinfo(lua_State *luaVM) {
   return call(luaVM, [](const int32_t index) -> table {
     table t = table();
@@ -767,6 +789,8 @@ public:
                                   isserverlistrefreshing>(),
         lua_state::luaL_LoggedReg<"game", "getrawserverinfo",
                                   getrawserverinfo>(),
+        lua_state::luaL_LoggedReg<"game", "addrawserverfavorite",
+                                  addrawserverfavorite>(),
         lua_state::luaL_LoggedReg<"game", "getvoiceinputdevices",
                                   getvoiceinputdevices>(),
         lua_state::luaL_LoggedReg<"game", "getgpupreference",
