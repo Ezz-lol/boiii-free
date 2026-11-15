@@ -388,8 +388,42 @@ void update_server_lobby() {
     }
   } else if (!requested) {
     requested = true;
-    nat::join_server_lobby(server);
+    // Usually already joined before connecting
+    if (!game::lobby::client::LobbyClient_IsActive(
+            game::lobby::LobbyType::GAME)) {
+      nat::join_server_lobby(server);
+    }
   }
+}
+
+// The loading screen lists the players in our lobby, so joining the server's
+// lobby before connecting shows who is already in the match
+void connect_through_server_lobby(const game::net::netadr_t &addr,
+                                  const std::function<void()> &connect) {
+  if (nat::has_party_members()) {
+    connect();
+    return;
+  }
+  const auto connected = std::make_shared<bool>(false);
+  const auto connect_once = [=] {
+    if (!std::exchange(*connected, true)) {
+      connect();
+    }
+  };
+  nat::join_match_lobby(addr, connect_once);
+  const auto deadline = std::chrono::steady_clock::now() + 5s;
+  scheduler::schedule(
+      [=] {
+        if (!*connected &&
+            !game::lobby::client::LobbyClient_IsActive(
+                game::lobby::LobbyType::GAME) &&
+            std::chrono::steady_clock::now() < deadline) {
+          return scheduler::COND_CONTINUE;
+        }
+        connect_once();
+        return scheduler::COND_END;
+      },
+      scheduler::pipeline::main, 100ms);
 }
 
 void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
@@ -413,7 +447,13 @@ void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
           addr, map, type, usermap, mod);
     };
     if (lobby.empty()) {
-      with_party_lobby(connect_direct);
+      with_party_lobby([=] {
+        if (is_connecting_to_dedi) {
+          connect_through_server_lobby(addr, connect_direct);
+        } else {
+          connect_direct();
+        }
+      });
       return;
     }
     nat::join_match_lobby(addr, lobby == "party" ? [] {
