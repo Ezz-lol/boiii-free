@@ -23,6 +23,8 @@ WEAK symbol<ClientNum_t(LobbySession *lobbySession, XUID xuid)>
     LobbySession_FindClientIndexByXuid{0x141EF3820, 0x1404AD5A0};
 WEAK symbol<SessionClient *(LobbySession *lobbySession, XUID xuid)>
     LobbySession_GetClientByXuid{0x141EF3920, 0x1404AD6A0};
+WEAK symbol<bool(const LobbySession *lobbySession)> LobbySession_IsLocalHost{
+    0x141EF3F30, 0x0};
 WEAK symbol<void(LobbySession *lobbySession, int32_t dirtyBits)>
     LobbySession_DirtySet{0x141EF3660, 0x1404AD400};
 WEAK symbol<bool(LobbySession *lobbySession, XUID leader)>

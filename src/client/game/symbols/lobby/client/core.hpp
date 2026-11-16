@@ -127,6 +127,10 @@ WEAK symbol<uint32_t(const ControllerIndex_t controllerIndex,
                      session::LobbySession *lobbySession,
                      session::GameData *gameDataMsg)>
     LobbyClient_UpdateGameData{0x141EBFCA0, 0x140480AA0};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex,
+                 session::LobbySession *lobbySession,
+                 session::GameData *gameDataMsg)>
+    LobbyClient_UpdateGameServerData{0x141EBFED0, 0x0};
 } // namespace client
 } // namespace lobby
 } // namespace game

@@ -3,6 +3,7 @@
 #include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 
+#include "nat.hpp"
 #include "network.hpp"
 #include "party.hpp"
 
@@ -53,6 +54,15 @@ void server_status_not_running_stub(session::LobbyGameData *gameData) {
   if (!party::cl_connected_to_dedi.get_bool()) {
     server_status_not_running_hook.invoke<void>(gameData);
   }
+}
+
+// A dedicated server's lobby keeps the gametype, map and playlist it started
+// with, so like a lobby we host, leave them to the match we connect to.
+// Applying them while loading in mismatches the clientfields
+bool is_local_host_stub(const session::LobbySession *lobbySession) {
+  return session::LobbySession_IsLocalHost(lobbySession) ||
+         (party::cl_connected_to_dedi.get_bool() &&
+          nat::in_game_lobby_of(party::get_connect_host()));
 }
 
 utils::hook::detour connect_from_lobby_hook;
@@ -128,6 +138,8 @@ public:
           build_host_route_list_stub);
       server_status_not_running_hook.create(
           client::ServerStatusNotRunning.get(), server_status_not_running_stub);
+      utils::hook::call(client::LobbyClient_UpdateGameServerData.offset(0x66),
+                        is_local_host_stub);
       connect_from_lobby_hook.create(cl::CL_ConnectFromLobby.get(),
                                      connect_from_lobby_stub);
       utils::hook::set<uint32_t>(

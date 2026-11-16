@@ -75,6 +75,7 @@ struct lobby_request {
 lobby_request lobby_joining;
 std::function<void()> game_join_fallback;
 std::optional<game::net::netadr_t> server_lobby;
+std::optional<std::pair<game::net::netadr_t, game::XUID>> game_lobby_host;
 std::mutex peers_mutex;
 typedef std::unordered_map<std::string, game::net::netadr_t> lobbyPeerMap_t;
 lobbyPeerMap_t lobby_peers;
@@ -472,6 +473,7 @@ void join_lobby(const game::net::netadr_t &host,
   utils::string::copy(info.name, name.c_str());
 
   if (target == game::lobby::LobbyType::GAME) {
+    game_lobby_host = {host, info.xuid};
     if (!game_join_fallback) {
       game_join_fallback = [host] { connect_to(host); };
     }
@@ -730,7 +732,10 @@ void receive_lobby_host(const game::net::netadr_t &sender,
 void receive_lobby_follow(const game::net::netadr_t &sender,
                           const network::data_view &data,
                           game::LocalClientNum_t) {
-  if (lobby_host_info() || game::com::Com_IsInGame() || !is_lobby_peer(sender))
+  // Hosting an empty party of our own doesn't make us a leader, so only one
+  // with members stays behind
+  if (has_party_members() || game::com::Com_IsInGame() ||
+      !is_lobby_peer(sender))
     return;
   const game::net::netadr_t server =
       network::address_from_string(payload_string(data));
@@ -995,7 +1000,13 @@ bool has_party_members() {
 }
 
 void send_party_to_server(const game::net::netadr_t &server) {
-  if (!has_party_members())
+  // In the Zombies menus friends join our game lobby instead of our party
+  const bool game_lobby_members =
+      lobby_host_info(game::lobby::LobbyType::GAME) &&
+      game::lobby::LobbyHost_GetClientCount(
+          game::lobby::LobbyType::GAME, game::lobby::LobbyClientType::REMOTE) >
+          0;
+  if (!has_party_members() && !game_lobby_members)
     return;
   std::vector<game::net::netadr_t> members;
   {
@@ -1010,6 +1021,18 @@ void send_party_to_server(const game::net::netadr_t &server) {
   }
   for (const game::net::netadr_t &member : members)
     network::send(member, "lobbyFollow", network::address_to_string(server));
+}
+
+// Find Match, our own matches and a party leader's lobby also count as a game
+// lobby, so check it's the one this host told us about
+bool in_game_lobby_of(const game::net::netadr_t &host) {
+  const game::lobby::session::LobbySession *session =
+      game::lobby::client::LobbyClient_GetSession(game::lobby::LobbyType::GAME);
+  return session &&
+         session->active != game::lobby::session::SessionActive::INACTIVE &&
+         game_lobby_host &&
+         network::are_addresses_equal(game_lobby_host->first, host) &&
+         session->host.info.xuid == game_lobby_host->second;
 }
 
 void join_server_lobby(const game::net::netadr_t &server) {

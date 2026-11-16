@@ -26,6 +26,7 @@ void join_match_lobby(const game::net::netadr_t &host,
 bool is_lobby_peer(const game::net::netadr_t &address);
 std::vector<game::net::netadr_t> get_lobby_peers();
 bool has_party_lobby();
+bool in_game_lobby_of(const game::net::netadr_t &host);
 void join_server_lobby(const game::net::netadr_t &server);
 void leave_server_lobby();
 bool has_party_members();
