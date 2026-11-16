@@ -93,13 +93,14 @@ Lobby.Actions.LobbyClientEnd = function(lobbyType)
   return action
 end
 
+-- Unlike being in game, this also covers loading in and map changes, when the server's lobby is already sending its
+-- screen, and unlike cl_connected_to_dedi it's never left over from a server we already left
+local function InDedicatedServerLobby()
+  return not Engine.IsDedicatedServer() and Engine.LobbyConnectedToDedicatedHost()
+end
+
 local function DediLobbyTarget(target)
-  if
-    target
-    and target.id == LobbyData.UITargets.UI_MPLOBBYONLINEMODGAME.id
-    and Engine.IsInGame()
-    and Engine.DvarBool(nil, "cl_connected_to_dedi")
-  then
+  if target and target.id == LobbyData.UITargets.UI_MPLOBBYONLINEMODGAME.id and InDedicatedServerLobby() then
     return LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME
   end
   return target
@@ -1566,11 +1567,7 @@ LobbyVM.LobbySettings = function(params)
   end
   LobbyVM.SetMaxLocalPlayers(target)
   Engine.SetLobbyMode(target.lobbyType, target.lobbyMode)
-  if
-    target.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME
-    and Engine.IsInGame()
-    and Engine.DvarBool(nil, "cl_connected_to_dedi")
-  then
+  if target.lobbyType == Enum.LobbyType.LOBBY_TYPE_GAME and InDedicatedServerLobby() then
     Engine.TEMPGameModeSetMode(Enum.eGameModes.MODE_GAME_MATCHMAKING_PLAYLIST)
   else
     Engine.TEMPGameModeSetMode(target.eGameModes)
