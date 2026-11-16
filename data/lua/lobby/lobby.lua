@@ -64,8 +64,20 @@ Lobby.Timer.AutoMPPump = function()
 end
 
 -- Teams are never split within a party, and split-screen players are one, so on their own they can never be balanced
--- and the lobby waits for more players forever. With only local players there's nobody to balance against, so start
--- like a single player can and let the game pick teams when they spawn
+-- and the lobby waits for more players forever. With only one party there's nobody to balance against, so start like a
+-- single player can and let the game pick teams when they spawn
+local function isOneParty()
+  local lobbyID
+  local clients = Engine.LobbyGetSessionClients(Enum.LobbyModule.LOBBY_MODULE_HOST, Enum.LobbyType.LOBBY_TYPE_GAME)
+  for _, client in ipairs(clients.sessionClients) do
+    if lobbyID ~= nil and client.lobbyID ~= lobbyID then
+      return false
+    end
+    lobbyID = client.lobbyID
+  end
+  return true
+end
+
 local autoSplitTeam = Lobby.TeamSelection.AutoSplitTeam
 Lobby.TeamSelection.AutoSplitTeam = function(requireBalanced, ...)
   local remoteClients = Engine.GetLobbyClientCount(
@@ -73,7 +85,7 @@ Lobby.TeamSelection.AutoSplitTeam = function(requireBalanced, ...)
     Enum.LobbyType.LOBBY_TYPE_GAME,
     Enum.LobbyClientType.LOBBY_CLIENT_TYPE_REMOTE
   )
-  if requireBalanced and remoteClients == 0 then
+  if requireBalanced and (remoteClients == 0 or isOneParty()) then
     return true
   end
   return autoSplitTeam(requireBalanced, ...)
