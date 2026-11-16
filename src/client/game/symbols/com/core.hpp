@@ -43,6 +43,8 @@ WEAK symbol<game::eModes()> _Com_SessionMode_GetMode{0x1420EA5B0, 0x1405002D0};
 // To allow for forward declaration for use in struct methods
 inline eModes Com_SessionMode_GetMode() { return _Com_SessionMode_GetMode(); }
 WEAK symbol<eGameModes()> Com_SessionMode_GetGameMode{0x1420EA130, 0x1404FFE50};
+// True for MATCHMAKING_PLAYLIST and LEAGUE
+WEAK symbol<bool()> Com_SessionMode_IsPlaylistGameMode{0x1420EAD70, 0x0};
 WEAK symbol<eNetworkModes()> Com_SessionMode_GetNetworkMode{0x1420EA680,
                                                             0x1405003A0};
 WEAK symbol<eNetworkModes()> Com_SessionMode_GetActiveNetworkMode{0x1420EA6C0,
