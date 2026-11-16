@@ -5,6 +5,7 @@
 #include <loader/component_loader.hpp>
 
 #include "command.hpp"
+#include "party.hpp"
 #include "scheduler.hpp"
 
 #include <game/impl/cg/cg.hpp>
@@ -62,6 +63,14 @@ void stop_intro_if_needed() {
         },
         scheduler::pipeline::main, 15s);
   }
+}
+
+// Playlist matches throw away gametype settings that change mid-match, but a
+// dedicated server's own rules are the real ones, so after a map vote to
+// another mode we'd keep its stock settings instead
+bool is_playlist_game_mode_stub() {
+  return !party::cl_connected_to_dedi.get_bool() &&
+         game::com::Com_SessionMode_IsPlaylistGameMode();
 }
 
 void preload_map_stub(game::LocalClientNum_t local_client_num,
@@ -564,6 +573,10 @@ public:
     utils::hook::nop(game::select(0x1422BBB28, 0x0), 6);
 
     preload_map_hook.create(game::cl::CL_PreloadMap, preload_map_stub);
+    utils::hook::call(game::com::gts::_Com_GametypeSettings_Read.offset(0x159),
+                      is_playlist_game_mode_stub);
+    utils::hook::call(game::com::gts::_Com_GametypeSettings_Read2.offset(0x17B),
+                      is_playlist_game_mode_stub);
 
     // Keep client ranked when mod loaded
     utils::hook::jump(game::scr::Scr_IsModLoaded, is_mod_loaded_stub);
