@@ -389,8 +389,7 @@ void update_server_lobby() {
   } else if (!requested) {
     requested = true;
     // Usually already joined before connecting
-    if (!game::lobby::client::LobbyClient_IsActive(
-            game::lobby::LobbyType::GAME)) {
+    if (!nat::in_game_lobby_of(server)) {
       nat::join_server_lobby(server);
     }
   }
@@ -398,12 +397,8 @@ void update_server_lobby() {
 
 // The loading screen lists the players in our lobby, so joining the server's
 // lobby before connecting shows who is already in the match
-void connect_through_server_lobby(const game::net::netadr_t &addr,
-                                  const std::function<void()> &connect) {
-  if (nat::has_party_members()) {
-    connect();
-    return;
-  }
+void join_server_lobby_then_connect(const game::net::netadr_t &addr,
+                                    const std::function<void()> &connect) {
   const auto connected = std::make_shared<bool>(false);
   const auto connect_once = [=] {
     if (!std::exchange(*connected, true)) {
@@ -414,13 +409,32 @@ void connect_through_server_lobby(const game::net::netadr_t &addr,
   const auto deadline = std::chrono::steady_clock::now() + 5s;
   scheduler::schedule(
       [=] {
-        if (!*connected &&
-            !game::lobby::client::LobbyClient_IsActive(
-                game::lobby::LobbyType::GAME) &&
+        if (!*connected && !nat::in_game_lobby_of(addr) &&
             std::chrono::steady_clock::now() < deadline) {
           return scheduler::COND_CONTINUE;
         }
         connect_once();
+        return scheduler::COND_END;
+      },
+      scheduler::pipeline::main, 100ms);
+}
+
+void connect_through_server_lobby(const game::net::netadr_t &addr,
+                                  const std::function<void()> &connect) {
+  // Joining with members still in our party would pull them into the server's
+  // lobby without connecting them, so they follow on their own and leave first
+  nat::send_party_to_server(addr);
+  const auto deadline = std::chrono::steady_clock::now() + 5s;
+  scheduler::schedule(
+      [=] {
+        if (!nat::has_party_members()) {
+          join_server_lobby_then_connect(addr, connect);
+          return scheduler::COND_END;
+        }
+        if (std::chrono::steady_clock::now() < deadline) {
+          return scheduler::COND_CONTINUE;
+        }
+        connect();
         return scheduler::COND_END;
       },
       scheduler::pipeline::main, 100ms);

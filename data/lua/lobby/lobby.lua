@@ -1494,16 +1494,19 @@ LobbyVM.StartPartyLobby = function()
   local controller = Engine.GetPrimaryController()
   local target = ModeLobbyTarget()
   local partyLobby = Enum.LobbyType.LOBBY_TYPE_PRIVATE
+  -- Leaving a party we're in tells its host right away, instead of it timing us out
+  local clientEnd = Lobby.Actions.LobbyClientEnd(partyLobby)
   local hostStart =
     Lobby.Actions.LobbyHostStart(controller, target.mainMode, partyLobby, target.lobbyMode, target.maxClients)
   local addPrimary = Lobby.Actions.LobbyHostAddPrimary(partyLobby)
   local clientStart = Lobby.Actions.LobbyClientStart(partyLobby)
+  Lobby.Process.AddActions(clientEnd, hostStart)
   Lobby.Process.AddActions(hostStart, addPrimary)
   Lobby.Process.AddActions(addPrimary, clientStart)
   Lobby.Process.AddActions(clientStart)
   Lobby.ProcessQueue.AddToQueue(
     "StartPartyLobby",
-    { head = hostStart, interrupt = Lobby.Interrupt.NONE, force = true, cancellable = false }
+    { head = clientEnd, interrupt = Lobby.Interrupt.NONE, force = true, cancellable = false }
   )
 end
 
