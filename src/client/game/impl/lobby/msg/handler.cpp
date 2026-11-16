@@ -1,5 +1,7 @@
 #include <std_include.hpp>
 
+#include <component/lobby.hpp>
+
 #include "game/impl/lobby/data.hpp"
 #include "game/impl/lobby/msg/host.hpp"
 #include "game/impl/lobby/msg/msg.hpp"
@@ -1280,6 +1282,12 @@ void HandleLobbyStateGame(ControllerIndex_t controllerIndex,
           lua::lobby::vm::LobbyVM_OnGametypeSettingsChange(session);
         }
         session::LobbySession_DirtySet(session, 2);
+        // if in a private match are we're not the host,
+        // we need to prepare for custom map load
+        if (game::is_client() && !isHost &&
+            msgData.core.lobbyMode == LobbyMode::CUSTOM) {
+          ::lobby::prepare_guest_usermap();
+        }
       }
     }
   }

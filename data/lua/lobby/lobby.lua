@@ -2475,11 +2475,34 @@ LobbyVM.OnModUpdate = function(modUpdate)
   return true
 end
 
+--- Ask BOIII to handle a Workshop map's download
+-- @param ugcInfo Lobby content information containing the map's Workshop ID
+-- @return True if BOIII handles the ID
+local function OfferWorkshopUsermap(ugcInfo)
+  return game and game.offermissingguestusermap and game.offermissingguestusermap(ugcInfo.ugcName)
+end
+
+local needInstallUGC = Lobby.Process.NeedInstallUGC
+
+--- Route direct Workshop map install requests to BOIII's downloader
+-- @param controller The local controller for the install request
+-- @param ugcInfo The lobby content requested for installation
+-- @return The original install process, or nil if BOIII handles the map
+Lobby.Process.NeedInstallUGC = function(controller, ugcInfo)
+  if ugcInfo and ugcInfo.ugcType == LuaEnums.USERMAP_BASE_PATH and OfferWorkshopUsermap(ugcInfo) then
+    return nil
+  end
+  return needInstallUGC(controller, ugcInfo)
+end
+
 LobbyVM.OnUsermapUpdate = function(usermapInfo, waitForInstall)
   if not LuaUtils.Mods_IsUGC(usermapInfo.ugcInfo) then
     return false
   elseif LuaUtils.Mods_Lists_IsInstalled(usermapInfo.ugcInfo) then
     return false
+  elseif OfferWorkshopUsermap(usermapInfo.ugcInfo) then
+    -- launch checks should keep waiting while the guest is missing the map
+    return true
   elseif waitForInstall ~= true and Engine.Mods_IsSubscribedItem(usermapInfo.ugcInfo.ugcName) then
     if Engine.Mods_InstalledUGC(usermapInfo.ugcInfo.ugcName) then
       Engine.Mods_Lists_UpdateUsermaps()

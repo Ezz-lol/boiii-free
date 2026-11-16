@@ -1,6 +1,5 @@
 #include <std_include.hpp>
 
-#include "scheduler.hpp"
 #include <loader/component_loader.hpp>
 
 #include "download_overlay.hpp"
@@ -8,7 +7,6 @@
 #include "workshop/workshop.hpp"
 
 #include <utils/concurrency.hpp>
-#include <utils/hook.hpp>
 
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
@@ -21,9 +19,10 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg,
 namespace download_overlay {
 namespace {
 utils::concurrency::container<download_state> state_{};
-utils::hook::detour present_hook{};
 bool imgui_initialized{false};
+std::atomic<bool> shutting_down{false};
 HWND game_hwnd{nullptr};
+ID3D11Device *imgui_device{nullptr};
 WNDPROC original_wndproc{nullptr};
 
 // Confirmation dialog state
@@ -349,111 +348,140 @@ LRESULT CALLBACK wndproc_stub(HWND hwnd, UINT msg, WPARAM wparam,
   return CallWindowProcA(original_wndproc, hwnd, msg, wparam, lparam);
 }
 
-HRESULT __stdcall present_stub(IDXGISwapChain *swap_chain, UINT sync_interval,
-                               UINT flags) {
-  if (!imgui_initialized) {
-    ID3D11Device *device = nullptr;
-    if (SUCCEEDED(swap_chain->GetDevice(IID_PPV_ARGS(&device)))) {
-      ID3D11DeviceContext *context = nullptr;
-      device->GetImmediateContext(&context);
-      gpu::check_device(device);
-
-      DXGI_SWAP_CHAIN_DESC desc{};
-      swap_chain->GetDesc(&desc);
-
-      ImGui::CreateContext();
-      ImGui::GetIO().IniFilename = nullptr;
-      ImGui::GetIO().LogFilename = nullptr;
-      ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
-
-      apply_cod_theme();
-
-      ImGui_ImplWin32_Init(desc.OutputWindow);
-      ImGui_ImplDX11_Init(device, context);
-
-      // Hook WndProc so mouse/keyboard reach ImGui (needed for the Stop button)
-      game_hwnd = desc.OutputWindow;
-      original_wndproc = reinterpret_cast<WNDPROC>(SetWindowLongPtrA(
-          game_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(wndproc_stub)));
-
-      device->Release();
-      context->Release();
-      imgui_initialized = true;
-    }
+/**
+ * @brief Draw the overlay into the buffer the game is about to present.
+ * @param swap_chain The game's swap chain for the current frame.
+ * @param draw_data The ImGui commands produced for this frame.
+ */
+void render_to_back_buffer(IDXGISwapChain *swap_chain, ImDrawData *draw_data) {
+  if (draw_data->TotalVtxCount == 0) {
+    return;
   }
 
-  if (imgui_initialized) {
-    // Ensure DisplaySize is always correct by reading from the swap chain
-    DXGI_SWAP_CHAIN_DESC sc_desc{};
-    if (SUCCEEDED(swap_chain->GetDesc(&sc_desc))) {
-      ImGui::GetIO().DisplaySize =
-          ImVec2(static_cast<float>(sc_desc.BufferDesc.Width),
-                 static_cast<float>(sc_desc.BufferDesc.Height));
-    }
-
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-    render_confirmation();
-    render();
-    ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+  // Acquire the view only for this draw so it cannot hold the buffer
+  // alive across ResizeBuffers. ImGui draws into the currently bound
+  // target, which may be empty or point to an off-screen game buffer.
+  CComPtr<ID3D11Texture2D> back_buffer;
+  CComPtr<ID3D11RenderTargetView> target;
+  if (FAILED(swap_chain->GetBuffer(0, IID_PPV_ARGS(&back_buffer))) ||
+      FAILED(imgui_device->CreateRenderTargetView(back_buffer, nullptr,
+                                                  &target))) {
+    return;
   }
 
-  return present_hook.invoke<HRESULT>(swap_chain, sync_interval, flags);
+  CComPtr<ID3D11DeviceContext> context;
+  imgui_device->GetImmediateContext(&context);
+  ID3D11RenderTargetView *previous[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT]{};
+  CComPtr<ID3D11DepthStencilView> depth;
+  context->OMGetRenderTargets(std::size(previous), previous, &depth);
+  context->OMSetRenderTargets(1, &target.p, nullptr);
+  ImGui_ImplDX11_RenderDrawData(draw_data);
+
+  // Return the game's output bindings and release the references
+  // returned by OMGetRenderTargets.
+  context->OMSetRenderTargets(std::size(previous), previous, depth);
+  for (auto *view : previous) {
+    if (view) {
+      view->Release();
+    }
+  }
 }
 
-void setup_present_hook() {
-  // Create a tiny invisible window just for vtable theft —
-  // GetDesktopWindow() is not a valid swap chain output.
-  WNDCLASSEXA wc{};
-  wc.cbSize = sizeof(wc);
-  wc.lpfnWndProc = DefWindowProcA;
-  wc.hInstance = GetModuleHandleA(nullptr);
-  wc.lpszClassName = "DX11Dummy_DO";
-  RegisterClassExA(&wc);
-
-  HWND dummy_hwnd =
-      CreateWindowExA(0, wc.lpszClassName, nullptr, WS_OVERLAPPED, 0, 0, 1, 1,
-                      nullptr, nullptr, wc.hInstance, nullptr);
-  if (!dummy_hwnd) {
-    UnregisterClassA(wc.lpszClassName, wc.hInstance);
+void shutdown_overlay() {
+  if (!imgui_initialized) {
     return;
   }
 
-  DXGI_SWAP_CHAIN_DESC sd{};
-  sd.BufferCount = 1;
-  sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  sd.OutputWindow = dummy_hwnd;
-  sd.SampleDesc.Count = 1;
-  sd.Windowed = TRUE;
-  sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+  SetWindowLongPtrA(game_hwnd, GWLP_WNDPROC,
+                    reinterpret_cast<LONG_PTR>(original_wndproc));
+  imgui_initialized = false;
+  imgui_device = nullptr;
+  ImGui_ImplDX11_Shutdown();
+  ImGui_ImplWin32_Shutdown();
+  ImGui::DestroyContext();
+}
 
-  ID3D11Device *dummy_device = nullptr;
-  ID3D11DeviceContext *dummy_context = nullptr;
-  IDXGISwapChain *dummy_chain = nullptr;
-  D3D_FEATURE_LEVEL fl{};
+/**
+ * @brief Connect ImGui to the device that draws the game and its input window.
+ * @param device The Direct3D device obtained from the game's swap chain.
+ * @param hwnd The output window associated with the same swap chain.
+ * @return Whether both backends and the input hook are ready.
+ */
+bool initialize_overlay(ID3D11Device *device, HWND hwnd) {
+  CComPtr<ID3D11DeviceContext> context;
+  device->GetImmediateContext(&context);
+  gpu::check_device(device);
 
-  const HRESULT hr = D3D11CreateDeviceAndSwapChain(
-      nullptr, D3D_DRIVER_TYPE_WARP, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION,
-      &sd, &dummy_chain, &dummy_device, &fl, &dummy_context);
+  ImGui::CreateContext();
+  ImGui::GetIO().IniFilename = nullptr;
+  ImGui::GetIO().LogFilename = nullptr;
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+  apply_cod_theme();
 
-  DestroyWindow(dummy_hwnd);
-  UnregisterClassA(wc.lpszClassName, wc.hInstance);
+  if (ImGui_ImplWin32_Init(hwnd)) {
+    if (ImGui_ImplDX11_Init(device, context)) {
+      // Forward input for the existing Yes, No and Stop buttons.
+      const auto previous = reinterpret_cast<WNDPROC>(SetWindowLongPtrA(
+          hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(wndproc_stub)));
+      if (previous) {
+        original_wndproc = previous;
+        game_hwnd = hwnd;
+        imgui_device = device; // The ImGui Direct3D backend owns a reference.
+        imgui_initialized = true;
+        return true;
+      }
+      ImGui_ImplDX11_Shutdown();
+    }
+    ImGui_ImplWin32_Shutdown();
+  }
 
-  if (FAILED(hr))
-    return;
-
-  // vtable index 8 = IDXGISwapChain::Present
-  void **vtable = *reinterpret_cast<void ***>(dummy_chain);
-  present_hook.create(vtable[8], present_stub);
-
-  dummy_chain->Release();
-  dummy_device->Release();
-  dummy_context->Release();
+  ImGui::DestroyContext();
+  return false;
 }
 } // namespace
+
+void render_frame(IDXGISwapChain *swap_chain) {
+  if (shutting_down) {
+    return;
+  }
+
+  DXGI_SWAP_CHAIN_DESC desc{};
+  CComPtr<ID3D11Device> device;
+  if (FAILED(swap_chain->GetDesc(&desc)) ||
+      FAILED(swap_chain->GetDevice(IID_PPV_ARGS(&device)))) {
+    return;
+  }
+
+  // Resizing a buffer leaves its device and window intact. If the game
+  // replaces either, rebuild ImGui against the new graphics/input objects.
+  if (imgui_initialized &&
+      (desc.OutputWindow != game_hwnd || device.p != imgui_device)) {
+    shutdown_overlay();
+  }
+  if (!imgui_initialized && !initialize_overlay(device, desc.OutputWindow)) {
+    return;
+  }
+
+  if (!confirm_.access<bool>([](const auto &c) { return c.active; }) &&
+      !state_.access<bool>(
+          [](const auto &s) { return s.active && !s.hidden; })) {
+    return;
+  }
+
+  ImGui_ImplDX11_NewFrame();
+  ImGui_ImplWin32_NewFrame();
+  // Win32 sets DisplaySize from the window client area. Use the game's buffer
+  // dimensions for drawing, and do so after the Win32 backend updates it.
+  ImGui::GetIO().DisplaySize =
+      ImVec2(static_cast<float>(desc.BufferDesc.Width),
+             static_cast<float>(desc.BufferDesc.Height));
+  ImGui::NewFrame();
+  render_confirmation();
+  render();
+  ImGui::Render();
+
+  render_to_back_buffer(swap_chain, ImGui::GetDrawData());
+}
 
 void update(const download_state &s) {
   state_.access([&](download_state &st) { st = s; });
@@ -487,24 +515,9 @@ void show_confirmation(const std::string &title, const std::string &message,
 struct component final : client_component {
   DEFINE_COMPONENT_NAME("download_overlay");
 
-  void post_unpack() override {
-    scheduler::once(setup_present_hook, scheduler::pipeline::async);
-  }
-
   void pre_destroy() override {
-    if (imgui_initialized) {
-      // Restore original WndProc before shutting down
-      if (game_hwnd && original_wndproc)
-        SetWindowLongPtrA(game_hwnd, GWLP_WNDPROC,
-                          reinterpret_cast<LONG_PTR>(original_wndproc));
-
-      imgui_initialized = false;
-      present_hook.disable();
-
-      ImGui_ImplDX11_Shutdown();
-      ImGui_ImplWin32_Shutdown();
-      ImGui::DestroyContext();
-    }
+    shutting_down = true;
+    shutdown_overlay();
   }
 };
 } // namespace download_overlay

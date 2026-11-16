@@ -503,19 +503,83 @@ void join_lobby(const game::net::netadr_t &host,
   const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
   const bool same_mod =
       loaded_mod == host_mod || (host_mod.empty() && loaded_mod == "usermaps");
-  if (game_join_fallback && !same_mod) {
-    fail({});
-    return;
-  }
-
-  if (!workshop::check_valid_mod_id(mod, {}) ||
-      (target == game::lobby::LobbyType::GAME && !map.empty() &&
-       !workshop::check_valid_usermap_id(map, usermap, {}, {}))) {
+  // flag for guest joining a custam map, without usermaps mod loaded
+  // mismatching mod being loaded is handled existing mod mismatch path
+  const bool needs_usermaps =
+      host_mod == "usermaps" && !usermap.empty() && loaded_mod.empty();
+  // for the server connect route parts[0] is set to "match"
+  const bool friend_lobby = parts[0] != "match";
+  // check a named map for GAME lobbies, and for
+  // PRIVATE parties only when host provides a map's workshop id
+  const bool check_map =
+      !map.empty() &&
+      (target == game::lobby::LobbyType::GAME || !usermap.empty());
+  const bool check_friend_map = friend_lobby && check_map;
+  const auto check_selected_map = [&] {
+    return workshop::check_valid_usermap_id(map, usermap, usermap, {});
+  };
+  const auto stop_for_missing_content = [] {
     game_join_fallback = {};
     if (joining.friend_id) {
       friends::remember_browser_route(joining.friend_id, FRIEND_REJOIN_ROUTE);
       workshop::set_pending_download_reconnect(FRIEND_REJOIN_ROUTE);
     }
+  };
+  // check map before a mod mismatch can send the code execution down another fallback path
+  if (check_friend_map && !check_selected_map()) {
+    stop_for_missing_content();
+    return;
+  }
+
+  // if guest is unable to join the host due to mismatching mod and fallback is registered
+  if (game_join_fallback && !same_mod && !needs_usermaps) {
+    fail({});
+    return;
+  }
+
+  // if map or mod validation fails
+  if (!workshop::check_valid_mod_id(mod, {}) ||
+      (!friend_lobby && check_map && !check_selected_map())) {
+    stop_for_missing_content();
+    return;
+  }
+
+  if (needs_usermaps) {
+    const auto request_expiry = lobby_joining.expires;
+    const auto deadline = std::chrono::steady_clock::now() + 20s;
+    // save old callback and clear it
+    const auto fallback = std::exchange(game_join_fallback, {});
+    // load usermaps mod
+    game::ugc::UGC_LoadModByPublisherId_Impl(game::LOCAL_CLIENT_0, "usermaps",
+                                             true);
+    scheduler::schedule(
+        [host, token = parts[0], request_expiry, deadline, fallback] {
+          // dont retry if a newer join is already active
+          // or if a newer lobby request is already is already finished
+          if (joining.active || lobby_joining.active ||
+              lobby_joining.expires != request_expiry) {
+            return scheduler::COND_END;
+          }
+          // once local party exists again, filesystem and asset loads have settled,
+          // and active mod is usermaps, we can try rejoining
+          // re-request lobby before rejoining though, because it may have had time to change meanwhile
+          if (lobby_host_info() &&
+              game::ugc::active_mod->loadState !=
+                  game::ugc::ModLoadState::LOADING &&
+              !workshop::are_xzones_loading() &&
+              std::string_view(game::ugc::UGC_ActiveMod_PublisherId()) ==
+                  "usermaps") {
+            request_lobby(host, token, fallback);
+            return scheduler::COND_END;
+          }
+          if (std::chrono::steady_clock::now() >= deadline) {
+            show_error(
+                "Custom Maps did not finish loading. Try joining again.");
+            return scheduler::COND_END;
+          }
+          return scheduler::COND_CONTINUE;
+        },
+        scheduler::pipeline::main, 250ms);
     return;
   }
 
@@ -683,19 +747,35 @@ void receive_lobby_join(const game::net::netadr_t &sender,
 
   add_peer(peer, sender);
   const std::string mod = workshop::get_mod_publisher_id();
+  // engine's record of custom map that's actually loaded right now
   const game::ugc::UGCItem &active_usermap = *game::ugc::active_usermap;
-  const bool on_usermap = mod == "usermaps" && active_usermap.publisherId[0];
-  const std::string map =
-      on_usermap
-          ? std::string(active_usermap.internalName)
-          : std::string(game::get_dvar_string("ui_mapname").value_or(""));
+  // the currently selected map in menu, maybe not quite yet loaded
+  std::string map(game::get_dvar_string("ui_mapname").value_or(""));
+  std::string usermap_id;
+  if (hosting_match() && active_usermap.publisherId[0]) {
+    // ingame the loaded map is authorative
+    map = active_usermap.internalName[0] ? active_usermap.internalName
+                                         : active_usermap.publisherId;
+    usermap_id = active_usermap.publisherId;
+  } else {
+    // in menus the map picker may have selected a map already,
+    // but engine hasn't yet had time to load the map
+    auto item = game::ugc::UGC_GetUsermapByInternalName(map);
+    if (!item && utils::string::is_numeric(map)) {
+      item = game::ugc::UGC_GetUsermapByPublisherId(map.c_str());
+    }
+    if (item) {
+      usermap_id = item->get().publisherId;
+      if (item->get().internalName[0]) {
+        map = item->get().internalName;
+      }
+    } else if (utils::string::is_numeric(map)) {
+      // if unable to resolve, we can at least preserve the workshop id
+      // so guests can identidy and check the map
+      usermap_id = map;
+    }
+  }
 
-  const game::ugc::OptionalUGCItemRef usermap_item =
-      game::ugc::UGC_GetUsermapByInternalName(map);
-  const std::optional<std::string_view> usermap_id =
-      usermap_item.has_value() ? std::optional(usermap_item->get().publisherId)
-      : on_usermap ? std::optional(std::string_view(active_usermap.publisherId))
-                   : std::nullopt;
   network::send(sender, "lobbyHost",
                 std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0],
                             host->xuid,
@@ -705,7 +785,7 @@ void receive_lobby_join(const game::net::netadr_t &sender,
                             to_hex(&host->secKey, sizeof(host->secKey)),
                             game_lobby ? "game" : "party",
                             mod == "usermaps" ? std::string{} : mod, map,
-                            usermap_id.value_or(""), host->name));
+                            usermap_id, host->name));
 }
 
 bool from_lobby_request(const game::net::netadr_t &sender,

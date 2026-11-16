@@ -1,8 +1,11 @@
 #include <std_include.hpp>
 
+#include "download_overlay.hpp"
+
 #include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 
+#include <utils/concurrency.hpp>
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
 
@@ -18,17 +21,39 @@ using present_t = HRESULT(STDMETHODCALLTYPE *)(IDXGISwapChain *, UINT, UINT);
 using resize_buffers_t = HRESULT(STDMETHODCALLTYPE *)(IDXGISwapChain *, UINT,
                                                       UINT, UINT, DXGI_FORMAT,
                                                       UINT);
-present_t original_present = nullptr;
-resize_buffers_t original_resize_buffers = nullptr;
+struct swap_chain_methods {
+  present_t present;
+  resize_buffers_t resize_buffers;
+};
+
+// Windows can share a vtable across multiple swap chains, and another driver
+// or swap effect can use a different table. Each replacement needs the original
+// methods from its own table. Only the game chain gets the overlay.
+utils::concurrency::container<std::map<void **, swap_chain_methods>> methods;
+std::atomic<IDXGISwapChain *> game_swap_chain{nullptr};
+std::atomic<IDXGISwapChain *> converted_swap_chain{nullptr};
+
+swap_chain_methods get_original_methods(IDXGISwapChain *swap_chain) {
+  auto **vtable = *reinterpret_cast<void ***>(swap_chain);
+  return methods.access<swap_chain_methods>(
+      [vtable](const auto &tables) { return tables.at(vtable); });
+}
 
 utils::hook::detour create_swap_chain_hook;
 
-// Every swap chain shares one vtable, so the stubs also run for swap chains
-// that were never converted and have to check which kind they're handed
+// The same entry point renders the overlay on stock and flip-model chains.
 HRESULT STDMETHODCALLTYPE present_stub(IDXGISwapChain *swap_chain,
                                        const UINT sync_interval, UINT flags) {
-  // Tearing isn't allowed in exclusive fullscreen or on test presents
-  if (sync_interval == 0 && (flags & DXGI_PRESENT_TEST) == 0) {
+  const auto original = get_original_methods(swap_chain);
+  if ((flags & DXGI_PRESENT_TEST) != 0) {
+    return original.present(swap_chain, sync_interval, flags);
+  }
+  if (swap_chain == game_swap_chain.load()) {
+    download_overlay::render_frame(swap_chain);
+  }
+
+  // Tearing is allowed only on a windowed chain created with that flag.
+  if (swap_chain == converted_swap_chain.load() && sync_interval == 0) {
     DXGI_SWAP_CHAIN_DESC desc{};
     BOOL fullscreen = FALSE;
     if (SUCCEEDED(swap_chain->GetDesc(&desc)) &&
@@ -38,7 +63,7 @@ HRESULT STDMETHODCALLTYPE present_stub(IDXGISwapChain *swap_chain,
       flags |= DXGI_PRESENT_ALLOW_TEARING;
     }
   }
-  return original_present(swap_chain, sync_interval, flags);
+  return original.present(swap_chain, sync_interval, flags);
 }
 
 HRESULT STDMETHODCALLTYPE resize_buffers_stub(IDXGISwapChain *swap_chain,
@@ -47,30 +72,42 @@ HRESULT STDMETHODCALLTYPE resize_buffers_stub(IDXGISwapChain *swap_chain,
                                               const DXGI_FORMAT format,
                                               UINT flags) {
   DXGI_SWAP_CHAIN_DESC desc{};
-  if (SUCCEEDED(swap_chain->GetDesc(&desc))) {
+  if (swap_chain == converted_swap_chain.load() &&
+      SUCCEEDED(swap_chain->GetDesc(&desc))) {
     // Resizing has to keep the flags the swap chain was created with
     flags |= desc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
     if (desc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD && count == 1) {
       count = 2;
     }
   }
-  return original_resize_buffers(swap_chain, count, width, height, format,
-                                 flags);
+  return get_original_methods(swap_chain)
+      .resize_buffers(swap_chain, count, width, height, format, flags);
 }
 
-// download_overlay already detours Present, and a second detour on it fails
-void hook_swap_chain(IDXGISwapChain *swap_chain) {
-  void **vtable = *reinterpret_cast<void ***>(swap_chain);
-  if (vtable[SWAP_CHAIN_PRESENT] == reinterpret_cast<void *>(present_stub)) {
-    return;
-  }
-  original_present = reinterpret_cast<present_t>(vtable[SWAP_CHAIN_PRESENT]);
-  original_resize_buffers =
-      reinterpret_cast<resize_buffers_t>(vtable[SWAP_CHAIN_RESIZE_BUFFERS]);
-  utils::hook::set(&vtable[SWAP_CHAIN_PRESENT],
-                   reinterpret_cast<void *>(present_stub));
-  utils::hook::set(&vtable[SWAP_CHAIN_RESIZE_BUFFERS],
-                   reinterpret_cast<void *>(resize_buffers_stub));
+/**
+ * @brief Intercept frame presentation on the swap chain the game created.
+ * @param swap_chain The chain returned by the game's DXGI factory.
+ * @param converted Whether BOIII substituted a flip-model descriptor.
+ */
+void hook_swap_chain(IDXGISwapChain *swap_chain, bool converted) {
+  auto **vtable = *reinterpret_cast<void ***>(swap_chain);
+  methods.access([vtable](auto &tables) {
+    if (tables.contains(vtable)) {
+      return;
+    }
+    // Save the originals before replacing the entries other threads can call.
+    tables.emplace(vtable,
+                   swap_chain_methods{
+                       reinterpret_cast<present_t>(vtable[SWAP_CHAIN_PRESENT]),
+                       reinterpret_cast<resize_buffers_t>(
+                           vtable[SWAP_CHAIN_RESIZE_BUFFERS])});
+    utils::hook::set(&vtable[SWAP_CHAIN_PRESENT],
+                     reinterpret_cast<void *>(present_stub));
+    utils::hook::set(&vtable[SWAP_CHAIN_RESIZE_BUFFERS],
+                     reinterpret_cast<void *>(resize_buffers_stub));
+  });
+  converted_swap_chain = converted ? swap_chain : nullptr;
+  game_swap_chain = swap_chain;
 }
 
 bool can_flip(const DXGI_SWAP_CHAIN_DESC &desc) {
@@ -100,25 +137,29 @@ HRESULT STDMETHODCALLTYPE create_swap_chain_stub(IDXGIFactory *factory,
                                                  IUnknown *device,
                                                  DXGI_SWAP_CHAIN_DESC *desc,
                                                  IDXGISwapChain **swap_chain) {
-  if (desc == nullptr || !can_flip(*desc)) {
-    return create_swap_chain_hook.invoke<HRESULT>(factory, device, desc,
-                                                  swap_chain);
+  if (desc && can_flip(*desc)) {
+    DXGI_SWAP_CHAIN_DESC flip = *desc;
+    flip.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    flip.BufferCount = std::max(desc->BufferCount, 2u);
+    if (tearing_supported) {
+      flip.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    }
+
+    const HRESULT result = create_swap_chain_hook.invoke<HRESULT>(
+        factory, device, &flip, swap_chain);
+    if (SUCCEEDED(result)) {
+      hook_swap_chain(*swap_chain, true);
+      return result;
+    }
   }
 
-  DXGI_SWAP_CHAIN_DESC flip = *desc;
-  flip.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-  flip.BufferCount = std::max(desc->BufferCount, 2u);
-  if (tearing_supported) {
-    flip.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+  // The overlay also needs to run in exclusive fullscreen, with
+  // -noflipmodel, and when the driver rejects flip-model creation.
+  const HRESULT result =
+      create_swap_chain_hook.invoke<HRESULT>(factory, device, desc, swap_chain);
+  if (SUCCEEDED(result)) {
+    hook_swap_chain(*swap_chain, false);
   }
-
-  const HRESULT result = create_swap_chain_hook.invoke<HRESULT>(
-      factory, device, &flip, swap_chain);
-  if (FAILED(result)) {
-    return create_swap_chain_hook.invoke<HRESULT>(factory, device, desc,
-                                                  swap_chain);
-  }
-  hook_swap_chain(*swap_chain);
   return result;
 }
 

@@ -1,12 +1,17 @@
 #include <std_include.hpp>
 
+#include "lobby.hpp"
+
+#include <game/impl/ugc/ugc.hpp>
 #include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 
-#include "network.hpp"
 #include "party.hpp"
+#include "scheduler.hpp"
+#include "workshop/workshop.hpp"
 
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 namespace lobby {
 using namespace game;
@@ -55,6 +60,54 @@ void server_status_not_running_stub(session::LobbyGameData *gameData) {
   }
 }
 
+struct map_selection {
+  XUID host;
+  std::string name;
+  std::string id;
+  std::shared_ptr<std::atomic<bool>> queued;
+};
+
+std::optional<map_selection> offered_usermap;
+
+/**
+ * @brief Find the private match session for the local guest in the frontend
+ * @return The active game session, or nullptr if it is unavailable
+ */
+const session::LobbySession *private_match_guest_session() {
+  // distinguish between a guest in a private match lobby vs a host running it
+  if (!com::Com_IsRunningUILevel() || party::cl_connected_to_dedi.get_bool() ||
+      !client::LobbyClient_IsActive(LobbyType::GAME) ||
+      client::LobbyClient_IsHost(LobbyType::GAME)) {
+    return nullptr;
+  }
+
+  const auto *session = client::LobbyClientData_GetSession(LobbyType::GAME);
+  // game data may be unavailable while the session is recovering
+  if (!session || session->mode != LobbyMode::CUSTOM || session->inRecovery ||
+      session->lobbyData.type == nullptr ||
+      *session->lobbyData.type != LobbyType::GAME) {
+    return nullptr;
+  }
+  return session;
+}
+
+/**
+ * @brief Check whether the guest needs usermaps for the selected map
+ * @return True if the guest has the map installed and has no active mod
+ */
+bool guest_should_load_usermaps() {
+  const auto *session = private_match_guest_session();
+  if (!session || ugc::UGC_ActiveMod_PublisherId()[0]) {
+    return false;
+  }
+
+  const auto &game_data = session->lobbyData.lobbyGame;
+  // lobby can indentify the map by internal name or workshop id
+  // only queue a mod load for an installed map
+  return workshop::has_usermap(game_data.mapName) ||
+         workshop::has_usermap(game_data.ugcInfo.publisherId);
+}
+
 utils::hook::detour connect_from_lobby_hook;
 void connect_from_lobby_stub(ControllerIndex_t controllerIndex,
                              net::XSESSION_INFO *hostInfo,
@@ -91,6 +144,115 @@ session::SessionClient *add_client_at_position_stub(
       joinOrder, reason);
 }
 } // namespace
+
+bool offer_missing_guest_usermap(std::string_view id) {
+  // lobby VM can identify a usermap as "usermaps/<Workshop ID>"
+  constexpr std::string_view prefix = "usermaps/";
+  if (id.starts_with(prefix)) {
+    id.remove_prefix(prefix.size());
+  }
+  if (!utils::string::is_numeric(id)) {
+    return false;
+  }
+  if (workshop::has_usermap(id)) {
+    return true;
+  }
+
+  // lobby VM can request installation while the native session is
+  // transitioning
+  // workshop id is enough to make the offer
+  const auto *session = private_match_guest_session();
+  const std::string_view map =
+      session ? session->lobbyData.lobbyGame.mapName : id;
+  if (offered_usermap && offered_usermap->id == id) {
+    // failed or canceled download can be retried
+    if (!offered_usermap->queued->load()) {
+      return true;
+    }
+    const auto entries = workshop::queue::list();
+    const auto item =
+        std::ranges::find(entries, id, &workshop::queue::entry::id);
+    if (item != entries.end() &&
+        item->state != workshop::queue::item_state::failed &&
+        item->state != workshop::queue::item_state::cancelled) {
+      return true;
+    }
+  }
+  if (workshop::queue::position(id) < 0 &&
+      !workshop::is_any_download_active()) {
+    auto queued = std::make_shared<std::atomic<bool>>(false);
+    offered_usermap = map_selection{session ? session->host.info.xuid : XUID{},
+                                    std::string(map), std::string(id), queued};
+    workshop::offer_download(ZoneType::USERMAP, map, id,
+                             [queued] { queued->store(true); });
+  }
+  return true;
+}
+
+void refresh_downloaded_usermap_preview() {
+  const auto *session = private_match_guest_session();
+  if (!session || !offered_usermap ||
+      offered_usermap->host != session->host.info.xuid ||
+      offered_usermap->name != session->lobbyData.lobbyGame.mapName ||
+      !ugc::UGC_GetUsermapByPublisherId(offered_usermap->id.c_str())) {
+    return;
+  }
+
+  const auto global = game::ui::UI_Model_GetGlobalModel();
+  if (global) {
+    if (const auto model = game::ui::UI_Model_GetModelFromPath(
+            global, "lobbyRoot.selectedMapId")) {
+      // map selection has not changed, so refresh its image explicitly
+      ugc::UGC_SetMapPreviewImageByPublisherId_Impl(
+          offered_usermap->id.c_str());
+      game::ui::UI_Model_ForceNotify(model);
+    }
+  }
+}
+
+void prepare_guest_usermap() {
+  const auto *session = private_match_guest_session();
+  if (!session) {
+    offered_usermap.reset();
+    return;
+  }
+
+  const auto &map = session->lobbyData.lobbyGame;
+  if (offered_usermap && (offered_usermap->host != session->host.info.xuid ||
+                          offered_usermap->name != map.mapName)) {
+    offered_usermap.reset();
+  }
+
+  // offer the map as soon as the host selects it if the lobby has its ID
+  const std::string_view id = map.ugcInfo.publisherId;
+  if (!workshop::has_usermap(map.mapName)) {
+    offer_missing_guest_usermap(id.empty() ? map.mapName : id);
+  }
+
+  // repeated lobby updates share one pending load
+  static bool scheduled = false;
+  if (scheduled || !guest_should_load_usermaps()) {
+    return;
+  }
+
+  scheduled = true;
+  scheduler::schedule(
+      [] {
+        // read current lobby again, something may have changed
+        if (guest_should_load_usermaps()) {
+          if (ugc::active_mod->loadState == ugc::ModLoadState::LOADING ||
+              workshop::are_xzones_loading()) {
+            return scheduler::COND_CONTINUE;
+          }
+          // load usermaps mod
+          ugc::UGC_LoadModByPublisherId_Impl(LOCAL_CLIENT_0, "usermaps", true);
+        }
+        scheduled = false;
+        return scheduler::COND_END;
+      },
+      scheduler::pipeline::main);
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lobby");
 
