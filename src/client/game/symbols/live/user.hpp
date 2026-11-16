@@ -13,6 +13,8 @@ WEAK symbol<const char *(ControllerIndex_t controllerIndex)>
     LiveUser_GetXuidString{0x141EBA400, 0x0};
 WEAK symbol<const char *(ControllerIndex_t controllerIndex)>
     LiveUser_GetClientName{0x141EBA850, 0x0};
+// Hashed into the XUID by LiveUser_GetXuid on the server
+WEAK symbol<char[256]> s_serverXuidName{0x0, 0x14114D0E0};
 // Initial XUID generation. Value is later fetched by LiveUser_GetXuid
 WEAK symbol<bool(int64_t controllerIndex, XUID *xuid)> LiveUser_UserGetXuid{
     0x141EBABC0, 0x0};

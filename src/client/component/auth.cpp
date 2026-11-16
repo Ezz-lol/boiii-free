@@ -724,6 +724,11 @@ struct component final : generic_component {
       p(0x140475057_g, 0x14047509F_g); // ?
       p(0x140475672_g, 0x1404756B5_g);
       p(0x140477322_g, 0x140477365_g); // ?
+
+      // Dedicated servers leave this name empty, so every server hashed it
+      // into the same XUID and lobby joins collided when switching servers
+      utils::string::copy(*game::live::user::s_serverXuidName,
+                          utils::string::va("%llX", get_guid()));
     } else {
       p(game::live::metplayer::LiveMetPlayer_AddRecent.offset(0xFD),
         game::live::metplayer::LiveMetPlayer_AddRecent.offset(0x14B));
