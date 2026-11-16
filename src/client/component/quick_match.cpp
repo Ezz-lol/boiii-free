@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 
 #include "command.hpp"
+#include "nat.hpp"
+#include "network.hpp"
 #include "party.hpp"
 #include "scheduler.hpp"
 #include "server_list.hpp"
@@ -40,6 +42,7 @@ struct watch {
   std::chrono::steady_clock::time_point next_search;
   bool entered{};
   bool ready{};
+  bool following{};
   bool notified{};
 };
 
@@ -158,7 +161,10 @@ void search_servers(const filter &wanted) {
 
 const game::lobby::session::LobbySession *public_lobby() {
   const game::lobby::session::LobbySession *session =
-      game::lobby::LobbyHostData_GetSession(game::lobby::LobbyType::GAME);
+      watching->following
+          ? game::lobby::client::LobbyClient_GetSession(
+                game::lobby::LobbyType::GAME)
+          : game::lobby::LobbyHostData_GetSession(game::lobby::LobbyType::GAME);
   if (!session ||
       session->active == game::lobby::session::SessionActive::INACTIVE ||
       session->mode != game::lobby::LobbyMode::PUBLIC ||
@@ -195,6 +201,10 @@ void update() {
     return;
   }
   watching->entered = true;
+  // The leader searches and brings its party along
+  if (watching->following) {
+    return;
+  }
 
   const bool ready = everyone_ready(*session);
   if (ready != watching->ready) {
@@ -232,8 +242,32 @@ void start(const command::params &params) {
   watching = std::move(w);
   quickmatch_active.set(true);
 
+  // Party members follow us into the lobby without picking Find Match
+  // themselves, so they need telling to get its ready up
+  if (nat::has_party_members()) {
+    for (const game::net::netadr_t &member : nat::get_lobby_peers()) {
+      network::send(member, "quickMatch", "");
+    }
+  }
+
   toast::show("Find Match", "Ready up to look for a server",
               "t7_icon_connect_overlays");
+}
+
+void follow(const game::net::netadr_t &sender, const network::data_view &,
+            game::LocalClientNum_t) {
+  if (nat::has_party_members() || !nat::is_lobby_peer(sender)) {
+    return;
+  }
+  scheduler::once(
+      [] {
+        watch w{};
+        w.armed_at = std::chrono::steady_clock::now();
+        w.following = true;
+        watching = std::move(w);
+        quickmatch_active.set(true);
+      },
+      scheduler::pipeline::main);
 }
 } // namespace
 
@@ -246,6 +280,7 @@ struct component final : client_component {
         "Find Match is waiting in the public lobby for a server");
     command::add("quickmatch",
                  [](const command::params &params) { start(params); });
+    network::on("quickMatch", follow);
     scheduler::loop(update, scheduler::pipeline::main, 1s);
   }
 };
