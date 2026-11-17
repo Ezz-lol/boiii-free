@@ -108,7 +108,7 @@ void scan_root(const std::filesystem::path &root,
           item.description =
               clean_description(json_string(*doc, {"Description"}));
         }
-        if (!std::ranges::all_of(items, [&](const installed_item &existing) {
+        if (std::ranges::none_of(items, [&](const installed_item &existing) {
               return existing.id == (item.id.empty() ? item.folder : item.id);
             })) {
           if (item.id.empty()) {
