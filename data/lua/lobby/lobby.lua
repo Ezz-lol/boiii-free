@@ -2466,7 +2466,9 @@ local function IsBaseContent(ugcName)
 end
 
 local function IsModLoaded(ugcInfo)
-  return IsBaseContent(ugcInfo and ugcInfo.ugcName) and IsBaseContent(LuaUtils.Mods_UsingModsUgcName())
+  return Engine.DvarBool(nil, "cl_connected_to_dedi")
+      and IsBaseContent(ugcInfo and ugcInfo.ugcName)
+      and IsBaseContent(LuaUtils.Mods_UsingModsUgcName())
     or LuaUtils.Mods_IsModLoaded(ugcInfo)
 end
 
@@ -2495,6 +2497,8 @@ LobbyVM.OnUsermapUpdate = function(usermapInfo, waitForInstall)
     return false
   elseif LuaUtils.Mods_Lists_IsInstalled(usermapInfo.ugcInfo) then
     return false
+  elseif game and game.offercustommap and game.offercustommap(usermapInfo.ugcInfo.ugcName) then
+    return true
   elseif waitForInstall ~= true and Engine.Mods_IsSubscribedItem(usermapInfo.ugcInfo.ugcName) then
     if Engine.Mods_InstalledUGC(usermapInfo.ugcInfo.ugcName) then
       Engine.Mods_Lists_UpdateUsermaps()

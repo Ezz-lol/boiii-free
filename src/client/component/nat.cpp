@@ -505,14 +505,17 @@ void join_lobby(const game::net::netadr_t &host,
   const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
   const bool same_mod =
       loaded_mod == host_mod || (host_mod.empty() && loaded_mod == "usermaps");
-  if (game_join_fallback && !same_mod) {
+  const bool needs_usermaps = host_mod == "usermaps" && loaded_mod.empty();
+  if (needs_usermaps) {
+    game_join_fallback = {};
+  } else if (game_join_fallback && !same_mod) {
     fail({});
     return;
   }
 
   if (!workshop::check_valid_mod_id(mod, {}) ||
       (target == game::lobby::LobbyType::GAME && !map.empty() &&
-       !workshop::check_valid_usermap_id(map, usermap, {}, {}))) {
+       !workshop::check_valid_usermap_id(map, usermap, usermap, {}))) {
     game_join_fallback = {};
     if (joining.friend_id) {
       friends::remember_browser_route(joining.friend_id, FRIEND_REJOIN_ROUTE);
@@ -687,17 +690,23 @@ void receive_lobby_join(const game::net::netadr_t &sender,
   const std::string mod = workshop::get_mod_publisher_id();
   const game::ugc::UGCItem &active_usermap = *game::ugc::active_usermap;
   const bool on_usermap = mod == "usermaps" && active_usermap.publisherId[0];
-  const std::string map =
+  std::string map =
       on_usermap
           ? std::string(active_usermap.internalName)
           : std::string(game::get_dvar_string("ui_mapname").value_or(""));
 
+  const bool numeric_map = utils::string::is_numeric(map.data());
   const game::ugc::OptionalUGCItemRef usermap_item =
-      game::ugc::UGC_GetUsermapByInternalName(map);
-  const std::optional<std::string_view> usermap_id =
-      usermap_item.has_value() ? std::optional(usermap_item->get().publisherId)
-      : on_usermap ? std::optional(std::string_view(active_usermap.publisherId))
-                   : std::nullopt;
+      numeric_map ? game::ugc::UGC_GetUsermapByPublisherId(map.c_str())
+                  : game::ugc::UGC_GetUsermapByInternalName(map);
+  const std::string usermap_id =
+      usermap_item.has_value() ? std::string(usermap_item->get().publisherId)
+      : on_usermap             ? std::string(active_usermap.publisherId)
+      : numeric_map            ? map
+                               : std::string{};
+  if (usermap_item.has_value() && usermap_item->get().internalName[0]) {
+    map = usermap_item->get().internalName;
+  }
   network::send(sender, "lobbyHost",
                 std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0],
                             host->xuid,
@@ -707,7 +716,7 @@ void receive_lobby_join(const game::net::netadr_t &sender,
                             to_hex(&host->secKey, sizeof(host->secKey)),
                             game_lobby ? "game" : "party",
                             mod == "usermaps" ? std::string{} : mod, map,
-                            usermap_id.value_or(""), host->name));
+                            usermap_id, host->name));
 }
 
 bool from_lobby_request(const game::net::netadr_t &sender,

@@ -464,6 +464,21 @@ luaReturnCount_e getworkshopdownload(lua_State *luaVM) {
   });
 }
 
+luaReturnCount_e offercustommap(lua_State *luaVM) {
+  return call(luaVM, [](const std::string &id) -> bool {
+    if (!utils::string::is_numeric(id.data())) {
+      return false;
+    }
+    static std::string offered;
+    if (std::exchange(offered, id) != id) {
+      scheduler::once(
+          [id] { workshop::check_valid_usermap_id(id, id, id, {}); },
+          scheduler::pipeline::async);
+    }
+    return true;
+  });
+}
+
 luaReturnCount_e queueworkshopitem(lua_State *luaVM) {
   return call(luaVM,
               [](const std::string &id, const std::string &kind,
@@ -746,6 +761,7 @@ public:
                                   setworkshopcover>(),
         lua_state::luaL_LoggedReg<"game", "getworkshopdownload",
                                   getworkshopdownload>(),
+        lua_state::luaL_LoggedReg<"game", "offercustommap", offercustommap>(),
         lua_state::luaL_LoggedReg<"game", "queueworkshopitem",
                                   queueworkshopitem>(),
         lua_state::luaL_LoggedReg<"game", "getworkshopqueue",
