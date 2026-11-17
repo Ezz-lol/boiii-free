@@ -3,6 +3,7 @@
 #include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 
+#include "game_event.hpp"
 #include "nat.hpp"
 #include "network.hpp"
 #include "party.hpp"
@@ -100,6 +101,25 @@ session::SessionClient *add_client_at_position_stub(
       lobbyID, probedXuid, qport, localNetID, atPosition, latencyBand, dlcBits,
       joinOrder, reason);
 }
+
+// Free-for-all gives every player a team of their own, which the server's lobby
+// keeps and hands back as the assigned team in the next match. A team the new
+// gametype doesn't have has no spawns, so the match aborts and rotates on
+void clear_unused_lobby_teams() {
+  session::LobbySession *lobbySession =
+      LobbyHostData_GetSession(LobbyType::GAME);
+  const auto team_count = static_cast<team_t>(
+      com::gts::Com_GametypeSettings_GetUInt("teamCount", false));
+  if (!lobbySession || team_count < team_t::TEAM_AXIS) {
+    return;
+  }
+  for (int32_t i = 0; i < MAX_PLAYERS; ++i) {
+    team_t &team = lobbySession->lobbyData.lobbyGame.client[i].team;
+    if (team > team_count && team < team_t::TEAM_SPECTATOR) {
+      team = team_t::TEAM_FREE;
+    }
+  }
+}
 } // namespace
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("lobby");
@@ -123,6 +143,7 @@ public:
       add_client_at_position_hook.create(
           session::LobbySession_AddClientAtPosition.get(),
           add_client_at_position_stub);
+      game_event::on_g_init_game(clear_unused_lobby_teams);
     }
 
     if (game::is_client()) {
