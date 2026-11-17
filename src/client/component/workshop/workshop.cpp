@@ -255,6 +255,18 @@ void CL_SetupForNewServerMap_stub(game::LocalClientNum_t localClientNum,
   CL_SetupForNewServerMap_hook.invoke(localClientNum, map, gametype);
 }
 
+utils::hook::detour LobbyHost_SetMap_hook;
+
+void LobbyHost_SetMap_stub(const char *map_name) {
+  const game::ugc::OptionalUGCItemRef usermap =
+      game::ugc::UGC_GetUsermapByInternalName(map_name ? map_name : "");
+  if (usermap.has_value() &&
+      utils::string::is_numeric(usermap->get().publisherId)) {
+    map_name = usermap->get().publisherId;
+  }
+  LobbyHost_SetMap_hook.invoke(map_name);
+}
+
 // Steam descriptions are BBCode. Only known tags are touched, so text like
 // "[ZM]" survives
 std::string clean_description(const std::string_view &text) {
@@ -1649,6 +1661,8 @@ public:
       CL_SetupForNewServerMap_hook.create(
           game::cl::CL_SetupForNewServerMap.get(),
           CL_SetupForNewServerMap_stub);
+      LobbyHost_SetMap_hook.create(game::lobby::host::LobbyHost_SetMap.get(),
+                                   LobbyHost_SetMap_stub);
 
       utils::hook::call(game::cl::CL_SetupForNewServerMap.offset(0x81),
                         com_error_missing_map_stub);

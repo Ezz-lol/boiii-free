@@ -465,18 +465,17 @@ luaReturnCount_e getworkshopdownload(lua_State *luaVM) {
 }
 
 luaReturnCount_e offercustommap(lua_State *luaVM) {
-  return call(luaVM, [](const std::string &id) -> bool {
-    if (!utils::string::is_numeric(id.data())) {
-      return false;
-    }
-    static std::string offered;
-    if (std::exchange(offered, id) != id) {
-      scheduler::once(
-          [id] { workshop::check_valid_usermap_id(id, id, id, {}); },
-          scheduler::pipeline::async);
-    }
-    return true;
-  });
+  const std::string id = lua_gettop(luaVM) > 0 && lua_isstring(luaVM, 1)
+                             ? lua_tostring(luaVM, 1)
+                             : "";
+  const bool numeric = !id.empty() && utils::string::is_numeric(id);
+  static std::string offered;
+  if (numeric && std::exchange(offered, id) != id) {
+    scheduler::once([id] { workshop::check_valid_usermap_id(id, id, id, {}); },
+                    scheduler::pipeline::async);
+  }
+  lua_pushboolean(luaVM, numeric ? htrue : hfalse);
+  return luaReturnCount_e::ONE;
 }
 
 luaReturnCount_e queueworkshopitem(lua_State *luaVM) {
