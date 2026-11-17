@@ -484,6 +484,11 @@ void show_confirmation(const std::string &title, const std::string &message,
   }
 }
 
+bool confirmation_active() {
+  return confirm_.access<bool>(
+      [](const confirm_state &cstate) { return cstate.active; });
+}
+
 struct component final : client_component {
   DEFINE_COMPONENT_NAME("download_overlay");
 

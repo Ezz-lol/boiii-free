@@ -14,6 +14,7 @@
 #include "ui_scripting.hpp"
 
 #include <component/command.hpp>
+#include <component/download_overlay.hpp>
 #include <component/getinfo.hpp>
 #include <component/scheduler.hpp>
 #include <component/script.hpp>
@@ -33,6 +34,7 @@
 #include <cmath>
 #include <filesystem>
 #include <unordered_map>
+#include <unordered_set>
 
 using namespace game::db;
 using namespace game::db::xasset;
@@ -980,14 +982,65 @@ void hook_unsafe_function(const game::base_symbol<T> &sym) {
 #define HOOK_UNSAFE_FUNCTION(name, addr) hook_unsafe_function<#name>(addr)
 
 utils::hook::detour Lua_CoD_LuaCall_OpenURL_hook;
+
+std::optional<std::string> external_url_host(const std::string_view &url) {
+  constexpr std::string_view scheme = "https://";
+  if (url.size() > 512 || !url.starts_with(scheme) ||
+      !std::ranges::all_of(url, [](const unsigned char c) {
+        return c > 0x20 && c < 0x7f && c != '\\' && c != '"';
+      })) {
+    return std::nullopt;
+  }
+  const std::string_view host =
+      url.substr(scheme.size(), url.find_first_of("/?#", scheme.size()) -
+                                    scheme.size());
+  if (host.find('.') == std::string_view::npos || host.front() == '.' ||
+      host.back() == '.' || !std::ranges::all_of(host, [](const char c) {
+        return std::isalnum(static_cast<unsigned char>(c)) || c == '.' ||
+               c == '-';
+      })) {
+    return std::nullopt;
+  }
+  return std::string(host);
+}
+
+luaReturnCount_e open_url_stub(lua_State *luaVM) {
+  static std::unordered_set<std::string> declined;
+  static std::atomic<bool> pending{false};
+  if (!game::is_client() || lua_gettop(luaVM) < 1 || !lua_isstring(luaVM, 1)) {
+    return luaReturnCount_e::NONE;
+  }
+  const std::string url = lua_tostring(luaVM, 1);
+  const std::optional<std::string> host = external_url_host(url);
+  if (!host || declined.contains(url) ||
+      download_overlay::confirmation_active() || pending.exchange(true)) {
+    return luaReturnCount_e::NONE;
+  }
+  download_overlay::show_confirmation(
+      "Open link?",
+      std::format("Open this link in your browser?\n\n{}\n\n"
+                  "Website: {}",
+                  url, *host),
+      [url] {
+        pending = false;
+        scheduler::once(
+            [url] {
+              ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr,
+                            SW_SHOWNORMAL);
+            },
+            scheduler::pipeline::async);
+      },
+      [url] {
+        pending = false;
+        scheduler::once([url] { declined.insert(url); },
+                        scheduler::pipeline::main);
+      });
+  return luaReturnCount_e::NONE;
+}
+
 void patch_unsafe_lua_functions() {
-  /*
-     Disable the `OpenURL` API function. This is never required for in-game
-     functionality, and has historically almost always been used for obnoxious
-     advertising.
-  */
   Lua_CoD_LuaCall_OpenURL_hook.create(api::Lua_CoD_LuaCall_OpenURL,
-                                      lua_stub_func);
+                                      open_url_stub);
 
   if (utils::flags::has_flag("unsafe-lua")) {
     unsafe_lua_approved_for_session.store(true, std::memory_order_release);
