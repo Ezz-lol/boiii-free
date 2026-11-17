@@ -52,6 +52,7 @@ std::string catalog_query;
 game::ZoneType catalog_type;
 std::string catalog_sort;
 std::atomic<uint64_t> catalog_request{0};
+std::chrono::steady_clock::time_point catalog_failed_at{};
 std::unordered_map<std::string, uint64_t> known_sizes;
 
 std::mutex preview_mutex;
@@ -406,7 +407,9 @@ void request_catalog_page(const std::string_view &query, int page,
     std::scoped_lock lock(catalog_mutex);
     if (catalog_query == query && catalog_type == type &&
         catalog_sort == sort && status.page == page &&
-        (status.loading || !catalog_items.empty() || !status.error.empty())) {
+        (status.loading || !catalog_items.empty() ||
+         (!status.error.empty() &&
+          std::chrono::steady_clock::now() - catalog_failed_at < 10s))) {
       return;
     }
     catalog_query = query;
@@ -423,7 +426,16 @@ void request_catalog_page(const std::string_view &query, int page,
   const uint64_t request = ++catalog_request;
   std::thread([query = std::string(query), type, sort = std::string(sort), page,
                request] {
-    std::vector<item_details> items = fetch_page(page, query, type, sort);
+    std::vector<item_details> items;
+    for (int attempt = 0; attempt < 3 && request == catalog_request; ++attempt) {
+      if (attempt) {
+        std::this_thread::sleep_for(2s);
+      }
+      items = fetch_page(page, query, type, sort);
+      if (!items.empty()) {
+        break;
+      }
+    }
     // Items tagged both Map and Mod would otherwise be hidden on one tab
     for (item_details &item : items) {
       item.type = type;
@@ -440,6 +452,7 @@ void request_catalog_page(const std::string_view &query, int page,
                                                     : "No search results.")
                                    : "";
       ++status.generation;
+      catalog_failed_at = std::chrono::steady_clock::now();
       catalog_items = std::move(items);
     }
   }).detach();
