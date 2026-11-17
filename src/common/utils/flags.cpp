@@ -133,6 +133,10 @@ int32_t parse_flags(int argc, char *argv[]) {
             "pre-checks")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-no-mod-update", "--no-mod-update")
+      .help("Don't update the dedicated server's Workshop mod on startup")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-noupdate", "--noupdate")
       .help("Disable automatic updates (not recommended)")
       .default_value(false)

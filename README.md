@@ -201,6 +201,7 @@ Launch BOIII with these arguments for extra features:
 | `-port XXXX`          | Set server port (default: 27017).                                                                                                                                                                                                            |
 | `-launch`             | Start the game immediately, skipping some launcher UI and pre-checks.                                                                                                                                                                        |
 | `-noupdate`           | Disable automatic updates (not recommended).                                                                                                                                                                                                 |
+| `-no-mod-update`      | Dedicated server: don't update the `fs_game` Workshop mod on startup.                                                                                                                                                                        |
 | `-update`             | Force enable updates (including host binary in debug builds).                                                                                                                                                                                |
 | `-norelaunch`         | Skip automatic relaunch after updates.                                                                                                                                                                                                       |
 | `-headless`           | Run in headless mode (no GUI).                                                                                                                                                                                                               |
@@ -289,6 +290,11 @@ and overall preferred approach.
    ```
 
 6. **Monitor** the console for any errors
+
+   When `fs_game` is set to a Workshop mod ID (for example
+   `+set fs_game 2631943123`), the server checks the Steam Workshop on startup
+   and updates the mod in `mods/` if a newer version is out. Add
+   `-no-mod-update` to turn this off.
 
 ### Connection
 

@@ -1145,6 +1145,59 @@ void watch_server_content() {
       scheduler::pipeline::main, 5s);
 }
 
+std::string command_line_mod() {
+  int32_t count = 0;
+  LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &count);
+  if (!argv) {
+    return {};
+  }
+  std::string mod;
+  for (int32_t i = 0; i + 2 < count; ++i) {
+    if ((_wcsicmp(argv[i], L"+set") == 0 || _wcsicmp(argv[i], L"+seta") == 0) &&
+        _wcsicmp(argv[i + 1], L"fs_game") == 0) {
+      mod = utils::string::convert(argv[i + 2]);
+    }
+  }
+  LocalFree(argv);
+  return mod;
+}
+
+void update_server_mod() {
+  const std::string mod = command_line_mod();
+  if (!utils::string::is_numeric(mod)) {
+    return;
+  }
+
+  const std::filesystem::path folder = find_installed(mod);
+  if (folder.empty() ||
+      folder.parent_path() != game::get_game_path() / "mods") {
+    return;
+  }
+
+  const std::vector<item_details> details = get_details({mod});
+  const std::uint64_t local = newest_write_time(folder);
+  if (details.empty() || !local || local >= details[0].time_updated) {
+    return;
+  }
+
+  printf("[ Workshop ] Updating mod '%s' (%s) from the Steam Workshop...\n",
+         details[0].title.c_str(), mod.c_str());
+  int32_t last_percent = -1;
+  download_job job{mod, game::ZoneType::MOD, nullptr, nullptr, {}};
+  job.report = [&](const download_status &status) {
+    if (!status.total) {
+      return;
+    }
+    const int32_t percent =
+        static_cast<int32_t>(status.downloaded * 100 / status.total);
+    if (percent / 10 != last_percent / 10) {
+      last_percent = percent;
+      printf("[ Workshop ] %d%%\n", percent);
+    }
+  };
+  printf("[ Workshop ] %s\n", describe(download_item(job)));
+}
+
 workshop_info get_steam_workshop_info(const std::string_view &workshop_id) {
   workshop_info info{};
   if (workshop_id.empty())
@@ -1667,6 +1720,9 @@ public:
       utils::hook::call(game::cl::CL_SetupForNewServerMap.offset(0x81),
                         com_error_missing_map_stub);
     } else {
+      if (!utils::flags::has_flag("no-mod-update")) {
+        update_server_mod();
+      }
       watch_server_content();
     }
   }
