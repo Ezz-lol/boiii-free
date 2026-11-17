@@ -26,6 +26,8 @@ WEAK symbol<bool(const char *str, netadr_t *adr)> NET_StringToAdr{0x142119CC0,
 WEAK symbol<bool(netsrc_t sock, netadr_t *adr, const char *data)>
     NET_OutOfBandPrint{0x14211AC50, 0x140515D90};
 WEAK symbol<uint16_t()> NET_GetDefaultPort{0x142119C60, 0x0};
+// Gives Demonware this PC's IP and net_port as its own address when it starts
+WEAK symbol<int32_t(void *startParams)> NET_GetLocalAddrs{0x0, 0x140597080};
 WEAK symbol<bool(const netadr_t *a, const netadr_t *b)> NetAdr_Compare{
     0x142119DB0, 0x140515200};
 WEAK symbol<bool(const netadr_t *a, const netadr_t *b)> NetAdr_CompareIP{

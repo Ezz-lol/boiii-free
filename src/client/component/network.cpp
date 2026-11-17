@@ -100,12 +100,11 @@ bool socket_set_blocking(const SOCKET sock, const bool blocking) {
   return ioctlsocket(sock, FIONBIO, &mode) == 0;
 }
 
-uint16_t first_free_port() {
-  constexpr uint16_t BASE_PORT = 27017;
+uint16_t first_free_port(const uint16_t base_port) {
   WSADATA wsa_data{};
   WSAStartup(MAKEWORD(2, 2), &wsa_data);
   const auto _ = gsl_lite::finally([] { WSACleanup(); });
-  for (uint16_t port = BASE_PORT; port < BASE_PORT + 10; ++port) {
+  for (uint16_t port = base_port; port < base_port + 10; ++port) {
     const SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -118,7 +117,36 @@ uint16_t first_free_port() {
       return port;
     }
   }
-  return BASE_PORT;
+  return base_port;
+}
+
+uint16_t first_free_client_port() { return first_free_port(27017); }
+
+void print_port_in_use_warning(const uint16_t wanted_port,
+                               const uint16_t port) {
+  printf("[WARNING] Port %u is already in use, so the server is running on "
+         "port %u instead. Players, port forwarding and admin tools set to "
+         "port %u won't reach it.\n",
+         static_cast<uint32_t>(wanted_port), static_cast<uint32_t>(port),
+         static_cast<uint32_t>(wanted_port));
+}
+
+// Demonware takes the server's own address from net_port when it starts,
+// before our socket is bound. If the port is taken, our socket falls back to
+// the next one, but players would still be given net_port for the server's
+// lobby, which on the same PC is the game's own port. So move net_port first
+int32_t dw_server_port_stub([[maybe_unused]] game::EngineDependentDvar dvar) {
+  if (bound_port) {
+    return bound_port;
+  }
+  const uint16_t port = first_free_port(game::port());
+  if (port != game::port()) {
+    print_port_in_use_warning(game::port(), port);
+    auto *net_port = game::net_port->sv->resolve();
+    (void)net_port->current().set(static_cast<int32_t>(port));
+    (void)net_port->latched().set(static_cast<int32_t>(port));
+  }
+  return port;
 }
 
 void create_ip_socket() {
@@ -163,13 +191,7 @@ void create_ip_socket() {
     printf("[NET] Socket bound on port %u\n", static_cast<uint32_t>(port - 1));
     if (game::is_server()) {
       if (bound_port != wanted_port) {
-        printf(
-            "[WARNING] Port %u is already in use, so the server is running on "
-            "port %u instead. Players, port forwarding and admin tools set to "
-            "port %u won't reach it.\n",
-            static_cast<uint32_t>(wanted_port),
-            static_cast<uint32_t>(bound_port.load()),
-            static_cast<uint32_t>(wanted_port));
+        print_port_in_use_warning(wanted_port, bound_port);
       }
     } else {
       *game::net::server_ip_socket = sock;
@@ -467,6 +489,9 @@ struct component final : generic_component {
         static_cast<uint8_t>(game::net::netadrtype_t::RAWIP));
 
     if (game::is_server()) {
+      utils::hook::call(game::net::NET_GetLocalAddrs.offset(0x127),
+                        dw_server_port_stub);
+
       // Remove restrictions for rcon commands
       utils::hook::call(0x140538D5C_g,
                         con_restricted_execute_buf_stub); // SVC_RemoteCommand
@@ -485,7 +510,8 @@ struct component final : generic_component {
       utils::hook::set<uint8_t>(game::select(0x14134D11B, 0x0), 0xEB);
 
       if (game::is_client()) {
-        utils::hook::jump(game::net::NET_GetDefaultPort.get(), first_free_port);
+        utils::hook::jump(game::net::NET_GetDefaultPort.get(),
+                          first_free_client_port);
       }
     }
 
