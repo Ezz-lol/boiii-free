@@ -3,8 +3,8 @@
 #include "scheduler.hpp"
 #include <loader/component_loader.hpp>
 
-#include "imgui_overlay.hpp"
 #include "gpu.hpp"
+#include "imgui_overlay.hpp"
 #include "workshop/workshop.hpp"
 
 #include <utils/concurrency.hpp>

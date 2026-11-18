@@ -427,7 +427,8 @@ void request_catalog_page(const std::string_view &query, int page,
   std::thread([query = std::string(query), type, sort = std::string(sort), page,
                request] {
     std::vector<item_details> items;
-    for (int attempt = 0; attempt < 3 && request == catalog_request; ++attempt) {
+    for (int attempt = 0; attempt < 3 && request == catalog_request;
+         ++attempt) {
       if (attempt) {
         std::this_thread::sleep_for(2s);
       }

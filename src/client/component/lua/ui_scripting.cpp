@@ -14,8 +14,8 @@
 #include "ui_scripting.hpp"
 
 #include <component/command.hpp>
-#include <component/imgui_overlay.hpp>
 #include <component/getinfo.hpp>
+#include <component/imgui_overlay.hpp>
 #include <component/scheduler.hpp>
 #include <component/script.hpp>
 #include <component/toast.hpp>
@@ -991,9 +991,8 @@ std::optional<std::string> external_url_host(const std::string_view &url) {
       })) {
     return std::nullopt;
   }
-  const std::string_view host =
-      url.substr(scheme.size(), url.find_first_of("/?#", scheme.size()) -
-                                    scheme.size());
+  const std::string_view host = url.substr(
+      scheme.size(), url.find_first_of("/?#", scheme.size()) - scheme.size());
   if (host.find('.') == std::string_view::npos || host.front() == '.' ||
       host.back() == '.' || !std::ranges::all_of(host, [](const char c) {
         return std::isalnum(static_cast<unsigned char>(c)) || c == '.' ||
@@ -1012,8 +1011,8 @@ luaReturnCount_e open_url_stub(lua_State *luaVM) {
   }
   const std::string url = lua_tostring(luaVM, 1);
   const std::optional<std::string> host = external_url_host(url);
-  if (!host || declined.contains(url) ||
-      imgui_overlay::confirmation_active() || pending.exchange(true)) {
+  if (!host || declined.contains(url) || imgui_overlay::confirmation_active() ||
+      pending.exchange(true)) {
     return luaReturnCount_e::NONE;
   }
   imgui_overlay::show_confirmation(

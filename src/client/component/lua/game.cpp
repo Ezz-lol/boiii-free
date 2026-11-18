@@ -5,10 +5,10 @@
 
 #include <component/currency.hpp>
 #include <component/discord.hpp>
-#include <component/imgui_overlay.hpp>
 #include <component/friends.hpp>
 #include <component/getinfo.hpp>
 #include <component/gpu.hpp>
+#include <component/imgui_overlay.hpp>
 #include <component/lua/lua_state.hpp>
 #include <component/name.hpp>
 #include <component/network.hpp>

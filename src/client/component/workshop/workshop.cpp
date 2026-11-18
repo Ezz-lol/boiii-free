@@ -12,8 +12,8 @@
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 
-#include <component/imgui_overlay.hpp>
 #include <component/fastdl.hpp>
+#include <component/imgui_overlay.hpp>
 #include <component/network.hpp>
 #include <component/party.hpp>
 #include <component/path.hpp>
