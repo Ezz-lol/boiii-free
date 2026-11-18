@@ -3,7 +3,7 @@
 #include "scheduler.hpp"
 #include <loader/component_loader.hpp>
 
-#include "download_overlay.hpp"
+#include "imgui_overlay.hpp"
 #include "gpu.hpp"
 #include "workshop/workshop.hpp"
 
@@ -18,7 +18,7 @@
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg,
                                               WPARAM wParam, LPARAM lParam);
 
-namespace download_overlay {
+namespace imgui_overlay {
 namespace {
 utils::concurrency::container<download_state> state_{};
 utils::hook::detour present_hook{};
@@ -428,7 +428,7 @@ void setup_present_hook() {
   sd.OutputWindow = dummy_hwnd;
   sd.SampleDesc.Count = 1;
   sd.Windowed = TRUE;
-  sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+  sd.SwapEffect = DXGI_SWAP_EFFECT_SEQUENTIAL;
 
   ID3D11Device *dummy_device = nullptr;
   ID3D11DeviceContext *dummy_context = nullptr;
@@ -490,7 +490,7 @@ bool confirmation_active() {
 }
 
 struct component final : client_component {
-  DEFINE_COMPONENT_NAME("download_overlay");
+  DEFINE_COMPONENT_NAME("imgui_overlay");
 
   void post_unpack() override {
     scheduler::once(setup_present_hook, scheduler::pipeline::async);
@@ -512,6 +512,6 @@ struct component final : client_component {
     }
   }
 };
-} // namespace download_overlay
+} // namespace imgui_overlay
 
-REGISTER_COMPONENT(download_overlay::component)
+REGISTER_COMPONENT(imgui_overlay::component)

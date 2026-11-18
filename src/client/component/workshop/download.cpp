@@ -4,7 +4,7 @@
 #include "workshop.hpp"
 #include <loader/component_loader.hpp>
 
-#include <component/download_overlay.hpp>
+#include <component/imgui_overlay.hpp>
 #include <component/scheduler.hpp>
 #include <component/toast.hpp>
 
@@ -136,7 +136,7 @@ download_result run_download(const std::string_view &id, game::ZoneType type,
 
   download_job job{std::string(id), type, &cancel_requested, nullptr, {}};
   job.report = [&](const download_status &status) {
-    download_overlay::download_state state;
+    imgui_overlay::download_state state;
     state.active = true;
     state.hidden = !show_overlay;
     state.item_name = title;
@@ -152,12 +152,12 @@ download_result run_download(const std::string_view &id, game::ZoneType type,
           human_readable_size(status.total) +
           (status.message.empty() ? "" : " | " + status.message);
     }
-    download_overlay::update(state);
+    imgui_overlay::update(state);
   };
   job.report({"Connecting to Steam..."});
 
   const download_result result = download_item(job);
-  download_overlay::clear();
+  imgui_overlay::clear();
   downloading_workshop_item = false;
 
   if (result == download_result::success) {
@@ -170,7 +170,7 @@ download_result run_download(const std::string_view &id, game::ZoneType type,
     scheduler::once(
         [title, reconnect, more] {
           if (!reconnect.empty() && !more) {
-            download_overlay::show_confirmation(
+            imgui_overlay::show_confirmation(
                 "Download Complete",
                 title + " downloaded successfully!\n\nDo you want to connect "
                         "to the server?",

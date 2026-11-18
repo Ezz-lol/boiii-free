@@ -404,7 +404,7 @@ void perform_download(const std::shared_ptr<download_context> &context) {
     const std::shared_ptr<std::promise<bool>> answer =
         std::make_shared<std::promise<bool>>();
     std::future<bool> accepted = answer->get_future();
-    download_overlay::show_confirmation(
+    imgui_overlay::show_confirmation(
         std::format("FastDL - {} Download", game::toString(context->type)),
         utils::string::va(
             "You don't have this content. Would you like to download "
@@ -487,7 +487,7 @@ void fastdl_ui::done_update() {
   this->downloaded_files_.clear();
   this->downloading_files_.clear();
 
-  download_overlay::clear();
+  imgui_overlay::clear();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 }
@@ -537,7 +537,7 @@ void fastdl_ui::update_progress() {
       "File %zu/%zu: %s", this->get_downloaded_files() + 1,
       this->get_total_files(), this->current_filename_.c_str());
   ui.on_cancel = [] { cancel_download(); };
-  download_overlay::update(ui);
+  imgui_overlay::update(ui);
 }
 
 void fastdl_ui::update_file_name() {

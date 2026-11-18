@@ -1,6 +1,6 @@
 #pragma once
 
-#include "download_overlay.hpp"
+#include "imgui_overlay.hpp"
 #include <future>
 #include <updater/file_info.hpp>
 #include <updater/progress_listener.hpp>
@@ -77,7 +77,7 @@ public:
   }
 
 private:
-  download_overlay::download_state ui;
+  imgui_overlay::download_state ui;
   mutable std::recursive_mutex mutex_;
   std::vector<updater::file_info> total_files_{};
   std::vector<updater::file_info> downloaded_files_{};

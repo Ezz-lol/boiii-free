@@ -14,7 +14,7 @@
 #include "ui_scripting.hpp"
 
 #include <component/command.hpp>
-#include <component/download_overlay.hpp>
+#include <component/imgui_overlay.hpp>
 #include <component/getinfo.hpp>
 #include <component/scheduler.hpp>
 #include <component/script.hpp>
@@ -1013,10 +1013,10 @@ luaReturnCount_e open_url_stub(lua_State *luaVM) {
   const std::string url = lua_tostring(luaVM, 1);
   const std::optional<std::string> host = external_url_host(url);
   if (!host || declined.contains(url) ||
-      download_overlay::confirmation_active() || pending.exchange(true)) {
+      imgui_overlay::confirmation_active() || pending.exchange(true)) {
     return luaReturnCount_e::NONE;
   }
-  download_overlay::show_confirmation(
+  imgui_overlay::show_confirmation(
       "Open link?",
       std::format("Open this link in your browser?\n\n{}\n\n"
                   "Website: {}",

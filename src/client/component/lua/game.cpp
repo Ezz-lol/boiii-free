@@ -5,7 +5,7 @@
 
 #include <component/currency.hpp>
 #include <component/discord.hpp>
-#include <component/download_overlay.hpp>
+#include <component/imgui_overlay.hpp>
 #include <component/friends.hpp>
 #include <component/getinfo.hpp>
 #include <component/gpu.hpp>
@@ -445,7 +445,7 @@ luaReturnCount_e setworkshopcover(lua_State *luaVM) {
 
 luaReturnCount_e getworkshopdownload(lua_State *luaVM) {
   return call(luaVM, []() -> table {
-    const auto state = download_overlay::get_state();
+    const auto state = imgui_overlay::get_state();
     table row{};
     row.set("active", state.active);
     row.set("id", workshop::queue::current_id());

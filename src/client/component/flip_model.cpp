@@ -58,7 +58,7 @@ HRESULT STDMETHODCALLTYPE resize_buffers_stub(IDXGISwapChain *swap_chain,
                                  flags);
 }
 
-// download_overlay already detours Present, and a second detour on it fails
+// imgui_overlay already detours Present, and a second detour on it fails
 void hook_swap_chain(IDXGISwapChain *swap_chain) {
   void **vtable = *reinterpret_cast<void ***>(swap_chain);
   if (vtable[SWAP_CHAIN_PRESENT] == reinterpret_cast<void *>(present_stub)) {

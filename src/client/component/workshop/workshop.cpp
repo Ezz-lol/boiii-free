@@ -12,7 +12,7 @@
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 
-#include <component/download_overlay.hpp>
+#include <component/imgui_overlay.hpp>
 #include <component/fastdl.hpp>
 #include <component/network.hpp>
 #include <component/party.hpp>
@@ -1225,7 +1225,7 @@ void offer_download(game::ZoneType zoneType, const std::string_view &name,
   if (info.file_size > 0)
     message += "Size: " + human_readable_size(info.file_size) + "\n";
   message += "\nDo you want to download it from the Steam Workshop?";
-  download_overlay::show_confirmation(
+  imgui_overlay::show_confirmation(
       std::format("Download {}?", game::toString(zoneType)), message,
       [id = std::string(workshop_id), zoneType] {
         start_download(id, zoneType);
@@ -1268,7 +1268,7 @@ bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
               toast::success("Download finished", title + " is ready.");
               return;
             }
-            download_overlay::show_confirmation(
+            imgui_overlay::show_confirmation(
                 "Download Complete",
                 title +
                     " downloaded successfully!\n\nDo you want to connect to "
@@ -1316,7 +1316,7 @@ void report_version_mismatch(game::ZoneType zoneType,
   if (local_built && server_built > local_built &&
       utils::string::is_numeric(workshop_id.data())) {
     const std::string id(workshop_id);
-    download_overlay::show_confirmation(
+    imgui_overlay::show_confirmation(
         std::format("{} update needed", game::toString(zoneType)),
         std::format("This server runs a newer version of the {} than "
                     "yours.\n\nDownload the latest version from the Workshop "

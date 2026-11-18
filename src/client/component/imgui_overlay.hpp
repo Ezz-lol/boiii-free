@@ -3,7 +3,7 @@
 #include <functional>
 #include <string>
 
-namespace download_overlay {
+namespace imgui_overlay {
 struct download_state {
   bool active{false};
   bool hidden{false};
@@ -24,4 +24,4 @@ void show_confirmation(const std::string &title, const std::string &message,
                        std::function<void()> on_yes,
                        std::function<void()> on_no = {});
 bool confirmation_active();
-} // namespace download_overlay
+} // namespace imgui_overlay
