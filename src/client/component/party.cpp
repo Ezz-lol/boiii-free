@@ -897,7 +897,7 @@ struct component final : client_component {
 
     network::on("infoResponse", handle_info_response);
 
-    scheduler::loop(cleanup_queried_servers, scheduler::pipeline::async, 100ms);
+    scheduler::loop(cleanup_queried_servers, scheduler::pipeline::main, 100ms);
     scheduler::loop(update_server_lobby, scheduler::pipeline::main, 500ms);
 
     sv_map_hook.create(game::sv::SV_Map_f.get(),
