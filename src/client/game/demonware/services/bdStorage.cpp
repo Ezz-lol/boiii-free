@@ -29,6 +29,20 @@ bdStorage::bdStorage() : service(10, "bdStorage") {
   this->map_publisher_resource("qosconfig4\\.csv", DW_QOSCONFIG);
 }
 
+std::filesystem::path
+bdStorage::get_user_file_path(const std::filesystem::path &name) {
+  const std::filesystem::path path = BOIII_USER_DIRECTORY / name;
+  if (name != "loadouts_zm") {
+    return path;
+  }
+  const std::filesystem::path kits = path.parent_path() / "loadouts_zm_kits";
+  std::error_code ec;
+  if (!std::filesystem::exists(kits, ec)) {
+    std::filesystem::copy_file(path, kits, ec);
+  }
+  return kits;
+}
+
 void bdStorage::map_publisher_resource(const std::string &expression,
                                        const INT id) {
   std::string data = utils::nt::load_resource(id);

@@ -27,9 +27,7 @@ private:
   void get_user_file_list(service_server *server, byte_buffer *buffer) const;
 
   static constexpr std::string_view BOIII_USER_DIRECTORY = "boiii_players/user";
-  inline static std::filesystem::path
-  get_user_file_path(const std::filesystem::path &name) {
-    return BOIII_USER_DIRECTORY / name;
-  }
+  static std::filesystem::path
+  get_user_file_path(const std::filesystem::path &name);
 };
 } // namespace demonware
