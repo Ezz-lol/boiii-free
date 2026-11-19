@@ -14,6 +14,7 @@
 
 #include <component/fastdl.hpp>
 #include <component/imgui_overlay.hpp>
+#include <component/mod_stack.hpp>
 #include <component/network.hpp>
 #include <component/party.hpp>
 #include <component/path.hpp>
@@ -1480,6 +1481,61 @@ void wait_for_mod_load() {
   }
 }
 
+bool check_valid_mod_stack(const std::string &list) {
+  std::vector<std::string> missing;
+  for (const std::string &mod : utils::string::split(list, ',')) {
+    if (!mod.empty() && !has_mod(mod)) {
+      missing.push_back(mod);
+    }
+  }
+  if (missing.empty()) {
+    return true;
+  }
+
+  if (!std::ranges::all_of(missing, [](const std::string &mod) {
+        return utils::string::is_numeric(mod);
+      })) {
+    const std::string names = utils::string::join(missing, ", ");
+    scheduler::once(
+        [names] {
+          game::ui::UI_OpenErrorPopupWithMessage(
+              game::LOCAL_CLIENT_0, game::errorCode::UI,
+              utils::string::va("This server uses mods that are not on the "
+                                "Steam Workshop: %s\nAsk the server owner "
+                                "where to get them.",
+                                names.c_str()));
+        },
+        scheduler::pipeline::main);
+    return false;
+  }
+
+  scheduler::once(
+      [missing] {
+        std::string message = "This server uses mods you don't have yet:\n";
+        for (const std::string &mod : missing) {
+          const workshop_info info = get_steam_workshop_info(mod);
+          message += "- " + (info.title.empty() ? mod : info.title);
+          if (info.file_size > 0) {
+            message += " (" + human_readable_size(info.file_size) + ")";
+          }
+          message += "\n";
+        }
+        message += "\nDownload them now? You can join once they are all "
+                   "installed.";
+        imgui_overlay::show_confirmation(
+            missing.size() == 1
+                ? std::string("Download mod?")
+                : std::format("Download {} mods?", missing.size()),
+            message, [missing] {
+              for (const std::string &mod : missing) {
+                start_download(mod, game::ZoneType::MOD);
+              }
+            });
+      },
+      scheduler::pipeline::async);
+  return false;
+}
+
 void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
                             const std::string_view &usermap,
                             const std::string_view &mod, bool force_fs_reinit) {
@@ -1491,7 +1547,7 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
       mod == "usermaps" && usermap.empty() && loaded_mod != "usermaps"
           ? std::string_view{}
           : mod;
-  if (loaded_mod != target) {
+  if (loaded_mod != target || !mod_stack::is_loaded()) {
     const bool fs_reinit_required =
         force_fs_reinit ||
         mod_switch_requires_fs_reinitialization(loaded_mod, target);

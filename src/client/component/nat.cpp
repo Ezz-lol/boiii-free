@@ -8,6 +8,7 @@
 #include "auth.hpp"
 #include "friends.hpp"
 #include "getinfo.hpp"
+#include "mod_stack.hpp"
 #include "nat.hpp"
 #include "network.hpp"
 #include "party.hpp"
@@ -460,11 +461,11 @@ void join_lobby(const game::net::netadr_t &host,
   const game::lobby::LobbyType target = parts[5] == "game"
                                             ? game::lobby::LobbyType::GAME
                                             : game::lobby::LobbyType::PRIVATE;
-  std::vector<std::string> content{"", "", ""};
+  std::vector<std::string> content{"", "", "", ""};
   size_t name_index = 6;
   if (parts[6].starts_with("c:")) {
     content = utils::string::split(parts[6].substr(2), ':');
-    content.resize(3);
+    content.resize(4);
     name_index = 7;
   }
   std::string name;
@@ -503,8 +504,10 @@ void join_lobby(const game::net::netadr_t &host,
   const std::string host_mod =
       mod.empty() && !usermap.empty() ? std::string{"usermaps"} : mod;
   const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
-  const bool same_mod =
-      loaded_mod == host_mod || (host_mod.empty() && loaded_mod == "usermaps");
+  mod_stack::set(content[3]);
+  const bool same_mod = (loaded_mod == host_mod ||
+                         (host_mod.empty() && loaded_mod == "usermaps")) &&
+                        mod_stack::is_loaded();
   const bool needs_usermaps = host_mod == "usermaps" && loaded_mod.empty();
   if (needs_usermaps) {
     game_join_fallback = {};
@@ -514,6 +517,7 @@ void join_lobby(const game::net::netadr_t &host,
   }
 
   if (!workshop::check_valid_mod_id(mod, {}) ||
+      !workshop::check_valid_mod_stack(content[3]) ||
       (target == game::lobby::LobbyType::GAME && !map.empty() &&
        !workshop::check_valid_usermap_id(map, usermap, usermap, {}))) {
     game_join_fallback = {};
@@ -708,7 +712,7 @@ void receive_lobby_join(const game::net::netadr_t &sender,
     map = usermap_item->get().internalName;
   }
   network::send(sender, "lobbyHost",
-                std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0],
+                std::format("{} {:x} {} {} {} {} c:{}:{}:{}:{} {}", parts[0],
                             host->xuid,
                             to_hex(host->serializedAdr.addrBuff,
                                    sizeof(host->serializedAdr.addrBuff)),
@@ -716,7 +720,7 @@ void receive_lobby_join(const game::net::netadr_t &sender,
                             to_hex(&host->secKey, sizeof(host->secKey)),
                             game_lobby ? "game" : "party",
                             mod == "usermaps" ? std::string{} : mod, map,
-                            usermap_id, host->name));
+                            usermap_id, mod_stack::serialize(), host->name));
 }
 
 bool from_lobby_request(const game::net::netadr_t &sender,

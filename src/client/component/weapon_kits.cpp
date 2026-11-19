@@ -2,6 +2,8 @@
 
 #include <loader/component_loader.hpp>
 
+#include "weapon_kits.hpp"
+
 #include <utils/hook.hpp>
 
 namespace weapon_kits {
@@ -49,7 +51,6 @@ std::mutex patch_mutex;
 std::unordered_map<const StringTable *, patched_table> patched_tables;
 
 utils::hook::detour bg_unlockables_load_items_hook;
-utils::hook::detour db_link_xasset_entry_hook;
 
 StringTable *find_table(const char *name) {
   return game::db::xasset::DB_FindXAssetHeader(
@@ -233,20 +234,6 @@ void bg_unlockables_load_items_stub(const game::eModes mode) {
   bg_unlockables_load_items_hook.invoke(mode);
 }
 
-game::db::xasset::XAssetEntry *
-db_link_xasset_entry_stub(game::db::xasset::XAssetEntry *entry,
-                          const game::qboolean allow_override) {
-  game::db::xasset::XAssetEntry *linked =
-      db_link_xasset_entry_hook.invoke<game::db::xasset::XAssetEntry *>(
-          entry, allow_override);
-  if (linked &&
-      linked->asset.type == game::db::xasset::XAssetType::STRINGTABLE) {
-    std::scoped_lock lock(patch_mutex);
-    remove_forced_kit_attachments(linked->asset.header.stringTable);
-  }
-  return linked;
-}
-
 void resolve_item_index(const game::weapon::Weapon weapon) {
   auto *def = reinterpret_cast<uint8_t *>(game::bg::BG_GetWeaponDef(weapon));
   if (!def) {
@@ -287,6 +274,13 @@ void replace_build_kit_method(game::scr::builtin::BuiltinMethodDef &method,
 }
 } // namespace
 
+void on_asset_linked(const game::db::xasset::XAssetEntry *entry) {
+  if (entry && entry->asset.type == game::db::xasset::XAssetType::STRINGTABLE) {
+    std::scoped_lock lock(patch_mutex);
+    remove_forced_kit_attachments(entry->asset.header.stringTable);
+  }
+}
+
 class component final : public generic_component {
   DEFINE_COMPONENT_NAME("weapon_kits");
 
@@ -295,8 +289,6 @@ public:
     bg_unlockables_load_items_hook.create(
         game::bg::BG_UnlockablesLoadItems.get(),
         bg_unlockables_load_items_stub);
-    db_link_xasset_entry_hook.create(game::db::load::DB_LinkXAssetEntry.get(),
-                                     db_link_xasset_entry_stub);
 
     auto &methods = *game::scr::builtin::table::gscr::builtin_methods;
     replace_build_kit_method(methods.GetBuildKitWeapon, get_build_kit_weapon,
