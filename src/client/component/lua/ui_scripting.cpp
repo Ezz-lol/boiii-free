@@ -34,7 +34,6 @@
 #include <cmath>
 #include <filesystem>
 #include <unordered_map>
-#include <unordered_set>
 
 using namespace game::db;
 using namespace game::db::xasset;
@@ -1004,14 +1003,14 @@ std::optional<std::string> external_url_host(const std::string_view &url) {
 }
 
 luaReturnCount_e open_url_stub(lua_State *luaVM) {
-  static std::unordered_set<std::string> declined;
+  static std::unordered_map<std::string, int32_t> declined;
   static std::atomic<bool> pending{false};
   if (!game::is_client() || lua_gettop(luaVM) < 1 || !lua_isstring(luaVM, 1)) {
     return luaReturnCount_e::NONE;
   }
   const std::string url = lua_tostring(luaVM, 1);
   const std::optional<std::string> host = external_url_host(url);
-  if (!host || declined.contains(url) || imgui_overlay::confirmation_active() ||
+  if (!host || declined[url] >= 3 || imgui_overlay::confirmation_active() ||
       pending.exchange(true)) {
     return luaReturnCount_e::NONE;
   }
@@ -1031,8 +1030,7 @@ luaReturnCount_e open_url_stub(lua_State *luaVM) {
       },
       [url] {
         pending = false;
-        scheduler::once([url] { declined.insert(url); },
-                        scheduler::pipeline::main);
+        scheduler::once([url] { ++declined[url]; }, scheduler::pipeline::main);
       });
   return luaReturnCount_e::NONE;
 }
