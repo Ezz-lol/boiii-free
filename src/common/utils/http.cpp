@@ -68,6 +68,22 @@ size_t write_callback(void *contents, const size_t size, const size_t nmemb,
   return total_size;
 }
 
+struct limited_buffer {
+  std::string data;
+  size_t max_size{};
+};
+
+size_t write_callback_limited(void *contents, const size_t size,
+                              const size_t nmemb, void *userp) {
+  limited_buffer *buffer = static_cast<limited_buffer *>(userp);
+  const size_t total_size = size * nmemb;
+  if (buffer->data.size() + total_size > buffer->max_size) {
+    return 0;
+  }
+  buffer->data.append(static_cast<char *>(contents), total_size);
+  return total_size;
+}
+
 size_t write_callback_stream(void *contents, const size_t size,
                              const size_t nmemb, void *userp) {
   const size_t total_size = size * nmemb;
@@ -282,5 +298,61 @@ std::future<std::optional<std::string>>
 get_data_async(const std::string_view &url, const headers &headers) {
   return std::async(std::launch::async,
                     [url, headers]() { return get_data(url, headers); });
+}
+response request(const std::string &url, const request_options &options) {
+  response result{};
+  CURL *curl = curl_easy_init();
+  if (!curl) {
+    result.error = "failed to create request";
+    return result;
+  }
+
+  curl_slist *header_list = nullptr;
+  auto _ = gsl_lite::finally([&]() {
+    curl_slist_free_all(header_list);
+    curl_easy_cleanup(curl);
+  });
+
+  for (const auto &[name, value] : options.headers) {
+    const std::string data = name + ": " + value;
+    header_list = curl_slist_append(header_list, data.data());
+  }
+
+  limited_buffer buffer{.max_size = options.max_size};
+
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+  curl_easy_setopt(curl, CURLOPT_URL, url.data());
+  curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
+  curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, options.method.data());
+  if (!options.body.empty() || options.method != "GET") {
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, options.body.data());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE,
+                     static_cast<curl_off_t>(options.body.size()));
+  }
+  if (options.method == "GET") {
+    curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+  }
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_limited);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+  curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "ezz-gsc/1.0");
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT,
+                   static_cast<long>(options.timeout_sec));
+  curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
+
+  const CURLcode code = curl_easy_perform(curl);
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &result.status);
+  result.body = std::move(buffer.data);
+  if (code != CURLE_OK) {
+    result.error = code == CURLE_WRITE_ERROR ? "response too large"
+                                             : curl_easy_strerror(code);
+  }
+  return result;
 }
 } // namespace utils::http

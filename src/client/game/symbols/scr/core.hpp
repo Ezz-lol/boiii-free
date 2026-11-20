@@ -18,6 +18,8 @@ WEAK symbol<scr_const_t> scr_const{0x14A6AA100, 0x147B91CE0};
 WEAK symbol<bool()> Scr_IsModLoaded{0x1420C9420, 0x0};
 WEAK symbol<void(scriptInstance_t inst, int32_t value)> Scr_AddInt{0x1412E9890,
                                                                    0x14016F160};
+WEAK symbol<void(scriptInstance_t inst)> Scr_AddUndefined{0x1412E9DC0,
+                                                          0x14016F690};
 WEAK symbol<const char *(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetString{0x1412EBAC0, 0x140171490};
 WEAK symbol<void(scriptInstance_t inst, const char *value)> Scr_AddString{
@@ -78,6 +80,10 @@ WEAK symbol<void(scriptInstance_t inst, level::gentity_s *ent,
 WEAK symbol<void(level::gentity_s *ent, ScrVarCanonicalName_t stringValue,
                  uint32_t paramcount)>
     Scr_Notify_Canon{0x141B3A130, 0x1402F5FF0};
+WEAK symbol<void(scriptInstance_t inst, LocalClientNum_t localClientNum,
+                 var::ScrVarIndex_t id, ScrVarCanonicalName_t stringValue,
+                 uint32_t paramcount)>
+    Scr_NotifyId{0x1412EC9F0, 0x1401723A0};
 WEAK symbol<uint32_t(scriptInstance_t inst, const char *filename)>
     Scr_LoadScript{0x1412C8410, 0x140156610};
 WEAK symbol<uint8_t> Scr_LoadScript_ScriptNotFoundCall{0x1412C84B2,

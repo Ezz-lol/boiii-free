@@ -11,6 +11,8 @@ can mix styles when it helps.
 - [Hooks](#hooks)
 - [Commands and output](#commands-and-output)
 - [File and data helpers](#file-and-data-helpers)
+- [String helpers](#string-helpers)
+- [Network and database helpers](#network-and-database-helpers)
 - [Date and time helpers](#date-and-time-helpers)
 - [Player helpers](#player-helpers)
 - [HUD text](#hud-text)
@@ -308,31 +310,38 @@ entries = ls("logs", false, false);
 
 Available helpers:
 
-- `jsonvalid(json_string)`
-- `jsonparse(json_string, key)`
-- `jsonset(json_string, key, value_string)`
-- `jsondump(path, json_string)`
+- `jsonparse(json_string)` turns JSON into GSC values: objects become
+  string-indexed arrays, arrays become arrays, `null` becomes `undefined` and
+  `true`/`false` become `1`/`0`. Returns `undefined` if the JSON is invalid.
+- `jsonserialize(value[, indent])` turns any GSC value (arrays, structs,
+  vectors, strings, numbers) into a JSON string.
+- `jsondump(path, value[, indent])` writes a GSC value, or a JSON string as is,
+  to a file.
+- `jsonprint(...)` prints its arguments to the console as JSON.
+- `createmap(key, value, ...)` creates a string-indexed array.
+- `jsonvalid(json_string)` returns true if the string is valid JSON.
+- `jsonparse(json_string, key)` and `jsonset(json_string, key, value_string)`
+  read or set one key of a JSON object string.
 
 Example:
 
 ```gsc
-json = "{}";
-json = jsonset(json, "mode", "\"zm\"");
-json = jsonset(json, "round", "25");
+data = jsonparse("{\"name\":\"bob\",\"kills\":[3,5]}");
+println(data["name"] + " " + data["kills"][1]); // bob 5
 
-if (jsonvalid(json))
-{
-    println("mode = " + jsonparse(json, "mode"));
-    jsondump("logs/state.json", json);
-}
+state = spawnstruct();
+state.round = 25;
+state.players = createmap("bob", 3, "alice", 5);
+println(jsonserialize(state)); // {"round":25,"players":{"bob":3,"alice":5}}
+jsondump("logs/state.json", state, 2);
 ```
 
 Notes:
 
-- `jsonparse` reads one key from a JSON object and returns the value as a
-  string.
-- `jsonset` tries to parse the value as JSON first. If that fails, it stores it
-  as a string.
+- Struct field names come back as their name when the compiler knows it, and as
+  `#<hash>` otherwise.
+- Integers that do not fit in 32 bits come back as strings, so you can use them
+  with the int64 helpers.
 
 ## Int64 helpers
 
@@ -415,6 +424,138 @@ Notes:
 - `getdate` returns `-1` for an unknown field, `strftime` returns `""` for an
   invalid time.
 - Unknown `%` specifiers are printed as-is.
+
+# String helpers
+
+- `strreplace(string, find, replace)` replaces every match.
+- `va(format, ...)` builds a string. Supports `%s`, `%d`/`%i`, `%f`, `%x` and
+  `%%`.
+- `regexmatch(string, pattern)` returns true if the whole string matches.
+- `regexsearch(string, pattern)` returns the first match and its groups as an
+  array (`[0]` is the full match).
+- `regexreplace(string, pattern, replace)` replaces every match. Use `$1`, `$2`
+  for groups.
+- `toupper(string)`, `tolower(string)`, `strstartswith(string, prefix)` and
+  `strendswith(string, suffix)` are added when the game does not already have
+  them.
+
+Regex uses ECMAScript syntax. Patterns are limited to 256 characters and input
+to 4096 characters.
+
+```gsc
+println(va("%s has %d kills", self.name, self.kills));
+parts = regexsearch("key=value", "(\\w+)=(\\w+)");
+println(parts[1] + " -> " + parts[2]); // key -> value
+```
+
+# Network and database helpers
+
+These helpers run in the background, so they never block the server. Each one
+returns an object right away. Wait for its `done` notify to get the result:
+
+```gsc
+req = httpget("https://example.com");
+req waittill("done", result, status, error);
+```
+
+`error` is `undefined` on success, and a message otherwise. They only work in
+server scripts (GSC), not in client scripts (CSC). Results that arrive after the
+map ended are dropped.
+
+> [!IMPORTANT]
+>
+> HTTP and MySQL are always enabled on dedicated servers. On a player's game
+> they are disabled unless BOIII is launched with `-unsafe-gsc-network`, so mods
+> and maps cannot send data over the internet without the player allowing it.
+> SQLite only works with files inside `boiii/scriptdata`, like the file helpers.
+
+## HTTP
+
+- `httpget(url[, headers])`
+- `httppost(url, body[, headers])`
+- `httprequest(url[, options])` where `options` can have `method`, `body`,
+  `headers` and `timeout` (seconds, up to 120).
+
+`headers` is a string-indexed array. The `done` notify passes
+`(body, status, error)`. Only `http://` and `https://` URLs are allowed and
+responses are limited to 1 MB.
+
+```gsc
+headers = [];
+headers["Content-Type"] = "application/json";
+
+body = jsonserialize(createmap("content", self.name + " finished round 50"));
+req = httppost("https://discord.com/api/webhooks/...", body, headers);
+req waittill("done", result, status, error);
+if (isdefined(error))
+{
+    println("webhook failed: " + error);
+}
+```
+
+## SQLite
+
+- `sqlite_query(database, query[, params...])`
+
+`database` is a file path relative to `boiii/scriptdata`. It is created if it
+does not exist. Use `?` for parameters, either as extra arguments or as one
+array. Always use parameters for player input instead of building the query
+string yourself. Several statements separated by `;` can run in one call when
+there are no parameters.
+
+The `done` notify passes `(rows, affected_rows, error)`. `rows` is an array of
+rows, and each row is a string-indexed array of columns. `NULL` columns are left
+out of the row.
+
+```gsc
+db = "stats.db";
+req = sqlite_query(db, "CREATE TABLE IF NOT EXISTS players (guid TEXT PRIMARY KEY, name TEXT, kills INTEGER)");
+req waittill("done", rows, affected, error);
+
+req = sqlite_query(db, "INSERT OR REPLACE INTO players VALUES (?, ?, ?)", self getxuid(), self.name, self.kills);
+req waittill("done", rows, affected, error);
+
+req = sqlite_query(db, "SELECT name, kills FROM players ORDER BY kills DESC LIMIT 5");
+req waittill("done", rows, affected, error);
+foreach (row in rows)
+{
+    println(row["name"] + ": " + row["kills"]);
+}
+```
+
+`ATTACH` and `VACUUM INTO` are blocked so scripts cannot write files outside
+`boiii/scriptdata`.
+
+## MySQL
+
+- `mysql_setconfig(config)` where `config` is a struct or string-indexed array
+  with `host`, `port`, `user`, `password` and `database`. Call it once before
+  the first query. Calling it again reconnects with the new settings.
+- `mysql_query(query[, params...])`
+
+The MySQL client library is not shipped with BOIII. Put `libmariadb.dll` (from
+MariaDB Connector/C) or `libmysql.dll` (from MySQL, together with the
+`libcrypto` and `libssl` DLLs next to it) in the game folder.
+
+Parameters and the `done` notify work like SQLite. Parameters are escaped by the
+MySQL client library before the query is sent.
+
+```gsc
+config = spawnstruct();
+config.host = "127.0.0.1";
+config.port = 3306;
+config.user = "boiii";
+config.password = "secret";
+config.database = "server";
+mysql_setconfig(config);
+
+req = mysql_query("SELECT kills FROM players WHERE guid = ?", self getxuid());
+req waittill("done", rows, affected, error);
+if (!isdefined(error) && rows.size > 0)
+{
+    self.kills = rows[0]["kills"];
+}
+```
 
 # Player helpers
 

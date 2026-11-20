@@ -31,4 +31,20 @@ int get_data_stream(
     uint32_t retries = 2);
 std::future<std::optional<std::string>>
 get_data_async(const std::string_view &url, const headers &headers = {});
+
+struct response {
+  long status{};
+  std::string body;
+  std::string error;
+};
+
+struct request_options {
+  std::string method = "GET";
+  std::string body;
+  headers headers;
+  uint32_t timeout_sec = 30;
+  size_t max_size = 16 * 1024 * 1024;
+};
+
+response request(const std::string &url, const request_options &options);
 } // namespace utils::http

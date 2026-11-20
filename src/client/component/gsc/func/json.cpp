@@ -3,6 +3,7 @@
 #include "func.hpp"
 
 #include "io/fs.hpp"
+#include "script_value.hpp"
 
 #include <game/impl/scr/scr.hpp>
 #include <game/impl/scr/var.hpp>
@@ -18,6 +19,7 @@
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 
+#include <rapidjson/prettywriter.h>
 #include <rapidjson/writer.h>
 
 using namespace game;
@@ -38,11 +40,79 @@ void gscr_jsonvalid(scriptInstance_t inst) {
   }
   rapidjson::Document doc;
   doc.Parse(json_str);
-  push(inst, doc.HasParseError());
+  push(inst, !doc.HasParseError());
+}
+
+std::string serialize(const rapidjson::Value &value, const int indent) {
+  rapidjson::StringBuffer buffer;
+  if (indent > 0) {
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+    writer.SetIndent(' ', static_cast<uint32_t>(std::min(indent, 16)));
+    value.Accept(writer);
+  } else {
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    value.Accept(writer);
+  }
+  return std::string(buffer.GetString(), buffer.GetSize());
+}
+
+int indent_arg(scriptInstance_t inst, const uint32_t index) {
+  return Scr_GetNumParam(inst) > index ? Scr_GetInt(inst, index) : 0;
+}
+
+void gscr_jsonserialize(scriptInstance_t inst) {
+  rapidjson::Document document;
+  const rapidjson::Value value =
+      script_value::read(inst, 0, document.GetAllocator());
+  push_string(inst, serialize(value, indent_arg(inst, 1)));
+}
+
+void gscr_jsonprint(scriptInstance_t inst) {
+  rapidjson::Document document;
+  std::string line;
+  for (uint32_t i = 0; i < Scr_GetNumParam(inst); ++i) {
+    if (i > 0) {
+      line += ' ';
+    }
+    const rapidjson::Value value =
+        script_value::read(inst, i, document.GetAllocator());
+    line +=
+        value.IsString() ? script_value::to_string(value) : serialize(value, 0);
+  }
+  game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
+                        consoleLabel_e::DEFAULT, "%s\n", line.c_str());
+}
+
+void gscr_createmap(scriptInstance_t inst) {
+  rapidjson::Document document(rapidjson::kObjectType);
+  auto &allocator = document.GetAllocator();
+  for (uint32_t i = 0; i + 1 < Scr_GetNumParam(inst); i += 2) {
+    const std::string key =
+        script_value::to_string(script_value::read(inst, i, allocator));
+    document.RemoveMember(key.c_str());
+    document.AddMember(rapidjson::Value(key.c_str(), allocator),
+                       script_value::read(inst, i + 1, allocator), allocator);
+  }
+  script_value::push(inst, document);
+}
+
+void gscr_jsonparse_value(scriptInstance_t inst) {
+  const char *json_str = Scr_GetString(inst, 0);
+  rapidjson::Document document;
+  document.Parse<rapidjson::kParseIterativeFlag>(json_str ? json_str : "");
+  if (document.HasParseError()) {
+    Scr_AddUndefined(inst);
+    return;
+  }
+  script_value::push(inst, document);
 }
 
 // jsonparse(json_string, key), returns value as string
 void gscr_jsonparse(scriptInstance_t inst) {
+  if (Scr_GetNumParam(inst) == 1) {
+    gscr_jsonparse_value(inst);
+    return;
+  }
   const char *json_str = Scr_GetString(inst, 0);
   const char *key = Scr_GetString(inst, 1);
   if (!json_str || !key) {
@@ -116,13 +186,20 @@ void gscr_jsonset(scriptInstance_t inst) {
   push_string(inst, buf.GetString());
 }
 
-// jsondump(filepath, json_string), writes json to file
+// jsondump(filepath, value[, indent]), writes json to file
 void gscr_jsondump(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
-  const char *json_str = Scr_GetString(inst, 1);
-  if (!path || !json_str || !io::fs::is_safe_path(path)) {
+  if (!path || !io::fs::is_safe_path(path)) {
     push(inst, false);
     return;
+  }
+  std::string json_str;
+  if (var::ScrVar_StringLike(Scr_GetType(inst, 1))) {
+    json_str = Scr_GetString(inst, 1);
+  } else {
+    rapidjson::Document document;
+    json_str = serialize(script_value::read(inst, 1, document.GetAllocator()),
+                         indent_arg(inst, 2));
   }
   const std::filesystem::path full = io::fs::resolve_path(path);
   const std::filesystem::path parent = full.parent_path();
@@ -138,9 +215,12 @@ struct component final : generic_component {
 
     // JSON
     register_builtin("jsonvalid", gscr_jsonvalid, 1);
-    register_builtin("jsonparse", gscr_jsonparse, 2);
+    register_builtin("jsonparse", gscr_jsonparse, 1, 2);
     register_builtin("jsonset", gscr_jsonset, 3);
-    register_builtin("jsondump", gscr_jsondump, 2);
+    register_builtin("jsondump", gscr_jsondump, 2, 3);
+    register_builtin("jsonserialize", gscr_jsonserialize, 1, 2);
+    register_variadic_builtin("jsonprint", gscr_jsonprint);
+    register_variadic_builtin("createmap", gscr_createmap, 0);
   }
 };
 } // namespace json
