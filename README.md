@@ -19,11 +19,11 @@
 - [Loading Mods & Custom Maps](#loading-mods--custom-maps)
 - [Workshop Downloader](#workshop-downloader)
 - [Command Line Arguments](#command-line-arguments)
+- [Playing with Friends](#playing-with-friends)
 - [Hosting a Dedicated Server](#hosting-a-dedicated-server)
   - [Requirements](#requirements)
   - [Server Setup](#server-setup)
   - [Connecting](#connecting)
-  - [Port Forwarding Alternatives](#port-forwarding-alternatives)
 - [Zombies Server Setup](#zombies-server-setup)
 - [Compile from Source](#compile-from-source)
 - [GSC Scripting Additions](#gsc-scripting-additions)
@@ -239,6 +239,35 @@ boiii.exe -nointro -console -unsafe-lua
 
 ---
 
+## Playing with Friends
+
+You don't need a VPN or port forwarding to play with friends. Use the built-in
+friends system instead:
+
+1. **Add each other in the launcher.** Both players have to add each other as
+   friends. A friend only shows up once it's mutual.
+2. **The host opens their party.** Start the game, go to the mode you want to
+   play (Zombies, Multiplayer, ...) and keep your party open so friends can
+   join.
+3. **Join your friend.** Either:
+   - Open the **Social** tab, select your friend and choose **Join**, or
+   - Open the **Server Browser**, switch to the **Friends** tab and join from
+     there.
+4. **Or invite them.** The host can invite a friend from the Social tab. The
+   friend gets a notification and can join from **Social > Friends**.
+
+> [!TIP]
+>
+> If you can't see your friend or can't join:
+>
+> - Make sure both of you are online and added each other in the launcher.
+> - Make sure the host is in a lobby with their party open, not in the main
+>   menu.
+> - If the host is playing a mod or custom map, the joining player gets a prompt
+>   to download it. Accept it so you don't end up missing files.
+
+---
+
 ## Hosting a Dedicated Server
 
 ### Requirements
@@ -319,24 +348,6 @@ and overall preferred approach.
 > Find your local IP: Press `Win + R`, type `cmd`, then type `ipconfig`
 >
 > Find your WAN IP: Visit [WhatIsMyIP.com](https://www.whatismyip.com/)
-
-### Port Forwarding Alternatives
-
-Don't want to mess with port forwarding? Use these VPN tools to play with
-friends! 😎
-
-**Recommended Options:**
-
-- **ZeroTier** (Best for gaming)
-- **Radmin VPN** (Easy setup)
-- **Hamachi** (Classic choice)
-
-**Setup:**
-
-1. Download and install your chosen VPN tool
-2. Create/join a network
-3. Start your BOIII server
-4. Friends connect using your VPN IP: `/connect VPN_IP:27017`
 
 ---
 
