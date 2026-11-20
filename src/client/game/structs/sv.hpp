@@ -201,11 +201,12 @@ PACKED(struct client_s {
   int32_t reliableAcknowledge;
   char __pad2[4];
   int32_t messageAcknowledge;
-  char gap_5040[1368];
+  char gap_5040[1360];
   level::gentity_t *gentity;
   playerName_t name;
   clanAbbrev_t clanAbbrev;
-  XUID xuid; // Client exe only, use get_xuid/set_xuid
+  char __pad_55C0[8];
+  XUID xuid;
   uint32_t doubleXPGroupMask;
   uint32_t availableMappackFlags;
   int32_t _unknown5650;
@@ -226,9 +227,14 @@ PACKED(struct client_s {
   int32_t serverId;
   char __pad6[171432];
 
-  // The dedicated server has an extra 4 byte field at 0x55C8, which moves the
-  // xuid to 0x55D0 there. These read and write it at the right place for the
-  // running exe.
+  // The dedicated server stores gentity through xuid 8 bytes later than the
+  // client exe. Access those fields through these so both exes read the
+  // right place.
+  level::gentity_t *get_gentity() const noexcept;
+  char *get_name() noexcept;
+  const char *get_name() const noexcept;
+  char *get_clan_abbrev() noexcept;
+  const char *get_clan_abbrev() const noexcept;
   XUID get_xuid() const noexcept;
   void set_xuid(XUID value) noexcept;
 
@@ -243,9 +249,9 @@ ASSERT_OFFSET(client_s, address, 0x2C);
 ASSERT_OFFSET(client_s, xuid, 0x55C8);
 ASSERT_OFFSET(client_s, guid, 0xBB354);
 ASSERT_OFFSET(client_s, bIsTestClient, 0xBB360);
-ASSERT_OFFSET(client_s, name, 0x55A0);
-ASSERT_OFFSET(client_s, gentity, 0x5598);
-ASSERT_OFFSET(client_s, clanAbbrev, 0x55C0);
+ASSERT_OFFSET(client_s, gentity, 0x5590);
+ASSERT_OFFSET(client_s, name, 0x5598);
+ASSERT_OFFSET(client_s, clanAbbrev, 0x55B8);
 #endif
 
 struct client_s_cl : client_s {

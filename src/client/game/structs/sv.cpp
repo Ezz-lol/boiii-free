@@ -4,24 +4,45 @@ namespace game {
 namespace sv {
 
 namespace {
-constexpr size_t DEDICATED_XUID_OFFSET = 0x55D0;
+constexpr size_t DEDICATED_FIELD_SHIFT = 8;
+
+template <typename T> T *field_at(client_s *client, const size_t offset) {
+  return reinterpret_cast<T *>(reinterpret_cast<char *>(client) + offset +
+                               (is_server() ? DEDICATED_FIELD_SHIFT : 0));
+}
+
+template <typename T>
+const T *field_at(const client_s *client, const size_t offset) {
+  return field_at<T>(const_cast<client_s *>(client), offset);
+}
+} // namespace
+
+level::gentity_t *client_s::get_gentity() const noexcept {
+  return *field_at<level::gentity_t *>(this, offsetof(client_s, gentity));
+}
+
+char *client_s::get_name() noexcept {
+  return field_at<char>(this, offsetof(client_s, name));
+}
+
+const char *client_s::get_name() const noexcept {
+  return field_at<char>(this, offsetof(client_s, name));
+}
+
+char *client_s::get_clan_abbrev() noexcept {
+  return field_at<char>(this, offsetof(client_s, clanAbbrev));
+}
+
+const char *client_s::get_clan_abbrev() const noexcept {
+  return field_at<char>(this, offsetof(client_s, clanAbbrev));
 }
 
 XUID client_s::get_xuid() const noexcept {
-  if (is_server()) {
-    return *reinterpret_cast<const XUID *>(
-        reinterpret_cast<const char *>(this) + DEDICATED_XUID_OFFSET);
-  }
-  return xuid;
+  return *field_at<XUID>(this, offsetof(client_s, xuid));
 }
 
 void client_s::set_xuid(const XUID value) noexcept {
-  if (is_server()) {
-    *reinterpret_cast<XUID *>(reinterpret_cast<char *>(this) +
-                              DEDICATED_XUID_OFFSET) = value;
-  } else {
-    xuid = value;
-  }
+  *field_at<XUID>(this, offsetof(client_s, xuid)) = value;
 }
 
 std::string client_s::serialize() const noexcept {
@@ -40,10 +61,10 @@ std::string client_s::serialize() const noexcept {
       "\"isSecondScreenClient\": {}, \"bIsTestClient\": {}, \"serverId\": "
       "{:08X} }}",
       net::serialize(state), address.serialize(), reliableSequence,
-      reliableAcknowledge, messageAcknowledge, ::serialize(gentity), name,
-      clanAbbrev, get_xuid(), doubleXPGroupMask, availableMappackFlags,
-      nextReliableTime, lastPacketTime, lastConnectTime, nextSnapshotTime,
-      lastSnapshotTime, timeoutCount, guid, scriptId,
+      reliableAcknowledge, messageAcknowledge, ::serialize(get_gentity()),
+      get_name(), get_clan_abbrev(), get_xuid(), doubleXPGroupMask,
+      availableMappackFlags, nextReliableTime, lastPacketTime, lastConnectTime,
+      nextSnapshotTime, lastSnapshotTime, timeoutCount, guid, scriptId,
       ::serialize(isSplitscreenClient), ::serialize(isSecondScreenClient),
       ::serialize(bIsTestClient), serverId);
 }

@@ -373,9 +373,9 @@ void handle_new_player(const game::net::netadr_t &target) {
         if (game::is_client()) {
           refresh_bot_emblem(xuid);
         }
-        if (game::valid_engine_ptr(client.gentity) &&
-            game::valid_engine_ptr(client.gentity->client)) {
-          client.gentity->client->sess.cs.xuid = xuid;
+        game::level::gentity_t *ent = client.get_gentity();
+        if (game::valid_engine_ptr(ent) && ent->client) {
+          ent->client->sess.cs.xuid = xuid;
         }
         player_index = index;
         return true;

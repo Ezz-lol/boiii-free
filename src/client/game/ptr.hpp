@@ -98,11 +98,9 @@ alwaysinline bool valid_stack_ptr(uintptr_t ptr) {
   if (ptr == UINTPTR_NULLPTR) {
     return false;
   }
-  // In x64 Windows, GS:[0x08] holds the Stack Base (highest address)
-  // and GS:[0x10] holds the Stack Limit (lowest address).
-  // The stack grows downwards from the Base to the Limit.
-  uintptr_t stack_base = __readgsqword(0x08);
-  uintptr_t stack_limit = __readgsqword(0x10);
+  const NT_TIB *tib = reinterpret_cast<const NT_TIB *>(NtCurrentTeb());
+  const uintptr_t stack_base = reinterpret_cast<uintptr_t>(tib->StackBase);
+  const uintptr_t stack_limit = reinterpret_cast<uintptr_t>(tib->StackLimit);
 
   return (ptr >= stack_limit) && (ptr < stack_base);
 }

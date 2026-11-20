@@ -172,12 +172,15 @@ void write_if_changed(char *dest, size_t size, const std::string &value,
 
 void apply(const game::ClientNum_t client_num) {
   game::sv::client_s *cl = sv::get_client(client_num);
-  if (!game::valid_engine_ptr(cl) || !game::valid_engine_ptr(cl->gentity) ||
-      !game::valid_engine_ptr(cl->gentity->client)) {
+  if (!game::valid_engine_ptr(cl)) {
+    return;
+  }
+  game::level::gentity_t *ent = cl->get_gentity();
+  if (!game::valid_engine_ptr(ent) || !ent->client) {
     return;
   }
 
-  game::level::clientState_t &cs = cl->gentity->client->sess.cs;
+  game::level::clientState_t &cs = ent->client->sess.cs;
   std::lock_guard lock(overrides_mutex);
   override_slot &entry = slot(client_num);
 
@@ -193,12 +196,12 @@ void apply(const game::ClientNum_t client_num) {
 
   if (name) {
     write_if_changed(cs.name, sizeof(cs.name), *name);
-    write_if_changed(cl->name, sizeof(cl->name), *name);
+    write_if_changed(cl->get_name(), sizeof(cl->name), *name);
   }
   if (tag) {
     bool changed = false;
     write_if_changed(cs.clanAbbrev, sizeof(cs.clanAbbrev), *tag, &changed);
-    write_if_changed(cl->clanAbbrev, sizeof(cl->clanAbbrev), *tag);
+    write_if_changed(cl->get_clan_abbrev(), sizeof(cl->clanAbbrev), *tag);
     if (changed)
       cs.clanAbbrevEV = true;
   }
