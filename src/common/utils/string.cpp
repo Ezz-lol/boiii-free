@@ -185,7 +185,7 @@ std::string replace(std::string str, const std::string &from,
     return str;
   }
 
-  for (size_t start_pos = 0; start_pos != std::string::npos;
+  for (size_t start_pos = str.find(from); start_pos != std::string::npos;
        start_pos = str.find(from, start_pos)) {
     str.replace(start_pos, from.length(), to);
     start_pos += to.length();
