@@ -2560,6 +2560,62 @@ h1 {
   border-radius: 5px;
 }
 
+.verify-summary {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(68, 65, 63, 0.5);
+  border-radius: 5px;
+}
+
+.verify-summary-line {
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.verify-summary-line:last-child {
+  margin-bottom: 0;
+}
+
+.verify-summary-line.ok {
+  color: rgba(34, 197, 94, 0.92);
+}
+
+.verify-summary-line.error {
+  color: rgba(239, 68, 68, 0.92);
+}
+
+.verify-summary-line.warning {
+  color: rgba(234, 179, 8, 0.92);
+}
+
+.verify-summary-components {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.verify-chip {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid;
+}
+
+.verify-chip.error {
+  color: rgba(239, 68, 68, 0.92);
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.verify-chip.warning {
+  color: rgba(234, 179, 8, 0.92);
+  border-color: rgba(234, 179, 8, 0.35);
+  background: rgba(234, 179, 8, 0.08);
+}
+
 .verify-results-bad {
   max-height: 160px;
   overflow-y: auto;

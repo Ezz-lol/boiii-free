@@ -165,6 +165,7 @@ std::string verify_status_message;
 double verify_progress_percent = 0.0;
 std::string verify_progress_details;
 std::vector<std::string> verify_changed_files;
+std::string verify_summary;
 std::atomic<bool> verify_running{false};
 std::atomic<bool> verify_cancel_requested{false};
 
@@ -182,6 +183,7 @@ void reset_verify_status() {
   verify_progress_percent = 0.0;
   verify_progress_details.clear();
   verify_changed_files.clear();
+  verify_summary.clear();
 }
 
 std::string compute_file_xxh3(const std::filesystem::path &file_path) {
@@ -567,9 +569,53 @@ void verify_game_thread(const std::string &modes_csv) {
       }
     }
 
+    rapidjson::StringBuffer summary_buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> summary(summary_buffer);
+    const auto write_counts = [&summary](const std::uint32_t missing,
+                                         const std::uint32_t wrong_size,
+                                         const std::uint32_t corrupt) {
+      summary.Key("missing");
+      summary.Uint(missing);
+      summary.Key("wrongSize");
+      summary.Uint(wrong_size);
+      summary.Key("corrupt");
+      summary.Uint(corrupt);
+    };
+    summary.StartObject();
+    summary.Key("total");
+    summary.Uint(total);
+    summary.Key("ok");
+    summary.Uint(ok_count);
+    summary.Key("required");
+    summary.StartObject();
+    write_counts(missing_count, size_mismatch_count, hash_mismatch_count);
+    summary.EndObject();
+    summary.Key("optional");
+    summary.StartObject();
+    write_counts(warn_missing_count, warn_size_count, warn_hash_count);
+    summary.EndObject();
+    summary.Key("components");
+    summary.StartArray();
+    for (const auto &[comp_key, cs] : comp_stats) {
+      if (cs.missing == 0 && cs.size_mismatch == 0 && cs.hash_mismatch == 0) {
+        continue;
+      }
+      summary.StartObject();
+      summary.Key("name");
+      summary.String(cs.display_name.c_str());
+      summary.Key("optional");
+      summary.Bool(comp_key == "dlc" || comp_key == "zc");
+      write_counts(cs.missing, cs.size_mismatch, cs.hash_mismatch);
+      summary.EndObject();
+    }
+    summary.EndArray();
+    summary.EndObject();
+
     {
       std::lock_guard lock(verify_mutex);
       verify_changed_files = std::move(problematic_files);
+      verify_summary.assign(summary_buffer.GetString(),
+                            summary_buffer.GetSize());
     }
     set_verify_status(result_msg, 100.0, "Done");
 
@@ -1847,6 +1893,11 @@ bool run() {
           for (const std::string &f : verify_changed_files)
             w.String(f.c_str());
           w.EndArray();
+          if (!verify_summary.empty()) {
+            w.Key("summary");
+            w.RawValue(verify_summary.c_str(), verify_summary.size(),
+                       rapidjson::kObjectType);
+          }
           w.EndObject();
           return CComVariant(
               std::string(buf.GetString(), buf.GetSize()).c_str());

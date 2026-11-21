@@ -2880,14 +2880,76 @@
       resetVerifyUI();
     }
 
-    function showVerifyResults(changedFiles, message) {
+    function describeCounts(counts) {
+      var parts = [];
+      if (counts.missing) parts.push(counts.missing + " missing");
+      if (counts.wrongSize) parts.push(counts.wrongSize + " wrong size");
+      if (counts.corrupt) parts.push(counts.corrupt + " corrupt");
+      return parts.join(", ");
+    }
+
+    function countIssues(counts) {
+      return counts.missing + counts.wrongSize + counts.corrupt;
+    }
+
+    function renderVerifySummary(summary) {
+      var required = countIssues(summary.required);
+      var optional = countIssues(summary.optional);
+      var html = '<div class="verify-summary">';
+      html +=
+        '<div class="verify-summary-line ok">&#10004; ' +
+        summary.ok +
+        " of " +
+        summary.total +
+        " files are OK</div>";
+      if (required) {
+        html +=
+          '<div class="verify-summary-line error">&#10006; ' +
+          required +
+          " required file" +
+          (required > 1 ? "s" : "") +
+          " need fixing (" +
+          describeCounts(summary.required) +
+          ")</div>";
+      }
+      if (optional) {
+        html +=
+          '<div class="verify-summary-line warning">&#9888; ' +
+          optional +
+          " optional DLC file" +
+          (optional > 1 ? "s" : "") +
+          " (" +
+          describeCounts(summary.optional) +
+          ")</div>";
+      }
+      if (summary.components && summary.components.length) {
+        html += '<div class="verify-summary-components">';
+        for (var i = 0; i < summary.components.length; i++) {
+          var comp = summary.components[i];
+          html +=
+            '<span class="verify-chip ' +
+            (comp.optional ? "warning" : "error") +
+            '">' +
+            escapeHtml(comp.name) +
+            ": " +
+            describeCounts(comp) +
+            "</span>";
+        }
+        html += "</div>";
+      }
+      html += "</div>";
+      return html;
+    }
+
+    function showVerifyResults(changedFiles, message, summary) {
       verifyResults.innerHTML = "";
       verifyResults.classList.add("active");
       if (!changedFiles || changedFiles.length === 0) {
         verifyResults.innerHTML =
           '<div class="verify-results-ok">&#10004; All files verified — no changes detected.</div>';
       } else {
-        var html =
+        var html = summary ? renderVerifySummary(summary) : "";
+        html +=
           '<div style="color:rgba(249,115,22,0.9);font-size:0.78rem;font-weight:600;margin-bottom:7px;">' +
           changedFiles.length +
           " file" +
@@ -3040,7 +3102,25 @@
                   escapeHtml(st.message) +
                   "</div>";
               } else {
-                showVerifyResults(st.changedFiles || [], st.message);
+                if (st.summary) {
+                  var requiredIssues = countIssues(st.summary.required);
+                  var optionalIssues = countIssues(st.summary.optional);
+                  verifyStatusMsg.textContent = requiredIssues
+                    ? "Some game files need fixing"
+                    : optionalIssues
+                      ? "Game files are OK, some optional DLC files are missing"
+                      : "All game files are OK";
+                  verifyStatusMsg.style.color = requiredIssues
+                    ? "#ef4444"
+                    : optionalIssues
+                      ? "#eab308"
+                      : "#22c55e";
+                }
+                showVerifyResults(
+                  st.changedFiles || [],
+                  st.message,
+                  st.summary
+                );
               }
               for (var k = 0; k < verifyModeBtns.length; k++)
                 verifyModeBtns[k].disabled = false;
