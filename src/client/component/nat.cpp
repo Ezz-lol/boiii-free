@@ -17,6 +17,7 @@
 #include "server_list.hpp"
 #include "toast.hpp"
 #include "upnp.hpp"
+#include "weapon_kits.hpp"
 #include "workshop/workshop.hpp"
 
 #include <utils/hook.hpp>
@@ -465,8 +466,11 @@ void join_lobby(const game::net::netadr_t &host,
   size_t name_index = 6;
   if (parts[6].starts_with("c:")) {
     content = utils::string::split(parts[6].substr(2), ':');
+    weapon_kits::set_server_support(content.size() >= 5 && content[4] == "1");
     content.resize(4);
     name_index = 7;
+  } else {
+    weapon_kits::set_server_support(false);
   }
   std::string name;
   for (size_t i = name_index; i < parts.size(); ++i)
@@ -712,7 +716,7 @@ void receive_lobby_join(const game::net::netadr_t &sender,
     map = usermap_item->get().internalName;
   }
   network::send(sender, "lobbyHost",
-                std::format("{} {:x} {} {} {} {} c:{}:{}:{}:{} {}", parts[0],
+                std::format("{} {:x} {} {} {} {} c:{}:{}:{}:{}:1 {}", parts[0],
                             host->xuid,
                             to_hex(host->serializedAdr.addrBuff,
                                    sizeof(host->serializedAdr.addrBuff)),

@@ -4,6 +4,8 @@
 
 #include "weapon_kits.hpp"
 
+#include "com.hpp"
+
 #include <utils/hook.hpp>
 
 namespace weapon_kits {
@@ -47,7 +49,12 @@ constexpr std::string_view KIT_WEAPONS[] = {
 struct patched_table {
   std::vector<StringTableCell> values;
   std::vector<int16_t> cell_index;
+  StringTableCell *original_values{};
+  int16_t *original_cell_index{};
+  int32_t original_row_count{};
 };
+
+std::atomic_bool server_support{true};
 
 std::mutex patch_mutex;
 std::unordered_map<const StringTable *,
@@ -103,12 +110,27 @@ bool is_kit_weapon(const std::string_view &name) {
   return std::ranges::find(KIT_WEAPONS, name) != std::end(KIT_WEAPONS);
 }
 
-bool is_patched(const StringTable *table) {
+patched_table *find_patch(const StringTable *table) {
   const auto it = patched_tables.find(table);
-  return it != patched_tables.end() &&
-         std::ranges::any_of(it->second, [table](const auto &patched) {
-           return patched->values.data() == table->values;
-         });
+  if (it == patched_tables.end()) {
+    return nullptr;
+  }
+  for (const std::unique_ptr<patched_table> &patched : it->second) {
+    if (patched->values.data() == table->values) {
+      return patched.get();
+    }
+  }
+  return nullptr;
+}
+
+bool is_patched(const StringTable *table) { return find_patch(table); }
+
+void restore_values(StringTable *table) {
+  if (const patched_table *patched = table ? find_patch(table) : nullptr) {
+    table->values = patched->original_values;
+    table->cellIndex = patched->original_cell_index;
+    table->rowCount = patched->original_row_count;
+  }
 }
 
 std::vector<StringTableCell> copy_values(const StringTable *table) {
@@ -121,7 +143,11 @@ void replace_values(StringTable *table, std::vector<StringTableCell> values) {
     return;
   }
 
-  patched_table patched{std::move(values), {}};
+  patched_table patched{.values = std::move(values),
+                        .cell_index = {},
+                        .original_values = table->values,
+                        .original_cell_index = table->cellIndex,
+                        .original_row_count = table->rowCount};
   patched.cell_index.resize(patched.values.size());
   std::iota(patched.cell_index.begin(), patched.cell_index.end(), int16_t{0});
   std::ranges::stable_sort(
@@ -175,7 +201,14 @@ void patch_zombies_stats_table(StringTable *zm, const StringTable *mp) {
     const bool index_taken = find_row(zm, COLUMN_INDEX, index).has_value();
 
     if (const std::optional<int32_t> row = find_row(zm, COLUMN_REF, ref)) {
-      make_available(*row * zm->columnCount, *source);
+      const size_t start = *row * zm->columnCount;
+      if (cell_text(zm, *row, COLUMN_INDEX) != index) {
+        if (index_taken) {
+          continue;
+        }
+        values[start + COLUMN_INDEX] = cell(mp, *source, COLUMN_INDEX);
+      }
+      make_available(start, *source);
       continue;
     }
 
@@ -240,8 +273,12 @@ void remove_forced_kit_attachments(StringTable *weapons) {
 void bg_unlockables_load_items_stub(const game::eModes mode) {
   if (mode == game::eModes::ZOMBIES) {
     std::scoped_lock lock(patch_mutex);
-    patch_zombies_stats_table(find_table(ZM_STATS_TABLE),
-                              find_table(MP_STATS_TABLE));
+    StringTable *zm = find_table(ZM_STATS_TABLE);
+    if (server_support) {
+      patch_zombies_stats_table(zm, find_table(MP_STATS_TABLE));
+    } else {
+      restore_values(zm);
+    }
   }
   bg_unlockables_load_items_hook.invoke(mode);
 }
@@ -411,6 +448,12 @@ void replace_build_kit_method(game::scr::builtin::BuiltinMethodDef &method,
 }
 } // namespace
 
+void set_server_support(const bool supported) {
+  if (server_support.exchange(supported) != supported) {
+    game::bg::BG_UnlockablesLoadItems(game::eModes::ZOMBIES);
+  }
+}
+
 void on_asset_linked(const game::db::xasset::XAssetEntry *entry) {
   if (entry && entry->asset.type == game::db::xasset::XAssetType::STRINGTABLE) {
     std::scoped_lock lock(patch_mutex);
@@ -427,6 +470,11 @@ public:
       cg_register_weapon_hook.create(game::cg::CG_RegisterWeapon.get(),
                                      cg_register_weapon_stub);
     }
+    com::on_level_unload([](const char *level) {
+      if (std::string_view(level) != "core_frontend") {
+        set_server_support(true);
+      }
+    });
     bg_unlockables_load_items_hook.create(
         game::bg::BG_UnlockablesLoadItems.get(),
         bg_unlockables_load_items_stub);
