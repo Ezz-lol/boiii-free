@@ -17,6 +17,7 @@
 #include <steam/steam.hpp>
 #include <steam/voice.hpp>
 
+#include "component/foreign_dlls.hpp"
 #include "component/updater.hpp"
 #include "launcher/html/html_window.hpp"
 #include "launcher/launcher.hpp"
@@ -1063,6 +1064,7 @@ int main(int argc, char *argv[]) {
         }
 
         ensure_compatible_client_binary(client_binary);
+        foreign_dlls::check();
       }
 
       if (!component_loader::activate(is_server)) {
