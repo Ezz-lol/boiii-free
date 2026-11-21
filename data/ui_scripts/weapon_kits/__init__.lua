@@ -38,6 +38,8 @@ __boiiiWeaponKitsInstalled = true
 
 require("ui.uieditor.menus.Craft.WeaponBuildKits.WeaponBuildKitsCategorySelect")
 require("ui.uieditor.widgets.Craft.WeaponBuildKits.WeaponBuildKitsVariantAttachments")
+require("ui.uieditor.widgets.Craft.WeaponBuildKits.WeaponBuildKitsAttachmentsPreview")
+require("ui.uieditor.widgets.Craft.WeaponBuildKits.WeaponBuildKitsWeaponList")
 require("ui.uieditor.widgets.Lobby.Common.FE_List1ButtonLarge_PH")
 
 local ZOMBIES = Enum.eModes.MODE_ZOMBIES
@@ -304,5 +306,56 @@ CoD.WeaponBuildKitsVariantAttachments.new = function(menu, controller)
     )
     setVisible(not weaponIndex or hasCamos(weaponIndex), self.camoCategoryHeader, self.Camo)
   end)
+  return self
+end
+
+local function hideWhenUnsupported(element, hidden)
+  if not element.weaponKitsSetAlpha then
+    element.weaponKitsSetAlpha = element.setAlpha
+    element.weaponKitsAlpha = 1
+    element.setAlpha = function(target, alpha, ...)
+      target.weaponKitsAlpha = alpha
+      return target:weaponKitsSetAlpha(target.hiddenByWeaponKits and 0 or alpha, ...)
+    end
+  end
+  element.hiddenByWeaponKits = hidden
+  element:weaponKitsSetAlpha(hidden and 0 or element.weaponKitsAlpha)
+end
+
+local createAttachmentsPreview = CoD.WeaponBuildKitsAttachmentsPreview.new
+CoD.WeaponBuildKitsAttachmentsPreview.new = function(menu, controller)
+  local self = createAttachmentsPreview(menu, controller)
+  self:linkToElementModel(self, "weaponIndex", true, function(model)
+    local weaponIndex = Engine.GetModelValue(model)
+    local optics, others = {}, {}
+    if weaponIndex then
+      optics, others = attachmentsByType(weaponIndex)
+    end
+    hideWhenUnsupported(self.Optic, weaponIndex ~= nil and #optics == 0)
+    for _, slot in ipairs({ self.Attachment1, self.Attachment2, self.Attachment3, self.Attachment4, self.Attachment5 }) do
+      hideWhenUnsupported(slot, weaponIndex ~= nil and #others == 0)
+    end
+  end)
+  return self
+end
+
+local createWeaponList = CoD.WeaponBuildKitsWeaponList.new
+CoD.WeaponBuildKitsWeaponList.new = function(menu, controller)
+  local self = createWeaponList(menu, controller)
+  local label = self.LabelButton0
+  if label and label.itemName then
+    LUI.OverrideFunction_CallOriginalFirst(label.itemName, "setText", function(element)
+      local width = element:getTextWidthAndHeight()
+      if width > 0 then
+        local leftAnchor, rightAnchor, left = label:getLocalLeftRight()
+        local _, _, textLeft = element:getLocalLeftRight()
+        element:setLeftRight(true, false, textLeft, textLeft + width + 1)
+        local _, height = element:getTextWidthAndHeight(width + 1)
+        local topAnchor, bottomAnchor, _, bottom = label:getLocalTopBottom()
+        label:setLeftRight(leftAnchor, rightAnchor, left, left + width + 2 * textLeft)
+        label:setTopBottom(topAnchor, bottomAnchor, bottom - height, bottom)
+      end
+    end)
+  end
   return self
 end
