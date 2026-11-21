@@ -2,6 +2,7 @@
 
 #include "matchmaking_servers.hpp"
 
+#include "component/auth.hpp"
 #include "component/friends.hpp"
 #include "component/nat.hpp"
 #include "component/network.hpp"
@@ -20,6 +21,7 @@ struct server {
 };
 
 void *const internet_request = reinterpret_cast<void *>(1);
+void *const lan_request = reinterpret_cast<void *>(2);
 void *const favorites_request = reinterpret_cast<void *>(4);
 void *const history_request = reinterpret_cast<void *>(5);
 void *const friends_request = reinterpret_cast<void *>(3);
@@ -30,10 +32,17 @@ using servers = std::vector<server>;
 ::utils::concurrency::container<servers> favorites_servers{};
 ::utils::concurrency::container<servers> history_servers{};
 ::utils::concurrency::container<servers> friends_servers{};
+::utils::concurrency::container<servers> lan_servers{};
 std::atomic<matchmaking_server_list_response *> internet_response{};
 std::atomic<matchmaking_server_list_response *> favorites_response{};
 std::atomic<matchmaking_server_list_response *> history_response{};
 std::atomic<matchmaking_server_list_response *> friends_response{};
+std::atomic<matchmaking_server_list_response *> lan_response{};
+std::atomic<uint64_t> lan_generation{};
+std::atomic<int32_t> lan_pending{};
+
+constexpr uint16_t LAN_FIRST_PORT = 27017;
+constexpr uint16_t LAN_PORT_COUNT = 10;
 std::atomic<bool> internet_refreshing{false};
 std::atomic<bool> friends_refreshing{false};
 
@@ -185,6 +194,62 @@ void ping_server(const game::net::netadr_t &server,
   party::query_server(server, callback);
 }
 
+bool is_lan_host(const ::utils::info_string &info) {
+  if (info.get("sv_running") != "1") {
+    return false;
+  }
+  return info.get("dedicated") == "1" ||
+         _stricmp(info.get("xuid").c_str(),
+                  ::utils::string::va("%llX", auth::get_guid())) != 0;
+}
+
+void add_lan_server(const game::net::netadr_t &host,
+                    const ::utils::info_string &info, const uint32_t ping) {
+  const gameserveritem_t item = create_server_item(host, info, ping, true);
+  std::optional<int> index;
+  lan_servers.access([&](servers &srvs) {
+    for (const server &entry : srvs) {
+      if (network::are_addresses_equal(entry.address, host) ||
+          (item.m_steamID.bits &&
+           entry.server_item.m_steamID.bits == item.m_steamID.bits &&
+           entry.address.port == host.port)) {
+        return;
+      }
+    }
+    srvs.push_back({.handled = true, .address = host, .server_item = item});
+    index = static_cast<int>(srvs.size() - 1);
+  });
+  const auto res = lan_response.load();
+  if (index && res) {
+    res->ServerResponded(lan_request, *index);
+  }
+}
+
+void query_lan_address(const game::net::netadr_t &address,
+                       const uint64_t generation, const bool broadcast) {
+  ++lan_pending;
+  ping_server(address, [generation, broadcast](const bool success,
+                                               const game::net::netadr_t &host,
+                                               const ::utils::info_string &info,
+                                               const uint32_t ping) {
+    if (generation != lan_generation) {
+      return;
+    }
+    if (success && is_lan_host(info)) {
+      add_lan_server(host, info, ping);
+    }
+    if ((!success || !broadcast) && --lan_pending == 0) {
+      const auto res = lan_response.load();
+      const bool empty = lan_servers.access<bool>(
+          [](const servers &srvs) { return srvs.empty(); });
+      if (res) {
+        res->RefreshComplete(lan_request, empty ? eNoServersListedOnMasterServer
+                                                : eServerResponded);
+      }
+    }
+  });
+}
+
 void finish_friend_scan(const uint64_t generation) {
   std::unordered_map<uint64_t, friend_scan_result> discovered;
   {
@@ -294,7 +359,22 @@ void *matchmaking_servers::RequestInternetServerList(
 void *matchmaking_servers::RequestLANServerList(
     unsigned int iApp,
     matchmaking_server_list_response *pRequestServersResponse) {
-  return reinterpret_cast<void *>(2);
+  lan_response = pRequestServersResponse;
+  const uint64_t generation = ++lan_generation;
+  lan_pending = 0;
+  lan_servers.access([](servers &srvs) { srvs.clear(); });
+
+  for (const game::net::netadr_t &address : server_list::get_lan_servers()) {
+    query_lan_address(address, generation, false);
+  }
+  for (uint16_t port = LAN_FIRST_PORT; port < LAN_FIRST_PORT + LAN_PORT_COUNT;
+       ++port) {
+    query_lan_address(network::address_from_ip(htonl(INADDR_LOOPBACK), port),
+                      generation, false);
+    query_lan_address(network::address_from_ip(INADDR_BROADCAST, port),
+                      generation, true);
+  }
+  return lan_request;
 }
 
 void *matchmaking_servers::RequestFriendsServerList(
@@ -440,18 +520,23 @@ void matchmaking_servers::ReleaseRequest(void *hServerListRequest) {
   if (friends_request == hServerListRequest) {
     friends_response = nullptr;
   }
+  if (lan_request == hServerListRequest) {
+    lan_response = nullptr;
+  }
 }
 
 gameserveritem_t *matchmaking_servers::GetServerDetails(void *hRequest,
                                                         int iServer) {
   if (internet_request != hRequest && favorites_request != hRequest &&
-      history_request != hRequest && friends_request != hRequest) {
+      history_request != hRequest && friends_request != hRequest &&
+      lan_request != hRequest) {
     return nullptr;
   }
 
   auto &servers_list = hRequest == favorites_request ? favorites_servers
                        : hRequest == history_request ? history_servers
                        : hRequest == friends_request ? friends_servers
+                       : hRequest == lan_request     ? lan_servers
                                                      : internet_servers;
 
   thread_local gameserveritem_t server_item{};
@@ -469,6 +554,12 @@ gameserveritem_t *matchmaking_servers::GetServerDetails(void *hRequest,
 void matchmaking_servers::CancelQuery(void *hRequest) {}
 
 void matchmaking_servers::RefreshQuery(void *hRequest) {
+  if (hRequest == lan_request) {
+    const auto response = lan_response.load();
+    if (response)
+      RequestLANServerList(311210, response);
+    return;
+  }
   if (hRequest == friends_request) {
     const auto response = friends_response.load();
     if (response)
@@ -479,6 +570,8 @@ void matchmaking_servers::RefreshQuery(void *hRequest) {
 bool matchmaking_servers::IsRefreshing(void *hRequest) {
   if (hRequest == friends_request)
     return friends_refreshing;
+  if (hRequest == lan_request)
+    return lan_pending > 0;
   if (hRequest == internet_request)
     return internet_refreshing;
   return false;
@@ -486,13 +579,15 @@ bool matchmaking_servers::IsRefreshing(void *hRequest) {
 
 int matchmaking_servers::GetServerCount(void *hRequest) {
   if (internet_request != hRequest && favorites_request != hRequest &&
-      history_request != hRequest && friends_request != hRequest) {
+      history_request != hRequest && friends_request != hRequest &&
+      lan_request != hRequest) {
     return 0;
   }
 
   auto &servers_list = hRequest == favorites_request ? favorites_servers
                        : hRequest == history_request ? history_servers
                        : hRequest == friends_request ? friends_servers
+                       : hRequest == lan_request     ? lan_servers
                                                      : internet_servers;
   return servers_list.access<int>(
       [](const servers &s) { return static_cast<int>(s.size()); });
@@ -500,7 +595,8 @@ int matchmaking_servers::GetServerCount(void *hRequest) {
 
 void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
   if (internet_request != hRequest && favorites_request != hRequest &&
-      history_request != hRequest && friends_request != hRequest) {
+      history_request != hRequest && friends_request != hRequest &&
+      lan_request != hRequest) {
     return;
   }
 
@@ -620,6 +716,10 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
               response->ServerResponded(friends_request, i);
           }
         });
+    return;
+  }
+
+  if (hRequest == lan_request) {
     return;
   }
 

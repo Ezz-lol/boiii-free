@@ -281,6 +281,25 @@ void add_lan_server_from_string(const std::string &in) {
 }
 } // namespace
 
+std::vector<game::net::netadr_t> get_lan_servers() {
+  std::vector<game::net::netadr_t> result;
+  std::string data;
+  if (!utils::io::read_file(LAN_SERVER_PATH, &data)) {
+    return result;
+  }
+  for (const std::string &line : utils::string::split(data, '\n')) {
+    const std::string normalized = normalize_lan_input(line);
+    if (normalized.empty()) {
+      continue;
+    }
+    const game::net::netadr_t addr = network::address_from_string(normalized);
+    if (addr.type != game::net::netadrtype_t::BAD) {
+      result.emplace_back(addr);
+    }
+  }
+  return result;
+}
+
 static std::vector<game::net::netadr_t> master_server_hosts{};
 constexpr std::string_view DEFAULT_HOSTS[] = {"master.ezz.lol:20810",
                                               "m.ezz.lol:20810"};

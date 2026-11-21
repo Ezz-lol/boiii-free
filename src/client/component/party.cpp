@@ -743,11 +743,18 @@ void handle_info_response(const game::net::netadr_t &target,
   get_server_queries().access([&](std::vector<server_query> &server_queries) {
     for (std::vector<server_query>::iterator i = server_queries.begin();
          i != server_queries.end(); ++i) {
-      if (network::are_addresses_equal(i->host, target) &&
+      const bool broadcast =
+          i->host.addr == INADDR_BROADCAST && i->host.port == target.port;
+      if ((broadcast || network::are_addresses_equal(i->host, target)) &&
           i->challenge == info.get("challenge")) {
         found_query = true;
-        query = std::move(*i);
-        i = server_queries.erase(i);
+        if (broadcast) {
+          query = *i;
+          query.host = target;
+        } else {
+          query = std::move(*i);
+          i = server_queries.erase(i);
+        }
         break;
       }
     }

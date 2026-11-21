@@ -19,4 +19,6 @@ void add_recent_server(game::net::netadr_t addr);
 void remove_recent_server(game::net::netadr_t addr);
 using recent_list = std::vector<game::net::netadr_t>;
 utils::concurrency::container<recent_list> &get_recent_servers();
+
+std::vector<game::net::netadr_t> get_lan_servers();
 } // namespace server_list
