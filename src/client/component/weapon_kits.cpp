@@ -50,7 +50,9 @@ struct patched_table {
 };
 
 std::mutex patch_mutex;
-std::unordered_map<const StringTable *, patched_table> patched_tables;
+std::unordered_map<const StringTable *,
+                   std::vector<std::unique_ptr<patched_table>>>
+    patched_tables;
 
 utils::hook::detour bg_unlockables_load_items_hook;
 utils::hook::detour cg_register_weapon_hook;
@@ -104,7 +106,9 @@ bool is_kit_weapon(const std::string_view &name) {
 bool is_patched(const StringTable *table) {
   const auto it = patched_tables.find(table);
   return it != patched_tables.end() &&
-         it->second.values.data() == table->values;
+         std::ranges::any_of(it->second, [table](const auto &patched) {
+           return patched->values.data() == table->values;
+         });
 }
 
 std::vector<StringTableCell> copy_values(const StringTable *table) {
@@ -125,7 +129,8 @@ void replace_values(StringTable *table, std::vector<StringTableCell> values) {
         return patched.values[left].hash < patched.values[right].hash;
       });
 
-  patched_table &stored = patched_tables[table] = std::move(patched);
+  patched_table &stored = *patched_tables[table].emplace_back(
+      std::make_unique<patched_table>(std::move(patched)));
   table->values = stored.values.data();
   table->cellIndex = stored.cell_index.data();
   table->rowCount =
