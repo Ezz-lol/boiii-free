@@ -485,6 +485,16 @@ LUI.createMenu.MenuModsLoad = function(controller)
         self:removeFromStack(self.selected)
       end,
     },
+    {
+      left = 16,
+      right = 224,
+      top = 40,
+      label = "CLEAR ALL",
+      danger = true,
+      action = function()
+        self:clearStack()
+      end,
+    },
   }) do
     local top = buttonTop + (info.top or 0)
     local button = newButton(panelLeft + info.left, panelLeft + info.right, top, top + 32, info.action)
@@ -569,6 +579,7 @@ LUI.createMenu.MenuModsLoad = function(controller)
     buttons[3].enabled = pending
     buttons[3].highlighted = pending
     buttons[4].enabled = position ~= nil
+    buttons[5].enabled = #menu.stack > 0
     for _, button in ipairs(buttons) do
       button:paint()
     end
@@ -620,6 +631,13 @@ LUI.createMenu.MenuModsLoad = function(controller)
     local position = stackPosition(menu.stack, ugcName)
     if position then
       table.remove(menu.stack, position)
+      menu:stackChanged(controller)
+    end
+  end
+
+  self.clearStack = function(menu)
+    if #menu.stack > 0 then
+      menu.stack = {}
       menu:stackChanged(controller)
     end
   end
@@ -735,14 +753,14 @@ LUI.createMenu.MenuModsLoad = function(controller)
   end, false)
 
   self:AddButtonCallbackFunction(self, controller, Enum.LUIButton.LUI_KEY_XBY_PSTRIANGLE, "U", function(element, menu)
-    if #menu.stack > 0 then
+    if #menu.appliedStack > 0 then
       menu.stack = {}
-      menu:stackChanged(controller)
+      menu:applyNow()
       return true
     end
   end, function(element, menu)
-    CoD.Menu.SetButtonLabel(menu, Enum.LUIButton.LUI_KEY_XBY_PSTRIANGLE, "Clear all")
-    return #menu.stack > 0
+    CoD.Menu.SetButtonLabel(menu, Enum.LUIButton.LUI_KEY_XBY_PSTRIANGLE, "Unload all")
+    return #menu.appliedStack > 0
   end, false)
 
   list.id = "ModsList"
