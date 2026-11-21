@@ -31,6 +31,8 @@ constexpr std::string_view DUAL_WIELD_SUFFIX = "_dw";
 
 constexpr size_t WEAPON_DEF_ITEM_INDEX = 0x2A8;
 constexpr size_t WEAPON_DEF_PARENT_WEAPON_NAME = 0x2B0;
+constexpr std::string_view UPGRADED_SUFFIX = "_upgraded";
+constexpr size_t ATTACHMENT_SLOTS = 64;
 
 constexpr std::string_view KIT_WEAPONS[] = {
     "smg_ak74u",      "smg_mp40",
@@ -51,6 +53,11 @@ std::mutex patch_mutex;
 std::unordered_map<const StringTable *, patched_table> patched_tables;
 
 utils::hook::detour bg_unlockables_load_items_hook;
+utils::hook::detour cg_register_weapon_hook;
+std::unordered_map<
+    const game::weapon::WeaponVariantDef *,
+    std::array<game::weapon::WeaponAttachmentPtr, ATTACHMENT_SLOTS>>
+    filled_attachments;
 
 StringTable *find_table(const char *name) {
   return game::db::xasset::DB_FindXAssetHeader(
@@ -234,6 +241,131 @@ void bg_unlockables_load_items_stub(const game::eModes mode) {
   bg_unlockables_load_items_hook.invoke(mode);
 }
 
+bool has_missing_attachment(const game::weapon::WeaponVariantDef *variant,
+                            const game::weapon::Weapon weapon) {
+  for (const uint64_t id :
+       {weapon.attachment1, weapon.attachment2, weapon.attachment3,
+        weapon.attachment4, weapon.attachment5, weapon.attachment6,
+        weapon.attachment7, weapon.attachment8}) {
+    if (id && (!variant->attachments || !variant->attachments[id])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+game::weapon::WeaponVariantDef *find_variant(const std::string &name) {
+  struct search {
+    const std::string *name;
+    game::weapon::WeaponVariantDef *found;
+  } context{&name, nullptr};
+  game::db::xasset::DB_EnumXAssets(
+      game::db::xasset::XAssetType::WEAPON,
+      [](const game::db::xasset::XAssetHeader header, void *data) {
+        auto *context = static_cast<search *>(data);
+        game::weapon::WeaponVariantDef *variant = header.weapon;
+        if (!context->found && variant && variant->szInternalName &&
+            *context->name == variant->szInternalName) {
+          context->found = variant;
+        }
+      },
+      &context, false);
+  return context.found;
+}
+
+bool covers_attachments(const game::weapon::WeaponVariantDef *base,
+                        const game::weapon::WeaponVariantDef *upgraded) {
+  if (!base->attachments || !base->attachmentUniques) {
+    return false;
+  }
+  for (size_t id = 0; upgraded->attachments && id < ATTACHMENT_SLOTS; ++id) {
+    if (upgraded->attachments[id] && !base->attachments[id]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void share_base_attachments(game::weapon::WeaponVariantDef *upgraded) {
+  std::string base_name = upgraded->szInternalName;
+  const size_t suffix = base_name.find(UPGRADED_SUFFIX);
+  if (suffix == std::string::npos) {
+    return;
+  }
+  base_name.erase(suffix, UPGRADED_SUFFIX.size());
+
+  const game::weapon::WeaponVariantDef *base = find_variant(base_name);
+  if (!base || !covers_attachments(base, upgraded)) {
+    return;
+  }
+  upgraded->szAttachmentUnique = base->szAttachmentUnique;
+  upgraded->attachments = base->attachments;
+  upgraded->attachmentUniques = base->attachmentUniques;
+  upgraded->iAttachments = base->iAttachments;
+  upgraded->bIgnoreAttachments = base->bIgnoreAttachments;
+}
+
+game::weapon::WeaponAttachmentPtr find_attachment(const uint64_t id) {
+  struct search {
+    uint64_t id;
+    game::weapon::WeaponAttachmentPtr found;
+  } context{id, nullptr};
+  game::db::xasset::DB_EnumXAssets(
+      game::db::xasset::XAssetType::WEAPON,
+      [](const game::db::xasset::XAssetHeader header, void *data) {
+        auto *context = static_cast<search *>(data);
+        const game::weapon::WeaponVariantDef *variant = header.weapon;
+        if (!context->found && variant && variant->attachments) {
+          context->found = variant->attachments[context->id];
+        }
+      },
+      &context, false);
+  return context.found;
+}
+
+void fill_missing_attachments(game::weapon::WeaponVariantDef *variant,
+                              const game::weapon::Weapon weapon) {
+  if (!variant->attachments || !variant->attachments[0]) {
+    return;
+  }
+  std::array<game::weapon::WeaponAttachmentPtr, ATTACHMENT_SLOTS> &table =
+      filled_attachments[variant];
+  if (variant->attachments != table.data()) {
+    std::copy_n(variant->attachments, ATTACHMENT_SLOTS, table.begin());
+  }
+  for (const uint64_t id :
+       {weapon.attachment1, weapon.attachment2, weapon.attachment3,
+        weapon.attachment4, weapon.attachment5, weapon.attachment6,
+        weapon.attachment7, weapon.attachment8}) {
+    if (id && !table[id]) {
+      table[id] = find_attachment(id);
+      if (!table[id]) {
+        table[id] = table[0];
+      }
+    }
+  }
+  variant->attachments = table.data();
+}
+
+void ensure_attachments(const game::weapon::Weapon weapon) {
+  game::weapon::WeaponVariantDef *variant =
+      game::bg::BG_GetWeaponVariantDef(weapon);
+  if (!variant || !variant->szInternalName ||
+      !has_missing_attachment(variant, weapon)) {
+    return;
+  }
+  share_base_attachments(variant);
+  if (has_missing_attachment(variant, weapon)) {
+    fill_missing_attachments(variant, weapon);
+  }
+}
+
+void cg_register_weapon_stub(const game::weapon::Weapon weapon, void *arg2,
+                             void *arg3) {
+  ensure_attachments(weapon);
+  cg_register_weapon_hook.invoke(weapon, arg2, arg3);
+}
+
 void resolve_item_index(const game::weapon::Weapon weapon) {
   auto *def = reinterpret_cast<uint8_t *>(game::bg::BG_GetWeaponDef(weapon));
   if (!def) {
@@ -286,6 +418,10 @@ class component final : public generic_component {
 
 public:
   void post_unpack() override {
+    if (game::is_client()) {
+      cg_register_weapon_hook.create(game::cg::CG_RegisterWeapon.get(),
+                                     cg_register_weapon_stub);
+    }
     bg_unlockables_load_items_hook.create(
         game::bg::BG_UnlockablesLoadItems.get(),
         bg_unlockables_load_items_stub);

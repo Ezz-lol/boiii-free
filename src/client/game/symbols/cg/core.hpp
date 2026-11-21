@@ -10,6 +10,8 @@ WEAK symbol<ClientUIActives> clientUIActives{0x145359BC0, 0x0};
 WEAK symbol<uint8_t> CG_DeployServerCommand_UnknownCommandCall{0x140F7B349,
                                                                0x0};
 WEAK symbol<void(bool resetRoots)> CG_ResolutionChanged{0x141F25C40, 0x0};
+WEAK symbol<void(weapon::Weapon weapon, void *arg2, void *arg3)>
+    CG_RegisterWeapon{0x140444C80, 0x0};
 WEAK symbol<const ClientViewParams *(LocalClientNum_t localClientNum,
                                      int32_t viewIndex, int32_t viewCount)>
     CG_GetLocalClientViewParams{0x1410CB540, 0x0};
