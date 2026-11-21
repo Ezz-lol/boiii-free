@@ -17,6 +17,8 @@
 #include <utils/string.hpp>
 #include <utils/thread.hpp>
 
+#include <regex>
+
 #include <exception/minidump.hpp>
 
 // In case of clangd compilation
@@ -400,11 +402,22 @@ bool ask_restart(const std::string &text,
     body.erase(0, REPEATED_HEADLINE.size());
     body[0] = static_cast<char>(std::toupper(body[0]));
   }
-  const std::wstring content = utils::string::convert(body);
+  const std::wstring content = std::regex_replace(
+      utils::string::convert(body), std::wregex(LR"(https?://[^\s<>"]+)"),
+      L"<a href=\"$&\">$&</a>");
 
   TASKDIALOGCONFIG config{};
   config.cbSize = sizeof(config);
-  config.dwFlags = TDF_USE_COMMAND_LINKS | TDF_SIZE_TO_CONTENT;
+  config.dwFlags =
+      TDF_USE_COMMAND_LINKS | TDF_SIZE_TO_CONTENT | TDF_ENABLE_HYPERLINKS;
+  config.pfCallback = [](HWND, const UINT notification, WPARAM,
+                         const LPARAM lparam, LONG_PTR) -> HRESULT {
+    if (notification == TDN_HYPERLINK_CLICKED) {
+      ShellExecuteW(nullptr, L"open", reinterpret_cast<LPCWSTR>(lparam),
+                    nullptr, nullptr, SW_SHOWNORMAL);
+    }
+    return S_OK;
+  };
   config.pszWindowTitle = L"Ezz ERROR";
   config.pszMainIcon = TD_ERROR_ICON;
   config.pszMainInstruction = headline;
@@ -913,6 +926,18 @@ void show_fatal_error(const std::string &message) {
   TerminateProcess(GetCurrentProcess(), 1);
 }
 
+namespace {
+constexpr char PURE_VIRTUAL_CALL_HELP[] =
+    "A pure virtual function was called. This usually means the Visual C++ "
+    "runtimes on this PC are missing or damaged.\n\nFix: Install the latest "
+    "Visual C++ Redistributables (all-in-one package: "
+    "https://www.techpowerup.com/download/"
+    "visual-c-redistributable-runtime-package-all-in-one/ - extract it and "
+    "run install.bat), restart your PC and start the game again.";
+
+void purecall_stub() { show_fatal_error(PURE_VIRTUAL_CALL_HELP); }
+} // namespace
+
 struct component final : generic_component {
   DEFINE_COMPONENT_NAME("exception");
 
@@ -921,6 +946,7 @@ struct component final : generic_component {
     SetUnhandledExceptionFilter(exception_filter);
 
     std::filesystem::create_directories(game::get_appdata_path() / "minidumps");
+    _set_purecall_handler(purecall_stub);
   }
 
   void post_load() override {
@@ -943,6 +969,7 @@ struct component final : generic_component {
   }
 
   void post_unpack() override {
+    utils::hook::jump(game::_purecall.get(), purecall_stub);
     scheduler::loop(
         [] {
           frame_thread_id = GetCurrentThreadId();

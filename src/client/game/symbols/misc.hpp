@@ -7,4 +7,5 @@ namespace game {
 WEAK symbol<clientplatform_t> clientplatform{0x0, 0x14A63D4E8};
 WEAK symbol<qboolean(level::gentity_t *self)> StuckInClient{0x1415A8380,
                                                             0x14023BFE0};
+WEAK symbol<void()> _purecall{0x142BC27E8, 0x140AB4E48};
 } // namespace game
