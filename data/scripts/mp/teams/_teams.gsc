@@ -33,7 +33,7 @@ function init()
 
 	if(GetDvarString( "scr_teambalance") == "")
 		SetDvar("scr_teambalance", "0");
-	level.teambalance = GetDvarint( "scr_teambalance");
+	level.teambalance = GetDvarint( "scr_teambalance") && level.gameType != "infect";
 	level.teambalancetimer = 0;
 	
 	if(GetDvarString( "scr_timeplayedcap") == "")
