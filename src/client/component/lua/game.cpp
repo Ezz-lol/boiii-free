@@ -525,6 +525,8 @@ luaReturnCount_e getfilms(lua_State *luaVM) {
       table row{};
       row.set("id", std::to_string(film.id));
       row.set("size", std::to_string(film.size));
+      row.set("summarySize", static_cast<int32_t>(film.summary_size));
+      row.set("clip", film.clip);
       row.set("mode", film.mode);
       row.set("duration", film.duration);
       row.set("map", film.map);

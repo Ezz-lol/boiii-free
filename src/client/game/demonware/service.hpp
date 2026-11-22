@@ -43,7 +43,9 @@ public:
 
       it->second(server, &buffer);
     } else {
+#ifndef NDEBUG
       printf("[DW] %s: missing task '%d'\n", name_.data(), this->task_id_);
+#endif
 
       // return no error
       server->create_reply(this->task_id_).send();

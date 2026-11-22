@@ -52,6 +52,10 @@ WEAK symbol<dw::TaskRecord *(const ControllerIndex_t controllerIndex,
     LiveStorage_FileShare_StreamDownload{0x141EB6120, 0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
     LiveStorage_FileShare_IsStreamUploadInProgress{0x141EB69E0, 0x0};
+WEAK symbol<dw::TaskRecord *(const ControllerIndex_t controllerIndex,
+                             const FileShareMetadataUpdate *update,
+                             bool unk)>
+    LiveStorage_FileShare_UpdateMetadata{0x141EB69F0, 0x0};
 
 } // namespace storage
 

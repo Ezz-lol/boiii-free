@@ -166,8 +166,10 @@ void lobby_server::call_service(const uint8_t id, const std::string &data) {
   if (it != this->services_.end()) {
     it->second->exec_task(this, data);
   } else {
+#ifndef NDEBUG
     printf("[DW]: [lobby]: missing service '%s'\n",
            utils::string::va("%d", id));
+#endif
 
     // return no error
     byte_buffer buffer(data);

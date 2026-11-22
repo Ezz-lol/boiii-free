@@ -8,6 +8,8 @@ namespace theater {
 struct film {
   uint64_t id{};
   uint32_t size{};
+  uint32_t summary_size{};
+  bool clip{};
   int32_t mode{};
   int32_t duration{};
   std::string map;

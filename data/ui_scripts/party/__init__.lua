@@ -25,7 +25,9 @@ CoD.IsTeamChangeAllowed = function()
 end
 
 -- Set com_maxclients InGame so players can join via direct connect (default from lobbydata)
-Engine.SetDvar("com_maxclients", maxClients)
+if not Engine.IsDemoPlaying() then
+  Engine.SetDvar("com_maxclients", maxClients)
+end
 
 require("datasources_start_menu_game_options")
 

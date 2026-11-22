@@ -98,7 +98,7 @@ int32_t measure_fps() {
 
 void update_ping() {
   if (!draw_ping.get_bool() || !game::com::Com_IsInGame() ||
-      game::server_running() ||
+      game::server_running() || game::demo::Demo_IsPlaying() ||
       game::cg::clientUIActives->actives[0].connectionState !=
           game::connstate_t::ACTIVE) {
     current_ping = -1;

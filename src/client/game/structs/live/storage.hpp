@@ -54,20 +54,41 @@ struct StorageFileDesc {
 };
 ASSERT_SIZE(StorageFileDesc, 0x78);
 
+enum class FileShareCategory : uint16_t {
+  CLIP = 0xE,
+};
+
 // Fileshare transfer parameters, only the fields used by the theater films.
 struct FileShareStreamUpload {
-  uint8_t unk0[0x60];
+  uint8_t unk0[0x8];
+  const char *buffer;
+  uint32_t bufferSize;
+  uint8_t unk14[0xC];
+  FileShareCategory category;
+  uint8_t unk22[0x3E];
   // Pulls the next recorded film bytes, returns 0 when none are pending.
   uint32_t (*streamData)(char *buffer, uint32_t size);
   void (*onSuccess)(ControllerIndex_t controllerIndex, uint64_t fileId);
 };
+ASSERT_OFFSET(FileShareStreamUpload, category, 0x20);
 ASSERT_OFFSET(FileShareStreamUpload, streamData, 0x60);
+
+struct FileShareMetadataUpdate {
+  uint64_t fileId;
+  uint8_t unk8[0x8];
+  const char *summary;
+  uint32_t summarySize;
+  uint8_t unk1C[0x1C];
+  void (*onSuccess)(ControllerIndex_t controllerIndex);
+};
+ASSERT_OFFSET(FileShareMetadataUpdate, summary, 0x10);
+ASSERT_OFFSET(FileShareMetadataUpdate, onSuccess, 0x38);
 
 struct FileShareStreamDownload {
   uint64_t fileId;
   uint32_t fileSize;
   uint8_t unkC[0x1C];
-  // Requested byte range, rangeEnd 0 means up to the end of the file.
+  // Requested byte range, rangeEnd is inclusive and 0 means up to the end.
   uint32_t rangeStart;
   uint32_t rangeEnd;
   uint8_t unk30[0x8];

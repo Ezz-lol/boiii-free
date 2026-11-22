@@ -18,6 +18,7 @@
 #include "core.hpp"          // IWYU pragma: export
 #include "db/db.hpp"         // IWYU pragma: export
 #include "ddl.hpp"           // IWYU pragma: export
+#include "demo.hpp"          // IWYU pragma: export
 #include "dvar.hpp"          // IWYU pragma: export
 #include "dw/dw.hpp"         // IWYU pragma: export
 #include "dyn/dyn.hpp"       // IWYU pragma: export
