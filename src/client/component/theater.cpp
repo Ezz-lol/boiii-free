@@ -21,6 +21,7 @@ using game::live::storage::FileShareCategory;
 using game::live::storage::FileShareMetadataUpdate;
 using game::live::storage::FileShareStreamDownload;
 using game::live::storage::FileShareStreamUpload;
+using game::live::storage::FileShareSummary;
 
 constexpr std::string_view FILMS_PATH = "boiii_players/user/films";
 constexpr size_t MAX_FILMS = 20;
@@ -29,6 +30,8 @@ utils::hook::detour stream_upload_hook;
 utils::hook::detour stream_download_hook;
 utils::hook::detour is_stream_upload_in_progress_hook;
 utils::hook::detour update_metadata_hook;
+utils::hook::detour is_summary_available_hook;
+utils::hook::detour get_summary_hook;
 
 game::EngineDependentDvarMut auto_record;
 
@@ -36,6 +39,8 @@ game::EngineDependentDvarMut auto_record;
 game::dw::TaskRecord film_task{};
 std::atomic_bool recording{false};
 std::atomic_uint32_t download_serial{0};
+FileShareSummary thumb_summary{};
+uint64_t thumb_summary_id{};
 
 std::filesystem::path film_path(const uint64_t id,
                                 const std::string_view extension) {
@@ -166,6 +171,34 @@ update_metadata_stub(const game::ControllerIndex_t controller,
   return &film_task;
 }
 
+bool load_thumb_summary(const uint64_t id) {
+  if (thumb_summary_id == id) {
+    return true;
+  }
+  std::string thumb;
+  if (!utils::io::read_file(film_path(id, "thumb"), &thumb) ||
+      thumb.size() > sizeof(thumb_summary.data)) {
+    return false;
+  }
+  std::memcpy(thumb_summary.data, thumb.data(), thumb.size());
+  thumb_summary.size = static_cast<uint32_t>(thumb.size());
+  thumb_summary_id = id;
+  return true;
+}
+
+bool is_summary_available_stub(const game::ControllerIndex_t controller,
+                               const uint64_t file_id) {
+  return load_thumb_summary(file_id) ||
+         is_summary_available_hook.invoke<bool>(controller, file_id);
+}
+
+FileShareSummary *get_summary_stub(const game::ControllerIndex_t controller,
+                                   const uint64_t file_id) {
+  return load_thumb_summary(file_id)
+             ? &thumb_summary
+             : get_summary_hook.invoke<FileShareSummary *>(controller, file_id);
+}
+
 bool is_stream_upload_in_progress_stub(
     const game::ControllerIndex_t controller) {
   return recording ||
@@ -211,17 +244,15 @@ void play_film(const game::ControllerIndex_t controller,
 game::dw::TaskRecord *
 stream_download_stub(const game::ControllerIndex_t controller,
                      const FileShareStreamDownload *download) {
-  for (const char *extension : {"demo", "thumb"}) {
-    const std::filesystem::path path = film_path(download->fileId, extension);
-    if (utils::io::file_exists(path) &&
-        utils::io::file_size(path) == download->fileSize) {
-      std::thread(play_film, controller, path, *download, ++download_serial)
-          .detach();
-      return &film_task;
-    }
+  const std::filesystem::path path = film_path(download->fileId, "demo");
+  if (!utils::io::file_exists(path) ||
+      utils::io::file_size(path) != download->fileSize) {
+    return stream_download_hook.invoke<game::dw::TaskRecord *>(controller,
+                                                               download);
   }
-  return stream_download_hook.invoke<game::dw::TaskRecord *>(controller,
-                                                             download);
+  std::thread(play_film, controller, path, *download, ++download_serial)
+      .detach();
+  return &film_task;
 }
 } // namespace
 
@@ -294,6 +325,11 @@ struct component final : client_component {
     update_metadata_hook.create(
         game::live::storage::LiveStorage_FileShare_UpdateMetadata.get(),
         update_metadata_stub);
+    is_summary_available_hook.create(
+        game::live::storage::Fileshare_IsSummaryAvailable.get(),
+        is_summary_available_stub);
+    get_summary_hook.create(game::live::storage::Fileshare_GetSummary.get(),
+                            get_summary_stub);
   }
 };
 } // namespace theater

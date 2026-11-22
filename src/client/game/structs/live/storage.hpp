@@ -84,6 +84,13 @@ struct FileShareMetadataUpdate {
 ASSERT_OFFSET(FileShareMetadataUpdate, summary, 0x10);
 ASSERT_OFFSET(FileShareMetadataUpdate, onSuccess, 0x38);
 
+struct FileShareSummary {
+  uint8_t unk0[0x4];
+  uint32_t size;
+  char data[0x213A0];
+};
+ASSERT_OFFSET(FileShareSummary, data, 0x8);
+
 struct FileShareStreamDownload {
   uint64_t fileId;
   uint32_t fileSize;
