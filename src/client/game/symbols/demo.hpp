@@ -7,6 +7,9 @@ namespace game {
 namespace demo {
 WEAK symbol<bool()> Demo_IsPlaying{0x1425870A0, 0x0};
 
+// Set while the recorded film is streamed out, cleared by Demo_StopStreaming.
+WEAK symbol<bool> demo_isStreamingUpload{0x159970D88, 0x0};
+
 constexpr int32_t DEMO_MAX_XANIMS = 2048;
 WEAK symbol<void(scr::ScrString_t name, int32_t type)> Demo_AddXAnim{
     0x141433320, 0x1401E25E0};

@@ -14,6 +14,7 @@
 #include <component/network.hpp>
 #include <component/scheduler.hpp>
 #include <component/server_list.hpp>
+#include <component/theater.hpp>
 #include <component/toast.hpp>
 #include <component/workshop/workshop.hpp>
 #include <loader/component_loader.hpp>
@@ -516,6 +517,26 @@ luaReturnCount_e getworkshopqueue(lua_State *luaVM) {
   });
 }
 
+luaReturnCount_e getfilms(lua_State *luaVM) {
+  return call(luaVM, []() -> table {
+    table result{};
+    int index = 1;
+    for (const theater::film &film : theater::get_films()) {
+      table row{};
+      row.set("id", std::to_string(film.id));
+      row.set("size", std::to_string(film.size));
+      row.set("mode", film.mode);
+      row.set("duration", film.duration);
+      row.set("map", film.map);
+      row.set("gametype", film.gametype);
+      row.set("author", film.author);
+      row.set("created", film.created);
+      result.set(index++, row);
+    }
+    return result;
+  });
+}
+
 luaReturnCount_e getworkshopqueuegeneration(lua_State *luaVM) {
   return call(luaVM, []() -> int {
     return static_cast<int>(workshop::queue::generation() & 0x7FFFFFFF);
@@ -765,6 +786,7 @@ public:
                                   queueworkshopitem>(),
         lua_state::luaL_LoggedReg<"game", "getworkshopqueue",
                                   getworkshopqueue>(),
+        lua_state::luaL_LoggedReg<"game", "getfilms", getfilms>(),
         lua_state::luaL_LoggedReg<"game", "getworkshopqueuegeneration",
                                   getworkshopqueuegeneration>(),
         lua_state::luaL_LoggedReg<"game", "getworkshopqueueposition",

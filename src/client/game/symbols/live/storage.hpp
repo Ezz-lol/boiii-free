@@ -44,6 +44,15 @@ WEAK symbol<dw::TaskRecord *(const ControllerIndex_t controllerIndex,
     LiveStorage_WriteDWUserFile{0x141EB4A50, 0x0};
 WEAK symbol<int32_t()> LiveStorage_GetFFOTDVersion{0x141EB7680, 0x14047E580};
 
+WEAK symbol<dw::TaskRecord *(const ControllerIndex_t controllerIndex,
+                             const FileShareStreamUpload *upload)>
+    LiveStorage_FileShare_StreamUpload{0x141EB6810, 0x0};
+WEAK symbol<dw::TaskRecord *(const ControllerIndex_t controllerIndex,
+                             const FileShareStreamDownload *download)>
+    LiveStorage_FileShare_StreamDownload{0x141EB6120, 0x0};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
+    LiveStorage_FileShare_IsStreamUploadInProgress{0x141EB69E0, 0x0};
+
 } // namespace storage
 
 } // namespace live

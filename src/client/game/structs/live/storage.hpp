@@ -53,6 +53,31 @@ struct StorageFileDesc {
   uint8_t unk24[0x54];
 };
 ASSERT_SIZE(StorageFileDesc, 0x78);
+
+// Fileshare transfer parameters, only the fields used by the theater films.
+struct FileShareStreamUpload {
+  uint8_t unk0[0x60];
+  // Pulls the next recorded film bytes, returns 0 when none are pending.
+  uint32_t (*streamData)(char *buffer, uint32_t size);
+  void (*onSuccess)(ControllerIndex_t controllerIndex, uint64_t fileId);
+};
+ASSERT_OFFSET(FileShareStreamUpload, streamData, 0x60);
+
+struct FileShareStreamDownload {
+  uint64_t fileId;
+  uint32_t fileSize;
+  uint8_t unkC[0x1C];
+  // Requested byte range, rangeEnd 0 means up to the end of the file.
+  uint32_t rangeStart;
+  uint32_t rangeEnd;
+  uint8_t unk30[0x8];
+  void (*onData)(const char *buffer, uint32_t size, uint32_t received,
+                 uint32_t fileSize);
+  void (*onComplete)(ControllerIndex_t controllerIndex);
+  void (*onFailure)(ControllerIndex_t controllerIndex);
+};
+ASSERT_OFFSET(FileShareStreamDownload, rangeStart, 0x28);
+ASSERT_OFFSET(FileShareStreamDownload, onData, 0x38);
 } // namespace storage
 } // namespace live
 } // namespace game
