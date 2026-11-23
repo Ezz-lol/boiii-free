@@ -2,14 +2,14 @@
   "name": "boiii-free",
   "repository": "git@github.com:Ezz-lol/boiii-free",
   "devDependencies": {
-    "prettier": "3.9.6",
-    "prettier-plugin-toml": "2.0.6"
+    "prettier": "3.10.1",
+    "prettier-plugin-toml": "4.1.0"
   },
   "scripts": {
     "format": "prettier --write \"**/*.{md,markdown,html,htm,js,jsx,ts,tsx,mjs,cjs,mts,cts,graphql,gql,json,json5,webmanifest,yaml,yml,vue,svelte,handlebars,hbs,toml}\"",
     "check": "prettier --check \"**/*.{md,markdown,html,htm,js,jsx,ts,tsx,mjs,cjs,mts,cts,graphql,gql,json,json5,webmanifest,yaml,yml,vue,svelte,handlebars,hbs,toml}\""
   },
   "dependencies": {
-    "prettier-plugin-powershell": "^2.1.12"
+    "prettier-plugin-powershell": "^2.2.0"
   }
 }
