@@ -133,7 +133,7 @@ PACKED(struct Msg_InfoResponse {
   uint32_t nonce = 0;
   LobbyUIScreen uiScreen = 0;
   dw::net::bdNATType natType = dw::net::bdNATType::NAT_UNKNOWN;
-  uint8_t _padding09[7];
+  DEF_PAD(09, 7);
   info::InfoResponseLobby lobby[2] = {{}};
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::INFO_RESPONSE;
@@ -151,10 +151,10 @@ PACKED(struct Msg_JoinParty {
   LobbyType targetLobby = LobbyType::INVALID;
   LobbyType sourceLobby = LobbyType::INVALID;
   join::JoinType joinType = join::JoinType::COUNT;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   XUID probedXuid = 0;
   ClientNum_t memberCount = ClientNum_t::CLIENT_INDEX_0;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
   LobbyClientPool<join::JoinPartyMember> members = {{}};
   LocalClientNum_t splitscreenClients = LocalClientNum_t::INVALID_LOCAL_CLIENT;
   int32_t playlistID = 0;
@@ -170,15 +170,15 @@ PACKED(struct Msg_JoinParty {
   bool isStarterPack = false;
   char password[32] = {0};
   bool chunkStatus[3] = {false};
-  uint8_t _padding2B4[4];
-
+  DEF_PAD(2B4, 4);
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::JOIN_LOBBY;
 
   bool package(LobbyMsg & lobbyMsg);
 
-  IMPL_SLICE_METHODS(members, memberCount, Members);
+  IMPL_SLICE_METHODS(members, std::min<size_t>(static_cast<size_t>(memberCount),
+                                               std::size(members)));
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"targetLobby\": {}, \"sourceLobby\": {}, \"joinType\": {}, "
         "\"probedXuid\": {:016X}, "
@@ -191,7 +191,7 @@ PACKED(struct Msg_JoinParty {
         "\"password\": {}, \"chunkStatus\": {} }}",
         lobby::serialize(targetLobby), lobby::serialize(sourceLobby),
         join::serialize(joinType), probedXuid, game::serialize(memberCount),
-        ::serialize(getMembers()), game::serialize(splitscreenClients),
+        ::serialize(get_members()), game::serialize(splitscreenClients),
         playlistID, playlistVersion, ffotdVersion,
         lobby::serialize(networkMode), netFieldChecksum, protocolVersion,
         changelist, pingBand, dlcBits.serialize(), joinNonce,
@@ -208,7 +208,7 @@ struct MsgMutableClientInfo {
   bool package(LobbyMsg &lobbyMsg);
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"mutableClientInfo\": {} }}",
+    return std::format(R"({{ "mutableClientInfo": {} }})",
                        mutableClientInfo.serialize());
   }
 };
@@ -220,22 +220,21 @@ PACKED(struct MsgClientLobbyInfo {
   ClientNum8_t clientNum = ClientNum8_t::INVALID_CLIENT_INDEX_8;
   name_t gamertag = {0};
   bool isGuest = false;
-  uint8_t _padding2A[6];
+  DEF_PAD(2A, 6);
   LobbyID lobbyID = 0;
   int32_t qport = 0;
   uint8_t latencyBand = 0;
-  uint8_t _padding3D[3];
+  DEF_PAD(3D, 3);
   MsgMutableClientInfo mutableClientInfoMsg = {};
   int32_t score = 0;
   int32_t connectivityBits = 0;
   net::SerializedAdr serializedAdr = {};
-  uint8_t _padding47E[2];
+  DEF_PAD(47E, 2);
   net::netsrc_t localNetID = net::netsrc_t::CLIENT1;
   uint32_t joinOrder = 0;
   ContentFlags dlcBits = {};
-  uint8_t _padding48C[4];
-
-  inline std::string serialize() const noexcept {
+  DEF_PAD(48C, 4);
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"xuid\": {:016X}, \"clientNum\": {}, \"gamertag\": "
                        "{}, \"isGuest\": {}, "
                        "\"lobbyID\": {:016X}, \"qport\": {}, \"latencyBand\": "
@@ -256,11 +255,11 @@ ASSERT_SIZE(MsgClientLobbyInfo, 0x490);
 // Verified
 PACKED(struct MsgHostMigrateInfo {
   uint8_t indexBits = 0;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   int32_t lasthostTimeMS = 0;
   LobbyClientPool<XUID> migrateNominees = {0};
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"indexBits\": {:X}, \"lasthostTimeMS\": {}, "
                        "\"migrateNominees\": {} }}",
                        indexBits, lasthostTimeMS, ::serialize(migrateNominees));
@@ -290,25 +289,24 @@ PACKED(struct Msg_LobbyState {
   int32_t uiScreen = 0;
   LobbyLeaderActivity uiLeaderActivity = 0;
   str32_t key = {0};
-  uint8_t _padding44[4];
+  DEF_PAD(44, 4);
   XUID clientLeader = 0;
   XUID platformSessionID = 0;
   ClientNum_t maxClients = ClientNum_t::CLIENT_INDEX_COUNT;
   bool isAdvertised = false;
-  uint8_t _padding5D[3];
+  DEF_PAD(5D, 3);
   ClientNum_t clientCount = ClientNum_t::CLIENT_INDEX_0;
-  uint8_t _padding64[4];
+  DEF_PAD(64, 4);
   LobbyClientPool<MsgClientLobbyInfo> clientList = {{}};
   MsgHostMigrateInfo migrateInfo = {};
   MsgPlatformSessionData platformData = {};
   info::LobbyUGCInfo ugcInfo = {};
-  uint8_t _padding53C4[4];
-
+  DEF_PAD(53C4, 4);
   bool package(LobbyMsg & lobbyMsg);
 
-  IMPL_SLICE_METHODS(clientList, clientCount, ClientList);
+  IMPL_SLICE_METHODS(clientList, clientCount);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"stateNum\": {}, \"lobbyNetworkMode\": {}, "
         "\"lobbyMainMode\": {}, \"partyPrivacy\": {}, "
@@ -325,7 +323,7 @@ PACKED(struct Msg_LobbyState {
         session::serialize(status), uiScreen, uiLeaderActivity,
         ::serialize(key), clientLeader, platformSessionID,
         game::serialize(maxClients), ::serialize(isAdvertised),
-        game::serialize(clientCount), ::serialize(getClientList()),
+        game::serialize(clientCount), ::serialize(get_clientList()),
         migrateInfo.serialize(), platformData.serialize(), ugcInfo.serialize());
   }
 });
@@ -338,15 +336,14 @@ PACKED(struct Msg_LobbyStateGame {
   session::GameData dataGame = {};
   int32_t compressedBufferSize = 0;
   session::gametypesettings_t compressedBuffer = {0};
-  uint8_t _padding132DC[4];
-
+  DEF_PAD(132DC, 4);
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_STATE_GAME;
 
   bool package(LobbyMsg & lobbyMsg);
 
-  IMPL_SLICE_METHODS(compressedBuffer, compressedBufferSize, CompressedBuffer);
+  IMPL_SLICE_METHODS(compressedBuffer, compressedBufferSize);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"core\": {}, \"dataGame\": {}, \"compressedBufferSize\": {} }}",
         core.serialize(), dataGame.serialize(), compressedBufferSize);
@@ -370,8 +367,7 @@ struct PrivateData {
 PACKED(struct Msg_LobbyStatePrivate {
   Msg_LobbyState core = {};
   PrivateData dataPrivate = {};
-  uint8_t _padding53CC[4];
-
+  DEF_PAD(53CC, 4);
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_STATE_PRIVATE;
 
   inline bool package(LobbyMsg & lobbyMsg) {
@@ -380,7 +376,7 @@ PACKED(struct Msg_LobbyStatePrivate {
             lobbyMsg.package_int("plistid", &dataPrivate.playlistId));
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"core\": {}, \"dataPrivate\": {} }}",
                        core.serialize(), dataPrivate.serialize());
   }
@@ -391,8 +387,7 @@ ASSERT_SIZE(Msg_LobbyStatePrivate, 0x53D0);
 PACKED(struct Msg_JoinAgreementResponse {
   XUID xuid = 0;
   bool clientAgrees = false;
-  uint8_t _padding09[7];
-
+  DEF_PAD(09, 7);
   static inline constexpr MsgType MESSAGE_TYPE =
       MsgType::JOIN_AGREEMENT_RESPONSE;
 
@@ -401,7 +396,7 @@ PACKED(struct Msg_JoinAgreementResponse {
            lobbyMsg.package_bool("agree", &clientAgrees);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"xuid\": {:016X}, \"clientAgrees\": {} }}", xuid,
                        ::serialize(clientAgrees));
   }
@@ -421,9 +416,9 @@ PACKED(struct Msg_ModifiedStats {
            lobbyMsg.package_glob("statsbuffer", statsBuffer, statsSize);
   }
 
-  IMPL_SLICE_METHODS(statsBuffer, statsSize, StatsBuffer);
+  IMPL_SLICE_METHODS(statsBuffer, statsSize);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"statsSize\": {} }}", statsSize);
   }
 });
@@ -442,18 +437,17 @@ PACKED(struct Msg_ClientReliableData {
   team_t team = team_t::TEAM_FREE;
   LobbyMapVote mapVote = LobbyMapVote::INVALID;
   bool readyUp = false;
-  uint8_t _padding31[7];
+  DEF_PAD(31, 7);
   session::ItemVote itemVote = {};
   session::CharacterSelection characterSelection = {};
   bool editComplete = false;
-  uint8_t _padding61[7];
-
+  DEF_PAD(61, 7);
   static inline constexpr MsgType MESSAGE_TYPE =
       MsgType::LOBBY_CLIENT_RELIABLE_DATA;
 
   bool package(LobbyMsg & lobbyMsg);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"dataMask\": {:08X}, \"lobbyType\": {}, \"xuidNewLeader\": "
         "{:016X}, \"disconnectClientXuid\": {:016X}, "
@@ -474,7 +468,7 @@ ASSERT_SIZE(Msg_ClientReliableData, 0x68);
 PACKED(struct Msg_VoicePacket {
   LobbyType lobbyType = LobbyType::INVALID;
   uint8_t talkerIndex = 0;
-  uint8_t _padding05[3];
+  DEF_PAD(05, 3);
   int32_t relayBits = 0;
   uint16_t sizeofVoiceData = 0;
   uint8_t numPacketsInData = 0;
@@ -482,8 +476,7 @@ PACKED(struct Msg_VoicePacket {
   // Each packet contains its size as its first 4 bytes, little-endian encoded,
   // followed by the specified number of packet bytes.
   uint8_t voiceData[1198] = {0};
-  uint8_t _padding4BD[3];
-
+  DEF_PAD(4BD, 3);
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::VOICE_PACKET;
 
   inline bool package(LobbyMsg & lobbyMsg) {
@@ -497,9 +490,9 @@ PACKED(struct Msg_VoicePacket {
            lobbyMsg.package_glob("voicedata", voiceData, sizeofVoiceData);
   }
 
-  IMPL_SLICE_METHODS(voiceData, sizeofVoiceData, VoiceData);
+  IMPL_SLICE_METHODS(voiceData, sizeofVoiceData);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"talkerIndex\": {}, "
                        "\"relayBits\": {:X}, \"sizeofVoiceData\": {}, "
                        "\"numPacketsInData\": {} }}",
@@ -547,13 +540,12 @@ PACKED(struct Msg_ClientContent {
   LobbyType lobbyType = LobbyType::INVALID;
   uint8_t clientContentData[0x27C00] = {0};
   uint16_t compressedBufferSize = 0;
-  uint8_t _padding27C0A[6];
+  DEF_PAD(27C0A, 6);
   XUID clientXUID = 0;
   eModes sessionMode = eModes::COUNT;
   eGameModes gameMode = eGameModes::COUNT;
 
-  IMPL_SLICE_METHODS(clientContentData, compressedBufferSize,
-                     ClientContentData);
+  IMPL_SLICE_METHODS(clientContentData, compressedBufferSize);
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_CLIENT_CONTENT;
 
@@ -564,7 +556,7 @@ PACKED(struct Msg_ClientContent {
         lobbyMsg.package_xuid("clientxuid", &clientXUID) &&
         lobbyMsg.package_ushort("buffersize", &compressedBufferSize) &&
         compressedBufferSize <= std::size(clientContentData) &&
-        lobbyMsg.package_glob("buffer", getClientContentData()) &&
+        lobbyMsg.package_glob("buffer", get_clientContentData()) &&
         lobbyMsg.package_uchar("sessionmode",
                                reinterpret_cast<uint8_t *>(&sessionMode)) &&
         (validate(sessionMode) || sessionMode == eModes::COUNT) &&
@@ -577,7 +569,7 @@ PACKED(struct Msg_ClientContent {
     return result && (validate(gameMode) || gameMode == eGameModes::COUNT);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"dataMask\": {:08X}, \"lobbyType\": {}, \"compressedBufferSize\": "
         "{}, \"clientXUID\": {:016X}, \"sessionMode\": {}, \"gameMode\": {} }}",
@@ -590,11 +582,11 @@ ASSERT_SIZE(Msg_ClientContent, 0x27C20);
 // Verified
 PACKED(struct Msg_LobbyMigrateBandwidthTest {
   LobbyType lobbyType = LobbyType::INVALID;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   XUID peerXuid = 0;
   bool isAck = false;
   uint8_t sentPacketCountOrSequence = 0;
-  uint8_t _padding11[2];
+  DEF_PAD(11, 2);
   int32_t timeMS = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_MIGRATE_TEST;
@@ -607,7 +599,7 @@ PACKED(struct Msg_LobbyMigrateBandwidthTest {
            lobbyMsg.package_uchar("seqorcount", &sentPacketCountOrSequence);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"lobbyType\": {}, \"peerXuid\": {:016X}, \"isAck\": {}, "
         "\"sentPacketCountOrSequence\": {}, \"timeMS\": {} }}",
@@ -619,11 +611,10 @@ ASSERT_SIZE(Msg_LobbyMigrateBandwidthTest, 0x18);
 
 PACKED(struct Msg_LobbyDisconnectClient {
   LobbyType lobbyType = LobbyType::INVALID;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   XUID disconnectClientXuid = 0;
   LobbyDisconnectClient disconnectClient = LobbyDisconnectClient::INVALID;
-  uint8_t _padding14[4];
-
+  DEF_PAD(14, 4);
   static inline constexpr MsgType MESSAGE_TYPE =
       MsgType::LOBBY_HOST_DISCONNECT_CLIENT;
 
@@ -635,7 +626,7 @@ PACKED(struct Msg_LobbyDisconnectClient {
            validate(disconnectClient);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"disconnectClientXuid\": "
                        "{:016X}, \"disconnectClient\": {} }}",
                        lobby::serialize(lobbyType), disconnectClientXuid,
@@ -658,7 +649,7 @@ PACKED(struct Msg_ConnectionTest {
            validate(clientIndex);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"clientIndex\": {} }}",
                        lobby::serialize(lobbyType),
                        game::serialize(clientIndex));
@@ -670,7 +661,7 @@ ASSERT_SIZE(Msg_ConnectionTest, 0x8);
 PACKED(struct Msg_DemoState {
   LobbyType lobbyType = LobbyType::INVALID;
   bool paused = false;
-  uint8_t _padding05[3];
+  DEF_PAD(05, 3);
   int32_t serverTime = 0;
   int32_t timeScale = 0;
   ClientNum_t client = ClientNum_t::INVALID_CLIENT_INDEX;
@@ -693,7 +684,7 @@ PACKED(struct Msg_DemoState {
            lobbyMsg.package_int("lstkframetime", &lastKeyframeTime);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"lobbyType\": {}, \"paused\": {}, \"serverTime\": {}, "
         "\"timeScale\": {}, "
@@ -709,7 +700,7 @@ ASSERT_SIZE(Msg_DemoState, 0x24);
 // Verified
 PACKED(struct Msg_LobbyClientDisconnect {
   LobbyType lobbyType = LobbyType::INVALID;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   XUID xuid = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE =
@@ -720,7 +711,7 @@ PACKED(struct Msg_LobbyClientDisconnect {
            validate(lobbyType) && lobbyMsg.package_xuid("xuid", &xuid);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"xuid\": {:016X} }}",
                        lobby::serialize(lobbyType), xuid);
   }
@@ -737,7 +728,7 @@ PACKED(struct Msg_LobbyHostHeartbeat {
 
   bool package(LobbyMsg & lobbyMsg);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"heartbeatNum\": {}, \"lobbyType\": {}, \"migrateInfo\": {} }}",
         heartbeatNum, lobby::serialize(lobbyType), migrateInfo.serialize());
@@ -748,7 +739,7 @@ ASSERT_SIZE(Msg_LobbyHostHeartbeat, 0xA0);
 // Verified
 PACKED(struct Msg_LobbyIngameMigrateMigrateTo {
   LobbyType lobbyType = LobbyType::INVALID;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   XUID newHostXuid = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::INGAME_MIGRATE_TO;
@@ -759,7 +750,7 @@ PACKED(struct Msg_LobbyIngameMigrateMigrateTo {
            lobbyMsg.package_xuid("newhost", &newHostXuid);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"newHostXuid\": {:016X} }}",
                        lobby::serialize(lobbyType), newHostXuid);
   }
@@ -776,7 +767,7 @@ PACKED(struct Msg_InfoRequest {
     return lobbyMsg.package_uint("nonce", &nonce);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"nonce\": {} }}", nonce);
   }
 });
@@ -784,7 +775,7 @@ ASSERT_SIZE(Msg_InfoRequest, 0x4);
 
 PACKED(struct Msg_InfoResponseLobbyServer {
   clientplatform_t clientPlatform = clientplatform_t::PC;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   LobbyModulePool<info::InfoResponseLobby> lobby = {{}};
   XUID xuid = 0;
   name_t gamertag = {0};
@@ -792,7 +783,7 @@ PACKED(struct Msg_InfoResponseLobbyServer {
   name_t mapName = {0};
   name_t gameType = {0};
   bool isInGame = false;
-  uint8_t _padding1B5[3];
+  DEF_PAD(1B5, 3);
   ClientNum_t maxClients = ClientNum_t::CLIENT_INDEX_COUNT;
   ClientNum_t clientCount = ClientNum_t::CLIENT_INDEX_0;
   LobbyClientPool<LANClientInfo> client = {{}};
@@ -801,9 +792,9 @@ PACKED(struct Msg_InfoResponseLobbyServer {
 
   bool package(LobbyMsg & lobbyMsg);
 
-  IMPL_SLICE_METHODS(client, clientCount, Client);
+  IMPL_SLICE_METHODS(client, clientCount);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"clientPlatform\": {}, \"lobby\": {}, \"xuid\": {:016X}, "
         "\"gamertag\": {}, "
@@ -814,7 +805,7 @@ PACKED(struct Msg_InfoResponseLobbyServer {
         ::serialize(gamertag), game::serialize(sessionMode),
         ::serialize(mapName), ::serialize(gameType), ::serialize(isInGame),
         game::serialize(maxClients), game::serialize(clientCount),
-        ::serialize(getClient()));
+        ::serialize(get_client()));
   }
 });
 ASSERT_SIZE(Msg_InfoResponseLobbyServer, 0x490);
@@ -826,7 +817,7 @@ PACKED(struct Msg_JoinAgreementRequest {
   net::bdSecurityID secId = {};
   net::bdSecurityKey secKey = {};
   net::SerializedAdr serializedAdr = {};
-  uint8_t _padding66[2];
+  DEF_PAD(66, 2);
   LobbyType sourceLobbyType = LobbyType::INVALID;
   LobbyType destinationLobbyType = LobbyType::INVALID;
   LobbyParams destinationLobbyParams = {};
@@ -860,7 +851,7 @@ PACKED(struct Msg_JoinAgreementRequest {
            lobbyMsg.package_int("serverloc", &serverLoc);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"hostXuid\": {:016X}, \"hostName\": {}, \"secId\": "
                        "{}, \"secKey\": {}, "
                        "\"serializedAdr\": {}, \"sourceLobbyType\": {}, "
@@ -888,7 +879,7 @@ PACKED(struct Msg_JoinComplete {
     return lobbyMsg.package_bool("xuid", &shouldCommit);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"shouldCommit\": {} }}", ::serialize(shouldCommit));
   }
 });
@@ -901,8 +892,7 @@ PACKED(struct Msg_JoinMemberInfo {
   uint64_t reservationKey = 0;
   LobbyType targetLobby = LobbyType::INVALID;
   net::SerializedAdr serializedAdr = {};
-  uint8_t _padding512[6];
-
+  DEF_PAD(512, 6);
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::JOIN_MEMBER_INFO;
 
   inline bool package(LobbyMsg & lobbyMsg) {
@@ -913,7 +903,7 @@ PACKED(struct Msg_JoinMemberInfo {
            mutableClientInfoMsg.package(lobbyMsg);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"mutableClientInfoMsg\": {}, "
                        "\"fixedClientInfoMsg\": {}, \"reservationKey\": {}, "
                        "\"targetLobby\": {}, \"serializedAdr\": {} }}",
@@ -932,7 +922,7 @@ PACKED(struct Msg_JoinResponse {
   uint32_t serverLocation = 0;
   LobbyType lobbyType = LobbyType::INVALID;
   LobbyParams lobbyParams = {};
-  uint8_t _padding34[4];
+  DEF_PAD(34, 4);
   uint64_t reservationKey = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::JOIN_RESPONSE;
@@ -951,7 +941,7 @@ PACKED(struct Msg_JoinResponse {
            lobbyMsg.package_uint64("reservationkey", &reservationKey);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"response\": {}, \"name\": {}, \"serverLocation\": "
                        "{}, \"lobbyType\": {}, "
                        "\"lobbyParams\": {}, \"reservationKey\": {} }}",
@@ -965,12 +955,12 @@ ASSERT_SIZE(Msg_JoinResponse, 0x40);
 // Verified
 PACKED(struct MsgClientMigrateInfo {
   uint16_t totalLatencyMS = 0;
-  uint8_t _padding02[2];
+  DEF_PAD(02, 2);
   uint32_t recievedPacketCount = 0;
   float m = 0.0f;
   uint32_t uploadBandwidth = 0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"totalLatencyMS\": {}, \"recievedPacketCount\": "
                        "{}, \"m\": {}, \"uploadBandwidth\": {} }}",
                        totalLatencyMS, recievedPacketCount, m, uploadBandwidth);
@@ -981,7 +971,7 @@ ASSERT_SIZE(MsgClientMigrateInfo, 0x10);
 // Verified
 PACKED(struct Msg_LobbyClientHeartbeat {
   LobbyType lobbyType = LobbyType::INVALID;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   MsgMutableClientInfo mutableClientInfoMsg = {};
   MsgClientMigrateInfo migrateInfo = {};
 
@@ -1001,7 +991,7 @@ PACKED(struct Msg_LobbyClientHeartbeat {
            mutableClientInfoMsg.package(lobbyMsg);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"mutableClientInfoMsg\": {}, "
                        "\"migrateInfo\": {} }}",
                        lobby::serialize(lobbyType),
@@ -1014,7 +1004,7 @@ ASSERT_SIZE(Msg_LobbyClientHeartbeat, 0x428);
 // Verified
 PACKED(struct Msg_LobbyHostDisconnect {
   LobbyType lobbyType = LobbyType::INVALID;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   XUID xuid = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::LOBBY_HOST_DISCONNECT;
@@ -1024,7 +1014,7 @@ PACKED(struct Msg_LobbyHostDisconnect {
            validate(lobbyType) && lobbyMsg.package_xuid("xuid", &xuid);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"xuid\": {:016X} }}",
                        lobby::serialize(lobbyType), xuid);
   }
@@ -1042,7 +1032,7 @@ PACKED(struct Msg_LobbyHostLeaveWithParty {
     return lobbyMsg.package_int("lobbytype", &lobbyType) && validate(lobbyType);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {} }}", lobby::serialize(lobbyType));
   }
 });
@@ -1051,7 +1041,7 @@ ASSERT_SIZE(Msg_LobbyHostLeaveWithParty, 0x4);
 // Verified
 PACKED(struct Msg_LobbyIngameMigrateNewHost {
   LobbyType lobbyType = LobbyType::INVALID;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   XUID hostXuid = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::MIGRATE_NEW_HOST;
@@ -1061,7 +1051,7 @@ PACKED(struct Msg_LobbyIngameMigrateNewHost {
            validate(lobbyType) && lobbyMsg.package_xuid("hostxuid", &hostXuid);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"hostXuid\": {:016X} }}",
                        lobby::serialize(lobbyType), hostXuid);
   }
@@ -1080,7 +1070,7 @@ PACKED(struct Msg_LobbyMigrateAnnounceHost {
            validate(lobbyType) && lobbyMsg.package_int("timeout", &timeout);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"timeout\": {} }}",
                        lobby::serialize(lobbyType), timeout);
   }
@@ -1090,7 +1080,7 @@ ASSERT_SIZE(Msg_LobbyMigrateAnnounceHost, 0x8);
 // Verified
 PACKED(struct Msg_LobbyMigrateStart {
   LobbyType lobbyType = LobbyType::INVALID;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   XUID migrateTo = 0;
 
   static inline constexpr MsgType MESSAGE_TYPE = MsgType::MIGRATE_START;
@@ -1101,7 +1091,7 @@ PACKED(struct Msg_LobbyMigrateStart {
            lobbyMsg.package_xuid("migrateTo", &migrateTo);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"migrateTo\": {:016X} }}",
                        lobby::serialize(lobbyType), migrateTo);
   }
@@ -1123,7 +1113,7 @@ PACKED(struct Msg_PeerToPeerInfo {
            lobbyMsg.package_xuid("xuid", &clientXuid);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lobbyType\": {}, \"connectivityBits\": {}, "
                        "\"clientXuid\": {:016X} }}",
                        lobby::serialize(lobbyType), connectivityBits,

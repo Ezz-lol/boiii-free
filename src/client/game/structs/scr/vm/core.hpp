@@ -23,16 +23,16 @@ ASSERT_SIZE(function_stack_t, 0x20);
 PACKED(struct function_frame_t {
   function_stack_t fs;
   bool nested;
-  uint8_t _padding21[7];
+  DEF_PAD(21, 7);
 });
 ASSERT_SIZE(function_frame_t, 0x28);
 
 PACKED(struct ScrVmContext_t {
   var::ScrVarIndex_t fieldValueId;
   bool fieldValueRemoveOk;
-  uint8_t _padding05[3];
+  DEF_PAD(05, 3);
   var::ScrVarIndex_t objectId;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   uint8_t *lastGoodPos;
   volatile var::ScrVarValue_t *lastGoodTop;
 });
@@ -50,11 +50,11 @@ PACKED(struct scrVmPub_t {
   bool abort_on_error;
   bool terminal_error;
   bool block_execution;
-  uint8_t _padding2C[4];
+  DEF_PAD(2C, 4);
   uint32_t callNesting;
   uint32_t inparamcount;
   uint32_t outparamcount;
-  uint8_t _padding3C[4];
+  DEF_PAD(3C, 4);
   function_frame_t function_frame_start[64];
   var::ScrVarValue_t stack[2048];
 });

@@ -346,7 +346,7 @@ struct Join {
   int32_t processedCount;
   bool isFinalized;
   // JoinHost is packed, so it isn't aligned on its own
-  uint8_t _padding1F71[7];
+  DEF_PAD(1F71, 7);
   JoinHost potentialHost;
   Agreement agreement;
   Agreement debugAgreement;
@@ -354,7 +354,7 @@ struct Join {
   XUID probedXuid;
   JoinResult joinResult;
 
-  IMPL_SLICE_METHODS(hostList, hostCount, HostList);
+  IMPL_SLICE_METHODS(hostList, hostCount);
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
@@ -370,7 +370,7 @@ struct Join {
         join::serialize(state), actionId, startTime, duration,
         game::serialize(controllerIndex), lobby::serialize(sourceLobbyType),
         lobby::serialize(targetLobbyType), ::serialize(joinComplete),
-        ::serialize(getHostList()), hostCount, processedCount,
+        ::serialize(get_hostList()), hostCount, processedCount,
         ::serialize(isFinalized), potentialHost.serialize(),
         agreement.serialize(), debugAgreement.serialize(),
         join::serialize(joinType), probedXuid, join::serialize(joinResult));
@@ -382,7 +382,7 @@ ASSERT_SIZE(Join, 0x2840);
 
 struct JoinClient {
   JoinClientState state;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   JoinHost potentialHost;
   LobbyType sourceLobbyType;
   ControllerIndex_t controllerIndex;

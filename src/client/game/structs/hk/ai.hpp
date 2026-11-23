@@ -46,7 +46,7 @@ public:
     NodeIndex m_oppositeNodeIndex;
     GraphEdgeData m_edgeData;
     hkHalf m_edgeCost;
-    uint8_t _padding0E[2];
+    DEF_PAD(0E, 2);
   });
 
   struct VolumeConnection {

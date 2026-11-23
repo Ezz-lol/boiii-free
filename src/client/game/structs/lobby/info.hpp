@@ -17,7 +17,7 @@ PACKED(struct LobbyUGCInfo {
   str32_t publisherId = {0};
   uint32_t version = 0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"publisherId\": {}, \"version\": {} }}",
                        ::serialize(publisherId), version);
   }
@@ -27,20 +27,19 @@ ASSERT_SIZE(LobbyUGCInfo, 0x24);
 // Verified
 PACKED(struct InfoResponseLobby {
   bool isValid = false;
-  uint8_t _padding01[7];
+  DEF_PAD(01, 7);
   XUID hostXuid = 0;
   str32_t hostName = {0};
   net::bdSecurityID secId = {};
   net::bdSecurityKey secKey = {};
   net::SerializedAdr serializedAdr = {};
-  uint8_t _padding6E[2];
+  DEF_PAD(6E, 2);
   LobbyParams lobbyParams = {};
   LobbyUGCInfo ugcInfo = {};
-  uint8_t _padding9C[4];
-
+  DEF_PAD(9C, 4);
   bool package(msg::LobbyMsg & msg);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"isValid\": {}, \"hostXuid\": {:016X}, "
                        "\"hostName\": {}, \"secId\": {}, "
                        "\"secKey\": {}, \"serializedAdr\": {}, "

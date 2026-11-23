@@ -38,7 +38,7 @@ PACKED(struct bdSockAddr {
     bdUByte8 m_sockaddr_storage[128];
   } inUn;
   bdUInt16 m_family;
-  uint8_t _padding82[2];
+  DEF_PAD(82, 2);
 });
 
 typedef bdSockAddr bdInAddr;
@@ -50,7 +50,7 @@ struct bdInetAddr {
 PACKED(struct bdAddr {
   bdInetAddr m_address;
   bdPort m_port;
-  uint8_t _padding86[2];
+  DEF_PAD(86, 2);
 });
 
 typedef bdUInt32 bdTitleID;
@@ -86,7 +86,7 @@ public:
   bdUInt32 m_tokens;
   bdUInt64 m_lastUpdateTime;
   bdBool m_isInfinite;
-  uint8_t _padding1A[7];
+  DEF_PAD(1A, 7);
 });
 
 class bdLobbyConnection : public bdReferencable {

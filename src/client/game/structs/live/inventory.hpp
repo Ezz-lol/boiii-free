@@ -21,11 +21,11 @@ ASSERT_SIZE(InventoryItem, 0x14);
 // Item and count passed to `LiveInventory_BurnDuplicates`, filled by
 // `GetBurnableItems` from the inventory.
 struct bdMarketplaceItemToPawn {
-  uint8_t _padding00[0x10];
+  DEF_PAD(00, 0x10);
   uint32_t itemId;
   uint32_t quantity;
   uint16_t collisionField;
-  uint8_t _padding1A[0x16];
+  DEF_PAD(1A, 0x16);
 };
 ASSERT_SIZE(bdMarketplaceItemToPawn, 0x30);
 ASSERT_OFFSET(bdMarketplaceItemToPawn, itemId, 0x10);

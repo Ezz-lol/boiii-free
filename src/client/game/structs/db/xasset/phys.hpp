@@ -254,7 +254,7 @@ PACKED(struct PhysConstraint {
   float maxAngle;
   float minAngleYaw;
   float maxAngleYaw;
-  uint8_t _padding94[4];
+  DEF_PAD(94, 4);
   db::xasset::MaterialHandle material;
   int32_t model;
   int32_t slice_count;
@@ -302,7 +302,7 @@ ASSERT_SIZE(PhysConstraint, 0xD0);
 
 PACKED(struct PhysConstraints : NamedXAsset {
   uint32_t count;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   PhysConstraint data[8];
 
   [[nodiscard]] inline std::string serialize() const noexcept {

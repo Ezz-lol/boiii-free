@@ -8,12 +8,12 @@ struct sentient_t; // TODO
 
 struct AIBody {
   int32_t randSeed;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   anim::AnimStateMachineRuntime asmRuntime;
   const anim::AnimSelectorTableSet *animTableSet;
   const anim::AnimMappingTable *animMappingTables[3];
   int32_t currentAnimMappingTableIndex;
-  uint8_t _padding35C[4];
+  DEF_PAD(35C, 4);
   const anim::AimTable *aimTable;
   struct {
     union {
@@ -22,7 +22,7 @@ struct AIBody {
     };
     anim::AnimSelectorTableCache caches[2];
   };
-  uint8_t _padding68C[4];
+  DEF_PAD(68C, 4);
 };
 ASSERT_SIZE(AIBody, 0x690);
 

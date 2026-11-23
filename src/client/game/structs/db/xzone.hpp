@@ -77,21 +77,21 @@ PACKED(struct XZoneName // Size must be 96 == 0x60
          int32_t flags;
          int32_t slot;
          ZoneType zoneType;
-         uint8_t _padding4C[4];
+         DEF_PAD(4C, 4);
          size_t size;
          XZoneState state;
          bool streamPreloaded;
-         uint8_t _padding5d[3];
+         DEF_PAD(5d, 3);
        });
 ASSERT_SIZE(XZoneName, 0x60);
 
 // Verified
 PACKED(struct XZone {
   uint16_t index;
-  uint8_t _padding02[2];
+  DEF_PAD(02, 2);
   int32_t flags;
   int32_t slot;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   db::XBlock blocks[10];
 });
 ASSERT_SIZE(XZone, 0xB0);

@@ -27,7 +27,7 @@ enum class LootResultType : uint32_t {
 
 PACKED(struct LootResult {
   bool isValid;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   LootResultType result;
   LootResultItem granted[5];
   LootResultItem all[4];

@@ -33,7 +33,7 @@ public:
 class hkReferencedObject : public hkBaseObject {
 public:
   hkUint32 m_memSizeAndRefCount;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
 };
 
 template <typename T, typename Storage = hkUint8> struct hkFlags {

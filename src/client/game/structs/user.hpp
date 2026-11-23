@@ -116,15 +116,14 @@ PACKED(struct bot_t {
   bot_look_t look;
   bot_move_t move;
   bot_goal_t goal;
-  uint8_t _padding6C[4];
+  DEF_PAD(6C, 4);
   hkVector4 lastCorner;
   game_button_bits_t tapButtons;
   game_button_bits_t buttons;
   weapon::Weapon weapon;
   int32_t lastMoveTime;
   char goal_callStack[1025];
-  uint8_t _padding4A5[11];
-
+  DEF_PAD(4A5, 11);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"look\": {}, \"move\": {}, \"goal\": {}, "
                        "\"lastCorner\": {}, \"tapButtons\": {}, \"buttons\": "
@@ -143,7 +142,7 @@ PACKED(struct usercmd_s {
   serverFieldBits_t serverFields;
   int32_t angles[3];
   uint16_t level;
-  uint8_t _padding22[6];
+  DEF_PAD(22, 6);
   weapon::Weapon weapon;
   weapon::Weapon offHandWeapon;
   weapon::Weapon lastWeaponAltModeSwitch;
@@ -152,16 +151,16 @@ PACKED(struct usercmd_s {
   int8_t upmove;
   int8_t pitchmove;
   int8_t yawmove;
-  uint8_t _padding45[1];
+  DEF_PAD(45, 1);
   uint16_t meleeChargeEnt;
   uint16_t meleeChargeDist;
   int16_t damageKick[2];
   int8_t selectedLocation[2];
   uint8_t selectedYaw;
-  uint8_t _padding51[1];
+  DEF_PAD(51, 1);
   uint16_t lastInput;
   uint16_t streamerState;
-  uint8_t _padding56[2];
+  DEF_PAD(56, 2);
   uint32_t kf_index;
   qboolean transition;
 

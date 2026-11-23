@@ -237,7 +237,7 @@ constexpr bool validate(const LobbyType lobbyType) {
 }
 IMPL_ENUM_OPERATORS(LobbyType);
 
-constexpr const char *serialize(const LobbyType lobbyType) {
+[[nodiscard]] constexpr const char *serialize(const LobbyType lobbyType) {
   switch (lobbyType) {
   case LobbyType::PRIVATE:
     return "LOBBYTYPE_PRIVATE";
@@ -355,6 +355,10 @@ enum class LobbyModule : int32_t {
 };
 IMPL_ENUM_OPERATORS(LobbyModule);
 
+constexpr bool validate(const LobbyModule module) {
+  return module >= LobbyModule::HOST && module < LobbyModule::COUNT;
+}
+
 [[nodiscard]] inline constexpr const char *serialize(const LobbyModule module) {
   switch (module) {
   case LobbyModule::INVALID:
@@ -405,7 +409,11 @@ IMPL_ENUM_OPERATORS(LobbyMode);
 }
 
 constexpr bool validate(const LobbyMode mode) {
-  return mode >= LobbyMode::PUBLIC && mode <= LobbyMode::COUNT;
+
+  return mode >= LobbyMode::PUBLIC &&
+         // `LobbyMode::COUNT` is a valid mode - this represents lobby not
+         // currently in a game - e.g. in main menu.
+         mode <= LobbyMode::COUNT;
 }
 
 enum class PartyPrivacy : int32_t {
@@ -648,7 +656,7 @@ struct LobbyParams {
   LobbyNetworkMode networkMode = LobbyNetworkMode::INVALID;
   LobbyMainMode mainMode = LobbyMainMode::INVALID;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "networkMode": {}, "mainMode": {} }})",
                        lobby::serialize(networkMode),
                        lobby::serialize(mainMode));
@@ -660,12 +668,12 @@ PACKED(struct JoinHost {
   net::HostInfo info;
   LobbyType lobbyType;
   LobbyParams lobbyParams;
-  uint8_t _padding8C[4];
+  DEF_PAD(8C, 4);
   uint64_t reservationKey;
   int32_t retryTime;
   int32_t retryCount;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"info\": {}, \"lobbyType\": {}, \"lobbyParams\": {}, "
         "\"reservationKey\": {}, \"retryTime\": {}, \"retryCount\": {} }}",
@@ -677,13 +685,13 @@ ASSERT_SIZE(JoinHost, 0xA0);
 
 struct AgreementStatus {
   XUID xuid = 0;
-  name_t name = {0};
+  name_t name = {NULL};
   bool responded = false;
   bool agrees = false;
   int32_t startTime = 0;
   int32_t responseTime = 0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"xuid\": {:016X}, \"name\": {}, \"responded\": {}, "
         "\"agrees\": {}, \"startTime\": {}, \"responseTime\": {} }}",
@@ -700,7 +708,7 @@ struct Agreement {
   int32_t responseCount = 0;
   int32_t agreeCount = 0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"nonce\": {}, \"status\": {}, \"requestCount\": {}, "
         "\"responseCount\": {}, \"agreeCount\": {} }}",
@@ -716,8 +724,8 @@ struct ServerInfo {
   int32_t m_nPing;
   uint8_t unk[0x22];
   name_t mapname;
-  char description[64];
-  char gamemode[16];
+  str64_t description;
+  str16_t gamemode;
   name_t modname;
   int32_t playerCount;
   int32_t maxPlayers;
@@ -728,12 +736,12 @@ struct ServerInfo {
   bool ranked;
   bool hardcore;
   bool zombies;
-  char servername[64];
-  char tags[128];
+  str64_t servername;
+  str128_t tags;
   int32_t unk5;
   int32_t unk6;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_usConnectionPort\": {}, \"m_usQueryPort\": {}, "
                        "\"m_unIP\": {}, \"m_nPing\": {}, "
                        "\"unk\": {}, \"mapname\": {}, \"description\": {}, "
@@ -761,9 +769,8 @@ PACKED(struct ClientProgression {
   uint8_t prestige = 0;
   uint16_t paragonRank = 0;
   uint8_t paragonIconId = 0;
-  uint8_t _padding05[1];
-
-  inline std::string serialize() const noexcept {
+  DEF_PAD(05, 1);
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"rank\": {:X}, \"prestige\": {:X}, "
                        "\"paragonRank\": {:X}, \"paragonIconId\": {:X} }}",
                        rank, prestige, paragonRank, paragonIconId);
@@ -778,7 +785,7 @@ struct BubbleGumBuffsLobbyClientInfo {
   BubbleGumBuffLobbyArray<uint8_t> bubbleGumBuffs = {0};
   BubbleGumBuffLobbyArray<uint8_t> bubbleGumBuffConsumableCount = {0};
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         R"({{ "bubbleGumBuffs": {}, "bubbleGumBuffConsumableCount": {} }})",
         ::serialize(bubbleGumBuffs), ::serialize(bubbleGumBuffConsumableCount));
@@ -796,7 +803,7 @@ struct CharacterCustomizationLobbyClientInfo {
   vec3<vec2<uint8_t>> selectedCharacterItemColors = {
       .x = {.v = {0}}, .y = {.v = {0}}, .z = {.v = {0}}};
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"selectedCharacterType\": {:X}, \"selectedCharacterMode\": {:X}, "
         "\"selectedHeadType\": {:X}, "
@@ -812,18 +819,18 @@ ASSERT_SIZE(CharacterCustomizationLobbyClientInfo, 0xC);
 // Verified
 PACKED(struct Variant {
   char variantName[17] = {0};
-  uint8_t _padding11[3];
+  DEF_PAD(11, 3);
   int32_t attachment[8] = {0};
   uint8_t attachmentVariant[8] = {0};
   uint8_t camoIndex = 0;
-  uint8_t _padding3D[3];
+  DEF_PAD(3D, 3);
   int32_t paintjobSlot = 0;
   int32_t paintjobIndex = 0;
   int32_t weaponIndex = 0;
   int32_t variantIndex = 0;
   int32_t sortIndex = 0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"variantName\": {}, \"attachment\": {}, \"attachmentVariant\": "
         "{}, "
@@ -839,10 +846,10 @@ ASSERT_SIZE(Variant, 0x54);
 // Verified
 struct CollectibleInfo {
   bool isSet = false;
-  name_t mapName = {0};
+  name_t mapName = {NULL};
   uint8_t collectibleIndex = 0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         R"({{ "isSet": {}, "mapName": {}, "collectibleIndex": {:X} }})",
         ::serialize(isSet), ::serialize(mapName), collectibleIndex);
@@ -854,17 +861,17 @@ ASSERT_SIZE(CollectibleInfo, 0x22);
 PACKED(struct MutableClientInfo {
   LobbyID lobbyID = 0;
   char clantag[5] = {0};
-  uint8_t _padding0D[1];
+  DEF_PAD(0D, 1);
   ClientProgression progression[3] = {{}};
   BubbleGumBuffsLobbyClientInfo bubbleGumInfo = {};
-  uint8_t _padding2A[2];
+  DEF_PAD(2A, 2);
   int32_t arenaPoints = 0;
   float arenaSkill = 0.0f;
   float arenaVariance = 0.0f;
   CharacterCustomizationLobbyClientInfo heroInfo = {};
   Variant showcaseWeapon = {};
   CollectibleInfo collectibles[9] = {{}};
-  uint8_t _padding1CA[2];
+  DEF_PAD(1CA, 2);
   // TODO: define flags as bit-packed union
   uint32_t flags = 0;
   BGEmblemBackgroundID backgroundId = 0;
@@ -877,7 +884,7 @@ PACKED(struct MutableClientInfo {
   uint32_t profileNonce = 0;
   uint8_t ddlBuff[512] = {0};
   uint16_t ddlBuffSize = 0;
-  uint8_t _padding3F2[2];
+  DEF_PAD(3F2, 2);
   union {
     uint32_t probationEndTime[2];
     struct {
@@ -894,15 +901,15 @@ PACKED(struct MutableClientInfo {
   bool isSplitscreenClient = false;
   bool isInPlatformParty = false;
   bool isInFrontend = false;
-  uint8_t _padding40B[1];
+  DEF_PAD(40B, 1);
   connstate_t connectionState = connstate_t::DISCONNECTED;
 
   static inline constexpr auto MAX_DDL_BUFF_SIZE = 0x200;
 
-  IMPL_SLICE_METHODS(
-      ddlBuff, std::min<uint16_t>(ddlBuffSize, MAX_DDL_BUFF_SIZE), DdlBuff);
+  IMPL_SLICE_METHODS(ddlBuff,
+                     std::min<uint16_t>(ddlBuffSize, MAX_DDL_BUFF_SIZE));
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"lobbyID\": {:016X}, \"clantag\": {}, \"progression\": {}, "
         "\"bubbleGumInfo\": {}, "
@@ -937,10 +944,12 @@ PACKED(struct MutableClientInfo {
 ASSERT_SIZE(MutableClientInfo, 0x410);
 
 struct SharedDataCenterInfo {
-  uint16_t shortId = 0;
-  uint8_t rtt[10] = {0};
+  static constexpr auto RTT_COUNT = 0xA;
 
-  inline std::string serialize() const noexcept {
+  uint16_t shortId = 0;
+  uint8_t rtt[RTT_COUNT] = {0};
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "shortId": {}, "rtt": {} }})", shortId,
                        ::serialize(rtt));
   }
@@ -949,27 +958,30 @@ ASSERT_SIZE(SharedDataCenterInfo, 0xC);
 
 // Verified
 PACKED(struct FixedClientInfo {
+  static constexpr auto DATACENTER_COUNT = 0xA;
+
   XUID xuid = 0;
-  name_t gamertag = {0};
+  name_t gamertag = {NULL};
   dw::net::bdCommonAddrRef commonAdr = {};
   int32_t qport = 0;
   uint8_t latencyBand = 0;
   bool isGuest = false;
-  uint8_t _padding36[2];
+  DEF_PAD(36, 2);
   int32_t granted = 0;
   int32_t consumed = 0;
   int32_t date = 0;
   int32_t daily = 0;
   uint8_t connectionType = 0;
-  uint8_t _padding49[1];
-  SharedDataCenterInfo datacenter[10] = {{}};
+  DEF_PAD(49, 1);
+  SharedDataCenterInfo datacenter[DATACENTER_COUNT] = {{}};
+  // TODO: reverse engineer this country code enumeration, strongly type it as
+  // an `enum class` type, and use it here
   uint16_t countryCode = 0;
   float latitude = 0.0f;
   float longitude = 0.0f;
   bool experimentActive = false;
-  uint8_t _paddingCD[3];
-
-  inline std::string serialize() const noexcept {
+  DEF_PAD(CD, 3);
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"xuid\": {:016X}, \"gamertag\": {}, \"commonAdr\": {}, \"qport\": "
         "{}, "
@@ -989,19 +1001,20 @@ ASSERT_SIZE(FixedClientInfo, 0xD0);
 // Verified
 PACKED(struct LANClientInfo {
   XUID xuid = 0;
-  name_t gamertag = {0};
+  name_t gamertag = {NULL};
 
-  inline std::string serialize() const noexcept {
-    return std::format("{{ \"xuid\": {:016X}, \"gamertag\": {} }}", xuid,
+  [[nodiscard]] inline std::string serialize() const noexcept {
+
+    return std::format(R"({{ "xuid": {:016X}, "gamertag": {} }})", xuid,
                        ::serialize(gamertag));
   }
 });
 ASSERT_SIZE(LANClientInfo, 0x28);
 
 template <typename T> union LobbyModulePool {
-  typedef uint8_t index_t;
+  typedef LobbyModule index_t;
 
-  T pool[+LobbyModule::COUNT] = {{}};
+  T pool[+index_t::COUNT] = {{}};
 
   struct {
     T host;
@@ -1009,22 +1022,21 @@ template <typename T> union LobbyModulePool {
   };
 
   constexpr void assert_range([[maybe_unused]] index_t index) const {
-    assert(index < +LobbyModule::COUNT &&
-           "index to LobbyModulePool must satisfy range "
-           "LobbyModule::HOST <= "
-           "index < LobbyModule::COUNT");
+    assert(validate(index) && "index to LobbyModulePool must satisfy range "
+                              "LobbyModule::HOST <= "
+                              "index < LobbyModule::COUNT");
   }
   template <IntegralLike<index_t> Index>
   constexpr const T &get(Index index_arg) const noexcept {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
-    return pool[index];
+    return pool[+index];
   }
   template <IntegralLike<index_t> Index>
   constexpr T &get(Index index_arg) noexcept {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
-    return pool[index];
+    return pool[+index];
   }
 
   template <IntegralLike<index_t> Index>

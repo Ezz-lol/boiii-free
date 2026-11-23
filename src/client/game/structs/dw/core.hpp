@@ -398,15 +398,14 @@ ASSERT_SIZE(bdReferencable, 0x10);
 PACKED(class bdByteBuffer : public bdReferencable {
 public:
   bdUInt m_size;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   bdUByte8 *m_data;
   bdUByte8 *m_readPtr;
   bdUByte8 *m_writePtr;
   bdBool m_typeChecked;
   bdBool m_typeCheckedCopy;
   bdBool m_allocatedData;
-  uint8_t _padding33[5];
-
+  DEF_PAD(33, 5);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_size\": {}, \"m_data\": {:p}, "
@@ -1549,15 +1548,14 @@ public:
   bdUInt m_numResults;
   bdUInt m_maxNumResults;
   bdUInt m_totalNumResults;
-  uint8_t _padding44[4];
+  DEF_PAD(44, 4);
   bdUInt64 m_transactionID;
   bdLobbyErrorCode m_errorCode;
-  uint8_t _padding54[4];
+  DEF_PAD(54, 4);
   bdTaskResultProcessor *m_taskResultProcessor;
   bdUByte8 m_serviceId;
   bdUByte8 m_taskId;
-  uint8_t _padding62[6];
-
+  DEF_PAD(62, 6);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_timer\": {}, \"m_timeout\": {}, \"m_status\": "
@@ -1971,7 +1969,7 @@ PACKED(struct TaskDefinition {
   TaskCategory category;
   const char *name;
   int32_t payloadSize;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   task_callback completed_callback;
   task_callback failure_callback;
   localTaskFunc localTask;
@@ -2019,7 +2017,7 @@ template <typename T> struct _TaskRecord {
   int32_t startMS;
   int32_t timeOut;
   int32_t timeIn;
-  uint8_t _padding34[4];
+  DEF_PAD(34, 4);
   bdRemoteTaskRef remoteTask;
 
   /*
@@ -2029,14 +2027,13 @@ template <typename T> struct _TaskRecord {
     used at all.
   */
   Event eventInfo;
-  uint8_t _padding4C[4];
+  DEF_PAD(4C, 4);
   TaskRecord *nestedTask;
   T *payload;
   bool isChildTask;
   bool cancelImmediately;
   bool skipAllCallbacksAfterComplete;
-  uint8_t _padding63[5];
-
+  DEF_PAD(63, 5);
   [[nodiscard]] std::string serialize() const noexcept;
 };
 

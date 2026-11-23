@@ -118,7 +118,7 @@ bool MsgMutableClientInfo::package(LobbyMsg &lobbyMsg) {
          lobbyMsg.package_ushort("ddlbuffsize",
                                  &mutableClientInfo.ddlBuffSize) &&
          mutableClientInfo.ddlBuffSize <= sizeof(mutableClientInfo.ddlBuff) &&
-         lobbyMsg.package_glob("ddlbuff", mutableClientInfo.getDdlBuff()) &&
+         lobbyMsg.package_glob("ddlbuff", mutableClientInfo.get_ddlBuff()) &&
          lobbyMsg.package_uint("pprobation",
                                &mutableClientInfo.publicProbationEndTime) &&
          lobbyMsg.package_uint("aprobation",
@@ -318,7 +318,7 @@ bool Msg_LobbyStateGame::package(LobbyMsg &lobbyMsg) {
       return false;
     }
     if (compressedBufferSize > 0) {
-      result &= lobbyMsg.package_glob("settings", getCompressedBuffer());
+      result &= lobbyMsg.package_glob("settings", get_compressedBuffer());
     }
     return result &&
            lobbyMsg.package_int("compstate", &dataGame.pregameState) &&

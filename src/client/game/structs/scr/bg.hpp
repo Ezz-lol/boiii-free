@@ -52,7 +52,7 @@ struct clientField_t {
   uint32_t numBits;
   uint32_t version;
   clientFieldUnion_t u;
-  uint8_t _padding13A[6];
+  DEF_PAD(13A, 6);
 };
 ASSERT_SIZE(clientField_t, 0x140);
 
@@ -82,10 +82,16 @@ struct clientNetField_t {
 };
 
 struct clientFieldSet_t {
+  static constexpr auto PFIELD_COUNT = 0x800;
+
   int32_t numFields;
-  clientField_t *pFields[2048];
+  clientField_t *pFields[PFIELD_COUNT];
   int32_t numNetFields;
   clientNetField_t *pNetFields;
+
+  IMPL_SLICE_METHODS(pFields, std::min<size_t>(static_cast<size_t>(numFields),
+                                               PFIELD_COUNT));
+  IMPL_SLICE_METHODS(pNetFields, numNetFields);
 };
 
 struct bgsClientFieldCallbacks_t {
@@ -119,7 +125,7 @@ struct bgsAnim_t {
 
 struct bgs_clientfieldapi_t {
   fastcallPtr_t<void(uint32_t)> CompareHashToGameState;
-  fastcallPtr_t<bool(void)> AllowVersionReRegistration;
+  fastcallPtr_t<bool()> AllowVersionReRegistration;
   fastcallPtr_t<bool(clientField_t *field, uint32_t)>
       FieldVersionAllowsRegistration;
   fastcallPtr_t<bool(uint32_t)> ServerVersionAllowsRegistration;

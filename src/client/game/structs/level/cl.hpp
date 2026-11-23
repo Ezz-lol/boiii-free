@@ -53,10 +53,10 @@ public:
   float hit_fractions[6];
   TraceHitType hit_type[6];
   uint16_t hit_id[6];
-  uint8_t _paddingCC[4];
+  DEF_PAD(CC, 4);
   vehicle::vehicle_proximity_data_t proximity_data;
   int32_t wheel_mask;
-  uint8_t _padding1424[12];
+  DEF_PAD(1424, 12);
 };
 #pragma pack(pop)
 
@@ -174,7 +174,7 @@ typedef fastcallPtr_t<void(LocalClientNum_t localClientNum, cg_t *cGameGlob,
 #pragma pack(push, 1)
 struct cgZBarrierPiece {
   int32_t index;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   centity_t *pPiece;
   db::xasset::xmodel::XModel *curXModel;
   zbarrierPieceLogicPtr_t pStateLogic;
@@ -187,7 +187,7 @@ struct cgZBarrierPiece {
   uint8_t nextSubState;
   uint8_t curAnim;
   bool flagsChanged;
-  uint8_t _padding3E[2];
+  DEF_PAD(3E, 2);
 };
 #pragma pack(pop)
 
@@ -195,7 +195,7 @@ struct cgZBarrierPiece {
 struct cgZBarrier_t {
   bool zbInUse;
   bool forceUpdateForDemoJump;
-  uint8_t _padding02[2];
+  DEF_PAD(02, 2);
   cgZBarrierPiece pieces[6];
 };
 #pragma pack(pop)
@@ -253,7 +253,7 @@ struct CEntPlayerInfo {
   int32_t nextWaterHeightCheck;
   int32_t nextRippleTime;
   vec3_t viewangles;
-  uint8_t _padding2C[4];
+  DEF_PAD(2C, 4);
 };
 ASSERT_SIZE(CEntPlayerInfo, 0x30);
 #pragma pack(pop)
@@ -462,7 +462,7 @@ PACKED(struct GfxEntityPreFrame {
   uint32_t blendShapeFrame;
   uint32_t blendShapeVertOffset;
   uint32_t blendShapeVertOffsetLast;
-  uint8_t _padding54[4];
+  DEF_PAD(54, 4);
   db::xasset::xsurface::XSurfaceShared *blendShapeVertOffsetLastShared;
 });
 ASSERT_SIZE(GfxEntityPreFrame, 0x60);
@@ -477,7 +477,7 @@ PACKED(struct CEntActorInfo {
   float pitch;
   float roll;
   BoneIndex headBone;
-  uint8_t _padding0E[2];
+  DEF_PAD(0E, 2);
   union {
     float height;
     float yaw;
@@ -487,7 +487,7 @@ PACKED(struct CEntActorInfo {
   int32_t nextRippleTime;
   float lookAtBlend;
   uint8_t lookAtFlags;
-  uint8_t _padding25[3];
+  DEF_PAD(25, 3);
 });
 ASSERT_SIZE(CEntActorInfo, 0x28);
 
@@ -506,14 +506,14 @@ PACKED(struct cpose_t {
   LocalClientNum8_t localClientNum;
   bool isRagdoll;
   uint16_t sceneModelSeed;
-  uint8_t _padding06[2];
+  DEF_PAD(06, 2);
   intptr_t ragdollHandle;
   phys::PhysObjId physObjId;
   phys::PhysObjId physUserBody;
   intptr_t killcamRagdollHandle;
   phys::PhysObjId physUserBodyProneFeet;
   uint8_t physConstraintPoseID;
-  uint8_t _padding31[7];
+  DEF_PAD(31, 7);
   PosedEntity_PoseHandle instancePoseHandle;
   vec3_t origin;
   vec3_t angles;
@@ -529,7 +529,7 @@ PACKED(struct cpose_t {
   };
   gfx::ShaderConstantSet constantSet;
   bool skipControllers;
-  uint8_t _padding221[3];
+  DEF_PAD(221, 3);
 });
 ASSERT_SIZE(cpose_t, 0x330);
 
@@ -561,7 +561,7 @@ PACKED(struct centity_t {
   int32_t lastMuzzleFlash;
   int32_t numShotsFiredLast;
   bool attachWeaponModel;
-  uint8_t _padding601[7];
+  DEF_PAD(601, 7);
   anim::XAnimTree *tree;
   phys::Destructible *destructible;
   vehicle::NitrousVehicle *nitrousVeh;
@@ -577,7 +577,7 @@ PACKED(struct centity_t {
   Character *character;
   CEntityModelAttachment attachments[8];
   db::xasset::FxUniqueHandle worldPersistentEffectHandle;
-  uint8_t _padding6B4[4];
+  DEF_PAD(6B4, 4);
   db::xasset::TagFxSetHandles worldPersistentEffectSetHandles;
   db::xasset::MaterialHandle compassMaterial;
   int32_t lastTrailTime;
@@ -585,11 +585,11 @@ PACKED(struct centity_t {
   db::xasset::FxUniqueHandle fxProjExplosion;
   db::xasset::FxUniqueHandle fxHeartbeat;
   db::xasset::FxUniqueHandle fxLaserSight;
-  uint8_t _padding704[4];
+  DEF_PAD(704, 4);
   db::xasset::ManagedNoteTrackList managedNotetracks;
   vec3_t oldLinkOrigin;
   uint8_t tracerDrawRateCounter;
-  uint8_t _padding80D[3];
+  DEF_PAD(80D, 3);
   centity_t *updateDelayedNext;
   scr::ScrString_t classname;
   uint32_t stepSound;
@@ -600,10 +600,10 @@ PACKED(struct centity_t {
   uint16_t duplicateRenderIndex;
   anim::AnimScriptedState animScripted;
   uint16_t animScriptedOverrideIndex;
-  uint8_t _padding83E[2];
+  DEF_PAD(83E, 2);
   anim::TraversalState traversalState;
   uint8_t corpseIndex;
-  uint8_t _padding89D[3];
+  DEF_PAD(89D, 3);
   centity_overheadName_t *overheadName;
   ArmPulse armPulse;
   IdentitySightState identitySight;
@@ -1085,19 +1085,84 @@ struct RigUIModel {
   ui::UIModelIndex imageModel;
 };
 
-struct __attribute__((aligned(8))) zmWeaponCost {
-  weapon::Weapon weapon;
-  uint32_t cost;
-  uint32_t ammoCost;
-  uint32_t playerCost;
-};
+inline constexpr auto MAX_LEVEL_ZM_WEAPON_COSTS = 0x100;
 
-struct __attribute__((aligned(4))) zmWeaponInfo {
-  uint32_t numWeapons;
-  zmWeaponCost costs[256];
-  uint32_t bgbCost;
-  bool forceUpdate;
-};
+PACKED(struct zmWeaponCost {
+  weapon::Weapon weapon = {};
+  uint32_t cost = 0;
+  uint32_t ammoCost = 0;
+  uint32_t playerCost = 0;
+  uint8_t _padding14[4] = {0};
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format("{{ \"weapon\": {}, \"cost\": {}, \"ammoCost\": {}, "
+                       "\"playerCost\": {} }}",
+                       weapon.serialize(), cost, ammoCost, playerCost);
+  }
+});
+ASSERT_SIZE(zmWeaponCost, 0x18);
+
+PACKED(struct zmWeaponInfo {
+  uint32_t numWeapons = 0;
+  uint8_t _padding04[4] = {0};
+  zmWeaponCost costs[MAX_LEVEL_ZM_WEAPON_COSTS] = {{}};
+  uint32_t bgbCost = 0;
+  bool forceUpdate = false;
+  uint8_t _padding180D[3] = {0};
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format("{{ \"numWeapons\": {}, \"costs\": {}, \"bgbCost\": {}, "
+                       "\"forceUpdate\": {} }}",
+                       numWeapons, ::serialize(costs), bgbCost,
+                       ::serialize(forceUpdate));
+  }
+
+  constexpr void reset() noexcept {
+    forceUpdate = true;
+    numWeapons = 0;
+    bgbCost = 0;
+    constexpr_memset(costs, 0);
+  }
+
+  constexpr zmWeaponCost *get_cost(const weapon::Weapon weapon) noexcept {
+    for (size_t i = 0;
+         i < std::min(std::size(costs), static_cast<size_t>(numWeapons)); ++i) {
+      zmWeaponCost &cost = costs[i];
+      if (cost.weapon.weaponIdx == weapon.weaponIdx) {
+        return &cost;
+      }
+    }
+
+    return nullptr;
+  }
+
+  constexpr bool have_cost_for(const weapon::Weapon weapon) noexcept {
+    return get_cost(weapon) != nullptr;
+  }
+
+  constexpr bool set_cost(const weapon::Weapon weapon,
+                          const uint32_t weapon_cost, const uint32_t ammo_cost,
+                          const uint32_t player_ammo_cost) noexcept {
+    zmWeaponCost *cost = get_cost(weapon);
+    if (cost == nullptr) {
+      assert(numWeapons < MAX_LEVEL_ZM_WEAPON_COSTS);
+      if (numWeapons >= MAX_LEVEL_ZM_WEAPON_COSTS) {
+        return false;
+      }
+      cost = &costs[numWeapons];
+      numWeapons++;
+    }
+    cost->weapon = weapon;
+    cost->cost = weapon_cost;
+    cost->ammoCost = ammo_cost;
+    cost->playerCost = player_ammo_cost;
+    forceUpdate = true;
+
+    return true;
+  }
+});
+// Verified
+ASSERT_OFFSET(zmWeaponInfo, forceUpdate, 0x180C);
 
 struct EntityMinimapVisionCircle {
   int32_t entNum;
@@ -1318,7 +1383,10 @@ struct centityPool_t {
 ASSERT_SIZE(centityPool_t, 0x3F0000);
 
 constexpr uint32_t CG_T_SIZE = 0x342720;
-partial_def(CG_T_SIZE, struct __attribute__((aligned(16))), cg_t, {
+constexpr auto CG_T_ZMWEAPONS_OFFSET = 0x340f08;
+
+#pragma pack(push, 1)
+partial_def(CG_T_SIZE, struct, cg_t, {
   struct FogSettings {
     float start;
     float r;
@@ -1339,10 +1407,11 @@ partial_def(CG_T_SIZE, struct __attribute__((aligned(16))), cg_t, {
     float fogMaxOpacity;
   };
 
-  struct __attribute__((aligned(4))) SpeedBlur {
+  PACKED(struct SpeedBlur {
     bool scripted;
     bool shouldScale;
     bool shouldOffset;
+    DEF_PAD(03, 1);
     int32_t time;
     float amount;
     float scale;
@@ -1351,7 +1420,8 @@ partial_def(CG_T_SIZE, struct __attribute__((aligned(16))), cg_t, {
     float current;
     float start;
     bool wasDoingSpeedBlur;
-  };
+    DEF_PAD(21, 3);
+  });
 
   ClientNum_t clientNum;
   LocalClientNum_t localClientNum;
@@ -1359,15 +1429,17 @@ partial_def(CG_T_SIZE, struct __attribute__((aligned(16))), cg_t, {
   CubemapShot cubemapShot;
   int32_t cubemapSize;
   int32_t cameraMode;
-  bool hiResShotMode;
-  bool renderScreen;
+  qboolean hiResShotMode;
+  qboolean renderScreen;
   int32_t latestSnapshotNum;
   int32_t latestSnapshotTime;
   snapshot_t *snap;
   snapshot_t *nextSnap;
+  DEF_PAD(38, 8);
   snapshot_t activeSnapshots[2];
   uint8_t _unknown[32];
   bool slowMotionModified;
+  DEF_PAD(115C81, 3);
   float frameInterpolation;
   int32_t frametime;
   int32_t time;
@@ -1926,14 +1998,26 @@ partial_def(CG_T_SIZE, struct __attribute__((aligned(16))), cg_t, {
   // bool aggressiveCullAllowed;
   // XUID showcaseWeaponPaintshopXUID;
   // bool isContentScreenFilterPlaying;
-  // zmWeaponInfo zmweapons;
+
+  // 0x11A8A9 is the current predictedPlayerState offset.
+  //
+  // This is currently not assigned to a constexpr nor labelled because it's
+  // very likely incorrect, but its offset can't be computed here using
+  // `offsetof`, so this is hard-coded for now until this data strucure is
+  // reverse engineered more completely.
+  uint8_t _pad[CG_T_ZMWEAPONS_OFFSET - 0x11A8A9 - sizeof(predictedPlayerState)];
+  zmWeaponInfo zmweapons;
   // phys::objcamCameraTable objectiveCameras;
   // phys::objcamCameraState objectiveCameraState;
   // entityMinimapVisionInfo entityMinimapVision;
 });
+#pragma pack(pop)
 // TODO: Correct size is 0x342720. This struct needs corrected.
 ASSERT_SIZE(cg_t, CG_T_SIZE);
 ASSERT_OFFSET(cg_t, time, 0x11A88C);
+ASSERT_OFFSET(cg_t, nextSnap, 0x30);
+// Verified
+ASSERT_OFFSET(cg_t, zmweapons, CG_T_ZMWEAPONS_OFFSET);
 
 struct cgPool {
   LocalClientPool<cg_t> pool;

@@ -12,7 +12,7 @@ struct XBlock {
   uint8_t *data;
   uint64_t size;
 
-  IMPL_SLICE_METHODS(data, size, Data);
+  IMPL_SLICE_METHODS(data, size);
 };
 ASSERT_SIZE(XBlock, 0x10);
 

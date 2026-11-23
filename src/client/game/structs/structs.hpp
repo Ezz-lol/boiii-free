@@ -1,10 +1,11 @@
 #pragma once
 
 // Re-export common structs
+#include "lua/lua.hpp" // IWYU pragma: export
+
 #include <structs/structs.hpp> // IWYU pragma: export
 
 #include "level/level.hpp" // IWYU pragma: export
-#include "lua/lua.hpp"     // IWYU pragma: export
 
 #include "ai.hpp"            // IWYU pragma: export
 #include "asm.hpp"           // IWYU pragma: export

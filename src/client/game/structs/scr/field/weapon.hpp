@@ -30,7 +30,7 @@ PACKED(struct scr_weapon_field_s {
   int32_t size;
   fieldtype_t type;
   WeaponFieldType weaponType;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   ScriptCallbackWeapon *getter;
 });
 

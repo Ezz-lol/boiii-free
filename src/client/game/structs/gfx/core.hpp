@@ -270,8 +270,7 @@ PACKED(struct GfxImageLoadDef {
   int32_t format;
   int32_t resourceSize;
   char data[1];
-  uint8_t _padding011[3];
-
+  DEF_PAD(011, 3);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"levelCount\": {}, \"numElements\": {}, \"pad\": {}, \"flags\": "
@@ -551,7 +550,7 @@ struct GfxImage {
   GfxTexture fallbackTexture;
   uint32_t flags;
   bool delayLoadPixels;
-  uint8_t _paddingBD[1];
+  DEF_PAD(BD, 1);
   uint16_t width;
   uint16_t height;
   uint16_t depth;
@@ -559,20 +558,19 @@ struct GfxImage {
   uint8_t levelCount;
   uint8_t fallbackLevel;
   bool streaming;
-  uint8_t _paddingCB[5];
+  DEF_PAD(CB, 5);
   uint8_t *pixels;
   uint8_t *fallbackPixels;
   uint32_t totalSize;
   uint32_t fallbackSize;
   GfxPixelFormat format;
-  uint8_t _paddingEC[4];
+  DEF_PAD(EC, 4);
   // This might not be here, but the struct has size
   // 0x100 otherwise - correct size is known to be 0x108.
-  uint8_t _unknown100[8];
+  DEF_UNK(100, 8);
   const char *name;
   uint32_t hash;
-  uint8_t _paddingFC[4];
-
+  DEF_PAD(FC, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"streamedParts\": {}, \"streamedPartCount\": {}, \"semantic\": "
@@ -744,8 +742,7 @@ struct GfxBuffer {
 struct BlendTargetRemap {
   scr::ScrString_t name;
   uint16_t index;
-  uint8_t _padding06[2];
-
+  DEF_PAD(06, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": 0x{:08X}, \"index\": {} }}", name, index);
   }
@@ -2110,7 +2107,7 @@ PACKED(struct GfxEntityPreFrame {
   uint32_t blendShapeFrame;
   uint32_t blendShapeVertOffset;
   uint32_t blendShapeVertOffsetLast;
-  uint8_t _padding54[4];
+  DEF_PAD(54, 4);
   xsurface::XSurfaceShared *blendShapeVertOffsetLastShared;
 
   [[nodiscard]] inline std::string serialize() const noexcept {

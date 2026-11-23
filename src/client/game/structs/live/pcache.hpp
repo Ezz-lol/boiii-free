@@ -36,7 +36,7 @@ struct PCacheComponent {
   uint32_t updateTime;
   uint32_t touchTime;
   PCacheComponentState state;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
 };
 
 ASSERT_SIZE(PCacheComponent, 0x20);

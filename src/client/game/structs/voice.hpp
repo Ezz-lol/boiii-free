@@ -28,7 +28,7 @@ namespace voice {
   relatively large fields.
 */
 PACKED(struct dsound_sample_t {
-  uint8_t _unknown00[0x800];
+  DEF_UNK(00, 0x800);
   IDirectSoundCaptureBuffer *DSCB;
   IDirectSoundBuffer *DSB; // Verified
   uint32_t dwBufferSize;
@@ -45,10 +45,10 @@ PACKED(struct dsound_sample_t {
   int32_t pan;
   int32_t channels;
   bool playing;
-  uint8_t _padding45[3];
+  DEF_PAD(45, 3);
   int32_t channel;
   uint8_t playMode;
-  uint8_t _padding4D[3];
+  DEF_PAD(4D, 3);
 });
 ASSERT_SIZE(dsound_sample_t, 0x850);
 ASSERT_OFFSET(dsound_sample_t, DSB, 0x808);

@@ -41,7 +41,7 @@ PACKED(struct jqModule {
   uint64_t Ticks;
   uint16_t Calls;
   uint16_t Requeues;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
   jqBatchGroup *Dependencies[4];
 });
 
@@ -99,7 +99,7 @@ public:
     u32 BlockSize;
     int32_t NBlocks;
     int32_t NCells;
-    uint8_t _padding0C[4];
+    DEF_PAD(0C, 4);
     jqAtomicHeap::CellType *CellAvailable;
     jqAtomicHeap::CellType *CellAllocated;
   };
@@ -112,7 +112,7 @@ public:
   volatile u32 TotalUsed;
   volatile u32 TotalBlocks;
   int32_t NLevels;
-  uint8_t _padding3C[4];
+  DEF_PAD(3C, 4);
   jqAtomicHeap::LevelInfo Levels[13];
   u8 *LevelData;
 

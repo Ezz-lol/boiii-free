@@ -974,13 +974,13 @@ concept PrimitiveDvarValue =
 template <typename T_DvarValue> struct dvar {
 public:
   dvarStrHash_t _name;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   const char *_debugName;
   const char *_description;
   DvarFlags _flags;
   dvarType_t _type;
   bool _modified;
-  uint8_t _padding21[7];
+  DEF_PAD(21, 7);
   T_DvarValue _current;
   T_DvarValue _latched;
   T_DvarValue _reset;
@@ -1914,7 +1914,7 @@ typedef fastcallPtr_t<void(EngineDependentDvarMut dvar)> modifiedCallback;
 
 PACKED(struct dvarCallBack_t {
   bool needsCallback;
-  uint8_t _padding01[7];
+  DEF_PAD(01, 7);
   modifiedCallback callback;
   EngineDependentDvar dvar;
 });

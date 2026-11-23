@@ -65,7 +65,7 @@ PACKED(struct userData_t {
   char gamertag[32];
   bool isActive;
   bool isGuest;
-  uint8_t _padding2A[2];
+  DEF_PAD(2A, 2);
   EUserTier tier;
   XUSER_SIGNIN_STATE signInState;
   CONNECTION_STATE connectionState;
@@ -79,7 +79,7 @@ PACKED(struct userData_t {
   bool isContentRestricted;
   bool isChatRestricted;
   char xuidString[48];
-  uint8_t _padding183[1];
+  DEF_PAD(183, 1);
   userDataPlatform_t platform;
 });
 ASSERT_SIZE(userData_t, 0x1D0);

@@ -28,7 +28,7 @@ struct UGCItem {
     corresponding lua table, so this must be the UGC version.
   */
   uint32_t version;
-  uint8_t _padding4B4[4];
+  DEF_PAD(4B4, 4);
   steam::PublishedFileId_t publisherIdInteger;
   UGCHash publisherIdHash;
   ZoneType type;
@@ -74,8 +74,7 @@ inline constexpr const char *serialize(const ModLoadState state) {
 
 struct ActiveMod : UGCItem {
   ModLoadState loadState;
-  uint8_t _padding4CC[4];
-
+  DEF_PAD(4CC, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"title\": \"{}\", \"internalName\": \"{}\", \"publisherId\": "
@@ -98,7 +97,7 @@ typedef std::optional<std::reference_wrapper<const UGCItem>>
 
 template <const uint32_t POOL_SIZE> struct UGCPool {
   uint32_t count;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   UGCItem data[POOL_SIZE];
 
   [[nodiscard]] inline std::string serialize() const noexcept {

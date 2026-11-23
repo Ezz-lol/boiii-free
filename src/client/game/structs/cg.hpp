@@ -11,11 +11,11 @@ namespace cg {
 struct MigrationPers {
   int time;
   bool stanceHeld;
-  uint8_t _padding05[3];
+  DEF_PAD(05, 3);
   StanceState stance;
   StanceState stancePosition;
   int stanceTime;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   weapon::Weapon cgameUserCmdWeapon;
   weapon::Weapon cgameUserCmdOffHandWeapon;
   weapon::Weapon weaponSelect;
@@ -45,7 +45,7 @@ struct clientUIActive_t {
   connstate_t connectionState;
   int nextScrollTime;
   clientMigState_t migrationState;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   MigrationPers migrationPers;
   int numVoicePacketsSent;
   int numVoicePacketsSentStart;
@@ -103,7 +103,7 @@ struct ClientPlayerWeaponInfo {
   db::xasset::xmodel::XModel *handModel;
   db::xasset::xmodel::XModel *rocketModel;
   qboolean registered;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   weapon::Weapon weapon;
   const char *translatedDisplayName;
   const char *translatedModename;

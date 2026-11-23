@@ -66,7 +66,7 @@ PACKED(struct XSurfaceShared {
   gfx::GfxIndexBuffer ibIndices;
   gfx::GfxBuffer bBlendTargets;
   uint32_t blendTargetCount;
-  uint8_t _padding7C[4];
+  DEF_PAD(7C, 4);
   const scr::ScrString_t *blendTargetNames;
   gfx::BlendTargetRemap *blendTargetRemap;
 
@@ -102,7 +102,7 @@ PACKED(struct XSurface {
   XRigidVertList *vertList;
   XPartBits partBits;
   const char *name;
-  uint8_t _padding58[8];
+  DEF_PAD(58, 8);
 });
 
 } // namespace xsurface

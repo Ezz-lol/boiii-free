@@ -149,10 +149,10 @@ struct PathData {
   int32_t nodeTreeCount;
   pathnode_tree_t *nodeTree;
 
-  IMPL_SLICE_METHODS(nodes, nodeCount, Nodes);
-  IMPL_SLICE_METHODS(nodeTree, nodeTreeCount, NodeTree);
-  IMPL_SLICE_METHODS(smoothCache, smoothBytes, SmoothCache);
-  IMPL_SLICE_METHODS(pathVis, visBytes, PathVis);
+  IMPL_SLICE_METHODS(nodes, nodeCount);
+  IMPL_SLICE_METHODS(nodeTree, nodeTreeCount);
+  IMPL_SLICE_METHODS(smoothCache, smoothBytes);
+  IMPL_SLICE_METHODS(pathVis, visBytes);
 };
 
 // Verified
@@ -300,10 +300,9 @@ struct ComUmbraTome : NamedXAsset {
   byte4 *indicesMTQuery;
   uint32_t numGates;
   ComUmbraGate *gates;
-  uint8_t _unknown40[0x10];
-
-  IMPL_SLICE_METHODS(volumes, numVolumes, Volumes);
-  IMPL_SLICE_METHODS(gates, numGates, Gates);
+  DEF_UNK(40, 0x10);
+  IMPL_SLICE_METHODS(volumes, numVolumes);
+  IMPL_SLICE_METHODS(gates, numGates);
 };
 // Verified
 ASSERT_SIZE(ComUmbraTome, 0x50);
@@ -323,7 +322,7 @@ struct ComProbeExploder {
   int32_t triggerCount;
   ComProbeTriggerData *triggerData;
 
-  IMPL_SLICE_METHODS(triggerData, triggerCount, TriggerData);
+  IMPL_SLICE_METHODS(triggerData, triggerCount);
 };
 
 struct __attribute__((aligned(2))) ComLightTriggerData {
@@ -340,7 +339,7 @@ struct ComLightExploder {
   int32_t triggerCount;
   ComLightTriggerData *triggerData;
 
-  IMPL_SLICE_METHODS(triggerData, triggerCount, TriggerData);
+  IMPL_SLICE_METHODS(triggerData, triggerCount);
 };
 
 struct ComPrimaryLight {
@@ -362,12 +361,11 @@ struct ComWorld : NamedXAsset {
   ComProbeExploder *probeExploders;
   uint32_t umbraTomeCount;
   ComUmbraTome *umbraTomes;
-  uint8_t _unknown68[0x20];
-
-  IMPL_SLICE_METHODS(primaryLights, primaryLightCount, PrimaryLights);
-  IMPL_SLICE_METHODS(lightExploders, lightExploderCount, LightExploders);
-  IMPL_SLICE_METHODS(probeExploders, probeExploderCount, ProbeExploders);
-  IMPL_SLICE_METHODS(umbraTomes, umbraTomeCount, UmbraTomes);
+  DEF_UNK(68, 0x20);
+  IMPL_SLICE_METHODS(primaryLights, primaryLightCount);
+  IMPL_SLICE_METHODS(lightExploders, lightExploderCount);
+  IMPL_SLICE_METHODS(probeExploders, probeExploderCount);
+  IMPL_SLICE_METHODS(umbraTomes, umbraTomeCount);
 };
 ASSERT_SIZE(ComWorld, 0x88); // Correct size
 

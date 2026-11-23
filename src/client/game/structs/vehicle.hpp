@@ -349,7 +349,7 @@ ASSERT_SIZE(VehicleEngineSound, 0x28);
 
 PACKED(struct VehicleEngine {
   bool simpleEngine;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   float idleRpms;
   float maxRpms;
   float maxTorque;
@@ -362,15 +362,15 @@ PACKED(struct VehicleEngine {
   float pitchScale;
   float rpmSmoothing;
   float differentialRatio;
-  uint8_t _padding4C[4];
+  DEF_PAD(4C, 4);
   VehicleEngineSound onload[5];
   VehicleEngineSound offload[5];
   int32_t numGears;
   bool loopLastGear;
-  uint8_t _padding1E5[3];
+  DEF_PAD(1E5, 3);
   VehicleGearData gears[10];
   bool useAudioMaxSpeed;
-  uint8_t _padding261[3];
+  DEF_PAD(261, 3);
   float audioMaxSpeed;
   const char *eng_idle_snd_name;
   snd::SndAliasId eng_idle_snd;
@@ -378,20 +378,19 @@ PACKED(struct VehicleEngine {
   float eng_idle_end_speed;
   float eng_idle_start_pitch;
   float eng_idle_end_pitch;
-  uint8_t _padding284[4];
+  DEF_PAD(284, 4);
   const char *eng_move_snd_name;
   snd::SndAliasId eng_move_snd;
   float eng_move_start_speed;
   float eng_move_end_speed;
   float eng_move_start_pitch;
   float eng_move_end_pitch;
-  uint8_t _padding2A4[4];
+  DEF_PAD(2A4, 4);
   const char *eng_offload_snd_name;
   snd::SndAliasId eng_offload_snd;
   float eng_offload_start_pitch;
   float eng_offload_end_pitch;
-  uint8_t _padding2BC[4];
-
+  DEF_PAD(2BC, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"simpleEngine\": {}, \"idleRpms\": {}, \"maxRpms\": {}, "
@@ -457,8 +456,7 @@ PACKED(struct DevGraph {
   DevGraphTextCallback textCallback;
   void *data;
   bool disableEditingEndPoints;
-  uint8_t _padding31[7];
-
+  DEF_PAD(31, 7);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"knots\": {}, \"knotCount\": {}, \"knotCountMax\": "
                        "{}, \"selectedKnot\": {}, "
@@ -495,8 +493,7 @@ PACKED(struct AircraftPreset {
   bool xAxis;
   bool yAxis;
   bool zAxis;
-  uint8_t _padding23[5];
-
+  DEF_PAD(23, 5);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"presetName\": {}, \"maxSpeedVol\": {}, \"minVol\": {}, "
@@ -514,11 +511,10 @@ PACKED(struct AircraftSound {
   AircraftPreset *preset;
   const char *aliasName;
   snd::SndAliasId alias;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
   const char *tagName;
   scr::ScrString_t tagScriptString;
-  uint8_t _padding2C[4];
-
+  DEF_PAD(2C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"presetName\": {}, \"preset\": {}, \"aliasName\": {}, "
@@ -532,8 +528,7 @@ ASSERT_SIZE(AircraftSound, 0x30);
 PACKED(struct VehicleSurfaceSound {
   const char *surfaceSoundName;
   snd::SndAliasId alias;
-  uint8_t _padding0C[4];
-
+  DEF_PAD(0C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"surfaceSoundName\": {}, \"alias\": 0x{:08X} }}",
                        ::serialize(surfaceSoundName), alias);
@@ -543,11 +538,10 @@ ASSERT_SIZE(VehicleSurfaceSound, 0x10);
 
 PACKED(struct VehicleDriveBySound {
   int32_t apex;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   const char *name;
   snd::SndAliasId alias;
-  uint8_t _padding14[4];
-
+  DEF_PAD(14, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"apex\": {}, \"name\": {}, \"alias\": 0x{:08X} }}",
                        apex, ::serialize(name), alias);
@@ -613,7 +607,7 @@ PACKED(struct VehicleFxDef {
   const char *name;
   char *csvInclude;
   VehicleFxDefType type;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   db::xasset::FxEffectDefHandle treadFx[40];
   db::xasset::FxEffectDefHandle peelFx[40];
   db::xasset::FxEffectDefHandle skidFx[40];
@@ -703,7 +697,7 @@ PACKED(struct VehicleParameter {
   float m_hover_min_speed_to_apply_brakes;
   float m_hover_brake_scale_factor;
   TractionType m_traction_type;
-  uint8_t _paddingB4[4];
+  DEF_PAD(B4, 4);
   const char *m_name;
   vec3_t m_wheel_offset;
   vec3_t m_bbox_min;
@@ -735,12 +729,11 @@ PACKED(struct VehicleParameter {
   bool m_jumps_require_button_release;
   bool m_drive_on_walls;
   bool m_charge_jump;
-  uint8_t _padding167[1];
+  DEF_PAD(167, 1);
   float m_linear_drag_scale;
   float m_angular_drag_scale;
   float m_gravity_scale;
-  uint8_t _padding174[4];
-
+  DEF_PAD(174, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_speed_max\": {}, \"m_accel_max\": {}, \"m_reverse_scale\": {}, "
@@ -845,8 +838,7 @@ PACKED(struct VehicleAntenna {
   float length;
   float gravity;
   bool useXAxis;
-  uint8_t _padding11[3];
-
+  DEF_PAD(11, 3);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"springK\": {}, \"damp\": {}, \"length\": {}, "
                        "\"gravity\": {}, \"useXAxis\": {} }}",
@@ -890,7 +882,7 @@ inline constexpr const char *serialize(const VehicleType type) {
 PACKED(struct VehicleDef {
   const char *name;
   VehicleType type;
-  uint8_t _padding0A[2];
+  DEF_PAD(0A, 2);
   scr::ScrString_t scriptVehicleType;
   scr::ScrString_t archeType;
   scr::ScrString_t scoreType;
@@ -914,7 +906,7 @@ PACKED(struct VehicleDef {
   float bulletDamageMultiplier;
   float meleeDamageMultiplier;
   int16_t cameraMode;
-  uint8_t _padding66[2];
+  DEF_PAD(66, 2);
   qboolean autoRecenterOnAccel;
   qboolean thirdPersonDriver;
   qboolean thirdPersonUseVehicleRoll;
@@ -968,7 +960,7 @@ PACKED(struct VehicleDef {
   float wheelRotRate;
   float extraWheelRotScale;
   qboolean wheelChildTakesSteerYaw;
-  uint8_t _unknown184[4];
+  DEF_UNK(184, 4);
   qboolean useHeliBoneControllers;
   float minSpeed;
   float maxSpeed;
@@ -1001,19 +993,19 @@ PACKED(struct VehicleDef {
   float vehHelicopterHoverRadius;
   float vehHelicopterHoverSpeed;
   float vehHelicopterHoverAccel;
-  uint8_t _padding21C[4];
+  DEF_PAD(21C, 4);
   const char *turretWeapon;
   view_limits_t turretViewLimits;
   qboolean turretClampPlayerView;
   qboolean turretLockTurretToPlayerView;
   qboolean turretFireFromCamera;
-  uint8_t _padding254[4];
+  DEF_PAD(254, 4);
   const char *gunnerWeapon[4];
   uint16_t gunnerWeaponIndex[4];
   view_limits_t passengerViewLimits[6];
   const char *sndNames[7];
   snd::SndAliasId sndIndices[7];
-  uint8_t _padding394[4];
+  DEF_PAD(394, 4);
   const char *sndMaterialNames[3];
   float skidSpeedMin;
   float skidSpeedMax;
@@ -1021,10 +1013,10 @@ PACKED(struct VehicleDef {
   float peelSpeedMax;
   const char *futzName;
   float futzBlend;
-  uint8_t _padding3CC[4];
+  DEF_PAD(3CC, 4);
   VehicleSoundDefPtr soundDef;
   int32_t animType;
-  uint8_t _padding3DC[4];
+  DEF_PAD(3DC, 4);
   const char *animSet;
   qboolean scriptedAnimationEntry;
   float mantleAngles[4];
@@ -1043,32 +1035,32 @@ PACKED(struct VehicleDef {
   vec3_t aimAssistMins;
   vec3_t aimAssistMaxs;
   float tracerOffset[2];
-  uint8_t _padding504[4];
+  DEF_PAD(504, 4);
   db::xasset::xmodel::XModelPtr model;
   db::xasset::xmodel::XModelPtr viewModel;
   db::xasset::xmodel::XModelPtr deathModel;
   db::xasset::xmodel::XModelPtr enemyModel;
   float modelSwapDelay;
-  uint8_t _padding52C[4];
+  DEF_PAD(52C, 4);
   db::xasset::FxEffectDefHandle exhaustFx;
   scr::ScrString_t exhaustFxTag1;
   scr::ScrString_t exhaustFxTag2;
   VehicleFxDefPtr surfaceFx;
   db::xasset::FxEffectDefHandle deathFx;
   scr::ScrString_t deathFxTag;
-  uint8_t _padding554[4];
+  DEF_PAD(554, 4);
   const char *deathFxSound;
   db::xasset::FxEffectDefHandle lightFx[4];
   scr::ScrString_t lightFxTag[4];
   float radiusDamageMin;
   float radiusDamageMax;
   float radiusDamageRadius;
-  uint8_t _padding59C[4];
+  DEF_PAD(59C, 4);
   const char *shootShock;
   float deathQuakeScale;
   float deathQuakeDuration;
   float deathQuakeRadius;
-  uint8_t _padding5B4[4];
+  DEF_PAD(5B4, 4);
   const char *rumbleType;
   float rumbleScale;
   float rumbleDuration;
@@ -1085,41 +1077,41 @@ PACKED(struct VehicleDef {
   qboolean addToCompass;
   qboolean addToCompassEnemy;
   qboolean addToCompassEnemyFiring;
-  uint8_t _padding5FC[4];
+  DEF_PAD(5FC, 4);
   const char *compassIcon;
   db::xasset::MaterialHandle compassIconMaterial;
   scr::ScrString_t compassIconTag;
   float compassScale;
   const char *steerAxisName;
   int32_t steerAxis;
-  uint8_t _padding624[4];
+  DEF_PAD(624, 4);
   const char *gasAxisName;
   int32_t gasAxis;
-  uint8_t _padding634[4];
+  DEF_PAD(634, 4);
   const char *gasButtonName;
   int32_t gasButton;
-  uint8_t _padding644[4];
+  DEF_PAD(644, 4);
   const char *reverseBrakeButtonName;
   int32_t reverseBrakeButton;
-  uint8_t _padding654[4];
+  DEF_PAD(654, 4);
   const char *handBrakeButtonName;
   int32_t handBrakeButton;
-  uint8_t _padding664[4];
+  DEF_PAD(664, 4);
   const char *attackButtonName;
   int32_t attackButton;
-  uint8_t _padding674[4];
+  DEF_PAD(674, 4);
   const char *attackSecondaryButtonName;
   int32_t attackSecondaryButton;
-  uint8_t _padding684[4];
+  DEF_PAD(684, 4);
   const char *boostButtonName;
   int32_t boostButton;
-  uint8_t _padding694[4];
+  DEF_PAD(694, 4);
   const char *moveUpButtonName;
   int32_t moveUpButton;
-  uint8_t _padding6A4[4];
+  DEF_PAD(6A4, 4);
   const char *moveDownButtonName;
   int32_t moveDownButton;
-  uint8_t _padding6B4[4];
+  DEF_PAD(6B4, 4);
   const char *switchSeatButtonName;
   int32_t switchSeatButton;
   qboolean noButtonAutoRemap;
@@ -1137,7 +1129,7 @@ PACKED(struct VehicleDef {
   float lightCollisionSpeed;
   db::xasset::RumbleInfoPtr lightCollisionRumble;
   float heavyCollisionSpeed;
-  uint8_t _padding714[4];
+  DEF_PAD(714, 4);
   db::xasset::RumbleInfoPtr heavyCollisionRumble;
   db::xasset::RumbleInfoPtr jumpLandingRumble;
   qboolean noDirectionalDamage;
@@ -1198,7 +1190,7 @@ PACKED(struct VehicleDef {
   float joltTime;
   float joltWaves;
   float joltIntensity;
-  uint8_t _padding84C[4];
+  DEF_PAD(84C, 4);
   VehicleParameter nitrousVehParams;
   qboolean doFootSteps;
   qboolean ignoreVortices;
@@ -1224,8 +1216,7 @@ PACKED(struct VehicleDef {
   db::xasset::destructible::DestructibleDefPtr destructibleDef;
   gfx::GfxImage *tacticalModeIcon;
   float tacticalModeHeight;
-  uint8_t _paddingAA4[4];
-
+  DEF_PAD(AA4, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"type\": {}, "
@@ -1573,7 +1564,7 @@ ASSERT_SIZE(VehicleDef, 0xAA8);
 
 PACKED(struct VehicleStun {
   bool m_changed_this_frame;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   float m_stun_time;
   float m_last_throttle;
   float m_throttle_stun_time;
@@ -1622,21 +1613,21 @@ public:
   float m_script_goal_speed;
   float m_desired_yaw;
   bool m_has_desired_yaw;
-  uint8_t _padding1D[3];
+  DEF_PAD(1D, 3);
   float m_horse_target_speed;
   VehicleHorseControlState m_horse_control_state;
   float m_stopped_time;
   float m_braking_time;
   float m_stuck_time;
-  uint8_t _padding34[4];
+  DEF_PAD(34, 4);
   math::Dir3 m_stuck_position;
   user::usercmd_t m_cmd;
   vec3_t m_cmd_viewangles;
-  uint8_t _paddingAC[4];
+  DEF_PAD(AC, 4);
   uint64_t m_pm_flags;
   bool m_cmd_valid;
   bool m_stop_at_goal;
-  uint8_t _paddingBA[2];
+  DEF_PAD(BA, 2);
   float m_jump_held_time;
   float m_stick_off_wall_time;
   vec3_t m_last_jump_normal;
@@ -1644,13 +1635,12 @@ public:
   bool m_jump_awaiting_button_release;
   bool m_last_jump_button_press_initiated;
   bool m_last_jump_initiated_in_air;
-  uint8_t _paddingDB[1];
+  DEF_PAD(DB, 1);
   VehicleStun m_stun;
   bool m_hover_wall_targetting;
-  uint8_t _paddingF5[3];
+  DEF_PAD(F5, 3);
   game_button_bits_t m_last_update_button_bits;
-  uint8_t _unknown106[0x2];
-
+  DEF_UNK(106, 0x2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_script_goal_position\": {}, \"m_script_goal_radius\": {}, "
@@ -1711,20 +1701,20 @@ PACKED(struct NitrousVehicleController_cl {
   float m_script_goal_speed;
   float m_desired_yaw;
   bool m_has_desired_yaw;
-  uint8_t _padding1D[3];
+  DEF_PAD(1D, 3);
   float m_horse_target_speed;
   NitrousVehicleController::VehicleHorseControlState m_horse_control_state;
   float m_stopped_time;
   float m_braking_time;
   float m_stuck_time;
-  uint8_t _padding34[8];
+  DEF_PAD(34, 8);
   math::Dir3 m_stuck_position;
   user::usercmd_t m_cmd;
-  uint8_t _paddingAC[4];
+  DEF_PAD(AC, 4);
   uint64_t m_pm_flags;
   bool m_cmd_valid;
   bool m_stop_at_goal;
-  uint8_t _paddingBA[2];
+  DEF_PAD(BA, 2);
   float m_jump_held_time;
   float m_stick_off_wall_time;
   vec3_t m_last_jump_normal;
@@ -1732,13 +1722,12 @@ PACKED(struct NitrousVehicleController_cl {
   bool m_jump_awaiting_button_release;
   bool m_last_jump_button_press_initiated;
   bool m_last_jump_initiated_in_air;
-  uint8_t _paddingDB[1];
+  DEF_PAD(DB, 1);
   VehicleStun m_stun;
   bool m_hover_wall_targetting;
-  uint8_t _paddingF5[3];
+  DEF_PAD(F5, 3);
   game_button_bits_t m_last_update_button_bits;
-  uint8_t _unknown106[28];
-
+  DEF_UNK(106, 28);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_script_goal_position\": {}, \"m_script_goal_radius\": {}, "
@@ -1795,7 +1784,7 @@ ASSERT_SIZE(mover_record_t, 0x1C);
 PACKED(struct mover_info_t {
   mover_record_t m_records[32];
   int32_t m_last_record;
-  uint8_t _padding384[4];
+  DEF_PAD(384, 4);
   hk::ai::hkaiNavMeshInstance *m_meshInstance;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -1950,7 +1939,7 @@ PACKED(struct NitrousVehicle {
 
   phys::PhysObjUserData *m_phys_user_data;
   WheelState m_wheel_state[6];
-  uint8_t _padding98[8];
+  DEF_PAD(98, 8);
   math::RotTranMat43 m_wheel_orig_relpo[6];
   int32_t m_wheel_damage[6];
   int32_t m_wheel_surf_types[6];
@@ -1965,14 +1954,14 @@ PACKED(struct NitrousVehicle {
   int64_t m_boost_start_time;
   float m_boost_time_pool;
   float m_forward_vel;
-  uint8_t _padding298[8];
+  DEF_PAD(298, 8);
   math::Dir3 m_ground_vel;
   math::Dir3 m_last_known_velocity;
   float m_hand_brake_friction_time;
-  uint8_t _padding2C4[4];
+  DEF_PAD(2C4, 4);
   level::gentity_t *m_owner;
   int32_t m_entnum;
-  uint8_t _padding2D4[4];
+  DEF_PAD(2D4, 4);
   const VehicleDef *m_vehicle_def;
   db::xasset::xmodel::XModel *m_xmodel;
   phys::rigid_body_constraint_custom_orientation *m_orientation_constraint;
@@ -1989,12 +1978,12 @@ PACKED(struct NitrousVehicle {
   float m_current_side_fric_scale;
   float m_current_fwd_fric_scale;
   float m_stuck_time;
-  uint8_t _padding328[8];
+  DEF_PAD(328, 8);
   math::RotTranMat43 m_mat;
   NitrousVehicleController mVehicleController;
-  uint8_t _unknown494[6];
+  DEF_UNK(494, 6);
   int32_t m_num_colliding_wheels;
-  uint8_t _unknown49C[12];
+  DEF_UNK(49C, 12);
   int32_t m_lastNetworkTime;
   int32_t m_lastErrorReductionTime;
   vec3_t m_networkErrorOrigin;
@@ -2009,7 +1998,7 @@ PACKED(struct NitrousVehicle {
   bool m_throttle_time_started;
   bool m_last_all_wheel_contact_was_wall;
   bool m_is_being_drop_deployed;
-  uint8_t _padding4E3[1];
+  DEF_PAD(4E3, 1);
   vec3_t m_last_origin;
   vec3_t m_last_angles;
   float m_buoyancyOffset;
@@ -2017,7 +2006,7 @@ PACKED(struct NitrousVehicle {
   minspec_mutex m_mutex;
   int32_t id;
   int32_t refcount;
-  uint8_t _padding89C[4];
+  DEF_PAD(89C, 4);
   phys::rigid_body_constraint_wheel *m_wheels[6];
   float m_desired_speed_factor;
   float m_acceleration_factor;
@@ -2028,13 +2017,12 @@ PACKED(struct NitrousVehicle {
   float m_steer_current_angle;
   float m_steer_max_angle;
   float m_steer_speed;
-  uint8_t _padding8F4[12];
+  DEF_PAD(8F4, 12);
   math::Dir3 m_steer_front_pt_loc;
   float m_steer_front_back_length;
   float m_min_turning_radius;
   uint32_t m_state_flags;
-  uint8_t _padding91C[4];
-
+  DEF_PAD(91C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_phys_user_data\": {:p}, \"m_wheel_state\": {}, "
@@ -2144,7 +2132,7 @@ PACKED(struct vehicle_node_t {
   scr::ScrString_t script_linkname;
   scr::ScrString_t script_noteworthy;
   int16_t index;
-  uint8_t _padding16[2];
+  DEF_PAD(16, 2);
   int32_t flags;
   float speed;
   float lookAhead;
@@ -2194,7 +2182,7 @@ public:
   int16_t nodeIdx;
   int16_t prevIdx;
   int16_t endOfPath;
-  uint8_t _padding06[2];
+  DEF_PAD(06, 2);
   float frac;
   float speed;
   float lookAhead;
@@ -2218,7 +2206,7 @@ public:
   vec3_t aiGoalPos;
   path_type_e path_type;
   int16_t startNodeIdx;
-  uint8_t _padding156[2];
+  DEF_PAD(156, 2);
   float t;
   float tot_len;
   float tot_time;
@@ -3050,11 +3038,10 @@ PACKED(struct vehicle_cache_t {
   float hit_fractions[6];
   TraceHitType hit_type[6];
   uint16_t hit_id[6];
-  uint8_t _paddingCC[4];
+  DEF_PAD(CC, 4);
   vehicle_proximity_data_t proximity_data;
   int32_t wheel_mask;
-  uint8_t _padding1424[12];
-
+  DEF_PAD(1424, 12);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"lastOrigin\": {}, \"lastAngles\": {}, \"hit_indices\": {}, "
@@ -3072,8 +3059,7 @@ ASSERT_SIZE(vehicle_cache_t, 0x1430);
 PACKED(struct VehicleSeat {
   int32_t occupantEntNum;
   bool scriptOccupied;
-  uint8_t _padding5[3];
-
+  DEF_PAD(5, 3);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"occupantEntNum\": {}, \"scriptOccupied\": {} }}",
                        occupantEntNum, ::serialize(scriptOccupied));
@@ -3094,7 +3080,7 @@ PACKED(struct vehicle_t {
   vehicle_physic_t phys;
   int32_t entNum;
   int16_t defIndex;
-  uint8_t _padding2EE[2];
+  DEF_PAD(2EE, 2);
   VehicleFlags flags;
   VehicleMoveState moveState;
   VehicleTurret turret;
@@ -3149,7 +3135,7 @@ PACKED(struct vehicle_t {
   VehicleSeat seats[11];
   qboolean secTurretAiControlled;
   qboolean addToCompass;
-  uint8_t _padding7B4[4];
+  DEF_PAD(7B4, 4);
   NitrousVehicle *nitrousVehicle;
   vehicle_cache_t vehicle_cache;
   float heliHeightLockOffset;
@@ -3160,10 +3146,9 @@ PACKED(struct vehicle_t {
   ai::sentient_t *sentient;
   ai::AIBody aiBody;
   uint8_t tmodeVehicleVisibility;
-  uint8_t _padding22A1[3];
+  DEF_PAD(22A1, 3);
   float predictedCollisionTime;
-  uint8_t _padding22A8[8];
-
+  DEF_PAD(22A8, 8);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"pathOffsetFlags\": 0x{:08X}, \"pathOffsetTransform\": {}, "
@@ -3223,7 +3208,7 @@ PACKED(struct PlayerVehicleState {
   int32_t entity;
   int32_t flags;
   bool fullPhysics;
-  uint8_t _padding51[3];
+  DEF_PAD(51, 3);
   int32_t focusEntNum;
   int32_t focusEntTime;
   vec2_t focusAngleOffset;
@@ -3235,7 +3220,7 @@ PACKED(struct PlayerVehicleState {
   int32_t drivableDuration;
   int32_t drivableEndTime;
   bool weaponOverheating;
-  uint8_t _padding99[3];
+  DEF_PAD(99, 3);
   float weaponHeatPercent;
   float weaponLockonPercent;
   float damageMeter;
@@ -3276,8 +3261,7 @@ PACKED(struct vehicleState_t {
   int16_t attachModelIndex[2];
   uint8_t attachTagIndex[2];
   uint8_t vehicleDefIndex;
-  uint8_t _padding0D[3];
-
+  DEF_PAD(0D, 3);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"flags\": {}, \"animId\": {}, \"attachModelIndex\": {}, "

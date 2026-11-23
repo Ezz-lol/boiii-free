@@ -329,9 +329,9 @@ IMPL_ENUM_OPERATORS(LobbyClientPregameState);
 namespace session {
 PACKED(struct SessionInfo {
   bool inSession = false;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   net::netadr_t netAdr = {};
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   time_t lastMessageSentToPeer = 0;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -354,8 +354,7 @@ PACKED(struct VoiceChatInfo {
   int32_t lastCaughtTalking = 0;
   int32_t connectivityBits = 0;
   bool isGameRestricted = false;
-  uint8_t _padding09[3];
-
+  DEF_PAD(09, 3);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"lastCaughtTalking\": {}, \"connectivityBits\": "
                        "{}, \"isGameRestricted\": {} }}",
@@ -471,8 +470,7 @@ IMPL_ENUM_OPERATORS(SessionDirty);
 PACKED(struct SessionHost {
   net::HostInfo info = {}; // Verified
   ClientNum_t maxClients = ClientNum_t::INVALID_CLIENT_INDEX;
-  uint8_t _padding7C[4];
-
+  DEF_PAD(7C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"info\": {}, \"maxClients\": {} }}",
                        info.serialize(), game::serialize(maxClients));
@@ -528,7 +526,7 @@ PACKED(struct LobbyTheaterData {
   int32_t fileSize = 0;
   bool isUserFile = false;
   bool isLiveStream = false;
-  uint8_t _padding2E[2];
+  DEF_PAD(2E, 2);
   uint64_t authorXUID = 0;
   eModes mainMode = eModes::INVALID;
   name_t demoMode = {0};
@@ -536,7 +534,7 @@ PACKED(struct LobbyTheaterData {
   int32_t downloadPercent = 0;
   bool readyForPlayback = false;
   bool retryDownload = false;
-  uint8_t _padding82[2];
+  DEF_PAD(82, 2);
   int32_t lastHeartBeatTime = 0;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -565,8 +563,7 @@ PACKED(struct LobbyPublicData {
   uint8_t playlistNext = 0;
   uint8_t playlistPrev = 0;
   uint8_t playlistPrevCount = 0;
-  uint8_t _padding13[1];
-
+  DEF_PAD(13, 1);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"playlistId\": {}, \"playlistCurrentEntry\": {}, "
                        "\"playlistLastEntries\": {}, "
@@ -594,11 +591,11 @@ PACKED(struct GameClientData {
   team_t team = team_t::TEAM_BAD;
   LobbyMapVote mapVote = LobbyMapVote::INVALID;
   bool readyUp = false;
-  uint8_t _padding09[3];
+  DEF_PAD(09, 3);
   LobbyClientPregameState pregameState = LobbyClientPregameState::IDLE;
   int32_t pregamePosition = 0;
   bool pregameEditComplete = false;
-  uint8_t _padding15[3];
+  DEF_PAD(15, 3);
   uint32_t itemVoteCount = 0;
   CharacterSelection characterSelection = {};
 
@@ -653,12 +650,12 @@ PACKED(struct LobbyGameData {
       ControllerIndex_t::INVALID_CONTROLLER_PORT;
   GameServerStatus serverStatus = GameServerStatus::IDLE;
   int32_t launchNonce = 0;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   uint128_t matchHash = {};
   bool preLoaded = false;
   name_t gameType = {0};
   name_t mapName = {0};
-  uint8_t _padding61[3];
+  DEF_PAD(61, 3);
   info::LobbyUGCInfo ugcInfo = {};
   int32_t status = 0;
   int32_t statusValue = 0;
@@ -672,10 +669,12 @@ PACKED(struct LobbyGameData {
   // this? This is duplicative of publicData, and does not exist in BO4 or BO3
   // alpha engines.
   LobbyPublicData playlistData = {}; // Verified
-  uint8_t _padding1E8C[4];
+  DEF_PAD(1E8C, 4);
   LobbyTheaterData theaterData = {}; //  Verified
 
-  IMPL_SLICE_METHODS(pregameVotes, pregameVoteCount, PregameVotes);
+  IMPL_SLICE_METHODS(pregameVotes,
+                     std::min<size_t>(static_cast<size_t>(pregameVoteCount),
+                                      std::size(pregameVotes)));
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
@@ -692,7 +691,7 @@ PACKED(struct LobbyGameData {
         launchNonce, ::serialize(preLoaded), ::serialize(gameType),
         ::serialize(mapName), ugcInfo.serialize(), status, statusValue,
         lobby::serialize(pregameState), pregameVoteCount,
-        ::serialize(getPregameVotes()), ::serialize(client),
+        ::serialize(get_pregameVotes()), ::serialize(client),
         publicData.serialize(), customData.serialize(),
         playlistData.serialize(), theaterData.serialize());
   }
@@ -712,13 +711,13 @@ PACKED(struct LobbyData {
   // This actually acts more like bitflags representing lobby session state -
   // `dirty` is a misleading struct field name.
   uint8_t dirty = 0; // Verified
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   eGameModes gameMode = eGameModes::INVALID; // Verified
   XUID platformSessionID = 0;                // Verified
   const LobbyType *type = nullptr;
   const LobbyMode *mode = nullptr;    // Verified
   LobbyPrivateData lobbyPrivate = {}; // Verified
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
   LobbyGameData lobbyGame = {}; // Verified
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -744,22 +743,22 @@ PACKED(struct LobbySession {
   uint64_t flags = 0;                             // Verified
   bool sessionAdvertised = false;                 // Verified
   bool qosListenEnabled = false;
-  uint8_t _padding52[6];
+  DEF_PAD(52, 6);
   active::ActiveList *activeList = nullptr; // Verified
   SessionHost host = {};                    // Verified
   SessionLeader leader = {};
   uint32_t joinCount = 0;
-  uint8_t _paddingF4[4];
+  DEF_PAD(F4, 4);
   LobbyClientPool<SessionClient> client = {{}}; // Verified
   bool inRecovery = false;                      // Verified
-  uint8_t _padding459[3];
+  DEF_PAD(459, 3);
   SessionMigrateData migrateData = {};
-  uint8_t _padding464[4];
+  DEF_PAD(464, 4);
   LobbyData lobbyData = {}; // Verified
   info::LobbyUGCInfo ugcInfo = {};
-  uint8_t _padding23CC[4];
-
-  IMPL_SLICE_METHODS(client, joinCount, Client);
+  DEF_PAD(23CC, 4);
+  IMPL_SLICE_METHODS(client, std::min<size_t>(std::size(client),
+                                              static_cast<size_t>(joinCount)));
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
@@ -779,7 +778,7 @@ PACKED(struct LobbySession {
         session::serialize(active), ::serialize(dirty), flags,
         ::serialize(sessionAdvertised), ::serialize(qosListenEnabled),
         ::serialize(activeList), host.serialize(), leader.serialize(),
-        joinCount, ::serialize(getClient()), ::serialize(inRecovery),
+        joinCount, ::serialize(get_client()), ::serialize(inRecovery),
         migrateData.serialize(), lobbyData.serialize(), ugcInfo.serialize());
   }
 });
@@ -818,17 +817,17 @@ PACKED(struct GameData {
   uint8_t playlistNext = 0;
   uint8_t playlistPrev = 0;
   uint8_t playlistPrevCount = 0;
-  uint8_t _padding1BA3[1];
+  DEF_PAD(1BA3, 1);
   LobbyClientPool<GameClientData> client = {{}};
   name_t cpQueuedLevel = {0};
   bool loadingMovieSkipped = false;
   name_t demoName = {0};
-  uint8_t _padding1E6D[3];
+  DEF_PAD(1E6D, 3);
   uint64_t fileId = 0;
   int32_t fileSize = 0;
   bool isUserFile = false;
   bool isLiveStream = false;
-  uint8_t _padding1E7E[2];
+  DEF_PAD(1E7E, 2);
   XUID authorXUID = 0;
   eModes mainMode = eModes::INVALID;
   name_t demoMode = {0};
@@ -993,7 +992,7 @@ PACKED(struct ClientSession {
   uint32_t stateNum = 0;
   int32_t lastHostMsgTimestamp = 0;                  // Verified
   ServerStatus serverStatus = ServerStatus::MISSING; // Verified
-  uint8_t _padding23DC[4];
+  DEF_PAD(23DC, 4);
   PeerToPeerInfo peerToPeerInfo = {};
   LocalClientPool<msg::NetChanMsg> channel = {{}};
   LocalClientPool<msg::NetChanMsg> clientContentMsg = {{}};
@@ -1001,7 +1000,7 @@ PACKED(struct ClientSession {
   LobbyMigrateClientData clientMigrateData = {};
   LocalClientPool<bool> voiceCommunicationActive = {false};
   LocalClientPool<bool> paintshopDataDirty = {false};
-  uint8_t _padding2A4C[4];
+  DEF_PAD(2A4C, 4);
   SharedVoiceSessionData *platformVoiceData = nullptr;
 
   [[nodiscard]] inline std::string serialize() const noexcept {

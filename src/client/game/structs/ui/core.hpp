@@ -197,7 +197,7 @@ inline constexpr size_t UI_MODEL_SUBSCRIPTION_COUNT = 10000;
 // Verified
 PACKED(struct UIModelNode {
   djb2Hash_t keyHash;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   UIModelData data;
   UIModelIndex ancestor;
   UIModelIndex firstChild;
@@ -205,13 +205,12 @@ PACKED(struct UIModelNode {
   UIModelIndex nextSibling;
   UIModelSubscription firstSubscription;
   bool persistent;
-  uint8_t _padding23[5];
-
+  DEF_PAD(23, 5);
   inline constexpr void setKey(const std::string_view &key) noexcept {
     keyHash = djb2(key);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"keyHash\": {:08X}, \"data\": {}, \"ancestor\": {}, "
         "\"firstChild\": {}, \"index\": {}, \"nextSibling\": {}, "

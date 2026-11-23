@@ -24,12 +24,12 @@ PACKED(struct SndCommandPlaybackUpdate {
   float attenuation;
   uint32_t lengthMs;
   uint32_t playedMs;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
 });
 
 PACKED(struct SndCommandFacialAnimation {
   scr::ScrString_t animation;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   SndEntHandle ent;
 });
 
@@ -40,7 +40,7 @@ struct SndCommandLength {
 
 PACKED(struct SndCommandSubtitle {
   uint32_t lengthMs;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   const char *subtitle;
 });
 
@@ -70,7 +70,7 @@ struct SndCommandBankUpdateZone {
 PACKED(struct SndCommandPlayLoops {
   SndEntLoop loops[5];
   int32_t count;
-  uint8_t _paddingA4[4];
+  DEF_PAD(A4, 4);
 });
 
 PACKED(struct SndCommandSetLoopState {
@@ -80,7 +80,7 @@ PACKED(struct SndCommandSetLoopState {
   float attenuationRate;
   float pitch;
   float pitchRate;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
 });
 
 struct SndCommandSetGlobalFutz {
@@ -121,7 +121,7 @@ PACKED(struct SndCommandLoadBank {
   int32_t priority;
   qboolean patchZone;
   ZoneType zoneType;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
 });
 
 struct SndCommandScriptTimescale {
@@ -189,7 +189,7 @@ PACKED(struct SndCommandSetEntState {
   vec3_t origin;
   vec3_t velocity;
   vec3_t orientation[3];
-  uint8_t _padding44[4];
+  DEF_PAD(44, 4);
 });
 
 struct SndCommandDuck {
@@ -252,7 +252,7 @@ struct SndCommandStopEnt {
 PACKED(struct SndCommandStopAlias {
   SndEntHandle ent;
   SndStringHash alias_name;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
 });
 
 PACKED(struct SndCommandPlay {
@@ -263,7 +263,7 @@ PACKED(struct SndCommandPlay {
   vec3_t velocity;
   vec3_t orientation[3];
   int32_t padding;
-  uint8_t _paddingAC[4];
+  DEF_PAD(AC, 4);
 });
 
 struct SndCommandSetShockAmbientRoom {

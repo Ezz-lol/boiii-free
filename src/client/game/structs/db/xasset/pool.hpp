@@ -35,7 +35,7 @@ PACKED(struct XAssetPool {
   uint32_t itemSize;
   int32_t itemCount;
   bool isSingleton;
-  uint8_t _padding11[3];
+  DEF_PAD(11, 3);
   int32_t itemAllocCount;
   AssetLink *freeHead;
 
@@ -65,7 +65,7 @@ template <typename T> struct TypedXAssetPool {
   uint32_t itemSize;
   int32_t itemCount;
   bool isSingleton;
-  uint8_t _padding11[3];
+  DEF_PAD(11, 3);
   int32_t itemAllocCount;
   AssetLink *freeHead;
 
@@ -229,7 +229,7 @@ PACKED(union XAssetPools {
   }
 });
 static_assert(sizeof(XAssetPools) == sizeof(XAssetPool) * +XAssetType::COUNT,
-              "sizeof(XAssetPools) must be sizeof(XAssetPool) * COUNT");
+              "sizeof(XAssetPools) must equal sizeof(XAssetPool) * COUNT");
 ASSERT_SIZE(XAssetPools, sizeof(TypedXAssetPools));
 } // namespace pool
 } // namespace xasset

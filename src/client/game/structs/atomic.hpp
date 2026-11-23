@@ -13,7 +13,7 @@ PACKED(class alignas(8) tlAtomicMutex {
 public:
   int64_t ThreadId;
   int32_t LockCount;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   volatile tlAtomicMutex *ThisPtr;
 
   struct syms {

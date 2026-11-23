@@ -20,7 +20,7 @@ struct TTFKerningEntry {
 // Verified
 PACKED(struct TTFDef : NamedXAsset {
   int32_t fileLen;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   const char *file;
   void *ftFace;
   TTFKerningEntry kerningCache[16384];

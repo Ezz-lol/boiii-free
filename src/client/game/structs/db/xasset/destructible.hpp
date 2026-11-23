@@ -26,7 +26,7 @@ PACKED(struct DestructibleStage {
   scr::ScrString_t breakAnim;
   db::xasset::FxEffectDefHandle breakEffect;
   scr::ScrString_t breakEffectTag;
-  uint8_t _padding3C[4];
+  DEF_PAD(3C, 4);
   const char *breakSound;
   const char *breakNotify;
   const char *loopSound;
@@ -40,24 +40,23 @@ ASSERT_SIZE(DestructibleStage, 0x78);
 PACKED(struct DestructiblePiece {
   DestructibleStage stages[7];
   uint8_t parentPiece;
-  uint8_t _padding151[3];
+  DEF_PAD(151, 3);
   float parentDamagePercent;
   float bulletDamageScale;
   float explosiveDamageScale;
   float meleeDamageScale;
   float impactDamageScale;
   float entityDamageTransfer;
-  uint8_t _padding16C[4];
+  DEF_PAD(16C, 4);
   phys::PhysConstraintsPtr physConstraints;
   int32_t health;
-  uint8_t _padding17C[4];
+  DEF_PAD(17C, 4);
   const char *damageSound;
   db::xasset::FxEffectDefHandle burnEffect;
   const char *burnSound;
   scr::ScrString_t enableLabel;
   XPartBits hideBones;
-  uint8_t _padding1CC[4];
-
+  DEF_PAD(1CC, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"stages\": {}, \"parentPiece\": {}, \"parentDamagePercent\": {}, "
@@ -82,14 +81,14 @@ PACKED(struct DestructibleDef : NamedXAsset {
   db::xasset::xmodel::XModelPtr model;
   db::xasset::xmodel::XModelPtr pristineModel;
   int32_t numPieces;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
   DestructiblePiece *pieces;
   qboolean clientOnly;
   qboolean syncBaseHealthWithEntity;
 
   std::string serialize() const noexcept;
 
-  IMPL_SLICE_METHODS(pieces, numPieces, Pieces);
+  IMPL_SLICE_METHODS(pieces, numPieces);
 });
 // Verified
 ASSERT_SIZE(DestructibleDef, 0x30);

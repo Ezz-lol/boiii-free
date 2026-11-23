@@ -26,7 +26,7 @@ struct HunkUser {
   HUNKUSER_FLAGS flags;
   const char *name;
   int32_t type;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
 };
 ASSERT_SIZE(HunkUser, 0x18);
 #pragma pack(pop)
@@ -43,7 +43,7 @@ struct HunkUserDefault {
   intptr_t pos;
   intptr_t locked;
   uint8_t buf[1];
-  uint8_t _padding51[7];
+  DEF_PAD(51, 7);
 };
 ASSERT_SIZE(HunkUserDefault, 0x50);
 #pragma pack(pop)

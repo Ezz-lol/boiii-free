@@ -8,26 +8,6 @@
 // Required for IMPL_SLICE_METHODS macros
 #include <span> // IWYU pragma: export
 
-// Automatically pad a partially defined (reverse-engineered, in our case)
-// struct to a fixed, known-correct total length
-#ifndef partial_def
-#define partial_def(TotalSize, PrimType, Fixed, Verified)                      \
-  PrimType Fixed {                                                             \
-    union {                                                                    \
-      PrimType Verified;                                                       \
-      uint8_t __raw[TotalSize];                                                \
-    };                                                                         \
-  }
-#endif
-
-#ifndef inline_partial_def
-#define inline_partial_def(InlineNum, FixedTotalSize, PrimType, Verified)      \
-  union {                                                                      \
-    PrimType Verified verified_##InlineNum;                                    \
-    uint8_t __raw_##InlineNum[FixedTotalSize];                                 \
-  }
-#endif
-
 #ifndef IMPL_ENUM_OPS_WARN_PUSH
 #if defined(__clang__)
 #define IMPL_ENUM_OPS_WARN_PUSH                                                \
@@ -167,6 +147,26 @@ concept ValueMatches = (Actual == Expected);
 #endif
 #endif
 
+// Automatically pad a partially defined (reverse-engineered, in our case)
+// struct to a fixed, known-correct total length
+#ifndef partial_def
+#define partial_def(TotalSize, PrimType, Fixed, Verified)                               \
+  PACKED(PrimType Fixed {                                                             \
+    union {                                                                    \
+      PrimType Verified;                                                       \
+      uint8_t __raw[TotalSize];                                                \
+    });                                                                         \
+  }
+#endif
+
+#ifndef inline_partial_def
+#define inline_partial_def(InlineNum, FixedTotalSize, PrimType, Verified)      \
+  PACKED(union {                                                               \
+    PrimType Verified verified_##InlineNum;                                    \
+    uint8_t __raw_##InlineNum[FixedTotalSize];                                 \
+  })
+#endif
+
 #ifndef ASSERT_ALIGNMENT
 #define ASSERT_ALIGNMENT(type, align)                                          \
   static_assert(ValueMatches<size_t, alignof(type), align>,                    \
@@ -278,46 +278,58 @@ template <IntegralLike<uint64_t> T> consteval uint32_t min_bits_mask(T val_in) {
 }
 
 #ifndef IMPL_SLICE_METHODS
-#define IMPL_SLICE_METHODS(field, count, capitalized)                          \
+#define IMPL_SLICE_METHODS(field, count)                                       \
   inline std::span<                                                            \
       const std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>       \
-  get##capitalized() const noexcept {                                          \
+  get_##field() const noexcept {                                               \
     return std::span(field, static_cast<size_t>(count));                       \
   }                                                                            \
                                                                                \
   inline std::span<                                                            \
       std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>             \
-  get##capitalized() noexcept {                                                \
+  get_##field() noexcept {                                                     \
     return std::span(field, static_cast<size_t>(count));                       \
   }
 #endif
 
 #ifndef IMPL_CONST_SLICE_METHODS
-#define IMPL_CONST_SLICE_METHODS(field, count, capitalized)                    \
+#define IMPL_CONST_SLICE_METHODS(field, count)                                 \
   inline std::span<                                                            \
       const std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>       \
-  get##capitalized() const noexcept {                                          \
+  get_##field() const noexcept {                                               \
     return std::span(field, static_cast<size_t>(count));                       \
   }                                                                            \
                                                                                \
   inline std::span<                                                            \
       const std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>       \
-  get##capitalized() noexcept {                                                \
+  get_##field() noexcept {                                                     \
     return std::span(field, static_cast<size_t>(count));                       \
   }
 #endif
 
 #ifndef IMPL_VOLATILE_SLICE_METHODS
-#define IMPL_VOLATILE_SLICE_METHODS(field, count, capitalized)                 \
+#define IMPL_VOLATILE_SLICE_METHODS(field, count)                              \
   inline std::span<const volatile std::remove_all_extents_t<                   \
       strip_pointer_t<decltype(field)>>>                                       \
-  get##capitalized() const noexcept {                                          \
+  get_##field() const noexcept {                                               \
     return std::span(field, static_cast<size_t>(count));                       \
   }                                                                            \
                                                                                \
   inline std::span<                                                            \
       volatile std::remove_all_extents_t<strip_pointer_t<decltype(field)>>>    \
-  get##capitalized() noexcept {                                                \
+  get_##field() noexcept {                                                     \
     return std::span(field, static_cast<size_t>(count));                       \
   }
+#endif
+
+#ifndef DEF_PAD
+#define DEF_PAD(hex_offset, size)                                              \
+  /* NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers) */                  \
+  uint8_t _padding##hex_offset[size]
+#endif
+
+#ifndef DEF_UNK
+#define DEF_UNK(hex_offset, size)                                              \
+  /* NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers) */                  \
+  uint8_t _unknown##hex_offset[size]
 #endif

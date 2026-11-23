@@ -92,7 +92,7 @@ struct broad_phase_base {
   math::Dir3 m_trace_aabb_max_whace;
   math::Dir3 m_trace_translation;
   uint32_t m_flags;
-  uint8_t _padding34[4];
+  DEF_PAD(34, 4);
   broad_phase_base *m_list_bpb_next;
   broad_phase_base *m_list_bpb_cluster_next;
   void *m_sap_node;
@@ -136,11 +136,11 @@ struct pulse_sum_node {
   // field here instead.
   phys_link_list_base<pulse_sum_node> base;
   phys_mat33 m_world_inv_inertia;
-  uint8_t _padding38[8];
+  DEF_PAD(38, 8);
   math::Dir3 t_vel;
   math::Dir3 a_vel;
   float m_inv_mass;
-  uint8_t _padding64[4];
+  DEF_PAD(64, 4);
   rigid_body *m_rb;
 
   std::string serialize() const noexcept;
@@ -191,8 +191,7 @@ struct rigid_body_constraint_point {
   float m_spring_k;
   float m_damp_k;
   bool m_spring_enabled;
-  uint8_t _padding59[7];
-
+  DEF_PAD(59, 7);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_b1_r_loc\": {}, \"m_b2_r_loc\": {}, "
@@ -224,8 +223,7 @@ struct rb_inplace_partition_node {
   rigid_body *m_partition_tail;
   rigid_body *m_next_node;
   int32_t m_partition_size;
-  uint8_t _padding6C[4];
-
+  DEF_PAD(6C, 4);
   std::string serialize() const noexcept;
 };
 ASSERT_SIZE(rb_inplace_partition_node, 0x70);
@@ -244,7 +242,7 @@ public:
   math::Dir3 m_last_position;
   math::Dir3 m_moved_vec;
   float m_smallest_lambda;
-  uint8_t _padding24[12];
+  DEF_PAD(24, 12);
   math::RotTranMat43 m_mat;
   math::Dir3 m_inv_inertia;
   math::Dir3 m_gravity_acc_vec;
@@ -259,7 +257,7 @@ public:
   float m_max_delta_t;
   uint32_t m_flags;
   uint32_t m_tick;
-  uint8_t _padding104[4];
+  DEF_PAD(104, 4);
   pulse_sum_node *m_node;
   int32_t m_constraint_count;
   int32_t m_contact_count;
@@ -268,11 +266,10 @@ public:
   float m_largest_vel_sq;
   float m_t_drag_coef;
   float m_a_drag_coef;
-  uint8_t _padding12C[4];
+  DEF_PAD(12C, 4);
   void *m_userdata;
   rb_inplace_partition_node m_partition_node;
-  uint8_t _padding1A8[8];
-
+  DEF_PAD(1A8, 8);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_last_position\": {}, \"m_moved_vec\": {}, "
@@ -347,18 +344,17 @@ struct gjk_base_t {
   // This is inherited. Inheritance breaks standard layout, so it's added as a
   // field here instead.
   phys_gjk_geom base;
-  uint8_t _padding00[8];
+  DEF_PAD(00, 8);
   math::Dir3 m_aabb_mn_loc;
   math::Dir3 m_aabb_mx_loc;
   gjk_unique_id_database_t::unique_id m_gjk_geom_id;
-  uint8_t _padding34[4];
+  DEF_PAD(34, 4);
   const math::RotTranMat43 *m_xform_;
   gjk_base_t *m_next_geom;
   uint32_t m_flags;
   int32_t stype;
   gjk_contents_t m_contents;
-  uint8_t _padding54[12];
-
+  DEF_PAD(54, 12);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"base\": {}, \"m_aabb_mn_loc\": {}, \"m_aabb_mx_loc\": {}, "
@@ -375,8 +371,7 @@ struct gjk_geom_list_t {
 public:
   gjk_base_t *m_first_geom;
   int32_t m_geom_count;
-  uint8_t _padding0C[4];
-
+  DEF_PAD(0C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_first_geom\": {}, \"m_geom_count\": {} }}",
                        ::serialize(m_first_geom), m_geom_count);
@@ -416,8 +411,7 @@ public:
   int32_t owner;
   PhysicsOwnerType owner_type;
   hitinfo_t hitinfo;
-  uint8_t _padding15C[4];
-
+  DEF_PAD(15C, 4);
   std::string serialize() const noexcept;
 };
 ASSERT_SIZE(PhysObjUserData, 0x160);
@@ -533,7 +527,7 @@ struct ZBarrierPieceAnims {
 struct ZBarrierType {
   uint8_t serverIndex;
   ClientNum8_t clientIndex;
-  uint8_t _padding02[6];
+  DEF_PAD(02, 6);
   ZBarrierDef *zbarrierDef;
   ZBarrierPieceAnims clientAnims[6];
   ZBarrierPieceAnims serverAnims[6];
@@ -585,8 +579,7 @@ ASSERT_SIZE(trigger_info_t, 0xC);
 struct sv_FxVisBlock_t {
   const level::gentity_t *fxEnt;
   float radius;
-  uint8_t _padding0C[4];
-
+  DEF_PAD(0C, 4);
   std::string serialize() const noexcept;
 };
 ASSERT_SIZE(sv_FxVisBlock_t, 0x10);
@@ -595,7 +588,7 @@ struct actor_prone_info_t {
   bool bCorpseOrientation;
   bool orientPitch;
   bool prone;
-  uint8_t _padding03[1];
+  DEF_PAD(03, 1);
   int32_t iProneTime;
   int32_t iProneTrans;
   float fBodyHeight;
@@ -683,7 +676,7 @@ struct DestructibleBurnData {
 
 struct DESTRUCTIBLE_PIECE_INFO {
   int16_t health;
-  uint8_t _padding02[2];
+  DEF_PAD(02, 2);
   int32_t xdollHandle;
   FxUniqueHandle fx;
   DestructibleBurnData burnData;
@@ -716,20 +709,19 @@ struct DestructibleState {
 
 PACKED(struct Destructible {
   int32_t entNum;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   DESTRUCTIBLE_PIECE_INFO *pieceArray;
   int32_t oldestBurnTime;
   bool entDestroyed;
   bool entDestroyedRespondedTo;
-  uint8_t _padding16[2];
+  DEF_PAD(16, 2);
   int32_t pieceCount;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
   db::xasset::destructible::DestructibleDef *ddef;
   uint32_t flags;
   DestructibleState states[5];
   bool bHasBeenHit;
-  uint8_t _paddingB9[7];
-
+  DEF_PAD(B9, 7);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"entNum\": {}, \"pieceArray\": {}, \"oldestBurnTime\": {}, "
@@ -775,7 +767,7 @@ ASSERT_SIZE(CollisionAabbTree, 0x20);
 
 PACKED(struct CollisionPartition {
   uint8_t triCount;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   int32_t firstTri;
   int32_t nuinds;
   int32_t fuind;
@@ -792,7 +784,7 @@ struct cbrush_t; // TODO
 
 PACKED(struct col_prim_t {
   int32_t type;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   union {
     const CollisionAabbTree *tree;
     const cbrush_t *brush;
@@ -833,7 +825,7 @@ PACKED(struct colgeom_visitor_t {
   // This is inherited. Inheritance breaks standard layout, so it's added as a
   // field here instead.
   visitor_base_t base;
-  uint8_t _padding0[0xF];
+  DEF_PAD(0, 0xF);
   hybrid_vector m_mn;
   hybrid_vector m_mx;
   hybrid_vector m_p0;
@@ -1060,8 +1052,7 @@ template <typename T> struct phys_inplace_avl_tree_node {
   T *m_left;
   T *m_right;
   int32_t m_balance;
-  uint8_t _padding14[4];
-
+  DEF_PAD(14, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_left\": {:p}, \"m_right\": {:p}, \"m_balance\": {} }}",
@@ -1598,7 +1589,7 @@ PACKED(struct rigid_body_constraint_custom_path {
   // This is inherited. Inheritance breaks standard layout, so it's added as a
   // field here instead.
   rigid_body_constraint base;
-  uint8_t _padding18[8];
+  DEF_PAD(18, 8);
   math::RotTranMat43 m_path_mat;
   math::Dir3 b1_r_loc;
   user_rigid_body *m_urb;

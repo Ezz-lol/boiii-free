@@ -17,7 +17,7 @@ enum class MapSize : uint32_t {
 PACKED(struct MapTableEntry {
   XString name;
   MapSize size;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   XString mapName;
   XString mapNameCaps;
   XString rootMapName;
@@ -34,7 +34,7 @@ PACKED(struct MapTableEntry {
   gfx::GfxImage *compassMapCorrupt;
   bool isSafeHouse;
   bool isSubLevel;
-  uint8_t _padding82[6];
+  DEF_PAD(82, 6);
   XString safeHouse;
   XString introMovie;
   XString outroMovie;
@@ -43,28 +43,28 @@ PACKED(struct MapTableEntry {
   ScriptBundleListPtr accoladelist;
   XString mapObjective;
   vec3_t engagementRanges;
-  uint8_t _paddingCC[4];
+  DEF_PAD(CC, 4);
   XString resistanceText;
   gfx::GfxImage *operationsBackground;
   bool isFreeRunMap;
-  uint8_t _paddingE1[3];
+  DEF_PAD(E1, 3);
   uint32_t freerunTrackIndex;
   uint32_t mapVersion;
   uint32_t kvpCount;
   ScriptBundleKVP *kvpItems;
   int32_t uniqueID;
-  uint8_t _paddingFD[4];
+  DEF_PAD(FD, 4);
 });
 
 PACKED(struct MapTable {
   XString name;
   uint32_t mapCount;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   MapTableEntry *maps;
   eModes sessionMode;
   CampaignMode campaignMode;
   dlcIndex_t dlcIndex;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
 });
 ASSERT_SIZE(MapTable, 0x28);
 } // namespace maptable

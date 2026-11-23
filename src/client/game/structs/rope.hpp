@@ -50,8 +50,7 @@ public:
   scr::ScrString_t bone_name_hash;
   uint8_t pi1;
   uint8_t pi2;
-  uint8_t _padding1A[2];
-
+  DEF_PAD(1A, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"p\": {}, \"type\": {}, \"entity_index\": {}, "
@@ -98,7 +97,7 @@ PACKED(struct rope_t {
   qboolean m_visible;
   qboolean m_dist_constraint;
   int32_t m_flags;
-  uint8_t _paddingE8C[4];
+  DEF_PAD(E8C, 4);
   db::xasset::MaterialHandle m_material;
   float m_seglen;
   float m_length;
@@ -111,8 +110,7 @@ PACKED(struct rope_t {
   int32_t m_static_rope;
   int32_t m_model;
   int32_t m_slice_count;
-  uint8_t _paddingECC[4];
-
+  DEF_PAD(ECC, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"m_particles\": {}, \"m_constraints\": {}, \"m_entity_anchors\": "

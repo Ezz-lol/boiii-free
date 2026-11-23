@@ -50,15 +50,15 @@ enum class CompositeJobState : int32_t {
 // Actual name is unknown
 struct CompositeJob {
   CompositeJobState state;
-  uint8_t _padding04[0x1C5C];
+  DEF_PAD(04, 0x1C5C);
   // Set when the image came from CL_CompositeRender's pool instead of the
   // caller
   bool ownsImage;
-  uint8_t _padding1C61[7];
+  DEF_PAD(1C61, 7);
   gfx::GfxImage *image;
-  uint8_t _padding1C70[4];
+  DEF_PAD(1C70, 4);
   bool cancelled;
-  uint8_t _padding1C75[0xB];
+  DEF_PAD(1C75, 0xB);
 };
 ASSERT_SIZE(CompositeJob, 0x1C80);
 ASSERT_OFFSET(CompositeJob, ownsImage, 0x1C60);
@@ -84,7 +84,7 @@ enum class CLSwitchMsg : uint32_t {
 #pragma pack(push, 1)
 struct CLSwitchMessage {
   CLSwitchMsg id;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   union {
     str64_t *str;
     int64_t integer;
@@ -104,7 +104,7 @@ struct CLMapSwitch {
   str128_t loadingMovie;
   PMemStack preloadPMemStack;
   bool preload;
-  uint8_t _padding28D[3];
+  DEF_PAD(28D, 3);
   int32_t preloadReserveFrameCount;
   uint32_t preloadReservePagesTaken;
   uint32_t preloadReservePagesNeeded;
@@ -166,7 +166,7 @@ struct clientConnection_t {
   ClientSteamAuth steamAuth;
   uint8_t *transferBuffer;
   int32_t transferBufferCompressedSize;
-  uint8_t _padding25564[4];
+  DEF_PAD(25564, 4);
   int64_t statPacketsToSend[2];
   int32_t statPacketSendTime[127];
   int32_t loadoutNonceSent;
@@ -198,7 +198,7 @@ ASSERT_SIZE(clientLogo_t, 0x20);
 
 struct clSnapshot_t {
   bool valid;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   int32_t snapFlags;
   int32_t serverTime;
   int32_t physicsTime;
@@ -220,7 +220,7 @@ struct clSnapshot_t {
   int32_t parseActorsIndex;
   int32_t parseDestructiblesIndex;
   int32_t serverCommandNum;
-  uint8_t _paddingB574[6];
+  DEF_PAD(B574, 6);
 };
 ASSERT_SIZE(clSnapshot_t, 0xB5C0); // Correct
 #pragma pack(pop)
@@ -381,14 +381,14 @@ partial_def(CLIENTACTIVE_SIZE, struct, clientActive_t, {
   int32_t packetBackupMask;
   int32_t gameStateMarker;
   bool usingAds;
-  uint8_t _padding07C[3];
+  DEF_PAD(07C, 3);
   int32_t timeoutcount;
-  uint8_t _padding084[12];
+  DEF_PAD(084, 12);
   clSnapshot_t snap;
   int32_t snapServerTime;
   int32_t oldSnapServerTime;
   bool alwaysFalse;
-  uint8_t _paddingB659[3];
+  DEF_PAD(B659, 3);
   int32_t serverTime;
   int32_t oldServerTime;
   int32_t oldFrameServerTime;
@@ -397,10 +397,10 @@ partial_def(CLIENTACTIVE_SIZE, struct, clientActive_t, {
   int32_t realTimeLatestSnaphot;
   bool extrapolatedSnapshot;
   bool newSnapshots;
-  uint8_t _paddingB676[2];
+  DEF_PAD(B676, 2);
   int32_t serverId;
   bool forceNewSnapshots;
-  uint8_t _paddingB67D[3];
+  DEF_PAD(B67D, 3);
   int32_t unpausedTimeBehind;
   int32_t serverTimeErrorIndex;
   int32_t serverTimeErrorCount;
@@ -418,20 +418,20 @@ partial_def(CLIENTACTIVE_SIZE, struct, clientActive_t, {
   int32_t parseActorsIndex;
   int32_t parseDestructiblesIndex;
   bool stanceHeld;
-  uint8_t _paddingB795[3];
+  DEF_PAD(B795, 3);
   StanceState stance;
   StanceState stancePosition;
   int32_t stanceTime;
   bool wasSprinting;
   bool wasJumping;
   bool wasWallRunning;
-  uint8_t _paddingB7A7[1];
+  DEF_PAD(B7A7, 1);
   uint64_t priorPMFlags;
   bool weapNextHeld;
-  uint8_t _paddingB7B1[3];
+  DEF_PAD(B7B1, 3);
   int32_t weapNextTime;
   bool switchingToInventory;
-  uint8_t _paddingB7B9[7];
+  DEF_PAD(B7B9, 7);
   weapon::Weapon cgameUserCmdWeapon;
   weapon::Weapon cgameUserCmdOffHandWeapon;
   weapon::Weapon cgameUserCmdLastWeaponForAlt;
@@ -446,11 +446,11 @@ partial_def(CLIENTACTIVE_SIZE, struct, clientActive_t, {
   game_button_bits_t cgameExtraButton_bits;
   int32_t cgamePredictedDataServerTime;
   uint16_t cgameUserCmdPlayerLevel;
-  uint8_t _paddingB892[2];
+  DEF_PAD(B892, 2);
   vec3_t viewangles;
   int32_t skelTimeStamp;
   char skelMemory[0x100000];
-  uint8_t _padding10B8E4[4];
+  DEF_PAD(10B8E4, 4);
   hunk::HunkUser *skelMemoryPool;
   user::usercmd_t cmds[0x80];
   int32_t cmdNumber;

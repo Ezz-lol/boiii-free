@@ -336,13 +336,13 @@ PACKED(struct InternString : GenericChunkHeader {
   hksSize m_lengthbits;
   hksUint32 m_hash;
   char m_data[30];
-  uint8_t _padding32[6];
+  DEF_PAD(32, 6);
 });
 
 PACKED(struct Method : ChunkHeader {
   template <typename T> struct Array {
     hksUint32 size;
-    uint8_t _padding04[4];
+    DEF_PAD(04, 4);
     T *data;
   };
   struct LocalInfo {
@@ -373,7 +373,7 @@ PACKED(struct Method : ChunkHeader {
   hksUshort16 m_numRegisters;
   hksByte num_params;
   hksByte m_flags;
-  uint8_t _padding1A[6];
+  DEF_PAD(1A, 6);
   Instructions instructions;
   Constants constants;
   Children children;
@@ -394,7 +394,7 @@ PACKED(struct HksClosure : ChunkHeader {
   HashTable *m_env;
   hksByte m_mayHaveUpvalues;
   MethodCache m_cache;
-  uint8_t _padding35[3];
+  DEF_PAD(35, 3);
   UpValue *m_upvalues[1];
 });
 
@@ -448,7 +448,7 @@ static_assert(HKS_OBJECT_TYPE_MASK == 0xF, "HKS_OBJECT_TYPE_MASK != 0xF");
 
 PACKED(struct HksObject {
   HksObjectType t;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   HksValue v;
 
   inline constexpr HksObjectType type() const {
@@ -578,8 +578,7 @@ PACKED(struct CallStack {
   const hksInstruction *m_current_lua_pc;
   const hksInstruction *m_hook_return_addr;
   hksInt32 m_hook_level;
-  uint8_t _padding2C[4];
-
+  DEF_PAD(2C, 4);
   struct syms {
     static constexpr symbol<thiscall_t<HksRegister *(
         hks::CallStack *, lua_State *s, hksInt32 nresults, HksObject *arg_end,
@@ -724,7 +723,7 @@ PACKED(struct HashTable : public ChunkHeader {
   Node *m_hashPart;
   HksObject *m_arrayPart;
   hksUint32 m_arraySize;
-  uint8_t _padding34[4];
+  DEF_PAD(34, 4);
   Node *m_freeNode;
 
   struct syms {
@@ -847,7 +846,7 @@ struct HksCompilerSettings {
   };
 
   hksBool m_emitStructCode;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   const char **m_stripNames;
   BytecodeSharingFormat m_bytecodeSharingFormat;
   IntLiteralOptions m_enableIntLiterals;
@@ -907,42 +906,42 @@ enum class GCResumePhase : uint32_t {
 
 PACKED(struct ResumeData_State {
   ResumeData_Header h;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   lua_State *m_state;
   GCResumePhase m_phase;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   UpValue *m_pending;
 });
 
 PACKED(struct ResumeData_Table {
   ResumeData_Header h;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   HashTable *m_table;
   hksUint32 m_arrayIndex;
   hksUint32 m_hashIndex;
   hksInt32 m_weakness;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
 });
 
 PACKED(struct ResumeData_Closure {
   ResumeData_Header h;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   HksClosure *m_closure;
   hksInt32 m_index;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
 });
 
 PACKED(struct ResumeData_CClosure {
   ResumeData_Header h;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   cclosure *m_cclosure;
   hksInt32 m_upvalueIndex;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
 });
 
 PACKED(struct ResumeData_Userdata {
   ResumeData_Header h;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   UserData *m_data;
 });
 
@@ -956,7 +955,7 @@ union ResumeData_Entry {
 
 PACKED(struct WeakStack_Entry {
   hksInt32 m_weakness;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   HashTable *m_table;
 });
 
@@ -1001,13 +1000,13 @@ PACKED(struct GarbageCollector {
   MemoryManager *m_memory;
   void *m_emergencyGCMemory;
   hksInt32 m_phase;
-  uint8_t _padding6C[4];
+  DEF_PAD(6C, 4);
   ResumeStack m_resumeStack;
   GreyStack m_greyStack;
   RemarkStack m_remarkStack;
   WeakStack m_weakStack;
   hksBool m_finalizing;
-  uint8_t _paddingCC[4];
+  DEF_PAD(CC, 4);
   HksObject m_safeTableValue;
   lua_State *m_startOfStateStackList;
   lua_State *m_endOfStateStackList;
@@ -1020,13 +1019,13 @@ PACKED(struct GarbageCollector {
   HksGcCost m_stepMultiplier;
   hksSize m_emergencyMemorySize;
   bool m_stopped;
-  uint8_t _padding131[7];
+  DEF_PAD(131, 7);
   lua_CFunction *m_gcPolicy;
   hksSize m_pauseTriggerMemoryUsage;
   hksInt32 m_stepTriggerCountdown;
   hksUint32 m_stringTableIndex;
   hksUint32 m_stringTableSize;
-  uint8_t _padding154[4];
+  DEF_PAD(154, 4);
   UserData *m_lastBlackUD;
   UserData *m_activeUD;
 
@@ -1168,7 +1167,7 @@ PACKED(struct Debugger {
   lua_State *m_profilerState;
   hksUint64 m_lastTime;
   hksBool m_ToggleProfile;
-  uint8_t _padding564[4];
+  DEF_PAD(564, 4);
 });
 
 struct DebugInstance;
@@ -1191,14 +1190,14 @@ PACKED(struct DebugInstance {
   hksInt32 m_DebuggerLevel;
   hksInt32 stored_Hook_level;
   bool m_clearHook;
-  uint8_t _padding29[7];
+  DEF_PAD(29, 7);
   const hksInstruction *stored_Hook_return_addr;
   hksInt32 m_debugStepLastLine;
-  uint8_t _padding3C[4];
+  DEF_PAD(3C, 4);
   DebugInstance *m_next;
   const hksInstruction *m_activePC;
   hksInt32 runtimeProfileSendBufferWritePosition;
-  uint8_t _padding54[4];
+  DEF_PAD(54, 4);
   RuntimeProfilerStats runtimeProfileSendBuffer[30];
 });
 
@@ -1214,7 +1213,7 @@ PACKED(struct HksGlobal {
   DebugInstance *m_debugger;
   void *m_profiler;
   RuntimeProfileData m_runProfilerData;
-  uint8_t _unknown558[16];
+  DEF_UNK(558, 16);
   HksCompilerSettings m_compilerSettings;
   lua_CFunction *m_panicFunction;
   plus::LuaObject *m_luaplusObjectList;
@@ -1223,7 +1222,7 @@ PACKED(struct HksGlobal {
   HksLogFunc m_logFunction;
   HksEmergencyGCFailFunc m_emergencyGCFailFunction;
   HksBytecodeEndianness m_bytecodeDumpEndianness;
-  uint8_t _padding5B4[4];
+  DEF_PAD(5B4, 4);
 });
 /*
   ## Important Note on Correct Size
@@ -1256,7 +1255,7 @@ struct lua_State : ChunkHeader {
   HksObject m_cEnv;
   CallSite *m_callsites;
   hksInt32 m_numberOfCCalls;
-  uint8_t _padding9C[4];
+  DEF_PAD(9C, 4);
   LuaStateContext *m_context;
   InternString *m_name;
   lua_State *m_next;
@@ -1309,7 +1308,7 @@ PACKED(struct HksStateSettings {
   // Confirmed present
   hks::Debugger *m_debugObject;
   int32_t m_heapAssertionFrequency;
-  uint8_t _padding7C[4];
+  DEF_PAD(7C, 4);
   lua_CFunction *m_gcPolicy;
   HksBytecodeSharingMode m_bytecodeSharingMode;
   HksBytecodeEndianness m_bytecodeDumpEndianness;

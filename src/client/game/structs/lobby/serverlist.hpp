@@ -13,12 +13,11 @@ namespace serverlist {
 // Verified
 PACKED(struct LobbyServerList {
   int32_t count;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   msg::Msg_InfoResponseLobbyServer serverInfo[128];
   int32_t refreshTime;
-  uint8_t _padding2480C[4];
-
-  IMPL_SLICE_METHODS(serverInfo, count, ServerInfo);
+  DEF_PAD(2480C, 4);
+  IMPL_SLICE_METHODS(serverInfo, count);
 });
 ASSERT_SIZE(LobbyServerList, 0x24810);
 

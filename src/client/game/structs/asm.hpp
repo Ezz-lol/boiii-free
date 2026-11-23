@@ -186,8 +186,7 @@ struct RumbleGraph {
   const char *name;
   int32_t knotCount;
   vec2_t knots[16];
-  uint8_t _padding8C[4];
-
+  DEF_PAD(8C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"knotCount\": {}, \"knots\": {} }}",
                        ::serialize(name), knotCount, ::serialize(knots));
@@ -234,11 +233,10 @@ typedef RumbleInfo *RumbleInfoPtr;
 // sizeof=0x18
 struct AliasToAnimsEntry {
   scr::ScrString_t aliasName;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   scr::ScrString_t *anims;
   int32_t numAnims;
-  uint8_t _padding14[4];
-
+  DEF_PAD(14, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"aliasName\": 0x{:08X}, \"anims\": {}, \"numAnims\": {} }}",
@@ -268,8 +266,7 @@ struct AnimMappingTable {
   const char *name;
   AliasToAnimsEntry *entries;
   int32_t numAnimAlias;
-  uint8_t _padding14[4];
-
+  DEF_PAD(14, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"entries\": {}, \"numAnimAlias\": {} }}",
@@ -420,8 +417,7 @@ struct AnimSelectorTableEntry;
 struct AnimSelectorTableRow {
   AnimSelectorTableEntry *entries;
   int32_t numEntries;
-  uint8_t _padding0C[4];
-
+  DEF_PAD(0C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"entries\": {}, \"numEntries\": {} }}",
                        ::serialize(entries, numEntries), numEntries);
@@ -431,10 +427,10 @@ ASSERT_SIZE(AnimSelectorTableRow, 0x10);
 
 struct AnimSelectorTable {
   scr::ScrString_t name;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   AnimSelectorTableColumn *columns;
   int32_t numColumns;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   AnimSelectorTableRow *rows;
   int32_t numRows;
   union {
@@ -464,8 +460,7 @@ struct AnimSelectorTableSet {
   const char *name;
   AnimSelectorTable *tables;
   int32_t numTables;
-  uint8_t _padding14[4];
-
+  DEF_PAD(14, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"tables\": {}, \"numTables\": {} }}",
                        ::serialize(name), ::serialize(tables, numTables),
@@ -483,8 +478,7 @@ struct AimTableEntry {
   int32_t left;
   int32_t up;
   int32_t down;
-  uint8_t _padding1C[4];
-
+  DEF_PAD(1C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {}, \"entryName\": {}, \"right\": {}, "
                        "\"left\": {}, \"up\": {}, \"down\": {} }}",
@@ -535,7 +529,7 @@ ASSERT_SIZE(aimAnimations_t, 0x10);
 // sizeof=0x98
 struct AimLayer {
   bool active;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   scr::ScrString_t tableName;
   scr::ScrString_t searchedAimTableName;
   int32_t tableIndex;
@@ -546,12 +540,12 @@ struct AimLayer {
   vec3_t prevAimDeltaAngles;
   vec3_t currAimDeltaAngles;
   bool prevAimsMultipleDelta;
-  uint8_t _padding49[3];
+  DEF_PAD(49, 3);
   aimAnimations_t aimAnimIndexes;
   aimAnimations_t prevAimAnimIndexes;
   aimAnimations_t aimBlendIndexes;
   aimLimits_t aimLimits;
-  uint8_t _padding8C[4];
+  DEF_PAD(8C, 4);
   const AimTableEntry *aimTableEntry;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -602,8 +596,7 @@ struct PrimaryDeltaLayer_t {
   PrimaryDeltaFootstep_t footsteps[48];
   int32_t deltaRequestTime;
   uint8_t toggleCounter;
-  uint8_t _padding209[3];
-
+  DEF_PAD(209, 3);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"deltaAnimSource\": {}, \"currDeltaTableName\": {}, "
@@ -645,14 +638,14 @@ ASSERT_SIZE(shootAnimations_t, 0x18);
 // sizeof=0x44
 struct ShootLayer {
   bool active;
-  uint8_t _padding1[3];
+  DEF_PAD(1, 3);
   scr::ScrString_t tableName;
   int32_t tableIndex;
   int32_t rowIndex;
   shootAnimations_t shootAnimationIndexes;
   int32_t currentShootAnimationIndex;
   bool waitingForFirstShot;
-  uint8_t _padding2D[3];
+  DEF_PAD(2D, 3);
   int32_t activationDelayedTime;
   int32_t firingFlagStartTime;
   int32_t firingFlagStopTime;
@@ -680,7 +673,7 @@ ASSERT_SIZE(ShootLayer, 0x44);
 // sizeof=0x18
 struct TransDecLayer {
   bool active;
-  uint8_t _padding1[3];
+  DEF_PAD(1, 3);
   scr::ScrString_t tableName;
   scr::ScrString_t tableEvalFunc;
   int32_t tableIndex;
@@ -699,7 +692,7 @@ ASSERT_SIZE(TransDecLayer, 0x18);
 
 struct MocompLayer {
   bool active;
-  uint8_t _padding1[3];
+  DEF_PAD(1, 3);
   scr::ScrString_t mocompName;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -713,7 +706,7 @@ ASSERT_SIZE(MocompLayer, 0x8);
 struct AimTable {
   const char *name;
   scr::ScrString_t tableName;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   AimTableEntry atEntries[20];
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -742,11 +735,10 @@ struct AnimSubState {
   scr::ScrString_t transitionSelector;
   scr::ScrString_t deltaSelectorEvaluator;
   scr::ScrString_t transitionSelectorEvaluator;
-  uint8_t _padding2C[4];
+  DEF_PAD(2C, 4);
   int32_t *substateTransitionIndices;
   int32_t numSubStateTransitions;
-  uint8_t _padding3C[4];
-
+  DEF_PAD(3C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": 0x{:08X}, \"fullname\": 0x{:08X}, \"validationFlags\": "
@@ -776,8 +768,7 @@ struct AnimState {
   int32_t validationFlags;
   int32_t *subStatesIndices;
   int32_t numSubStates;
-  uint8_t _padding14[4];
-
+  DEF_PAD(14, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": 0x{:08X}, \"validationFlags\": 0x{:08X}, "
                        "\"subStatesIndices\": {}, \"numSubStates\": {} }}",
@@ -824,14 +815,13 @@ struct AnimStateMachine {
   const char *name;
   AnimState *asmStates;
   int32_t numStates;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   AnimSubState *asmSubStates;
   int32_t numSubStates;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
   AnimTransition *asmTransitions;
   int32_t numTransitions;
-  uint8_t _padding34[4];
-
+  DEF_PAD(34, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"asmStates\": {}, \"numStates\": "
@@ -861,8 +851,7 @@ struct AnimStateMachineRuntime {
   ShootLayer_t shootLayer;
   TransDecLayer_t transDecLayer;
   MocompLayer_t mocompLayer;
-  uint8_t _padding32C[4];
-
+  DEF_PAD(32C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"status\": {}, \"endReason\": {}, "
@@ -898,8 +887,7 @@ ASSERT_SIZE(XAnimParam, 0x14);
 struct XAnimSearchEntry {
   scr::ScrString_t name;
   uint16_t animIndex;
-  uint8_t _padding06[2];
-
+  DEF_PAD(06, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": 0x{:08X}, \"animIndex\": {} }}", name,
                        animIndex);
@@ -926,7 +914,7 @@ struct XAnimEntry {
   uint16_t firstParamIxPlusOne;
   uint16_t paramCount;
   uint16_t parent;
-  uint8_t _padding0A[6];
+  DEF_PAD(0A, 6);
   union {
     XAnimParts *parts;
     XAnimParent animParent;
@@ -983,8 +971,7 @@ PACKED(struct PlayerAnimBodyPartState {
   int32_t animStartTime;
   int32_t animDuration;
   animationNumber_t animNum;
-  uint8_t _padding0A[2];
-
+  DEF_PAD(0A, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"animStartTime\": {}, \"animDuration\": {}, \"animNum\": {} }}",
@@ -999,8 +986,7 @@ PACKED(struct AnimScriptedState {
   int32_t lerp;
   float goalTime;
   animationNumber_t anim;
-  uint8_t _padding12[2];
-
+  DEF_PAD(12, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"time\": {}, \"rate\": {}, \"lerp\": {}, "
                        "\"goalTime\": {}, \"anim\": {} }}",
@@ -1026,13 +1012,13 @@ PACKED(struct motionMatchingInfo_t {
 PACKED(struct locBlendInfo_t {
   bool bPlayedBlendLastFrame;
   bool bStraightenLegs;
-  uint8_t _padding02[2];
+  DEF_PAD(02, 2);
   int32_t lastBlendCount;
   int32_t lastBlendAnims[4];
   int32_t lastStrideType;
   float blendLerpTime;
   animationNumber_t stopAnimNum;
-  uint8_t _padding22[2];
+  DEF_PAD(22, 2);
   float stopBlendLerpTime;
   int32_t lastLocBlendAnimNum;
 
@@ -1067,8 +1053,7 @@ PACKED(struct animation_t {
   int32_t locBlendIndex;
   float locBlendAlignTime;
   uint16_t localOverrideAnim;
-  uint8_t _padding7A[6];
-
+  DEF_PAD(7A, 6);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": \"{}\", \"initialLerp\": {}, "
                        "\"finalLerp\": {}, \"forceAnimRate\": {}, "
@@ -1087,7 +1072,7 @@ PACKED(struct animation_t {
 
 PACKED(struct LerpFrameAnimation {
   animationNumber_t animationNumber;
-  uint8_t _padding02[6];
+  DEF_PAD(02, 6);
   animation_t *animation;
   int32_t animationTime;
   vec3_t oldFramePos;
@@ -1138,8 +1123,7 @@ PACKED(struct LerpFrameAngles {
 PACKED(struct ModelAttachmentIndex {
   int16_t model;
   uint8_t tag;
-  uint8_t _padding03[1];
-
+  DEF_PAD(03, 1);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"model\": {}, \"tag\": {} }}", model, tag);
   }
@@ -1185,7 +1169,7 @@ PACKED(struct animscripted_t {
   uint16_t root;
   uint8_t bStarted;
   uint8_t mode;
-  uint8_t _padding66[2];
+  DEF_PAD(66, 2);
   int startTime;
   int lerpTime;
   float fHeightOfs;

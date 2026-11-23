@@ -176,7 +176,7 @@ union ContentFlags {
 
   } bits;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"mask\": {:08X}, \"unknown\": {}, "
                        "\"originalMaps\": {}, \"dlc0zm\": {}, "
                        "\"dlc0mp\": {}, \"dlc1\": {}, \"dlc2\": {}, "
@@ -385,7 +385,7 @@ constexpr bool validate(const team_t team) {
   return team >= team_t::TEAM_DEAD && team < team_t::TEAM_NUM_TEAMS;
 }
 
-constexpr const char *serialize(const team_t team) {
+[[nodiscard]] constexpr const char *serialize(const team_t team) {
   switch (team) {
   case team_t::TEAM_DEAD:
     return "TEAM_DEAD";
@@ -485,7 +485,7 @@ constexpr bool validate_count(const ClientNum_t clientNum) {
           clientNum <= ClientNum_t::CLIENT_INDEX_COUNT);
 }
 
-constexpr const char *serialize(const ClientNum_t clientNum) {
+[[nodiscard]] constexpr const char *serialize(const ClientNum_t clientNum) {
   switch (clientNum) {
   case CLIENT_INDEX_0:
     return "CLIENT_INDEX_0";
@@ -594,7 +594,7 @@ enum ClientNum16_t : int16_t {
   CLIENT_INDEX_16_COUNT = 0x12,
 };
 IMPL_ENUM_OPERATORS(ClientNum16_t);
-constexpr const char *serialize(const ClientNum16_t clientNum) {
+[[nodiscard]] constexpr const char *serialize(const ClientNum16_t clientNum) {
   return serialize(clientNum == INVALID_CLIENT_INDEX_16
                        ? INVALID_CLIENT_INDEX
                        : static_cast<ClientNum_t>(clientNum));
@@ -638,7 +638,7 @@ enum ClientNum8_t : int8_t {
   CLIENT_INDEX_8_COUNT = 0x12,
 };
 IMPL_ENUM_OPERATORS(ClientNum8_t);
-constexpr const char *serialize(const ClientNum8_t clientNum) {
+[[nodiscard]] constexpr const char *serialize(const ClientNum8_t clientNum) {
   return serialize(clientNum == INVALID_CLIENT_INDEX_8
                        ? INVALID_CLIENT_INDEX
                        : static_cast<ClientNum_t>(clientNum));
@@ -653,7 +653,7 @@ enum ControllerIndex_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(ControllerIndex_t);
 
-constexpr const char *serialize(const ControllerIndex_t controllerIndex) {
+[[nodiscard]] constexpr const char *serialize(const ControllerIndex_t controllerIndex) {
   switch (controllerIndex) {
   case CONTROLLER_INDEX_0:
     return "CONTROLLER_INDEX_0";
@@ -690,7 +690,7 @@ constexpr bool validate(const LocalClientNum_t localClientNum) {
 }
 IMPL_ENUM_OPERATORS(LocalClientNum_t);
 
-constexpr const char *serialize(LocalClientNum_t localClientNum) {
+[[nodiscard]] constexpr const char *serialize(LocalClientNum_t localClientNum) {
   switch (localClientNum) {
   case LOCAL_CLIENT_0:
     return "LOCAL_CLIENT_0";
@@ -995,7 +995,7 @@ enum class ZoneType : uint32_t {
   USERMAP = 0x2,
   COUNT = 0x3
 };
-constexpr const char *serialize(ZoneType zoneType) {
+[[nodiscard]] constexpr const char *serialize(ZoneType zoneType) {
   switch (zoneType) {
   case ZoneType::OFFICIAL:
     return "ZoneType::OFFICIAL";
@@ -1087,7 +1087,7 @@ enum class StorageFileType : int32_t {
 };
 IMPL_ENUM_OPERATORS(StorageFileType);
 
-constexpr const char *serialize(const StorageFileType type) {
+[[nodiscard]] constexpr const char *serialize(const StorageFileType type) {
   switch (type) {
   case StorageFileType::COMMON_SETTINGS:
     return "STORAGE_COMMON_SETTINGS";
@@ -1221,7 +1221,7 @@ enum class consoleLabel : int32_t {
 IMPL_ENUM_OPERATORS(consoleLabel);
 typedef consoleLabel consoleLabel_e;
 
-constexpr const char *serialize(const consoleLabel label) {
+[[nodiscard]] constexpr const char *serialize(const consoleLabel label) {
   switch (label) {
   case consoleLabel::DEFAULT:
     return "CONSOLE_LABEL_DEFAULT";
@@ -1359,7 +1359,7 @@ enum class errorCode : uint32_t {
 };
 IMPL_ENUM_OPERATORS(errorCode);
 
-constexpr const char *serialize(const errorCode code) {
+[[nodiscard]] constexpr const char *serialize(const errorCode code) {
   switch (code) {
   case errorCode::NONE:
     return "ERROR_NONE";
@@ -1411,7 +1411,7 @@ enum class PMemStack : uint32_t {
 };
 IMPL_ENUM_OPERATORS(PMemStack);
 
-constexpr const char *serialize(const PMemStack stack) {
+[[nodiscard]] constexpr const char *serialize(const PMemStack stack) {
   switch (stack) {
   case PMemStack::DB:
     return "PMEM_DB";
@@ -1446,7 +1446,7 @@ enum class PMemPool : uint32_t {
 };
 IMPL_ENUM_OPERATORS(PMemPool);
 
-constexpr const char *serialize(const PMemPool pool) {
+[[nodiscard]] constexpr const char *serialize(const PMemPool pool) {
   switch (pool) {
   case PMemPool::MAIN:
     return "PMEMPOOL_MAIN";
@@ -1543,7 +1543,7 @@ enum class EMemTrack : uint32_t {
 };
 IMPL_ENUM_OPERATORS(EMemTrack);
 
-constexpr const char *serialize(const EMemTrack track) {
+[[nodiscard]] constexpr const char *serialize(const EMemTrack track) {
   switch (track) {
   case EMemTrack::TRACK_BINARIES:
     return "TRACK_BINARIES";
@@ -1708,7 +1708,7 @@ enum class SwimStateType : int32_t {
 };
 IMPL_ENUM_OPERATORS(SwimStateType);
 
-constexpr const char *serialize(const SwimStateType type) {
+[[nodiscard]] constexpr const char *serialize(const SwimStateType type) {
   switch (type) {
   case SwimStateType::NONE:
     return "SWIMSTATE_NONE";
@@ -1729,7 +1729,7 @@ enum class KillCamEntityRestState : int32_t {
 };
 IMPL_ENUM_OPERATORS(KillCamEntityRestState);
 
-constexpr const char *serialize(const KillCamEntityRestState state) {
+[[nodiscard]] constexpr const char *serialize(const KillCamEntityRestState state) {
   switch (state) {
   case KillCamEntityRestState::MOVING:
     return "KC_REST_MOVING";
@@ -1760,7 +1760,7 @@ enum class KillCamEntityType : int32_t {
 };
 IMPL_ENUM_OPERATORS(KillCamEntityType);
 
-constexpr const char *serialize(const KillCamEntityType type) {
+[[nodiscard]] constexpr const char *serialize(const KillCamEntityType type) {
   switch (type) {
   case KillCamEntityType::NO_ENTITY:
     return "KCENTITY_NO_ENTITY";
@@ -1821,7 +1821,7 @@ enum class InvalidCmdHintType : uint32_t {
 };
 IMPL_ENUM_OPERATORS(InvalidCmdHintType);
 
-constexpr const char *serialize(const InvalidCmdHintType type) {
+[[nodiscard]] constexpr const char *serialize(const InvalidCmdHintType type) {
   switch (type) {
   case InvalidCmdHintType::NONE:
     return "HINT_NONE";
@@ -1888,7 +1888,7 @@ enum class SettingTeamIndicator : int32_t {
 };
 IMPL_ENUM_OPERATORS(SettingTeamIndicator);
 
-constexpr const char *serialize(const SettingTeamIndicator indicator) {
+[[nodiscard]] constexpr const char *serialize(const SettingTeamIndicator indicator) {
   switch (indicator) {
   case SettingTeamIndicator::FULL:
     return "TEAMINDICATOR_FULL";
@@ -1913,7 +1913,7 @@ enum class CubemapShot : int32_t {
 };
 IMPL_ENUM_OPERATORS(CubemapShot);
 
-constexpr const char *serialize(const CubemapShot shot) {
+[[nodiscard]] constexpr const char *serialize(const CubemapShot shot) {
   switch (shot) {
   case CubemapShot::NONE:
     return "CUBEMAP_NONE";
@@ -1942,7 +1942,7 @@ enum class DemoType : int32_t {
 };
 IMPL_ENUM_OPERATORS(DemoType);
 
-constexpr const char *serialize(const DemoType dtype) {
+[[nodiscard]] constexpr const char *serialize(const DemoType dtype) {
   switch (dtype) {
   case DemoType::NONE:
     return "DEMOTYPE_NONE";
@@ -1963,7 +1963,7 @@ enum class TraceBrushType : uint32_t {
 };
 IMPL_ENUM_OPERATORS(TraceBrushType);
 
-constexpr const char *serialize(const TraceBrushType btype) {
+[[nodiscard]] constexpr const char *serialize(const TraceBrushType btype) {
   switch (btype) {
   case TraceBrushType::NONE:
     return "TRACEBRUSH_NONE";
@@ -1983,7 +1983,7 @@ enum class TraceHitType : uint32_t {
 };
 IMPL_ENUM_OPERATORS(TraceHitType);
 
-constexpr const char *serialize(const TraceHitType htype) {
+[[nodiscard]] constexpr const char *serialize(const TraceHitType htype) {
   switch (htype) {
   case TraceHitType::NONE:
     return "TRACEHIT_NONE";
@@ -2006,7 +2006,7 @@ enum class MissileFlightMode : int32_t {
 };
 IMPL_ENUM_OPERATORS(MissileFlightMode);
 
-constexpr const char *serialize(const MissileFlightMode mode) {
+[[nodiscard]] constexpr const char *serialize(const MissileFlightMode mode) {
   switch (mode) {
   case MissileFlightMode::TOP:
     return "MISSILEFLIGHT_TOP";
@@ -2024,7 +2024,7 @@ enum class MissileStage : int32_t {
 };
 IMPL_ENUM_OPERATORS(MissileStage);
 
-constexpr const char *serialize(const MissileStage stage) {
+[[nodiscard]] constexpr const char *serialize(const MissileStage stage) {
   switch (stage) {
   case MissileStage::SOFTLAUNCH:
     return "MISSILESTAGE_SOFTLAUNCH";
@@ -2055,7 +2055,7 @@ enum class CameraMode : int32_t {
 };
 IMPL_ENUM_OPERATORS(CameraMode);
 
-constexpr const char *serialize(const CameraMode mode) {
+[[nodiscard]] constexpr const char *serialize(const CameraMode mode) {
   switch (mode) {
   case CameraMode::NORMAL:
     return "CAMMODE_NORMAL";
@@ -2383,7 +2383,7 @@ enum class objectiveState_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(objectiveState_t);
 
-constexpr const char *serialize(const objectiveState_t state) {
+[[nodiscard]] constexpr const char *serialize(const objectiveState_t state) {
   switch (state) {
   case objectiveState_t::EMPTY:
     return "OBJSTATE_EMPTY";
@@ -2404,7 +2404,7 @@ constexpr const char *serialize(const objectiveState_t state) {
 
 struct UIModelData {
   UIModelDataType dataType;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   union {
     uint64_t uint64;
     const char *string;
@@ -2448,8 +2448,7 @@ ASSERT_SIZE(UIModelData, 0x10);
 struct objectiveUIModel_t {
   UIModelData modelData;
   int32_t modelName;
-  uint8_t _padding14[12];
-
+  DEF_PAD(14, 12);
   [[nodiscard]] std::string serialize() const noexcept {
     return std::format(R"({{ "modelData": {}, "modelName": {} }})",
                        modelData.serialize(), modelName);
@@ -2462,7 +2461,7 @@ PACKED(struct objective_t {
   int32_t entNum;
   int32_t color;
   int16_t colorSetColor;
-  uint8_t _padding1A[2];
+  DEF_PAD(1A, 2);
   vec2_t objIconSize;
   int32_t objOwnerNum;
   uint16_t name;
@@ -2472,7 +2471,7 @@ PACKED(struct objective_t {
   uint16_t gamemodeFlags;
   uint8_t objTeamNum;
   bool syncFlag;
-  uint8_t _padding38[8];
+  DEF_PAD(38, 8);
   objectiveUIModel_t uiModels[4];
 
   [[nodiscard]] inline std::string serialize() const noexcept {

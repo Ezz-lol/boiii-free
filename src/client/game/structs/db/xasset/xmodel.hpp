@@ -42,7 +42,7 @@ struct __declspec(align(4)) XModelMesh : NamedXAsset {
 
   std::string serialize() const noexcept;
 
-  IMPL_SLICE_METHODS(surfs, numSurfs, Surfs);
+  IMPL_SLICE_METHODS(surfs, numSurfs);
 };
 ASSERT_SIZE(XModelMesh, 0x78);
 
@@ -113,7 +113,7 @@ inline constexpr const char *serialize(const XModelLod lod) {
 
 PACKED(struct XModelMeshMaterials {
   uint16_t numMaterials;
-  uint8_t _padding02[6];
+  DEF_PAD(02, 6);
   Material **materials;
   vec_t *himipInvSqRadii;
 
@@ -144,7 +144,7 @@ struct XModelCollSurf_s {
   vec3_t mins;
   vec3_t maxs;
   BoneIndex boneIdx;
-  uint8_t _padding26[2];
+  DEF_PAD(26, 2);
   contents_t contents;
   int32_t surfFlags;
 
@@ -167,8 +167,7 @@ PACKED(struct XSubmodel {
   scr::ScrString_t boneName;
   vec3_t trans;
   vec3_t rot;
-  uint8_t _padding24[4];
-
+  DEF_PAD(24, 4);
   std::string serialize() const noexcept;
 });
 
@@ -178,7 +177,7 @@ PACKED(struct XModel {
   uint8_t numBones;
   uint8_t numRootBones;
   uint16_t numCosmeticBones;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   const scr::ScrString_t *boneNames;
   const byte *parentList;
   const fp16::half4_pack *quats;
@@ -188,7 +187,7 @@ PACKED(struct XModel {
   GfxLodModelParams lodParams;
   XModelLod highestShadowLod;
   XModelLod highestRenderLod;
-  uint8_t _padding86[2];
+  DEF_PAD(86, 2);
   XModelMeshPtr meshes[8];
   XModelMeshMaterials *meshMaterials;
   XModelUsage usage;
@@ -199,23 +198,22 @@ PACKED(struct XModel {
   float radius;
   vec3_t mins;
   vec3_t maxs;
-  uint8_t _padding10C[4];
+  DEF_PAD(10C, 4);
   XModelMeshPtr collLod;
   byte numCollmaps;
   byte useMe;
-  uint8_t _padding11A[2];
+  DEF_PAD(11A, 2);
   int32_t flags;
   void *_unknown;
   db::xasset::phys::PhysPreset *physPreset;
   Collmap *collmaps;
   phys::PhysConstraints *physConstraints;
   int32_t numSubmodels;
-  uint8_t _padding144[4];
+  DEF_PAD(144, 4);
   XSubmodel *submodels;
   uint32_t nameHash;
   XPartBits combinedPartBits;
-  uint8_t _padding184[4];
-
+  DEF_PAD(184, 4);
   std::string serialize() const noexcept;
 });
 

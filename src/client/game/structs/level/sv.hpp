@@ -125,7 +125,7 @@ PACKED(struct clientSession_t {
   int32_t isInKillcam;
   int32_t killCamEntity;
   int32_t killCamTargetEntity;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   weapon::Weapon killCamWeapon;
   int32_t killCamMod;
   int32_t killCamFlag;
@@ -145,7 +145,7 @@ PACKED(struct clientSession_t {
   float moveSpeedScaleMultiplier;
   int32_t noSpectate;
   qboolean teamInfo;
-  uint8_t _unknown127[16];
+  DEF_UNK(127, 16);
   clientState_t cs; // Verified
   int32_t psOffsetTime;
   /*
@@ -198,7 +198,7 @@ ASSERT_SIZE(clientSession_t, CLIENTSESSION_T_SIZE);
 PACKED(struct gclient_s {
   playerState_t ps;
   playerState_t lastPlayerPS;
-  uint8_t _padding16ACC[4];
+  DEF_PAD(16ACC, 4);
   clientSession_t sess; // Verified
   ClientNum_t spectatorClient;
   uint8_t _unknown[100];
@@ -255,14 +255,14 @@ PACKED(struct gclient_s {
   bool previouslyDTP;
   bool previouslyBeganWeaponRaise;
   bool previouslySprinting;
-  uint8_t _padding171DD[3];
+  DEF_PAD(171DD, 3);
   qboolean hasSpyplane;
   qboolean hasSatellite;
   qboolean revive;
   int32_t reviveTime;
   qboolean disallowVehicleUsage;
   uint16_t attachShieldTagName;
-  uint8_t _padding171F6[2];
+  DEF_PAD(171F6, 2);
   qboolean lastStand;
   int32_t lastStandTime;
 
@@ -329,7 +329,7 @@ ASSERT_OFFSET(gclient_s, sess, 0x16AD0);
 
 PACKED(struct SpawnVar {
   bool spawnVarsValid;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   uint32_t numSpawnVars;
   char *spawnVars[100][2];
   uint32_t numSpawnVarChars;
@@ -353,7 +353,7 @@ struct gentity_snd_wait {
   uint32_t notifyString;
   uint32_t index;
   bool stoppable;
-  uint8_t _padding09[3];
+  DEF_PAD(09, 3);
   int32_t basetime;
   int32_t duration;
 
@@ -405,7 +405,7 @@ PACKED(struct trigger_ent_t {
   int32_t timestamp;
   int32_t singleUserEntIndex;
   uint8_t perk;
-  uint8_t _padding11[3];
+  DEF_PAD(11, 3);
   int32_t exposureIndex;
   float exposureLerpToLighter;
   float exposureLerpToDarker;
@@ -413,8 +413,7 @@ PACKED(struct trigger_ent_t {
   int16_t flags;
   uint8_t playerPrompts[4];
   bool requireAllPlayers;
-  uint8_t _padding33[1];
-
+  DEF_PAD(33, 1);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"threshold\": {}, \"accumulate\": {}, \"timestamp\": {}, "
@@ -496,7 +495,7 @@ PACKED(struct missile_ent_t {
     uint8_t _raw;
   };
   uint8_t flags;
-  uint8_t _padding2E[2];
+  DEF_PAD(2E, 2);
   int32_t antilagTimeOffset;
   int32_t timeAlive;
   union {
@@ -589,7 +588,7 @@ PACKED(struct zbarrier_piece_t {
   uint8_t state;
   uint8_t scalar;
   uint8_t nextState;
-  uint8_t _padding03[1];
+  DEF_PAD(03, 1);
   int32_t startTime;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -615,19 +614,18 @@ PACKED(struct tagInfo_t {
   bool blendToParent;
   bool blendOnlyYaw;
   bool collisionPhysics;
-  uint8_t _padding17[1];
+  DEF_PAD(17, 1);
   BoneIndex index;
-  uint8_t _padding1A[2];
+  DEF_PAD(1A, 2);
   vec3_t axis[4];
   vec3_t parentInvAxis[4];
-  uint8_t _padding7C[4];
-
+  DEF_PAD(7C, 4);
   std::string serialize() const noexcept;
 });
 
 PACKED(struct EntityModelAttachment {
   modelNameIndex_t model;
-  uint8_t _padding02[2];
+  DEF_PAD(02, 2);
   scr::ScrString_t tag;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -671,7 +669,7 @@ PACKED(struct gentity_s {
   int32_t health;    // Verified
   int32_t maxHealth; // Verified
   int32_t damage;
-  uint8_t _padding2D4[4];
+  DEF_PAD(2D4, 4);
   flame_timed_damage_t flame_timed_damage[4];
   int32_t last_timed_radius_damage;
   int32_t count;
@@ -698,7 +696,7 @@ PACKED(struct gentity_s {
   EntityModelAttachment attachments[19];
   anim::XAnimTree *pAnimTree;
   uint16_t disconnectedLinks;
-  uint8_t _padding4A2[2];
+  DEF_PAD(4A2, 2);
   int32_t iDisconnectTime;
   phys::PhysObjId physObjId;
   gentity_t *nextFree;
@@ -712,8 +710,7 @@ PACKED(struct gentity_s {
   int32_t teleportTime;
   int32_t debugRenderTime;
   char tmodeTimeOut;
-  uint8_t _padding4F1[7];
-
+  DEF_PAD(4F1, 7);
   inline constexpr bool dead() const noexcept { return health <= 0; }
   std::string serialize() const noexcept;
 });
@@ -749,24 +746,24 @@ PACKED(struct level_locals_t {
   gentity_t *firstFreeFakeEnt;
   gentity_t *lastFreeFakeEnt;
   int32_t numFakeEntities;
-  uint8_t _padding3C[4];
+  DEF_PAD(3C, 4);
   vehicle::vehicle_t *vehicles;
   gentity_t *firstFreeActor;
   gentity_t *lastFreeActor;
   int32_t num_actors;
-  uint8_t _padding5C[4];
+  DEF_PAD(5C, 4);
   ai::sentient_t *sentients;
   user::actor_t *actors;
   int32_t actorCorpseCount;
-  uint8_t _padding74[4];
+  DEF_PAD(74, 4);
   user::bot_t *bots;
   int32_t maxBots;
   bool initializing;
   bool clientIsSpawning;
-  uint8_t _padding86[2];
+  DEF_PAD(86, 2);
   ClientNum_t maxclients;
   lobby::LobbyClientPool<int32_t> teamSortedClients;
-  uint8_t _paddingD4[12];
+  DEF_PAD(D4, 12);
   objective_t objectives[128];
   int32_t objectivesClientMask[128][2];
   int32_t framenum;
@@ -774,7 +771,7 @@ PACKED(struct level_locals_t {
   int32_t previousTime;
   int32_t frametime;
   int32_t startTime;
-  uint8_t _padding64F4[4];
+  DEF_PAD(64F4, 4);
   SpawnVar spawnVar;
   EntHandle droppedWeaponCue[32];
   qboolean savepersist;
@@ -782,7 +779,7 @@ PACKED(struct level_locals_t {
   float fFogOpaqueDistSqrd;
   bool bPlayerIgnoreRadiusDamage;
   bool bPlayerIgnoreRadiusDamageLatched;
-  uint8_t _padding7436[2];
+  DEF_PAD(7436, 2);
   int32_t currentEntityThink;
   qboolean bRegisterLeaderboards;
   phys::cached_tag_mat_t cachedTagMat;
@@ -802,9 +799,9 @@ PACKED(struct level_locals_t {
   vec2_t compassNorth;
   int32_t finished;
   bool manualNameChange;
-  uint8_t _padding9101[1];
+  DEF_PAD(9101, 1);
   modelNameIndex_t modelMap[8192];
-  uint8_t _paddingD102[2];
+  DEF_PAD(D102, 2);
   loading_t loading;
   int32_t script_ai_limit;
   uint32_t grenadeHintCount;
@@ -814,12 +811,12 @@ PACKED(struct level_locals_t {
   uint8_t cgData_actorTeam[64];
   bool bDrawCompassFriendlies;
   bool disable_grenade_suicide;
-  uint8_t _paddingDE92[2];
+  DEF_PAD(DE92, 2);
   int32_t numConnectedClients;
   lobby::LobbyClientPool<ClientNum_t> sortedClients;
   qboolean bUpdateScoresForIntermission;
   int32_t numVotingClients;
-  uint8_t _paddingDEE8[8];
+  DEF_PAD(DEE8, 8);
   MatchState matchState;
   CasterState casterState;
   CasterClientState casterClients;
@@ -837,7 +834,7 @@ PACKED(struct level_locals_t {
   int32_t voteNo;
   int32_t currentActorClone;
   int32_t iSearchFrame;
-  uint8_t _paddingEB9C[4];
+  DEF_PAD(EB9C, 4);
   phys::sv_FxVisBlock_t fxVisibilityEnts[32];
   int32_t currentPlayerClone;
   qboolean hostMigrationActive;
@@ -846,7 +843,7 @@ PACKED(struct level_locals_t {
   int32_t nextActorAntilagFrame;
   vehicle::vehicleAntilagFrame_t vehicleAntilagFrames[20];
   int32_t nextVehicleAntilagFrame;
-  uint8_t _padding1F254[4];
+  DEF_PAD(1F254, 4);
   phys::ZBarrierType *zbarrierTypes[255];
   qboolean checkAnimChange;
   phys::objcamCameraTable objectiveCameras;
@@ -857,7 +854,7 @@ ASSERT_SIZE(level_locals_t, 0x23A10);
 // Verified
 PACKED(struct clientSnapshot_t {
   playerState_t ps;
-  uint8_t _paddingB56[2];
+  DEF_PAD(B56, 2);
   team_t clientTeam;
   int32_t destructibleCount;
   int32_t matchStateIndex;

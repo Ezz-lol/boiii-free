@@ -55,8 +55,7 @@ public:
     bdUByte8 m_sockaddr_storage[128];
   } inUn;
   bdUInt16 m_family;
-  uint8_t _padding82[2];
-
+  DEF_PAD(82, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_family\": {}, \"m_iaddr\": {}, \"m_iaddr6\": "
                        "{}, \"m_sockaddr_storage\": {} }}",
@@ -81,8 +80,7 @@ PACKED(class bdAddr {
 public:
   bdInetAddr m_address;
   bdPort m_port;
-  uint8_t _padding86[2];
-
+  DEF_PAD(86, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"m_address\": {}, \"m_port\": {} }}",
                        m_address.serialize(), m_port);
@@ -101,8 +99,7 @@ public:
   bdNATType m_natType;
   bdUInt m_hash;
   bdBool m_isLoopback;
-  uint8_t _paddingB1[7];
-
+  DEF_PAD(B1, 7);
   inline void serialize(game::net::XNADDR & buf) const {
     return syms::serialize(this, reinterpret_cast<bdUByte8 *>(&buf));
   }

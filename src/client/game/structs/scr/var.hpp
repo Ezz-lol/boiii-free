@@ -273,7 +273,7 @@ PACKED(struct ScrVar_t {
     uint32_t flags : 5;
     uint32_t refCount : 24;
   };
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   union {
     uint64_t object_o;
     uint32_t size;
@@ -288,7 +288,7 @@ PACKED(struct ScrVar_t {
     ScrVarCanonicalName_t notifyName;
     uint32_t waitTime;
   } w;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
   ScrVarNameIndex_t nameIndex;
   ScrVarIndex_t nextSibling;
   ScrVarIndex_t prevSibling;
@@ -380,9 +380,9 @@ ScrVarValue_t::valid_index(scriptInstance_t inst,
 #pragma pack(push, 1)
 struct scrVarGlob_t {
   volatile ScrVarIndex_t *scriptNameSearchHashList;
-  uint8_t _padding08[0x78];
+  DEF_PAD(08, 0x78);
   volatile ScrVar_t *scriptVariables;
-  uint8_t _padding88[0x78];
+  DEF_PAD(88, 0x78);
 };
 ASSERT_SIZE(scrVarGlob_t, 0x100);
 ASSERT_OFFSET(scrVarGlob_t, scriptVariables, 0x80);
@@ -395,7 +395,7 @@ struct scrVarPub_t {
   const char *fieldBuffer;
   bool developer;
   bool evaluate;
-  uint8_t _padding0A[6];
+  DEF_PAD(0A, 6);
   const char *error_message;
   uint32_t time;
   ScrVarIndex_t timeArrayId;
@@ -408,7 +408,7 @@ struct scrVarPub_t {
   ScrVarIndex_t freeEntList;
   ScrVarIndex_t tempVariable;
   bool bInited;
-  uint8_t _padding41[3];
+  DEF_PAD(41, 3);
   uint32_t animChecksum;
   scrChecksum_t checksum;
   uint32_t entId;

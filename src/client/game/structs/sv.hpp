@@ -317,7 +317,7 @@ PACKED(struct serverStaticHeader_t {
   int32_t snapFlagServerBit;
   int32_t packetBackupCount;
   int32_t packetBackupMask;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
   svEntity_t *svEntities;
   int32_t numNoDeltaEntities;
   int32_t nextNoDeltaEntity;
@@ -358,7 +358,7 @@ PACKED(struct serverStaticHeader_t {
   vec3_t mapCenter;
   vec3_t mapCenterBoundsMin;
   vec3_t mapCenterBoundsMax;
-  uint8_t _padding114[4];
+  DEF_PAD(114, 4);
   uint8_t *archivedSnapshotBuffer;
   cachedSnapshot_t *cachedSnapshotFrames;
   int32_t nextCachedSnapshotFrames;
@@ -368,10 +368,10 @@ PACKED(struct serverStaticHeader_t {
   ClientNum_t maxclients;
   int32_t fps;
   qboolean clientArchive;
-  uint8_t _padding144[4];
+  DEF_PAD(144, 4);
   level::gentity_t *gentities;
   int32_t gentitySize;
-  uint8_t _padding154[4];
+  DEF_PAD(154, 4);
   level::clientState_t *firstClientState;
   user::actorState_t *firstActorState;
   level::playerState_t *firstPlayerState;
@@ -385,7 +385,7 @@ PACKED(struct serverStaticHeader_t {
   qboolean constBaselineIsValid;
   int32_t constBaselineEntitesCount;
   int32_t constBaselineEntitesMax;
-  uint8_t _padding1A4[4];
+  DEF_PAD(1A4, 4);
   const level::entityState_t *constBaselineEntities;
 });
 ASSERT_SIZE(serverStaticHeader_t, 0x1B0);
@@ -445,7 +445,7 @@ PACKED(struct serverStatic_t {
   ClientNum_t clientCount;
   int32_t packetBackupCount;
   int32_t packetBackupMask;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   level::entityState_t *noDeltaEntities;
   level::entityState_t *snapshotEntities;
   int32_t numNoDeltaEntities;
@@ -480,14 +480,14 @@ PACKED(struct serverStatic_t {
   int32_t nextSnapshotEntities;
   int32_t nextSnapshotClients;
   int32_t nextSnapshotActors;
-  uint8_t _paddingC64[4];
+  DEF_PAD(C64, 4);
   level::MatchState *snapshotMatchStates;
   CasterState *snapshotCasterStates;
   CasterClientState *casterClients;
   level::clientState_t *snapshotClients;
   user::actorState_t *snapshotActors;
   int32_t nextArchivedSnapshotFrames;
-  uint8_t _paddingC94[4];
+  DEF_PAD(C94, 4);
   archivedSnapshot_t *archivedSnapshotFrames;
   uint8_t *archivedSnapshotBuffer;
   int32_t nextArchivedSnapshotBuffer;
@@ -497,7 +497,7 @@ PACKED(struct serverStatic_t {
   int32_t nextCachedSnapshotClients;
   int32_t nextCachedSnapshotActors;
   int32_t nextCachedSnapshotFrames;
-  uint8_t _paddingCC4[4];
+  DEF_PAD(CC4, 4);
   level::MatchState *cachedSnapshotMatchStates;
   CasterState *cachedSnapshotCasterStates;
   cachedClient_t *cachedSnapshotClients;
@@ -514,7 +514,7 @@ PACKED(struct serverStatic_t {
     The compiler would not be likely to optimize this way unless this field was
     padding.
   */
-  uint8_t _padding12D0[16];
+  DEF_PAD(12D0, 16);
   tempBanSlot_t tempBans[16];
   lobby::LobbyClientPool<XUID> xuids;
   vec3_t mapCenter;
@@ -531,7 +531,7 @@ PACKED(struct serverStatic_t {
   qboolean rateBoostingEnabled;
   int32_t constBaselineEntitesMax;
   const level::entityState_t *constBaselineEntities;
-  uint8_t _padding14E0[0x20];
+  DEF_PAD(14E0, 0x20);
 });
 ASSERT_SIZE(serverStatic_t, 0x1500);
 
@@ -542,7 +542,7 @@ PACKED(struct flashbackState_t {
   float playerEnergyRatio;
   uint8_t psFlags;
   bool valid;
-  uint8_t _padding2A[2];
+  DEF_PAD(2A, 2);
 });
 
 struct clientsFlashbackArchive_t {
@@ -573,7 +573,7 @@ PACKED(struct playerAnimState_t {
       uint8_t unused_slots : 6;
     };
   };
-  uint8_t _padding0F[1];
+  DEF_PAD(0F, 1);
 });
 ASSERT_SIZE(playerAnimState_t, 0x10);
 
@@ -587,7 +587,7 @@ PACKED(struct AntilagPlayerAnimState {
   uint8_t goalWeight;
   uint8_t time;
   uint8_t oldTime;
-  uint8_t _padding0F[1];
+  DEF_PAD(0F, 1);
   float rate;
 });
 ASSERT_SIZE(AntilagPlayerAnimState, 0x14);
@@ -641,7 +641,7 @@ PACKED(struct server_t {
   int32_t num_entities;
   level::playerState_t *gameClients;
   int32_t gameClientSize;
-  uint8_t _padding80C[4];
+  DEF_PAD(80C, 4);
   user::actor_t *gameActors;
   int32_t gameActorSize;
   int32_t checksum;
@@ -660,7 +660,7 @@ PACKED(struct server_t {
   volatile int32_t serverFrameTimeMin;
   volatile int32_t serverFrameTimeMax;
   recentFrame recentFrameInfo[0xc8];
-  uint8_t _unknown139B8[0x24];
+  DEF_UNK(139B8, 0x24);
   char gametype[0x40];
   qboolean killServer;
   const char *killReason;
@@ -673,8 +673,7 @@ PACKED(struct server_t {
   // Each field XORed with client XUID to generate client gamestate security
   // checksum
   scr::scrChecksum_t securityChecksum;
-  uint8_t _padding7BEFC[4];
-
+  DEF_PAD(7BEFC, 4);
   inline constexpr bool running() volatile noexcept {
     return this->state == serverState_t::GAME || this->restarting;
   }
@@ -978,7 +977,7 @@ PACKED(struct visionPulse_t {
   int32_t numberEntsHit;
   snd::SndAliasId pulseSound;
   snd::SndAliasId pulseMissSound;
-  uint8_t _padding4C[4];
+  DEF_PAD(4C, 4);
 });
 
 struct CasterHUDInfo {
@@ -1015,11 +1014,11 @@ PACKED(struct clientInfo_t {
   qboolean needsRevive;
   uint32_t perks[4];
   uint32_t perksCache[4];
-  uint8_t _unknown7C[4];
+  DEF_UNK(7C, 4);
   clanAbbrev_t clanAbbrev; // Verified
   uint64_t xuid;
   score_t score;
-  uint8_t _paddingEC[4];
+  DEF_PAD(EC, 4);
   db::xasset::MaterialHandle hStatusIcon;
   gfx::GfxImage *hRankIcon;
   int32_t location;
@@ -1063,7 +1062,7 @@ PACKED(struct clientInfo_t {
   int32_t lastStandStartTime;
   int32_t lastSpawnTime;
   int32_t turnedHumanTime;
-  uint8_t _padding664[4];
+  DEF_PAD(664, 4);
   int64_t moveType;
   int64_t eventType;
   ClientNum_t beingRevivedByClient;
@@ -1073,14 +1072,14 @@ PACKED(struct clientInfo_t {
   int32_t prevEFlags2;
   bool wasWallRunFalling;
   bool wallRunningRight;
-  uint8_t _padding696[2];
+  DEF_PAD(696, 2);
   uint32_t clientConditions[21];
-  uint8_t _padding6EC[4];
+  DEF_PAD(6EC, 4);
   weapon::Weapon primaryWeapon;
   db::xasset::XAnimTree *pXAnimTree;
   weapon::Weapon DObjWeapon;
   weapon::AttachmentCosmeticVariantIndexes DObjWeaponACVI;
-  uint8_t _padding70C[4];
+  DEF_PAD(70C, 4);
   weapon::Weapon DObjMeleeWeapon;
   weapon::Weapon DObjOffhandWeapon;
   weapon::Weapon DObjStowedWeapon;
@@ -1088,18 +1087,18 @@ PACKED(struct clientInfo_t {
   int32_t DObjStowedHealthLevel;
   bool showReloadClipInHand;
   bool hideWeaponClipModel;
-  uint8_t _padding732[2];
+  DEF_PAD(732, 2);
   int32_t stanceTransitionTime;
   int32_t turnAnimEndTime;
   char turnAnimType;
-  uint8_t _padding73D[3];
+  DEF_PAD(73D, 3);
   int32_t attachedEntNum;
   int32_t attachedVehSeat;
   qboolean hideWeapon;
   uint32_t weaponHideBits[12];
   bool usingKnife;
   bool usingGrenade;
-  uint8_t _padding77E[2];
+  DEF_PAD(77E, 2);
   int32_t nextHideWeaponTime;
   int32_t weaponHealth;
   SwimStateType previousSwimState;
@@ -1125,7 +1124,7 @@ PACKED(struct clientInfo_t {
   bool wallRunUsingEnergy;
   bool wallRunUsingEnergyPrior;
   bool wallRunStartTime;
-  uint8_t _padding807[1];
+  DEF_PAD(807, 1);
   db::xasset::FxUniqueHandle wallRunFXHandle;
   db::xasset::FxUniqueHandle underWaterFXHandle;
   db::xasset::FxUniqueHandle slideFXHandle;
@@ -1143,7 +1142,7 @@ PACKED(struct clientInfo_t {
   int32_t footstepEventCount;
   SonarAttachmentInfo sonarAttachmentInfo;
   float infraredFadeOut;
-  uint8_t _padding9D4[4];
+  DEF_PAD(9D4, 4);
   visionPulse_t revealPulse;
   int32_t cleanseTime;
   weapon::entityGadgetState_t priorEntityGadgetState[4];
@@ -1155,12 +1154,12 @@ PACKED(struct clientInfo_t {
   float animScriptLerpTime;
   animScriptItem_t filteredScriptItem;
   int32_t meleeEntityImpactType;
-  uint8_t _paddingEC4[4];
+  DEF_PAD(EC4, 4);
   weapon::Weapon lastWeapon;
   uint8_t lastLevel;
-  uint8_t _paddingED1[3];
+  DEF_PAD(ED1, 3);
   CasterHUDInfo casterHUDInfo;
-  uint8_t _paddingEDC[4];
+  DEF_PAD(EDC, 4);
 });
 ASSERT_OFFSET(clientInfo_t, _padding73D, 0x73D);
 ASSERT_OFFSET(clientInfo_t, _padding9D4, 0x9D4);
@@ -1175,7 +1174,7 @@ PACKED(struct ucmd_t {
   const char *name;
   fastcallPtr_t<void(client_t * cl)> func;
   qboolean fromOldServer;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
 });
 ASSERT_SIZE(ucmd_t, 0x18);
 
@@ -1184,7 +1183,7 @@ PACKED(struct BitField {
   uint32_t rowSize;
   uint32_t count;
   uint32_t mbits;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
 });
 
 PACKED(struct NetField {
@@ -1193,7 +1192,7 @@ PACKED(struct NetField {
   int size;
   int bits;
   uint8_t changeHints;
-  uint8_t _padding15[3];
+  DEF_PAD(15, 3);
   const char *bitsStr;
   const char *changeHintsStr;
 });

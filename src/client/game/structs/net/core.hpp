@@ -394,7 +394,7 @@ struct XNADDR {
     return get(index);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"addrBuff\": {} }}", ::serialize(addrBuff));
   }
 };
@@ -411,7 +411,7 @@ struct bdSecurityID {
   constexpr operator volatile size_t &() volatile noexcept { return ab; }
   constexpr operator size_t &() noexcept { return ab; }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"ab\": {:016X} }}", ab);
   }
 };
@@ -456,7 +456,7 @@ union bdSecurityKey {
 
   static constexpr auto size() noexcept { return SIZE; }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "a": {}, "b": {}, "ab": {} }})", a.serialize(),
                        b.serialize(), ::serialize(ab));
   }
@@ -469,7 +469,7 @@ struct SerializedAdr {
   bool valid = false;
   XNADDR addrBuff = {};
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "valid": {}, "addrBuff": {} }})",
                        ::serialize(valid), addrBuff.serialize());
   }
@@ -481,7 +481,7 @@ struct XSESSION_INFO {
   XNADDR hostAddress;
   XNKEY keyExchangeKey;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         R"({{ "sessionID": {}, "hostAddress": {}, "keyExchangeKey": {} }})",
         sessionID.serialize(), hostAddress.serialize(),
@@ -567,7 +567,7 @@ struct PacketMode {
   uint32_t start;
   PacketModeList mode;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "start": {}, "mode": {} }})", start,
                        net::serialize(mode));
   }
@@ -581,11 +581,10 @@ PACKED(struct HostInfo {
   SerializedAdr serializedAdr = {};
   bdSecurityID secId = {};
   bdSecurityKey secKey = {};
-  uint8_t _padding76[2];
+  DEF_PAD(76, 2);
   uint32_t serverLocation = 0;
-  uint8_t _padding7C[4];
-
-  inline std::string serialize() const noexcept {
+  DEF_PAD(7C, 4);
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"xuid\": {:016X}, \"name\": {}, \"netAdr\": {}, "
         "\"serializedAdr\": {}, "
@@ -625,7 +624,9 @@ enum class clientState_t : int32_t {
   PRIMED = 0x4,    // gamestate has been sent, but client hasn't sent a usercmd
   ACTIVE = 0x5,    // client is fully in game
 };
-constexpr const char *serialize(const clientState_t state) {
+IMPL_ENUM_OPERATORS(clientState_t);
+
+[[nodiscard]] constexpr const char *serialize(const clientState_t state) {
   switch (state) {
   case clientState_t::FREE:
     return "CLIENT_STATE_FREE";
@@ -643,14 +644,13 @@ constexpr const char *serialize(const clientState_t state) {
     return "CLIENT_STATE_INVALID";
   }
 }
-IMPL_ENUM_OPERATORS(clientState_t);
 
 struct netProfilePacket_t {
   int32_t iTime;
   int32_t iSize;
   int32_t bFragment;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "iTime": {}, "iSize": {}, "bFragment": {} }})",
                        iTime, iSize, bFragment);
   }
@@ -667,7 +667,7 @@ struct netProfileStream_t {
   int32_t iLargestPacket;
   int32_t iSmallestPacket;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"packets\": {}, \"iCurrPacket\": {}, "
                        "\"iBytesPerSecond\": {}, \"iLastBPSCalcTime\": {}, "
                        "\"iCountedPackets\": {}, \"iCountedFragments\": {}, "
@@ -684,7 +684,7 @@ struct netProfileInfo_t {
   netProfileStream_t send;
   netProfileStream_t recieve;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "send": {}, "recieve": {} }})", send.serialize(),
                        recieve.serialize());
   }
@@ -700,13 +700,13 @@ struct netchanOOBMessage_t {
   uint8_t data[1256];
   int32_t dataLen;
 
-  IMPL_SLICE_METHODS(data, dataLen, Data);
+  IMPL_SLICE_METHODS(data, dataLen);
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     const int32_t state_copy = state;
     return std::format(
         R"({{ "from": {}, "state": {:X}, "data": {}, "dataLen": {} }})",
-        from.serialize(), state_copy, ::serialize(getData()), dataLen);
+        from.serialize(), state_copy, ::serialize(get_data()), dataLen);
   }
 };
 ASSERT_SIZE(netchanOOBMessage_t, 0x500);
@@ -715,7 +715,7 @@ struct EVENT_HANDLE {
   qboolean manualReset;
   uint8_t _padding[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"manualReset\": {} }}", manualReset.serialize());
   }
 };
@@ -763,7 +763,7 @@ PACKED(struct netchan_t {
   netProfileInfo_t prof;
   uint8_t _padding[4];
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"outgoingSequence\": {}, \"sock\": {}, "
                        "\"incomingSequence\": {}, \"remoteAddress\": {}, "
                        "\"qport\": {}, \"messageConfig\": {}, "
@@ -781,7 +781,7 @@ PACKED(struct serverInfo_t {
   XNADDR xnaddr;
   XNKEY xnkey;
   XNKID xnkid;
-  uint8_t _padding03D[3];
+  DEF_PAD(03D, 3);
   int32_t publicSlots;
   int32_t publicSlotsUsed;
   int32_t privateSlots;
@@ -797,7 +797,7 @@ PACKED(struct serverInfo_t {
   uint8_t hardware;
   uint8_t mod;
   uint8_t requestCount;
-  uint8_t _padding071;
+  DEF_PAD(071;
   int16_t minPing;
   int16_t maxPing;
   int16_t ping;
@@ -806,9 +806,8 @@ PACKED(struct serverInfo_t {
   str24_t game;
   str16_t gameType;
   bool isInGame;
-  uint8_t _padding0E1[7];
-
-  inline std::string serialize() const noexcept {
+  uint8_t _padding0E1, 7);
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"xnaddr\": {}, \"xnkey\": {}, \"xnkid\": {}, \"publicSlots\": {}, "
         "\"publicSlotsUsed\": {}, "

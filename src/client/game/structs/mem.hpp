@@ -20,7 +20,7 @@ PACKED(struct MemoryFile {
   bool compress_enabled;
   bool rle_enabled;
   bool is_writing;
-  uint8_t _padding31[3];
+  DEF_PAD(31, 3);
   int cacheBufferAvail;
   uint8_t cacheBuffer[32760];
 });

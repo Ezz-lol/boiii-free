@@ -15,7 +15,7 @@ PACKED(struct LiveSteamClient {
   EResult resultOnRequestEncryptedAppTicket;
   int32_t ticketTime;
   int32_t numFriendsNotifications;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   game::steam::CCallResult<LiveSteamClient,
                            game::steam::EncryptedAppTicketResponse_t>
       m_SteamCallResultEncryptedAppTicket;

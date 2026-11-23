@@ -125,11 +125,11 @@ typedef fastcallPtr_t<void(bgCacheInstance inst, const char *name)>
 PACKED(struct bgCacheTypeInfo {
   const char *name;
   db::xasset::XAssetType assetType;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   BG_Cache_RegisterFunc registerFunc;
   BG_Cache_UnregisterFunc unregisterFunc;
   int32_t configStringStart;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
 });
 
 template <typename T> union BGCacheTypePool {
@@ -277,8 +277,7 @@ template <typename Asset> struct bgCachedData {
   Asset *def;
   BGCacheNameHash nameHash;
   volatile uint8_t __refCount;
-  uint8_t _padding0D[3];
-
+  DEF_PAD(0D, 3);
   inline void reset() noexcept {
     memset(this, 0, sizeof(std::remove_pointer_t<decltype(this)>));
   }
@@ -318,8 +317,7 @@ PACKED(struct bgCachedGenericData {
   str1024_t name;
   BGCacheNameHash nameHash;
   volatile uint8_t __refCount;
-  uint8_t _padding0D[3];
-
+  DEF_PAD(0D, 3);
   inline constexpr void clearName() volatile {
     constexpr_memset(name, NULL);
     nameHash = BGCACHE_NAMEHASH_NULLPTR;
@@ -393,7 +391,7 @@ PACKED(struct BGCacheInfo {
   const char *name;
   BGCacheInfoDef *def;
   int32_t defCount;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
 });
 ASSERT_SIZE(BGCacheInfo, 0x18);
 } // namespace cache

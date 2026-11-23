@@ -23,7 +23,7 @@ struct DynEntityPose {
 
 PACKED(struct DynEntityServer {
   uint16_t flags;
-  uint8_t _padding02[2];
+  DEF_PAD(02, 2);
   int health;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -51,15 +51,14 @@ struct DynEntityColl {
 PACKED(struct DynEntityClient {
   intptr_t physObjId;
   uint16_t flags;
-  uint8_t _padding0A[2];
+  DEF_PAD(0A, 2);
   int32_t health;
   uint16_t burnTime;
   uint16_t fadeTime;
   int32_t physicsStartTime;
   phys::LocalClientFxUniqueHandle fxHandles[10];
   int32_t numFxHandles;
-  uint8_t _padding6C[4];
-
+  DEF_PAD(6C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"physObjId\": {:p}, \"flags\": 0x{:04X}, \"health\": {}, "
@@ -72,18 +71,18 @@ PACKED(struct DynEntityClient {
 
 PACKED(struct DynEntityDef {
   gfx::GfxPlacement pose;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
   db::xasset::xmodel::XModel *xModel;
   db::xasset::xmodel::XModel *destroyedxModel;
   uint16_t brushModel;
   uint16_t physicsBrushModel;
-  uint8_t _padding34[4];
+  DEF_PAD(34, 4);
   db::xasset::FxEffectDefHandle destroyFx;
   snd::SndAliasId destroySound;
-  uint8_t _padding44[4];
+  DEF_PAD(44, 4);
   db::xasset::FxEffectDefHandle rattleFx;
   snd::SndAliasId rattleSound;
-  uint8_t _padding54[4];
+  DEF_PAD(54, 4);
   db::xasset::FxEffectDefHandle splashUpFx[3];
   game::db::xasset::phys::PhysPreset *physPreset;
   int16_t physConstraints[4];
@@ -92,8 +91,7 @@ PACKED(struct DynEntityDef {
   contents_t contents;
   scr::ScrString_t targetname;
   scr::ScrString_t target;
-  uint8_t _padding94[4];
-
+  DEF_PAD(94, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"pose\": {}, \"xModel\": {:p}, \"destroyedxModel\": {:p}, "

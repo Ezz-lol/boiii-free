@@ -61,7 +61,7 @@ inline constexpr const char *serialize(const DebugSystem system) {
 PACKED(struct DebugHistoryRow {
   int32_t time;
   str128_t str;
-  uint8_t _padding84[4];
+  DEF_PAD(84, 4);
   const vec4_t *color;
 });
 ASSERT_SIZE(DebugHistoryRow, 0x90);
@@ -73,14 +73,14 @@ PACKED(struct DebugHistory {
   int32_t touchTime;
   bool canTimeout;
   bool rowsPresent;
-  uint8_t _paddingB4A[6];
+  DEF_PAD(B4A, 6);
   const vec4_t *color;
   str16_t name;
   int32_t maxRows;
   int32_t displayDuration;
   const dvar_t *locDvar;
   int32_t visLevel;
-  uint8_t _paddingB7C[4];
+  DEF_PAD(B7C, 4);
 });
 ASSERT_SIZE(DebugHistory, 0xB80);
 

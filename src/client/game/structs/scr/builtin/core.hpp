@@ -154,10 +154,10 @@ template <typename ActionFunc> struct BuiltinDef {
   ScrVarCanonicalName_t canonId;
   uint32_t min_args;
   uint32_t max_args;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   ActionFunc actionFunc;
   BuiltinType type;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
 };
 #pragma pack(pop)
 

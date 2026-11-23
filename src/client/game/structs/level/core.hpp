@@ -98,7 +98,7 @@ struct LerpEntityStatePlayer {
   uint8_t stowedWeaponCamo;
   uint8_t weaponHeat;
   uint8_t proneLegsAngle;
-  uint8_t _padding61[7];
+  DEF_PAD(61, 7);
 };
 #pragma pack(pop)
 
@@ -123,7 +123,7 @@ struct LerpEntityStateVehicle {
   uint8_t tmodeVehicleHealth;
   uint8_t tmodeVehicleBehavior;
   uint8_t tmodeVehicleVisibility;
-  uint8_t _padding2E[2];
+  DEF_PAD(2E, 2);
 };
 #pragma pack(pop)
 
@@ -362,7 +362,7 @@ inline constexpr const char *serialize(const trType_t trType) {
 #pragma pack(push, 1)
 struct trajectory_t {
   trTypeField_t trType;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   int32_t trTime;
   int32_t trDuration;
   vec3_t trBase;
@@ -410,9 +410,9 @@ PACKED(struct LerpEntityState {
   trajectory_t apos;
   LerpEntityStateTypeUnion u;
   int16_t useCount;
-  uint8_t _paddingBA[2];
+  DEF_PAD(BA, 2);
   uint32_t clientFields[4];
-  uint8_t _paddingCC[4];
+  DEF_PAD(CC, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"eFlags\": 0x{:08X}, \"eFlags2\": 0x{:08X}, \"pos\": {}, "
@@ -448,7 +448,7 @@ PACKED(struct playerAnimState_t {
       uint8_t unused_slots : 6;
     };
   };
-  uint8_t _padding0F[1];
+  DEF_PAD(0F, 1);
 });
 
 PACKED(struct hardlineHint_t {
@@ -459,7 +459,7 @@ PACKED(struct hardlineHint_t {
 
 PACKED(struct scriptMoverState_t {
   uint8_t fov;
-  uint8_t _padding01[1];
+  DEF_PAD(01, 1);
   int16_t animId;
 });
 
@@ -2288,7 +2288,7 @@ constexpr uint32_t ENTITYSTATE_OTHERENTITYNUM_OFFSET = 0x1AE;
 
 PACKED(struct entityState_s {
   int32_t number; // Verified
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   LerpEntityState lerp;
   int32_t time2;
   snd::LoopSoundInfo loopSound; // Verified
@@ -2303,7 +2303,7 @@ PACKED(struct entityState_s {
   int32_t clientMask[1]; // Verified
   uint8_t teamMask;
   uint8_t events[4];
-  uint8_t _padding171[7];
+  DEF_PAD(171, 7);
   EventParm_t eventParms[5];
   entityType_t eType; // Verified
   team_t team;
@@ -2318,18 +2318,17 @@ PACKED(struct entityState_s {
   scr::ScrString_t targetname;
   int16_t spawnVarIndex;
   uint8_t animtreeIndex;
-  uint8_t _padding1C7[1];
+  DEF_PAD(1C7, 1);
   anim::AnimScriptedState animScripted;
   int16_t eventSequence;
   uint8_t surfType;
-  uint8_t _padding1DF[1];
+  DEF_PAD(1DF, 1);
   ClientNum16_t clientNum;
   uint8_t iHeadIcon;
   entityStateUn1 un1;
   uint32_t _unknown1E4;
   int16_t previousEventSequence;
-  uint8_t _padding1EA[2];
-
+  DEF_PAD(1EA, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"number\": {}, \"lerp\": {}, \"time2\": {}, \"loopSound\": {}, "
@@ -2376,7 +2375,7 @@ PACKED(struct entityShared_t {
   bool bmodel;
   int16_t svFlags;
   bool inuse;
-  uint8_t _padding05[3];
+  DEF_PAD(05, 3);
   int32_t broadcastTime;
   vec3_t mins;
   vec3_t maxs;
@@ -2622,7 +2621,7 @@ PACKED(struct SprintState {
   int32_t lastSprintEnd;
   int32_t sprintStartMaxLength;
   uint8_t dir;
-  uint8_t _padding1D[3];
+  DEF_PAD(1D, 3);
   int32_t sprintDuration;
   int32_t sprintCooldown;
 
@@ -2919,7 +2918,7 @@ struct WallRunState {
   int32_t startTimeMs;
   int32_t endTimeMs;
   int16_t flags;
-  uint8_t _padding0A[2];
+  DEF_PAD(0A, 2);
   vec3_t normal;
   float startHeight;
   float verticality;
@@ -3053,7 +3052,7 @@ ASSERT_SIZE(ActionSlotParam, 0x8);
 
 PACKED(struct PlayerRenderInfo {
   uint8_t lightingState;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   int32_t sunShadowSplitDistance;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -3091,7 +3090,7 @@ PACKED(struct playerState_s {
   snd::LoopSoundInfo loopSound;
   uint8_t roleIndex;
   uint8_t level;
-  uint8_t _padding32[2];
+  DEF_PAD(32, 2);
   vec3_t origin;
   vec3_t velocity;
   int32_t remoteEyesEnt;
@@ -3106,7 +3105,7 @@ PACKED(struct playerState_s {
   int32_t weaponRestrictKickTime;
   bool mountAvailable;
   bool bThirdPerson;
-  uint8_t _paddingAA[2];
+  DEF_PAD(AA, 2);
   int32_t foliageSoundTime;
   int32_t gravity;
   float leanf;
@@ -3151,7 +3150,7 @@ PACKED(struct playerState_s {
   weapon::Weapon lastWeaponAltModeSwitch;
   weapon::Weapon stowedWeapon;
   uint8_t unusedCompatibilityPadding;
-  uint8_t _padding2D1[7];
+  DEF_PAD(2D1, 7);
   weapon::Weapon meleeWeapon;
   weapon::GadgetTargetResult gadgetTargetResult;
   float fWeaponPosFrac;
@@ -3166,7 +3165,7 @@ PACKED(struct playerState_s {
   int32_t viewHeightLerpTime;
   int32_t viewHeightLerpTarget;
   bool viewHeightLerpDown;
-  uint8_t _padding319[3];
+  DEF_PAD(319, 3);
   ViewHeightState viewHeightState;
   ViewHeightState viewHeightStatePrev;
   vec2_t viewBobFactor;
@@ -3186,7 +3185,7 @@ PACKED(struct playerState_s {
   float proneTorsoPitch;
   ViewLockTypes viewlocked;
   int16_t viewlocked_entNum;
-  uint8_t _padding6BA[2];
+  DEF_PAD(6BA, 2);
   int32_t vehiclePos;
   int32_t vehicleType;
   int32_t vehicleAnimBoneIndex;
@@ -3266,12 +3265,12 @@ PACKED(struct playerState_s {
   weapon::Weapon inventoryWeapon;
   weapon::Weapon inventoryHeldWeapon;
   uint8_t vehicleDefIndex;
-  uint8_t _paddingB21[3];
+  DEF_PAD(B21, 3);
   int32_t locBlendTime;
   PlayerRenderInfo renderInfo;
   bool motionMatchingEnabled;
   bool mmTransitionBoost;
-  uint8_t _paddingB32[2];
+  DEF_PAD(B32, 2);
   int32_t kf_index;
   qboolean attemptedDoubleJump;
   int32_t entityEventSequence;
@@ -3282,7 +3281,7 @@ PACKED(struct playerState_s {
   int32_t shellshockDuration;
   int32_t meleeButtStartTime;
   uint8_t meleeButtDirection;
-  uint8_t _paddingB58[3];
+  DEF_PAD(B58, 3);
   float dofNearStart;
   float dofNearEnd;
   float dofFarStart;
@@ -3306,14 +3305,14 @@ PACKED(struct playerState_s {
   float visionSetLerpRatio;
   bool poisoned;
   bool binoculars;
-  uint8_t _paddingBB5[2];
+  DEF_PAD(BB5, 2);
   uint32_t scriptCursorHintString;
-  uint8_t _paddingBBB[4];
+  DEF_PAD(BBB, 4);
   objective_t objective[128];
   int32_t deltaTime;
   int32_t killCamEntity;
   int32_t killCamTargetEntity;
-  uint8_t _padding6BCB[4];
+  DEF_PAD(6BCB, 4);
   weapon::Weapon killCamWeapon;
   int32_t killCamMod;
   int32_t killCamFlag;
@@ -3322,7 +3321,7 @@ PACKED(struct playerState_s {
     ui::he::hudelem_t current[31];
     ui::he::hudelem_t archival[31];
   } hud;
-  uint8_t _padding89EC[4];
+  DEF_PAD(89EC, 4);
   ui::he::serverHudMenu_t hudMenus[32];
   struct {
     UIModelData modelData[8];
@@ -3606,7 +3605,7 @@ PACKED(struct clientState_s {
   ClientNum_t beingRevivedByClient;
   int32_t reviveTimeStart;
   int32_t damageState;
-  uint8_t _padding7C[4];
+  DEF_PAD(7C, 4);
   uint64_t csPMFlags;
   union {
     XUID xuid;
@@ -3615,16 +3614,16 @@ PACKED(struct clientState_s {
   int32_t arenaPoints;
   uint32_t perks[4];
   uint8_t roleIndex;
-  uint8_t _paddingA5[3];
+  DEF_PAD(A5, 3);
   int32_t level;
-  uint8_t _paddingAC[4];
+  DEF_PAD(AC, 4);
   uint64_t bodyOptions;
   weapon::visLoadOut_s cacLoadouts[10];
   int32_t heroWeaponIdx;
   int32_t voiceConnectivityBits;
-  uint8_t _unknown250[12];
+  DEF_UNK(250, 12);
   clanAbbrev_t clanAbbrev; // Verified
-  uint8_t _padding264[4];
+  DEF_PAD(264, 4);
   weapon::Weapon currentLoadoutPrimaryWeapon;
   weapon::Weapon currentLoadoutSecondaryWeapon;
   SwimStateType csSwimState;
@@ -3633,7 +3632,7 @@ PACKED(struct clientState_s {
   int32_t attachedVehSeat;
   bool needsRevive;
   bool clanAbbrevEV;
-  uint8_t _padding28A[2];
+  DEF_PAD(28A, 2);
   vehicle::VehicleAnimState vehAnimState;
   score_t score;
   int32_t clientUIVisibilityFlags;
@@ -3705,14 +3704,14 @@ ASSERT_SIZE(actorState_t, 0x50); // Correct
 PACKED(struct TopScorer {
   renderOptions_t renderOptions;
   weapon::AttachmentCosmeticVariantIndexes attachmentCosmeticVariantIndexes;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   weapon::Weapon weapon;
   uint8_t taunts[1];
   uint8_t gestures[3];
   int32_t clientNum;
   uint32_t
       padding[1]; // Note: this field is actually in the Treyarch struct, as-is.
-  uint8_t _padding2C[4];
+  DEF_PAD(2C, 4);
 });
 ASSERT_SIZE(TopScorer, 0x30);
 
@@ -3727,7 +3726,7 @@ struct UnarchivedMatchState {
   uint16_t jumpHeight;
   bool initialPlayersConnected;
   bool sharedViewPort;
-  uint8_t _padding118[8];
+  DEF_PAD(118, 8);
 };
 static_assert(sizeof(UnarchivedMatchState) == 0x120,
               "UnarchivedMatchState size must be 288 bytes");
@@ -3762,10 +3761,10 @@ struct ArchivedMatchState {
 constexpr uint32_t MATCHSTATE_SIZE = 0x2A0;
 PACKED(partial_def(MATCHSTATE_SIZE, struct, MatchState, {
   uint32_t index;
-  uint8_t _padding004[12];
+  DEF_PAD(004, 12);
   UnarchivedMatchState unarchivedState;
   ArchivedMatchState archivedState;
-  uint8_t _padding28C[4];
+  DEF_PAD(28C, 4);
 }));
 ASSERT_SIZE(MatchState, MATCHSTATE_SIZE); // Correct
 
@@ -3773,17 +3772,17 @@ PACKED(struct SpawnVarKeyValue {
   const char *key;
   const char *value;
   int32_t type;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
 });
 
 PACKED(struct LinkerSpawnVar {
   uint32_t numSpawnVars;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   SpawnVarKeyValue *spawnVars;
   int32_t modelIndex;
   vec3_t origin;
   vec3_t angles;
-  uint8_t _padding2C[4];
+  DEF_PAD(2C, 4);
 });
 
 } // namespace level

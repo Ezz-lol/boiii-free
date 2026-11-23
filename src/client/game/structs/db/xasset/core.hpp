@@ -465,7 +465,7 @@ inline constexpr bool validate(XAssetType val) {
   to more succintly type what is being passed to the function.
 */
 PACKED(struct NamedXAsset {
-  const char *name;
+  const char *name = nullptr;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"name\": {} }}", ::serialize(name));
@@ -650,8 +650,7 @@ ASSERT_SIZE(FxEffectDefRef, 0x8);
 struct FxElemSound {
   const char *sound;
   snd::SndAliasId soundAlias;
-  uint8_t _padding0C[4];
-
+  DEF_PAD(0C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "sound": {}, "soundAlias": 0x{:08X} }})",
                        ::serialize(sound), soundAlias);
@@ -753,7 +752,7 @@ struct FxElemDef {
   FxFloatRange gravity;
   FxFloatRange reflectionFactor;
   FxElemAtlas atlas;
-  uint8_t _paddingBF[1];
+  DEF_PAD(BF, 1);
   float windInfluence;
   FxElemType elemType;
   uint8_t visualCount;
@@ -761,7 +760,7 @@ struct FxElemDef {
   uint8_t inhIntervalCount;
   uint8_t attIntervalCount;
   uint8_t visStateIntervalCount;
-  uint8_t _paddingCA[6];
+  DEF_PAD(CA, 6);
   const FxElemVelStateSample *velSamples;
   const FxElemInheritStateSample *inheritSamples;
   const FxElemVisStateSample *visSamples;
@@ -771,7 +770,7 @@ struct FxElemDef {
   vec3_t collMins;
   vec3_t collMaxs;
   vec3_t attractorLocalPosition;
-  uint8_t _padding194[4];
+  DEF_PAD(194, 4);
   FxEffectDefRef effectOnImpact;
   FxEffectDefRef effectOnDeath;
   FxEffectDefRef effectEmitted;
@@ -779,22 +778,22 @@ struct FxElemDef {
   FxFloatRange emitDistVariance;
   FxFloatRange emitDensity;
   float emitSizeForDensity;
-  uint8_t _padding1CC[4];
+  DEF_PAD(1CC, 4);
   FxEffectDefRef effectAttached;
   FxFloatRange attachedDensity;
   float attachedSizeForDensity;
-  uint8_t _padding1E4[4];
+  DEF_PAD(1E4, 4);
   FxElemExtendedDefPtr extended;
   uint8_t displacement;
   uint8_t lightingFrac;
   uint8_t depthMultiplier;
-  uint8_t _padding1F3[1];
+  DEF_PAD(1F3, 1);
   uint16_t alphaFadeTimeMsec;
   uint16_t maxWindStrength;
   uint16_t spawnIntervalAtMaxWind;
   uint16_t lifespanAtMaxWind;
   FxElemDefUnion u;
-  uint8_t _padding204[4];
+  DEF_PAD(204, 4);
   FxElemSound spawnSound;
   FxElemSound followSound;
   vec2_t billboardPivot;
@@ -809,11 +808,10 @@ struct FxElemDef {
   float levelsOutputMax;
   float desaturationAmount;
   bool useOldHDRScale;
-  uint8_t _padding259[1];
+  DEF_PAD(259, 1);
   uint16_t libDefIndex;
   uint16_t libVisualIndex;
-  uint8_t _padding25E[2];
-
+  DEF_PAD(25E, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"flags\": 0x{:08X}, \"extraFlags\": 0x{:08X}, \"spawn\": {}, "
@@ -886,11 +884,11 @@ typedef uint8_t FxNormalsShape;
 struct FxEffectDef : NamedXAsset {
   FxEffectDefFlags flags;
   uint8_t efPriority;
-  uint8_t _paddingB[1];
+  DEF_PAD(B, 1);
   int16_t elemDefCountLooping;
   int16_t elemDefCountOneShot;
   int16_t elemDefCountEmission;
-  uint8_t _padding12[2];
+  DEF_PAD(12, 2);
   int32_t totalSize;
   int32_t msecLoopingLife;
   int32_t msecNonLoopingLife;
@@ -901,16 +899,15 @@ struct FxEffectDef : NamedXAsset {
   int32_t occlusionQueryFadeIn;
   int32_t occlusionQueryFadeOut;
   FxFloatRange occlusionQueryScaleRange;
-  uint8_t _padding54[4];
+  DEF_PAD(54, 4);
   FxElemSound loopedSound;
   FxNormalsShape normalsShape;
-  uint8_t _padding69[3];
+  DEF_PAD(69, 3);
   vec3_t normalsOffset;
   vec3_t normalsNormal;
   int32_t gpuMsecLife;
   uint16_t libDefIndex;
-  uint8_t _padding8A[6];
-
+  DEF_PAD(8A, 6);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"flags\": 0x{:08X}, \"efPriority\": {}, "
@@ -1279,7 +1276,7 @@ struct PlayerRoleTemplate;
 typedef PlayerRoleTemplate *PlayerRoleTemplatePtr;
 PACKED(struct PlayerRoleLevels {
   bool enabled;
-  uint8_t _padding01[3];
+  DEF_PAD(01, 3);
   uint32_t numLevels;
   PlayerRoleTemplatePtr *levels;
 
@@ -1298,10 +1295,10 @@ typedef PlayerRoleLevels *PlayerRoleLevelsPtr;
 // Verified
 PACKED(struct CustomizationTable : NamedXAsset {
   uint32_t numPlayerRoles;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   PlayerRoleLevelsPtr *playerRoles;
   uint32_t numHeads;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
   CharacterHead *heads;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -1419,7 +1416,7 @@ struct CustomizationColorInfo : NamedXAsset {
   uint32_t numCamoMaterials;
   CamoMaterial *camoMaterials;
 
-  IMPL_SLICE_METHODS(camoMaterials, numCamoMaterials, CamoMaterials);
+  IMPL_SLICE_METHODS(camoMaterials, numCamoMaterials);
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
@@ -1568,28 +1565,24 @@ union XAssetHeader {
 ASSERT_SIZE(XAssetHeader, sizeof(void *));
 
 // sizeof=0x10
-#pragma pack(push, 1)
-struct XAsset {
-  XAssetType type;
-  uint8_t _padding04[4];
-  XAssetHeader header;
+PACKED(struct XAsset {
+  XAssetType type = XAssetType::COUNT;
+  DEF_PAD(04, 4) = {0};
+  XAssetHeader header = {.named = nullptr};
 
   // TODO: serialize corresponding header union member for given type
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"type\": {}, \"header\": {} }}",
+    return std::format(R"({{ "type": {}, "header": {} }})",
                        game::db::xasset::serialize(type), header.serialize());
   }
-};
+});
 ASSERT_SIZE(XAsset, 0x10);
-#pragma pack(pop)
 
 using XAssetEnum = void(XAssetHeader, void *);
 
-#pragma pack(push, 1)
-
 PACKED(struct ScriptStringList {
   int32_t count;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   const char **strings;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -1599,10 +1592,10 @@ PACKED(struct ScriptStringList {
 });
 ASSERT_SIZE(ScriptStringList, 0x10);
 
-struct XAssetList {
+PACKED(struct XAssetList {
   ScriptStringList stringList;
   int32_t assetCount;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   XAsset *assets;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -1610,15 +1603,14 @@ struct XAssetList {
         R"({{ "stringList": {}, "assetCount": {}, "assets": {} }})",
         stringList.serialize(), assetCount, ::serialize(assets, assetCount));
   }
-};
+});
 ASSERT_SIZE(XAssetList, 0x20);
-#pragma pack(pop)
 
 PACKED(struct XAssetEntry {
   XAsset asset;
   uint8_t zoneIndex;
   bool inuse;
-  uint8_t _padding12[2];
+  DEF_PAD(12, 2);
   uint32_t nextHash;
   uint32_t nextType;
   uint32_t nextOverride;
@@ -1685,8 +1677,7 @@ PACKED(struct mapTableEntryCache {
   accoladeCache accoladesWithUnlocks[32];
   const char *rootMapName;
   uint8_t numAccoladesWithUnlocks;
-  uint8_t _padding29[7];
-
+  DEF_PAD(29, 7);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"accoladesWithUnlocks\": {}, \"rootMapName\": {}, "
@@ -1700,8 +1691,7 @@ ASSERT_SIZE(mapTableEntryCache, 0x30);
 PACKED(struct mapTableCache {
   mapTableEntryCache missionsWithAccolades[128];
   uint8_t numMissionsWithAccolades;
-  uint8_t _padding1801[7];
-
+  DEF_PAD(1801, 7);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"missionsWithAccolades\": {}, \"numMissionsWithAccolades\": {} }}",
@@ -1725,7 +1715,7 @@ struct ColorOptionSet {
   uint32_t numOptions;
   CustomizationColorInfo **colors;
 
-  IMPL_SLICE_METHODS(colors, numOptions, Colors);
+  IMPL_SLICE_METHODS(colors, numOptions);
 };
 
 struct CharacterItemInfo {
@@ -1737,7 +1727,7 @@ struct CharacterItemInfo {
   int impactType[2];
   ScriptBundlePtr gibDef;
 
-  IMPL_SLICE_METHODS(colorOptions, accentColorCount, ColorOptions);
+  IMPL_SLICE_METHODS(colorOptions, accentColorCount);
 };
 
 enum class CharacterGenderTypes : uint32_t {
@@ -1820,8 +1810,8 @@ struct CharacterBodyType : NamedXAsset {
   XString abilitySubItemDesc;
   XString abilitySchema;
 
-  IMPL_SLICE_METHODS(bodyInfo, numBodyInfos, BodyInfo);
-  IMPL_SLICE_METHODS(helmetInfo, numHelmetInfos, HelmetInfo);
+  IMPL_SLICE_METHODS(bodyInfo, numBodyInfos);
+  IMPL_SLICE_METHODS(helmetInfo, numHelmetInfos);
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(

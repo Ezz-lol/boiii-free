@@ -43,7 +43,7 @@ PACKED(struct ClientContentState {
   uint16_t cursorPosition;
   uint16_t totalContentReceived;
   bool isDataCompressed;
-  uint8_t _padding33[1];
+  DEF_PAD(33, 1);
 });
 
 struct ClientContent {
@@ -55,11 +55,11 @@ struct ClientContent {
 
 PACKED(struct ClientContentTracking {
   ClientContentTransferState state;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   XUID toXUID;
   int32_t numOfAttempts;
   uint16_t cursorPosition;
-  uint8_t _padding16[2];
+  DEF_PAD(16, 2);
 });
 ASSERT_SIZE(ClientContentTracking, 0x18);
 
@@ -71,7 +71,7 @@ PACKED(struct ClientContentFragments {
   ClientContentFragmentDataType fragmentDataType;
   XUID toXUID;
   int32_t fragmentSentTime;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
 });
 
 } // namespace clientcontent

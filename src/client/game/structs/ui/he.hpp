@@ -390,8 +390,7 @@ struct serverHudMenu_t {
   int32_t menuNameIndex;
   int32_t modelNames[16];
   bool persistent;
-  uint8_t _padding145[11];
-
+  DEF_PAD(145, 11);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"modelData\": {}, \"menuNameIndex\": {}, "
                        "\"modelNames\": {}, \"persistent\": {} }}",

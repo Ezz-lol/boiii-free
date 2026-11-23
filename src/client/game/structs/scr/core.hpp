@@ -203,7 +203,7 @@ ASSERT_SIZE(ScriptBundleKVP, 0x18);
 
 struct ScriptBundleObject {
   uint32_t kvpCount;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   ScriptBundleKVP *kvps;
 };
 ASSERT_SIZE(ScriptBundleObject, 0x10);
@@ -213,10 +213,10 @@ struct ScriptBundle {
   ScrString_t type;
   scriptBundleVMType_t vmType;
   uint32_t kvpCount;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   ScriptBundleKVP *kvps;
   uint32_t bundleObjectcount;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
   ScriptBundleObject *bundleObjects;
 };
 ASSERT_SIZE(ScriptBundle, 0x30);
@@ -1514,13 +1514,13 @@ union EntRefUnion {
   int16_t vehicleNodeIndex;
   uint16_t absDynEntIndex;
   weapon::Weapon weapon;
-  uint64_t val;
+  uint64_t val = 0;
 };
 
 struct scr_entref_t {
-  EntRefUnion u;
-  uint16_t classnum;
-  LocalClientNum_t client;
+  EntRefUnion u = {};
+  uint16_t classnum = 0;
+  LocalClientNum_t client = LocalClientNum_t::INVALID_LOCAL_CLIENT;
   [[nodiscard]] constexpr bool is_hudelem() const noexcept;
 
 #ifndef NDEBUG
@@ -1542,7 +1542,7 @@ struct scr_anim_t {
       uint16_t index;
       uint16_t tree;
     };
-    const uint8_t *linkPointer;
+    const uint8_t *linkPointer = nullptr;
   };
 };
 ASSERT_SIZE(scr_anim_t, 0x8);
@@ -1736,7 +1736,7 @@ PACKED(struct GSC_EXPORT_ITEM {
   ScrVarCanonicalName_t name_space;
   uint8_t param_count;
   GSC_EXPORT_FLAGS flags;
-  uint8_t _padding12[2];
+  DEF_PAD(12, 2);
 });
 ASSERT_SIZE(GSC_EXPORT_ITEM, 0x14);
 
@@ -1801,8 +1801,7 @@ PACKED(struct GSC_OBJ {
   uint8_t include_count;
   uint8_t animtree_count;
   uint8_t flags;
-  uint8_t _padding47[1];
-
+  DEF_PAD(47, 1);
   inline constexpr void setMagic(const magic_t &val) noexcept {
     constexpr_memcpy(magic, val);
   }
@@ -1918,6 +1917,7 @@ PACKED(struct ScriptParseTree {
 ASSERT_SIZE(ScriptParseTree, 0x18);
 
 union scrChecksum_t {
+  static constexpr auto SIZE = 3;
   struct {
     uint32_t loadedScriptsCumulativeCRC;
     // Always zero except in gamestate packet, where it is XORed with XUID
@@ -1925,14 +1925,16 @@ union scrChecksum_t {
     // Always zero except in gamestate packet, where it is XORed with XUID
     uint32_t unknown2;
   };
-  uint32_t raw[3];
+  uint32_t raw[SIZE];
 
   inline constexpr const uint32_t &operator[](size_t index) const {
     return raw[index];
   }
   inline constexpr uint32_t &operator[](size_t index) { return raw[index]; }
+
+  static inline constexpr auto size() noexcept { return SIZE; }
 };
-ASSERT_SIZE(scrChecksum_t, sizeof(uint32_t) * 3);
+ASSERT_SIZE(scrChecksum_t, sizeof(uint32_t) * scrChecksum_t::size());
 ASSERT_CPP03_POD(scrChecksum_t);
 
 PACKED(struct GSC_GDB {
@@ -1983,14 +1985,17 @@ PACKED(struct GSC_GDB {
     return constexpr_memcmp(magic, val) == 0;
   }
 
-  inline const uint64_t *lineinfo() const noexcept {
-    return reinterpret_cast<const uint64_t *>(
-        reinterpret_cast<const uint8_t *>(this) + lineinfo_offset);
+  inline std::span<const uint64_t> lineinfo() const noexcept {
+    return std::span(
+        reinterpret_cast<const uint64_t *>(
+            reinterpret_cast<const uint8_t *>(this) + lineinfo_offset),
+        lineinfo_count);
   }
 
-  inline uint64_t *lineinfo() noexcept {
-    return reinterpret_cast<uint64_t *>(reinterpret_cast<uint8_t *>(this) +
-                                        lineinfo_offset);
+  inline std::span<uint64_t> lineinfo() noexcept {
+    return std::span(reinterpret_cast<uint64_t *>(
+                         reinterpret_cast<uint8_t *>(this) + lineinfo_offset),
+                     lineinfo_count);
   }
 
   inline const char *stringtable() const noexcept {
@@ -2003,20 +2008,10 @@ PACKED(struct GSC_GDB {
                                     stringtable_offset);
   }
 
-  inline std::vector<uint64_t> line_start_addresses() const noexcept {
-    std::vector<uint64_t> result;
-    result.resize(lineinfo_count);
-    const uint64_t *info = lineinfo();
-    for (uint32_t line = 0; line < lineinfo_count; ++line) {
-      result[line] = info[line];
-    }
-    return result;
-  }
-
   inline uint32_t line(uint64_t pos) const noexcept {
-    const uint64_t *info = lineinfo();
+    const std::span<const uint64_t> info = lineinfo();
     uint32_t line = 0;
-    for (; line < lineinfo_count && info[line] < pos; ++line) {
+    for (; line < info.size() && info[line] < pos; ++line) {
     }
     return line;
   }
@@ -2041,21 +2036,14 @@ PACKED(struct debugFileInfo_t {
   // absolute memory bytecode addresses
   uint8_t **lineStartAddr;
   int32_t lineStartAddrCount;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
   char *source;
   int32_t sourceLen;
-  uint8_t _padding34[4];
+  DEF_PAD(34, 4);
   GSC_GDB *gdb;
 
-  std::vector<uint64_t> get_line_start_addrs() const noexcept {
-    std::vector<uint64_t> result;
-    result.resize(lineStartAddrCount);
-
-    for (int32_t line = 0; line < lineStartAddrCount; ++line) {
-      result.push_back(reinterpret_cast<uint64_t>(lineStartAddr[line]));
-    }
-    return result;
-  }
+  IMPL_SLICE_METHODS(source, sourceLen);
+  IMPL_SLICE_METHODS(lineStartAddr, lineStartAddrCount);
 });
 ASSERT_SIZE(debugFileInfo_t, 0x40);
 

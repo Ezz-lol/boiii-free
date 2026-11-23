@@ -56,7 +56,7 @@ struct pmove_t {
   qboolean proneChange;
   float maxSprintTimeMultiplier;
   bool mantleStarted;
-  uint8_t _padding279[3];
+  DEF_PAD(279, 3);
   vec3_t mantleEndPos;
   int mantleDuration;
   vec3_t meleeEntOrigin;
@@ -67,11 +67,11 @@ struct pmove_t {
   vec3_t vehicleAngles;
   pmoveVehAnimState_t vehAnimState;
   uint8_t handler;
-  uint8_t _padding2C9[3];
+  DEF_PAD(2C9, 3);
   LocalClientNum_t localClientNum;
   character_proximity_data_t proximity_data;
   bool gravity;
-  uint8_t _padding1621[3];
+  DEF_PAD(1621, 3);
   int gravityOverride;
   int events[18];
 };

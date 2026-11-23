@@ -17,7 +17,7 @@ PACKED(struct ReservationStatus {
   uint64_t clientJoinNonce;
   XUID probedXuid;
   int32_t timeout;
-  uint8_t _padding0x2C[4];
+  DEF_PAD(0x2C, 4);
 });
 ASSERT_SIZE(ReservationStatus, 0x30);
 
@@ -25,7 +25,7 @@ ASSERT_SIZE(ReservationStatus, 0x30);
 PACKED(struct Reservation {
   LobbyClientPool<ReservationStatus> status;
   int32_t count;
-  uint8_t _padding364[4];
+  DEF_PAD(364, 4);
   uint64_t key;
 });
 ASSERT_SIZE(Reservation, 0x370);

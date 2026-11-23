@@ -38,7 +38,7 @@ public:
   } aUser[4];
   char userData[10240];
   char *path;
-  uint8_t _unknown2848[8];
+  DEF_UNK(2848, 8);
   char headerString[10240];          // Verified
   uHttp_Session::Header headers[20]; // Verified
 };

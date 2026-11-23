@@ -119,7 +119,7 @@ ASSERT_SIZE(scrMemTreePub_t, 0x8);
 PACKED(struct scrMemTreeGlob_t {
   // Field is defined as `MemoryNode *nodes` in engine
   volatile GScrMemoryTreeServerNodePool *nodePool;
-  uint8_t _padding08[0x78];
+  DEF_PAD(08, 0x78);
   uint8_t leftBits[256];
   uint8_t numBits[256];
   uint8_t logBits[256];
@@ -129,7 +129,7 @@ PACKED(struct scrMemTreeGlob_t {
   int32_t totalAllocBuckets;
   int32_t avgAlloc;
   int32_t avgAllocBytes;
-  uint8_t _padding398[0x68];
+  DEF_PAD(398, 0x68);
 });
 ASSERT_PACKED(scrMemTreeGlob_t);
 ASSERT_CPP03_POD(scrMemTreeGlob_t);

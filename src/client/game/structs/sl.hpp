@@ -16,8 +16,7 @@ PACKED(struct alignas(4) RefString {
     volatile uint32_t data;
   };
   char str[1];
-  uint8_t _padding05[3];
-
+  DEF_PAD(05, 3);
   uint32_t dec_ref() volatile;
 
   uint32_t inc_ref() volatile;

@@ -72,7 +72,7 @@ struct LiveUserAuthData {
   bool isStarterPack;
   bool liveAuthorized;
   // Very likely just padding
-  uint8_t _unknown0E[2];
+  DEF_UNK(0E, 2);
   AuthRequestFlags authFlags;
   AuthConnectionStatus connectionStatus;
   // Maybe? this is only ever used to pass to a steam callback for XUID

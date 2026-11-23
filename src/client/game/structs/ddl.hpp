@@ -599,12 +599,29 @@ public:
       }
     }
   }
+
+  ~StringTable() {
+    if (values != nullptr) {
+      for (size_t i = 0; i < cellCount(); ++i) {
+        delete[] values[i].string;
+        values[i].string = nullptr;
+      }
+      delete[] values;
+      values = nullptr;
+    }
+
+    delete[] cellIndex;
+    cellIndex = nullptr;
+
+    delete[] name;
+    name = nullptr;
+  }
 };
 ASSERT_SIZE(StringTable, 0x20);
 
 struct statValue_t {
   int32_t intValue;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
 };
 ASSERT_SIZE(statValue_t, 0x8);
 

@@ -21,7 +21,7 @@ PACKED(struct SharedVoiceSessionData {
   uint32_t microphonePort;
   uint32_t headsetPort;
   bool microphoneAttached;
-  uint8_t _padding0D[3];
+  DEF_PAD(0D, 3);
   uint32_t lastCaughtTalking;
 });
 ASSERT_SIZE(SharedVoiceSessionData, 0x14);

@@ -1320,7 +1320,7 @@ struct LuaStateContext {
   const char *stateName;
   // This field is verified to exist.
   hks::hksInt32 debuggerPort;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
   hks::lua_State *luaState;
   hks::luaStateMem stateMem;
 };
@@ -1342,7 +1342,7 @@ struct LuaEngineFunction {
   const char *name;
   hks::lua_CFunction *func;
   uint32_t vmFlags;
-  uint8_t _padding14[4];
+  DEF_PAD(14, 4);
   LuaEngineFunction *next;
 };
 

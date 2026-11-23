@@ -1,5 +1,7 @@
 #pragma once
 
+#include <structs/func.hpp>
+
 #include "game/structs/quake/vec.hpp"
 
 #include "core.hpp"
@@ -33,7 +35,7 @@ struct UIQuadCache {
   uint8_t fontCacheVersion;
   int32_t next;
 
-  IMPL_SLICE_METHODS(xyz, numQuads, Xyz)
+  IMPL_SLICE_METHODS(xyz, numQuads);
 };
 
 enum class LUIAlignment : uint32_t {
@@ -48,13 +50,14 @@ enum class LUIAlignment : uint32_t {
   HORIZONTAL_MASK = 0x7,
   VERTICAL_MASK = 0x38,
 };
+IMPL_ENUM_OPERATORS(LUIAlignment);
 
 struct __declspec(align(8)) LUIAnimationState {
   hks::LUA_MATERIAL_DATATYPE material;
   db::xasset::ttf::TTFDef *font;
   uint64_t flags;
   int32_t luaRef;
-  unsigned __int8 tweenFlags;
+  uint8_t tweenFlags;
   int32_t ui3DWindow;
   float leftPct;
   float topPct;
@@ -114,27 +117,33 @@ struct __declspec(align(8)) LUIAnimationState {
   uint32_t useGameTime : 1;
 };
 
-// TODO
-typedef void *UnknownFunc;
-typedef UnknownFunc LUIElementLayoutFunction;
-typedef UnknownFunc LUIElementRenderFunction;
-typedef UnknownFunc LUIElementMouseFunction;
-typedef UnknownFunc LUIElementCloseFunction;
+typedef fastcall_t<void(const LocalClientNum_t localClientNum, LUIElement *,
+                        LUIElement *, int, int, hks::lua_State *luaVM)>
+    LUIElementLayoutFunction;
+typedef fastcall_t<void(const LocalClientNum_t localClientNum, LUIElement *,
+                        LUIElement *, float, float, float, float,
+                        hks::lua_State *luaVM)>
+    LUIElementRenderFunction;
+typedef fastcall_t<void(const LocalClientNum_t localClientNum, LUIElement *,
+                        LUIElement *, float, float, hks::lua_State *luaVM)>
+    LUIElementMouseFunction;
+typedef fastcall_t<void(LUIElement *element)> LUIElementCloseFunction;
 
-struct __declspec(align(8)) LUIElement {
+PACKED(struct LUIElement {
   LUIAnimationState currentAnimationState;
   LUIElement *parent;
   LUIElement *prevSibling;
   LUIElement *nextSibling;
   LUIElement *firstChild;
   LUIElement *lastChild;
-  LUIElementLayoutFunction layoutFunction;
-  LUIElementRenderFunction renderFunction;
-  LUIElementMouseFunction mouseFunction;
-  LUIElementCloseFunction closeFunction;
+  LUIElementLayoutFunction *layoutFunction;
+  LUIElementRenderFunction *renderFunction;
+  LUIElementMouseFunction *mouseFunction;
+  LUIElementCloseFunction *closeFunction;
   LUIAnimationState *prevAnimationState;
   LUIAnimationState *nextAnimationState;
   int32_t cacheRef;
+  DEF_PAD(144, 4);
   UIQuadCache *cache;
   int32_t priority;
   int32_t textRef;
@@ -168,7 +177,9 @@ struct __declspec(align(8)) LUIElement {
     float scrollHandleSize;
   };
   ui::UIModelIndex model;
-};
+  DEF_PAD(192, 6);
+});
+ASSERT_SIZE(LUIElement, 0x198);
 
 /*
    Mostly unverified. `memset` on LUIElementPool in engine uses size 0x7EF400,
@@ -179,19 +190,22 @@ struct __declspec(align(8)) LUIElement {
   This requires verification in general, but is likely similar to the correct
   implementation.
 */
-struct __declspec(align(4)) LUIElementPool {
-  LUIElement m_pool[20000];
-  size_t m_poolData[20000];
+PACKED(struct LUIElementPool {
+  static constexpr auto POOL_SIZE = 20000;
+
+  LUIElement m_pool[POOL_SIZE];
+  size_t m_poolData[POOL_SIZE];
   uint16_t m_firstFree;
   uint16_t m_iteration;
   uint16_t m_allocatedCount;
-};
+  DEF_PAD(7EF407, 2);
+});
 
 ASSERT_SIZE(LUIElementPool, 0x7EF408);
 
 struct LUIScopedEvent : public LuaScopedEventBase {
   bool _initializedWithElement;
-  uint8_t _padding59[7];
+  DEF_PAD(59, 7);
 
   struct syms {
     static inline constexpr symbol<void(LUIScopedEvent *)> destructor{

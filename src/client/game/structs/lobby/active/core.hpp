@@ -20,7 +20,7 @@ PACKED(struct ActiveClient {
   net::connectionType_e connectionType;
   clientcontent::ClientContent clientContent;
   LobbyClientPool<clientcontent::ClientContentTracking[2]> tracking;
-  uint8_t _padding28894[4];
+  DEF_PAD(28894, 4);
   clientcontent::ClientContentFragments fragments[128];
 });
 // Correct size is 0x2E7B20.
@@ -29,7 +29,7 @@ PACKED(struct ActiveClient {
 
 struct ActiveList {
   LobbyModule module;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   const char *name;
   LobbyClientPool<ActiveClient *> client;
 };

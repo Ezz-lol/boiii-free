@@ -43,7 +43,7 @@ PACKED(struct DBDecompressCmd_t {
   int32_t which;
   qboolean isEncrypted;
   xfile::XFileCompression compression;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   DB_LOAD_STREAM *stream;
   uint8_t *ioBuffer;
   int64_t numBytesDecrypted;
@@ -131,7 +131,7 @@ struct internal_state {
   int32_t dummy;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"dummy\": {} }}", dummy);
+    return std::format(R"({{ "dummy": {} }})", dummy);
   }
 };
 
@@ -176,9 +176,8 @@ struct _CLzmaProps {
   UInt32 dicSize;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"lc\": {}, \"lp\": {}, \"pb\": {}, \"dicSize\": {} }}", lc, lp, pb,
-        dicSize);
+    return std::format(R"({{ "lc": {}, "lp": {}, "pb": {}, "dicSize": {} }})",
+                       lc, lp, pb, dicSize);
   }
 };
 
@@ -227,7 +226,7 @@ struct ISzAlloc {
   fastcallPtr_t<void(void *, void *)> Free;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"Alloc\": {:p}, \"Free\": {:p} }}",
+    return std::format(R"({{ "Alloc": {:p}, "Free": {:p} }})",
                        reinterpret_cast<const void *>(Alloc),
                        reinterpret_cast<const void *>(Free));
   }
@@ -239,16 +238,16 @@ struct SHA1_CTX {
   uint8_t buffer[64];
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"state\": {}, \"count\": {}, \"buffer\": {} }}",
+    return std::format(R"({{ "state": {}, "count": {}, "buffer": {} }}")",
                        ::serialize(state), ::serialize(count),
                        ::serialize(buffer));
   }
 };
 
 struct __declspec(align(8)) DB_PATCH_STREAM {
-  bool active;
-  BDiffState diffState;
   uint32_t archiveChecksum[4];
+  bool active;          // Verified
+  BDiffState diffState; // Verified
   BDiffHeader header;
   uint8_t *sourceWindow;
   size_t sourceWindowOffset;
@@ -316,6 +315,15 @@ struct __declspec(align(8)) DB_PATCH_STREAM {
         lzmaMemUsed, lzmaDataInBuffer, shaCtx.serialize());
   }
 };
+// Verified
+ASSERT_OFFSET(DB_PATCH_STREAM, active, 0x10);
+// Verified
+ASSERT_OFFSET(DB_PATCH_STREAM, diffState, 0x14);
+// TODO: Correct so that this holds true - this is verified.
+// ASSERT_OFFSET(DB_PATCH_STREAM, destWindowSize, 0x518);
+// TODO: Correct so that this holds true - this is verified.
+// ASSERT_OFFSET(DB_PATCH_STREAM, destWindowReadOffset, 0x528);
+ASSERT_SIZE(DB_PATCH_STREAM, 0x708);
 
 // Verified
 struct DB_LoadData {

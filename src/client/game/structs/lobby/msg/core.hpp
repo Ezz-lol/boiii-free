@@ -271,7 +271,7 @@ union LobbyMsgEncodeFlags {
 
   alwaysinline constexpr void clear() noexcept { packed = 0; }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "isArray": {}, "encodeKey": {} }})", isArray,
                        encodeKey);
   }
@@ -484,7 +484,7 @@ struct LobbyMsg {
     return prep_readMsg(buf, N) && package(packet);
   }
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         R"({{ "msgType": {}, "encodeFlags": {}, "packageType": {} }})",
         msg::serialize(msgType), encodeFlags.serialize(),
@@ -512,7 +512,7 @@ struct EVENT_HANDLE {
   bool manualReset = false;
   uint8_t _padding1[7] = {0};
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "manualReset": {} }})", ::serialize(manualReset));
   }
 };
@@ -541,7 +541,7 @@ struct netchanMsgConfig_s {
   netchanMessageState_e status = netchanMessageState_e::FAILED;
   int32_t timeoutMS = 0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         R"({{ "completedEvent": {}, "status": {}, "timeoutMS": {} }})",
         completedEvent.serialize(), msg::serialize(status), timeoutMS);
@@ -560,7 +560,7 @@ struct NetChanMsg {
   XUID toXUID = 0;
   XUID clientXUID = 0;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"sentTime\": {}, \"msgState\": {}, \"msgType\": {}, \"config\": "
         "{}, "
@@ -575,7 +575,7 @@ struct LobbyMsgHandler {
   MsgType msgType;
   LobbyMsg_MsgHandleCallbackPtr function;
 
-  inline std::string serialize() const noexcept {
+  [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(R"({{ "msgType": {}, "function": {} }})",
                        msg::serialize(msgType), ::serialize(function));
   }

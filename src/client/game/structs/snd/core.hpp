@@ -697,25 +697,25 @@ PACKED(struct SndFutz {
 PACKED(struct SndDriverGlobals {
   const char *name;
   uint32_t groupCount;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   SndVolumeGroup *groups;
   uint32_t curveCount;
-  uint8_t _padding1C[4];
+  DEF_PAD(1C, 4);
   SndCurve *curves;
   uint32_t panCount;
-  uint8_t _padding2C[4];
+  DEF_PAD(2C, 4);
   SndPan *pans;
   uint32_t duckGroupCount;
-  uint8_t _padding3C[4];
+  DEF_PAD(3C, 4);
   SndDuckGroup *duckGroups;
   uint32_t contextCount;
-  uint8_t _padding4C[4];
+  DEF_PAD(4C, 4);
   SndContext *contexts;
   uint32_t masterCount;
-  uint8_t _padding5C[4];
+  DEF_PAD(5C, 4);
   SndMaster *masters;
   uint32_t futzCount;
-  uint8_t _padding6C[4];
+  DEF_PAD(6C, 4);
   SndFutz *futzes;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -745,8 +745,7 @@ PACKED(struct SndOcclusionTrace {
   vec3_t playback;
   int32_t cache[5];
   float occlusion;
-  uint8_t _padding38[8];
-
+  DEF_PAD(38, 8);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"id\": {}, \"voiceIndex\": {}, \"listener\": {}, "
                        "\"playback\": {}, "
@@ -869,22 +868,22 @@ ASSERT_SIZE(SndLocal, SND_LOCAL_SIZE);
 PACKED(struct SndAlias {
   const char *name;
   SndStringHash id;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   const char *subtitle;
   const char *secondaryname;
   SndStringHash secondaryid;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
   const char *stopAliasName;
   SndStringHash stopAliasID;
   scr::ScrString_t facialAnimation;
   SndStringHash assetId; // Verified
-  uint8_t _padding3C[4];
+  DEF_PAD(3C, 4);
   const char *assetFileName;
   SndStringHash assetIdSustain;
-  uint8_t _padding4C[4];
+  DEF_PAD(4C, 4);
   const char *assetFileNameSustain;
   SndStringHash assetIdRelease;
-  uint8_t _padding5C[4];
+  DEF_PAD(5C, 4);
   const char *assetFileNameRelease;
   uint32_t flags0;
   uint32_t flags1;
@@ -929,8 +928,7 @@ PACKED(struct SndAlias {
   uint8_t entityLimitCount;
   uint8_t duckGroup;
   uint8_t bus;
-  uint8_t _paddingD7[1];
-
+  DEF_PAD(D7, 1);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"id\": 0x{:08X}, \"subtitle\": {}, "
@@ -996,7 +994,7 @@ PACKED(struct SndIndexEntry {
 // Verified
 PACKED(struct SndAliasList : public db::xasset::NamedXAsset {
   SndAliasId id;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   SndAlias *head; // Verified
   uint32_t count; // Verified
   uint32_t sequence;
@@ -1035,7 +1033,7 @@ ASSERT_SIZE(SndPatch, 0x18);
 
 PACKED(struct SndAliasLookupNode {
   SndStringHash id;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   SndAliasList *list;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -1049,7 +1047,7 @@ PACKED(struct SndAliasLookupCache {
   uint32_t hit;
   uint32_t miss;
   uint32_t collision;
-  uint8_t _padding0C[4];
+  DEF_PAD(0C, 4);
   SndAliasLookupNode cache[4065];
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -1185,8 +1183,7 @@ PACKED(struct SndListener {
   qboolean active;
   team_t team;
   float distanceTraveled;
-  uint8_t _padding4C[4];
-
+  DEF_PAD(4C, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"entHandle\": {}, \"orient\": {}, \"clientNum\": {}, "
@@ -1300,8 +1297,7 @@ PACKED(struct SndLengthNotifyInfo {
   SndLengthType id[4];
   SndLengthNotifyData data[4];
   int32_t count;
-  uint8_t _padding34[4];
-
+  DEF_PAD(34, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"id\": {}, \"data\": {}, \"count\": {} }}", ::serialize(id),
@@ -1368,7 +1364,7 @@ PACKED(struct SndVoice {
   int32_t assetFrameRate;
   int32_t assetEndTime;
   int32_t assetTotalMsec;
-  uint8_t _padding6C[4];
+  DEF_PAD(6C, 4);
   SndEntHandle sndEnt;
   SndEntityUpdate entity_update;
   int32_t group;
@@ -1377,7 +1373,7 @@ PACKED(struct SndVoice {
   uint32_t startFrame;
   int32_t looptime;
   int32_t totalMsec;
-  uint8_t _padding94[4];
+  DEF_PAD(94, 4);
   SndPlayback *playback;
   SndPlaybackId playbackId;
   SndPlaybackId firstPlaybackId;
@@ -1385,7 +1381,7 @@ PACKED(struct SndVoice {
   SndPlaybackId primaryId;
   SndLengthNotifyInfo lengthNotifyInfo;
   bool isDiscontinuous;
-  uint8_t _paddingE9[7];
+  DEF_PAD(E9, 7);
   const SndAlias *alias;
   vec3_t offset;
   vec3_t position;
@@ -1412,7 +1408,7 @@ PACKED(struct SndVoice {
   SndFader duckLpf;
   int32_t traceCache[5];
   bool needsToStop;
-  uint8_t _padding1E9[3];
+  DEF_PAD(1E9, 3);
   SndMenuCategory category;
   int32_t closestListenerIndex;
   int32_t voiceStartTime;
@@ -1423,11 +1419,11 @@ PACKED(struct SndVoice {
   float earlyTimes[4];
   float futzBlend;
   SndSpeakerMap pan;
-  uint8_t _padding264[4];
+  DEF_PAD(264, 4);
   int64_t played;
   int64_t length;
   float amplitude;
-  uint8_t _padding27C[4];
+  DEF_PAD(27C, 4);
   const SndDuck *duck;
   SndDuckActive *activeDuck;
   bool paused;
@@ -1440,7 +1436,7 @@ PACKED(struct SndVoice {
   bool softStop;
   bool isSilent;
   bool gpadSound;
-  uint8_t _padding29A[2];
+  DEF_PAD(29A, 2);
   int32_t gpadFlags;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -1586,10 +1582,9 @@ PACKED(struct SndMusicState {
   bool isRandom;
   bool isSequential;
   bool skipPreviousExit;
-  uint8_t _padding16F[1];
+  DEF_PAD(16F, 1);
   SndMusicStateStatus status;
-  uint8_t _padding174[4];
-
+  DEF_PAD(174, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"name\": {}, \"id\": 0x{:08X}, \"intro\": {}, \"exit\": {}, "
@@ -1668,7 +1663,7 @@ ASSERT_SIZE(SndAmbientBspNode, 0x20);
 PACKED(struct SndAmbientBsp {
   SndAmbientBspNode nodes[512];
   int32_t numNodes;
-  uint8_t _padding4004[12];
+  DEF_PAD(4004, 12);
   vec4_t planes[2048];
   int32_t numPlanes;
   SndAmbientBspVolume volumes[1024];
@@ -1768,25 +1763,25 @@ PACKED(struct SndBank : public db::xasset::NamedXAsset {
   const char *gameLanguage;
   const char *soundLanguage;
   uint32_t aliasCount;
-  uint8_t _padding24[4];
+  DEF_PAD(24, 4);
   SndAliasList *alias;
   SndIndexEntry *aliasIndex;
   uint32_t reverbCount;
-  uint8_t _padding3C[4];
+  DEF_PAD(3C, 4);
   SndReverb *reverbs;
   uint32_t duckCount;
-  uint8_t _padding4C[4];
+  DEF_PAD(4C, 4);
   SndDuck *ducks;
   uint32_t ambientCount;
-  uint8_t _padding5C[4];
+  DEF_PAD(5C, 4);
   SndAmbient *ambients;
   uint32_t scriptIdLookupCount;
-  uint8_t _padding6C[4];
+  DEF_PAD(6C, 4);
   SndDialogScriptIdLookup *scriptIdLookups;
-  uint8_t _padding78[8];
+  DEF_PAD(78, 8);
   SndAmbientBsp ambientBsp;
   uint32_t musicSetCount;
-  uint8_t _padding220A4[4];
+  DEF_PAD(220A4, 4);
   SndMusicSet *musicSets;
 
   std::string serialize() const noexcept;
@@ -1861,8 +1856,7 @@ PACKED(struct SndBankGlobals {
   SndAssetBankHeader bankHeader;
   uint32_t headerMagic;
   float assetLoadPercent;
-  uint8_t _padding317F8[8];
-
+  DEF_PAD(317F8, 8);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"bankMagic\": 0x{:08X}, \"bankCount\": {}, \"patchCount\": {}, "
@@ -1900,7 +1894,7 @@ ASSERT_SIZE(snd_fire_manager, 0x18);
 
 PACKED(struct snd_weapon_shot {
   LocalClientNum_t localClientNum;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   SndEntHandle shooter;
   weapon::Weapon weapon;
   vec3_t origin;
@@ -1959,7 +1953,7 @@ ASSERT_SIZE(snd_autosim, 0x58);
 
 PACKED(struct snd_autosim_play {
   uint32_t frame;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   snd_weapon_shot shot;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
@@ -2024,7 +2018,7 @@ typedef SoundsImpactTable *SoundsImpactTablePtr;
 
 PACKED(struct SndEntLoop {
   SndAliasId id;
-  uint8_t _padding04[4];
+  DEF_PAD(04, 4);
   SndEntHandle handle;
   vec3_t origin;
   int32_t fade;
@@ -2041,8 +2035,7 @@ PACKED(struct SndOcclusionStartCache {
   vec3_t position;
   float value;
   bool valid;
-  uint8_t _padding11[3];
-
+  DEF_PAD(11, 3);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"position\": {}, \"value\": {}, \"valid\": {} }}",
                        position.serialize(), value, ::serialize(valid));
@@ -2078,8 +2071,7 @@ PACKED(struct SndMusicAssetInstance {
   int32_t startFrame;
   int32_t loopNumber;
   int32_t queuedNextLoop;
-  uint8_t _padding24[4];
-
+  DEF_PAD(24, 4);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"asset\": {}, \"state\": {}, \"id\": {}, \"playbackState\": "
@@ -2095,8 +2087,7 @@ ASSERT_SIZE(SndMusicAssetInstance, 0x28);
 PACKED(struct LoopSoundInfo {
   SndAliasId id;
   int16_t fade;
-  uint8_t _padding06[2];
-
+  DEF_PAD(06, 2);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format("{{ \"id\": {:8X}, \"fade\": {} }}", id, fade);
   }

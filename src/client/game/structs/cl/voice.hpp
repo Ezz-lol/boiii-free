@@ -10,7 +10,7 @@ PACKED(struct ClientVoicePacket_t {
   uint8_t data[256];
   int32_t dataSize;
 
-  IMPL_SLICE_METHODS(data, dataSize, Data);
+  IMPL_SLICE_METHODS(data, std::min(std::size(data), static_cast<size_t>(dataSize)));
 });
 
 PACKED(struct voiceCommunication_t {
@@ -19,7 +19,7 @@ PACKED(struct voiceCommunication_t {
   int32_t voicePacketLastTransmit;
   int32_t voiceTotalBytes;
 
-  IMPL_SLICE_METHODS(voicePackets, voicePacketCount, VoicePackets);
+  IMPL_SLICE_METHODS(voicePackets, std::min(std::size(voicePackets), static_cast<size_t>(voicePacketCount)));
 });
 } // namespace voice
 } // namespace cl
