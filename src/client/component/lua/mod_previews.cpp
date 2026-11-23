@@ -2,9 +2,9 @@
 
 #include "launcher/launcher.hpp"
 #include "mod_previews.hpp"
-#include "scheduler.hpp"
 
-#include <component/lua/lua_state.hpp>
+#include "component/scheduler.hpp"
+#include "component/lua/lua_state.hpp"
 
 #include <loader/component_loader.hpp>
 
@@ -33,7 +33,12 @@ using game::db::xasset::XAssetType;
 constexpr std::string_view IMAGE_PREFIX = "mod_preview_";
 constexpr int32_t PREVIEW_WIDTH = 640;
 
-enum class preview_state { downloading, downloaded, ready, missing };
+enum class preview_state : uint8_t {
+  downloading = 0x0,
+  downloaded = 0x1,
+  ready = 0x2,
+  missing = 0x3
+};
 
 struct preview {
   preview_state state = preview_state::downloading;
@@ -107,7 +112,7 @@ bool cache_preview(const std::string &ugc_name,
       if (stbir_resize_uint8_srgb(
               reinterpret_cast<const uint8_t *>(decoded.data.data()), width,
               height, 0, reinterpret_cast<uint8_t *>(scaled.data()),
-              scaled_width, scaled_height, 0, STBIR_RGBA)) {
+              scaled_width, scaled_height, 0, STBIR_RGBA) != nullptr) {
         std::filesystem::create_directories(path.parent_path());
         return stbi_write_png(path.string().c_str(), scaled_width,
                               scaled_height, 4, scaled.data(),
@@ -146,10 +151,10 @@ void load_texture(const std::string &ugc_name, preview &entry) {
       game::db::xasset::DB_FindXAssetHeader(XAssetType::IMAGE,
                                             "img_t7_mod_preview", false, 0)
           .image;
-  if (base) {
+  if (base != nullptr) {
     const game::gfx::GfxTexture texture = game::gfx::Gfx_LoadTextureFromPng(
         cached_preview_path(ugc_name).string().c_str());
-    if (texture.basemap &&
+    if (texture.basemap != nullptr &&
         nonnull(game::db::xasset::pool::s_assetPools->pools[+XAssetType::IMAGE]
                     .freeHead)) {
       entry.image = static_cast<game::gfx::GfxImage *>(
@@ -185,7 +190,7 @@ void request_installed_items() {
 
 luaReturnCount_e get_preview_image(lua_State *luaVM) {
   const char *ugc_name = lua_tostring(luaVM, 1);
-  if (ugc_name && ugc_name[0]) {
+  if (ugc_name != nullptr && ugc_name[0] != NULL) {
     std::scoped_lock lock(previews_mutex);
     request_download(ugc_name);
     preview &entry = *previews[ugc_name];
@@ -207,7 +212,7 @@ luaReturnCount_e delete_mod(lua_State *luaVM) {
   std::string error = "This mod could not be found.";
   if (game::ugc::UGC_ActiveMod_Loaded() || game::com::Com_IsInGame()) {
     error = "Unload mods before deleting one.";
-  } else if (ugc_name) {
+  } else if (ugc_name != nullptr) {
     const game::ugc::OptionalUGCItemRef mod =
         game::ugc::UGC_GetModByPublisherId(ugc_name);
     if (mod.has_value()) {
@@ -233,7 +238,7 @@ luaReturnCount_e delete_mod(lua_State *luaVM) {
 } // namespace
 
 game::gfx::GfxImage *find_image(const char *name) {
-  if (name && std::string_view(name).starts_with(IMAGE_PREFIX)) {
+  if (name != nullptr && std::string_view(name).starts_with(IMAGE_PREFIX)) {
     std::scoped_lock lock(previews_mutex);
     const previewMap_t::iterator entry = previews.find(
         std::string(std::string_view(name).substr(IMAGE_PREFIX.size())));
@@ -246,17 +251,17 @@ game::gfx::GfxImage *find_image(const char *name) {
 }
 
 class component final : public client_component {
-  DEFINE_COMPONENT_NAME("mod_previews");
+  DEFINE_COMPONENT_NAME("lua/mod_previews");
 
 public:
   void post_unpack() override {
-    static constexpr const luaL_Reg ModsMenuLibrary[] = {
+    static constexpr const luaL_Reg MODS_MENU_LIBRARY[] = {
         lua_state::luaL_LoggedReg<"ModsMenu", "GetPreview",
                                   get_preview_image>(),
         lua_state::luaL_LoggedReg<"ModsMenu", "Delete", delete_mod>(),
-        {nullptr, nullptr},
+        {.name = nullptr, .function = nullptr},
     };
-    lua_state::register_library("ModsMenu", ModsMenuLibrary);
+    lua_state::register_library("ModsMenu", MODS_MENU_LIBRARY);
     scheduler::loop(request_installed_items, scheduler::pipeline::main, 1s);
   }
 };

@@ -6,8 +6,8 @@
 #include <component/game_event.hpp>
 #include <component/gsc/compiler/compiler.hpp>
 #include <component/gsc/func/replacefunc.hpp>
-#include <component/mod_previews.hpp>
 #include <component/mod_stack.hpp>
+#include <component/lua/mod_previews.hpp>
 #include <component/scheduler.hpp>
 #include <loader/component_loader.hpp>
 
