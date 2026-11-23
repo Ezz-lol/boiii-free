@@ -10,11 +10,7 @@
 #include <game/flags.hpp> // IWYU pragma: export
 #include <game/log.hpp>   // IWYU pragma: export
 #include <game/ptr.hpp>   // IWYU pragma: export
-
-namespace arxan::detail {
-void set_address_to_call(const void *address);
-extern void *callstack_proxy_addr;
-} // namespace arxan::detail
+#include <game/tac.hpp>   // IWYU pragma: export
 
 namespace game {
 

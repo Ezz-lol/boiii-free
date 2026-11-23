@@ -13,34 +13,13 @@
 
 #include "integrity.hpp"
 
-#include <stack>
-
 #define ProcessDebugPort 7
 #define ProcessDebugObjectHandle 30
 #define ProcessDebugFlags 31
 #define ProcessImageFileNameWin32 43
 
-namespace arxan {
-namespace detail {
-void *callstack_proxy_addr{nullptr};
-static thread_local const void *address_to_call{};
-
-void set_address_to_call(const void *address) { address_to_call = address; }
-} // namespace detail
-
-namespace {
-thread_local std::stack<uint64_t> address_stack{};
-
-const void *get_address_to_call() { return detail::address_to_call; }
-
-void store_address(const uint64_t address) { address_stack.push(address); }
-
-uint64_t get_stored_address() {
-  const unsigned long long res = address_stack.top();
-  address_stack.pop();
-
-  return res;
-}
+namespace tac {
+using namespace game::tac;
 
 void callstack_return_stub(utils::hook::assembler &a) {
   a.get().push(rax);
@@ -56,19 +35,25 @@ void callstack_return_stub(utils::hook::assembler &a) {
   a.jmp(qword_ptr(rsp, -8));
 }
 
-uint64_t get_callstack_return_stub() {
-  /*
-     Note: in case of future client or dedicated server updates, this address
-     corresponds to the first series of 13 `0xCC` (`int 3`) unused alignment
-     padding bytes in the module, displaced by +2.
-  */
-  static const uintptr_t placeholder = game::select(0x141DC7FD4, 0x140101168);
-  utils::hook::set<uint8_t>(placeholder - 2, 0xFF); // fakes a call
-  utils::hook::nop(placeholder, 1);
-  utils::hook::jump(placeholder + 1,
+/*
+    Note: in case of future client or dedicated server updates, this address
+    corresponds to the first series of 13 `0xCC` (`int 3`) unused alignment
+    padding bytes in the module.
+ */
+static constexpr game::symbol<uint8_t[13]>
+    FIRST_13_CONSECUTIVE_UNUSED_PADDING_BYTES = {0x141DC7FD2, 0x140101166};
+
+uintptr_t get_callstack_return_stub() {
+  static const uintptr_t placeholder = reinterpret_cast<uintptr_t>(
+      FIRST_13_CONSECUTIVE_UNUSED_PADDING_BYTES.get());
+  static const uintptr_t placeholder_fakecall_post_ofs = placeholder + 2;
+
+  utils::hook::set<uint8_t>(placeholder, 0xFF); // fakes a call
+  utils::hook::nop(placeholder_fakecall_post_ofs, 1);
+  utils::hook::jump(placeholder_fakecall_post_ofs + 1,
                     utils::hook::assemble(callstack_return_stub));
 
-  return placeholder;
+  return placeholder_fakecall_post_ofs;
 }
 
 void callstack_stub(utils::hook::assembler &a) {
@@ -90,6 +75,10 @@ void callstack_stub(utils::hook::assembler &a) {
 
   a.jmp(qword_ptr(rsp, -8));
 }
+} // namespace tac
+
+namespace arxan {
+namespace {
 
 constexpr uint64_t PSEUDO_STEAM_ID = 0x1337;
 const HANDLE pseudo_steam_handle = reinterpret_cast<HANDLE>(
@@ -755,30 +744,47 @@ NTSTATUS zw_terminate_process_stub(const HANDLE process_handle,
                                                     exit_status);
 }
 
+constexpr std::string_view SERVER_EXE_STEM =
+    "BlackOps3_UnrankedDedicatedServer";
+constexpr std::string_view CLIENT_EXE_STEM = "BlackOps3";
+
+const std::string_view &exe_stem() {
+  static const std::string_view &result =
+      game::is_server() ? SERVER_EXE_STEM : CLIENT_EXE_STEM;
+  return result;
+}
+
+const std::string &exe_basename() {
+  static const std::string &result = std::format("{}.exe", exe_stem());
+
+  return result;
+}
+
+void dump_executable(const std::string_view &stage) {
+  if (utils::flags::has_flag("dump")) {
+    const std::string output_file_name =
+        std::format(".dump.{}.exe", exe_stem(), stage);
+    std::filesystem::path output_file_path =
+        game::get_game_path() / output_file_name;
+    const bool successful = utils::pe::dump_loaded_pe(output_file_path);
+    const std::string &base_file_name = exe_basename();
+
+    if (successful) {
+      std::println("{} dumped to {} successfully", base_file_name,
+                   output_file_path.string());
+    } else {
+      std::println("Failed to dump {} to {}", base_file_name,
+                   output_file_path.string());
+    }
+  }
+}
+
 struct component final : generic_component {
   DEFINE_COMPONENT_NAME("arxan");
 
   void post_load() override {
 
-    if (utils::flags::has_flag("dump")) {
-      const char *output_file_name =
-          game::is_server()
-              ? "BlackOps3_UnrankedDedicatedServer.dump.post_load.exe"
-              : "BlackOps3.dump.post_load.exe";
-      std::filesystem::path output_file_path =
-          game::get_game_path() / output_file_name;
-      const bool successful = utils::pe::dump_loaded_pe(output_file_path);
-      const char *base_file_name = game::is_server()
-                                       ? "BlackOps3_UnrankedDedicatedServer.exe"
-                                       : "BlackOps3.exe";
-      if (successful) {
-        printf("%s dumped to %s successfully\n", base_file_name,
-               output_file_path.string().c_str());
-      } else {
-        printf("Failed to dump %s to %s\n", base_file_name,
-               output_file_path.string().c_str());
-      }
-    }
+    dump_executable("post_load");
 
     WORD *dll_characteristics =
         &utils::nt::library().get_optional_header()->DllCharacteristics;
@@ -844,28 +850,10 @@ struct component final : generic_component {
       patch_checksum_comparisons();
     }
 
-    // Server needs to be dumped here; arxan-packed if dumped prior.
-    if (utils::flags::has_flag("dump")) {
-      const char *output_file_name =
-          game::is_server()
-              ? "BlackOps3_UnrankedDedicatedServer.dump.post_unpack.exe"
-              : "BlackOps3.dump.post_unpack.exe";
-      std::filesystem::path output_file_path =
-          game::get_game_path() / output_file_name;
-      const bool successful = utils::pe::dump_loaded_pe(output_file_path);
-      const char *base_file_name = game::is_server()
-                                       ? "BlackOps3_UnrankedDedicatedServer.exe"
-                                       : "BlackOps3.exe";
-      if (successful) {
-        printf("%s dumped to %s successfully\n", base_file_name,
-               output_file_path.string().c_str());
-      } else {
-        printf("Failed to dump %s to %s\n", base_file_name,
-               output_file_path.string().c_str());
-      }
-    }
+    dump_executable("post_unpack");
 
-    detail::callstack_proxy_addr = utils::hook::assemble(callstack_stub);
+    game::tac::callstack_proxy_addr =
+        utils::hook::assemble(tac::callstack_stub);
   }
 
   [[nodiscard]] component_priority priority() const override {

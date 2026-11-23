@@ -12,12 +12,12 @@
 namespace game {
 void show_error(const std::string &text, const std::string &title) {
   if (quiet_crash()) {
-    fflush(stdout);
-    fflush(stderr);
+    std::cout.flush();
+    std::cerr.flush();
 
-    fprintf(stderr, "%s\n%s\n", title.c_str(), text.c_str());
+    std::println(std::cerr, "{}\n{}", title, text);
 
-    fflush(stderr);
+    std::cerr.flush();
 
     trace("[Error]{}\n{}\n", title, text);
   } else if (is_headless()) {
