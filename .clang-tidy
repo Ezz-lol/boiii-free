@@ -10,6 +10,7 @@ Checks:
   - "performance-*"
   - "bugprone-*"
   - "cert-*"
+  - "-bugprone-bitwise-pointer-cast"
   - "-bugprone-easily-swappable-parameters"
   - "-bugprone-empty-catch"
   - "-bugprone-macro-parentheses"

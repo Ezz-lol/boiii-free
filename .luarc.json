@@ -12,6 +12,7 @@
       "disablewarnings",
       "editandcontinue",
       "enable64bitchecks",
+      "enablepch",
       "exceptionhandling",
       "externalincludedirs",
       "files",

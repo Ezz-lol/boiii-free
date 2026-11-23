@@ -81,3 +81,6 @@
 [submodule "deps/gsl-lite"]
 	path = deps/gsl-lite
 	url = https://github.com/gsl-lite/gsl-lite
+[submodule "deps/mimalloc"]
+	path = deps/mimalloc
+	url = https://github.com/microsoft/mimalloc.git

@@ -1,5 +1,7 @@
 #include <std_include.hpp>
 
+#include <mimalloc-new-delete.h>
+
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "ntdll.lib")
