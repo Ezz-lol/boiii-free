@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <numeric>
+#include <str.hpp>
 
 #include "game/structs/macros.hpp"
 
@@ -146,14 +147,18 @@ concept stringTableFindPredicate_t =
 struct StringTable : public db::xasset::NamedXAsset {
   typedef int16_t index_t;
 
-  int32_t columnCount;
-  int32_t rowCount;
-  StringTableCell *values;
-  index_t *cellIndex;
+  int32_t columnCount = 0;
+  int32_t rowCount = 0;
+  StringTableCell *values = nullptr;
+  index_t *cellIndex = nullptr;
 
   static inline constexpr size_t MAX_CELL_COUNT =
       static_cast<size_t>(std::numeric_limits<index_t>::max()) +
       1 /* + 1 for one-indexed size */;
+
+  [[nodiscard]] inline constexpr size_t cellCount() const noexcept {
+    return static_cast<size_t>(columnCount) * static_cast<size_t>(rowCount);
+  }
 
   [[nodiscard]] constexpr StringTableCoordinate
   index_coordinate(const size_t idx) const noexcept {
@@ -434,7 +439,26 @@ public:
     return result;
   }
 
-  StringTable(const std::string_view &csv_data) {
+  inline std::string_view set_name(const std::string_view &new_name) {
+    // This is just ensuring we free an existing name allocation, if there is
+    // one. `delete nullptr` is a no-op so we don't need to wrap this in the
+    // conditional explicitly.
+    delete name;
+    const size_t terminated_name_size = new_name.size() + sizeof(NULL);
+    name = new char[terminated_name_size];
+    strscpy(const_cast<char *>(name), new_name.data(), terminated_name_size);
+
+    return {name, terminated_name_size};
+  }
+
+  inline std::string_view set_name(const char *new_name) {
+    return set_name(std::string_view(new_name));
+  }
+
+  StringTable(const std::string_view &asset_name,
+              const std::string_view &csv_data) {
+    set_name(asset_name);
+
     if (!csv_data.empty()) {
       int32_t current_cols = 0;
       bool in_quotes = false;

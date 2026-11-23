@@ -14,8 +14,8 @@ struct hash_info {
 typedef concurrent_hash_map<std::string, ScriptParseTree *> loadedScriptMap_t;
 extern loadedScriptMap_t loaded_scripts;
 
-typedef concurrent_hash_map<std::string, RawFile *> loadedRawFileMap_t;
-extern loadedRawFileMap_t loaded_rawfiles;
+typedef concurrent_hash_map<std::string, XAsset> loadedAssetMap_t;
+extern loadedAssetMap_t loaded_assets;
 
 typedef concurrent_hash_map<uint32_t, std::vector<hash_info>>
     scriptHashNameMap_t;
@@ -27,11 +27,11 @@ extern scriptSourceMap_t script_sources;
 typedef concurrent_hash_map<std::string, std::vector<uint8_t>> scriptGdbMap_t;
 extern scriptGdbMap_t script_gdbs;
 
-void load_rawfiles();
-void print_script_log(const char *message);
+void load_assets();
+void print_asset_log(const std::string_view& message);
 
 ScriptParseTree *get_loaded_script(const std::string &name);
-RawFile *get_loaded_rawfile(const std::string &name);
+XAsset get_loaded_asset(const std::string &name);
 
 template <typename F>
 concept LoadedScriptCallback = std::is_invocable_v<F, const ScriptParseTree &>;

@@ -107,14 +107,7 @@ void dump_requested_assets(const XAssetType type, const char *name,
         hash += utils::cryptography::sha256::compute(buffer.span(), true);
       }
       const DumpEntry map_entry = DumpEntry(type, name, hash);
-      if (dumped.contains(map_entry)) {
-        const std::string log = std::format(
-            R"([DB][XAsset][Extraction] Skipping extraction of asset "{}" - asset was already extracted.)",
-            map_entry.name);
-        fprintf(stdout, "%s\n", log.c_str());
-        fflush(stdout);
-        game::trace("{}", log);
-      } else {
+      if (!dumped.contains(map_entry)) {
         if (dumped_names.contains(asset.name)) {
           const std::filesystem::path asset_path = asset.name;
           const std::filesystem::path asset_ext = asset_path.extension();
@@ -163,15 +156,15 @@ void dump_requested_assets(const XAssetType type, const char *name,
             const std::string log = std::format(
                 R"([DB][XAsset][Extraction] "{}" ({} bytes) -> "{}")",
                 asset.name, asset.size, output_path.generic_string());
-            fprintf(stdout, "%s\n", log.c_str());
-            fflush(stdout);
+            std::println(std::cout, "{}", log);
+            std::cout.flush();
             game::trace("{}", log);
           } else {
             const std::string log = std::format(
                 R"([DB][XAsset][Extraction] failed for "{}" ({} bytes))",
                 asset.name, asset.size);
-            fprintf(stdout, "%s\n", log.c_str());
-            fflush(stdout);
+            std::println(std::cout, "{}", log);
+            std::cout.flush();
             game::trace("{}", log);
             if (std::filesystem::exists(output_path)) {
               std::filesystem::remove(output_path);

@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 
+#include "game/impl/db/db.hpp"
 #include "script.hpp"
 
 #include <component/dump.hpp>
@@ -58,11 +59,11 @@ template <> struct hash<TreeDirectory> {
 
 namespace script {
 
-void print_script_log(const char *message) {
+void print_asset_log(const std::string_view &message) {
   game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s\n", message);
-  fprintf(stderr, "%s\n", message);
-  fflush(stderr);
+                        game::consoleLabel_e::DEFAULT, "%s\n", message.data());
+  std::println(std::cerr, "{}", message);
+  std::cerr.flush();
   game::trace("{}", message);
 }
 
@@ -71,7 +72,7 @@ utils::hook::detour db_find_x_asset_header_hook;
 static utils::memory::allocator allocator;
 
 static loadedScriptMap_t loaded_scripts;
-static loadedRawFileMap_t loaded_rawfiles;
+static loadedAssetMap_t loaded_assets;
 static scriptHashNameMap_t script_hash_names;
 static scriptSourceMap_t script_sources;
 static scriptGdbMap_t script_gdbs;
@@ -82,8 +83,7 @@ std::string normalize_script_name(std::string script_name) {
   if (start != std::string::npos && end != std::string::npos &&
       end > start + 1) {
     const std::string inner = script_name.substr(start + 1, end - start - 1);
-    if (inner.find('/') != std::string::npos ||
-        inner.find('\\') != std::string::npos) {
+    if (inner.contains('/') || inner.contains('\\')) {
       script_name = inner;
     }
   }
@@ -389,7 +389,7 @@ void apply_pending_detours() {
             d.target_script.c_str(), d.target_func.c_str(), d.target_params,
             d.replace_script.c_str(), d.replace_func.c_str(), d.replace_params,
             reason.c_str());
-        print_script_log(err);
+        print_asset_log(err);
       }
     }
 
@@ -436,7 +436,7 @@ void print_loading_script(const std::string &name) {
   const char *log =
       utils::string::va("Loading %s%s'%s'", type, type[0] == NULL ? "" : " ",
                         script_path(name).c_str());
-  print_script_log(log);
+  print_asset_log(log);
 }
 
 void load_script(const std::string &name, const std::string &data) {
@@ -448,7 +448,7 @@ void load_script(const std::string &name, const std::string &data) {
   if (!is_gsc && !is_csc) {
     const char *err = utils::string::va(
         "Script '%s' failed to load due to invalid suffix.", name.data());
-    print_script_log(err);
+    print_asset_log(err);
     return;
   }
 
@@ -458,7 +458,7 @@ void load_script(const std::string &name, const std::string &data) {
     if (base_name.empty()) {
       const char *err = utils::string::va(
           "Script '%s' failed to load due to invalid name.", name.data());
-      print_script_log(err);
+      print_asset_log(err);
       return;
     }
 
@@ -475,9 +475,14 @@ void load_script(const std::string &name, const std::string &data) {
     const char *log =
         utils::string::va("Loaded script '%s' (size %llu bytes)",
                           script_path(name).c_str(), parse_tree->len);
-    print_script_log(log);
+    print_asset_log(log);
   }
 }
+
+// ".csc" or ".gsc"
+constexpr std::string_view GSC_EXT = ".gsc";
+constexpr std::string_view CSC_EXT = ".csc";
+constexpr auto SCRIPT_EXT_LEN = GSC_EXT.size();
 
 void load_script_file(std::string &data,
                       const std::filesystem::path &script_file,
@@ -503,7 +508,7 @@ void load_script_file(std::string &data,
 
         const char *log = utils::string::va(
             "Compiling %s script '%s'", script_type, script_path(name).c_str());
-        print_script_log(log);
+        print_asset_log(log);
         const scriptInstance_t inst =
             is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
         gsc::compiler::compile_result result =
@@ -552,9 +557,11 @@ void load_script_file(std::string &data,
           // Register replacefunc entries as pending detours
           if (!result.replacefuncs.empty()) {
             std::string replace_base = name;
-            if (utils::string::ends_with(replace_base, ".gsc") ||
-                utils::string::ends_with(replace_base, ".csc"))
-              replace_base = replace_base.substr(0, replace_base.size() - 4);
+            if (utils::string::ends_with(replace_base, GSC_EXT) ||
+                utils::string::ends_with(replace_base, CSC_EXT)) {
+              replace_base =
+                  replace_base.substr(0, replace_base.size() - SCRIPT_EXT_LEN);
+            }
 
             for (gsc::compiler::replacefunc_entry &rf : result.replacefuncs) {
               const std::string replace_script =
@@ -577,38 +584,38 @@ void load_script_file(std::string &data,
           const char *err_header = utils::string::va(
               "^1*********************%s COMPILE ERROR*********************",
               script_type);
-          print_script_log(err_header);
+          print_asset_log(err_header);
           for (const gsc::compiler::compile_error &err : result.errors) {
             const char *file_log =
                 utils::string::va("^1  File:    ^5%s", err.file.data());
-            print_script_log(file_log);
+            print_asset_log(file_log);
             if (err.line > 0) {
               const char *line_column_log = utils::string::va(
                   "^1  Line:    ^2%d^7, ^1Column: ^2%d", err.line, err.column);
-              print_script_log(line_column_log);
+              print_asset_log(line_column_log);
               std::string src_line = source_line_at(data, err.line);
               if (!src_line.empty()) {
                 const char *src_log =
                     utils::string::va("^1  Source:  ^7%s", src_line.data());
-                print_script_log(src_log);
+                print_asset_log(src_log);
               }
             }
             const char *error_log =
                 utils::string::va("^1  Error:   ^1%s", err.message.data());
-            print_script_log(error_log);
+            print_asset_log(error_log);
             const char *footer_p1_log =
                 utils::string::va("^1------------------------------------------"
                                   "------------------");
-            print_script_log(footer_p1_log);
+            print_asset_log(footer_p1_log);
           }
-          print_script_log(utils::string::va(
+          print_asset_log(utils::string::va(
               "^1  Result:  ^7%s",
               name.starts_with("scripts/")
                   ? "script not loaded, the game's original script is used"
                   : "script not loaded, the map continues without it"));
           const char *footer_p2_log = utils::string::va(
               "^1************************************************************");
-          print_script_log(footer_p2_log);
+          print_asset_log(footer_p2_log);
         }
       }
     }
@@ -624,11 +631,11 @@ struct queued_script {
 static std::vector<queued_script> execution_queue;
 
 bool is_script_file_name(const std::string_view &name) {
-  return name.ends_with(".gsc") || name.ends_with(".csc");
+  return name.ends_with(GSC_EXT) || name.ends_with(".csc");
 }
 
 void queue_script_execution(const std::string &name) {
-  const bool is_csc = name.ends_with(".csc");
+  const bool is_csc = name.ends_with(CSC_EXT);
   if (!is_script_file_name(name) || (is_csc && !is_client()) ||
       name.size() <= 4 || get_loaded_script(name) == nullptr) {
     return;
@@ -642,23 +649,23 @@ void queue_script_execution(const std::string &name) {
 
 std::optional<std::string> find_missing_include(const queued_script &script) {
   const ScriptParseTree *tree = get_loaded_script(script.name);
-  if (tree == nullptr || tree->buffer == nullptr) {
-    return std::nullopt;
-  }
-
-  const char *extension =
-      script.inst == SCRIPTINSTANCE_CLIENT ? ".csc" : ".gsc";
-  const char *base = reinterpret_cast<const char *>(tree->buffer);
-  for (const uint32_t offset : tree->buffer->includes()) {
-    if (offset >= tree->len) {
-      continue;
-    }
-    std::string name(base + offset, strnlen(base + offset, tree->len - offset));
-    if (!name.empty() &&
-        db::xasset::DB_FindXAssetHeader(XAssetType::SCRIPTPARSETREE,
-                                        (name + extension).c_str(), false, 0)
-                .scriptParseTree == nullptr) {
-      return std::move(name);
+  if (tree != nullptr && tree->buffer != nullptr) {
+    const std::string_view &extension =
+        script.inst == SCRIPTINSTANCE_CLIENT ? CSC_EXT : GSC_EXT;
+    const char *base = reinterpret_cast<const char *>(tree->buffer);
+    for (const uint32_t offset : tree->buffer->includes()) {
+      if (offset < tree->len) {
+        std::string basename(base + offset,
+                             strnlen(base + offset, tree->len - offset));
+        if (!basename.empty()) {
+          const std::string name = std::format("{}{}", basename, extension);
+          if (db::xasset::DB_FindXAssetHeader(XAssetType::SCRIPTPARSETREE,
+                                              name.c_str(), false, 0)
+                  .scriptParseTree == nullptr) {
+            return std::move(basename);
+          }
+        }
+      }
     }
   }
   return std::nullopt;
@@ -666,7 +673,7 @@ std::optional<std::string> find_missing_include(const queued_script &script) {
 
 void execute_queued_script(const queued_script &script) {
   if (const std::optional<std::string> missing = find_missing_include(script)) {
-    print_script_log(utils::string::va(
+    print_asset_log(utils::string::va(
         "Skipped script '%s' because it needs '%s', which this game mode does "
         "not have",
         script_path(script.name).c_str(), missing->c_str()));
@@ -675,24 +682,24 @@ void execute_queued_script(const queued_script &script) {
 
   scr::Scr_LoadScript(script.inst, script.base_name.data());
 
-  print_script_log(utils::string::va("Loaded script '%s' into the VM",
-                                     script_path(script.name).c_str()));
+  print_asset_log(utils::string::va("Loaded script '%s' into the VM",
+                                    script_path(script.name).c_str()));
 
   objFileInfo_t *obj = get_obj_by_name(script.inst, script.name);
   if (obj != nullptr) {
-    script_sources.modify_if(script.name,
-                             [&](scriptSourceMap_t::value_type &v) {
-                               char *src = v.second.data();
-                               obj->debugInfo.source = src;
-                               obj->debugInfo.gdb = nullptr;
-                               obj->debugInfo.sourceLen = v.second.size();
-                               for (size_t i = 0; i < v.second.size(); ++i) {
-                                 char *c = &src[i];
-                                 if (*c == '\n' || *c == '\r') {
-                                   *c = '\0';
-                                 }
-                               }
-                             });
+    script_sources.modify_if(
+        script.name, [&](scriptSourceMap_t::value_type &v) {
+          char *src = v.second.data();
+          obj->debugInfo.source = src;
+          obj->debugInfo.gdb = nullptr;
+          obj->debugInfo.sourceLen = static_cast<int32_t>(v.second.size());
+          for (size_t i = 0; i < v.second.size(); ++i) {
+            char *c = &src[i];
+            if (*c == '\n' || *c == '\r') {
+              *c = '\0';
+            }
+          }
+        });
   }
 }
 
@@ -977,18 +984,17 @@ void load_rawfile_buf(const std::string &name, const std::string &data) {
      access the freed memory, even after shutdown.
 
      This also means that we can never replace an overridden asset in the
-     `loaded_rawfiles`, even where it has been modified or should be overriden
+     `loaded_assets`, even where it has been modified or should be overriden
      by a mod-specific or map-specific script.
 
      TODO: find the correct point of engine execution to free these assets and
      hook it accordingly.
   */
 
-  if (!loaded_rawfiles.if_contains(
-          name,
-          []([[maybe_unused]] const loadedRawFileMap_t::value_type &) {})) {
+  if (!loaded_assets.if_contains(
+          name, []([[maybe_unused]] const loadedAssetMap_t::value_type &) {})) {
     RawFile *raw_file = reinterpret_cast<RawFile *>(
-        db::xasset::pool::DB_AssetPoolAlloc(XAssetType::RAWFILE));
+        db::xasset::pool::DB_AssetPoolAlloc_Impl(XAssetType::RAWFILE));
     char *rawfile_name = reinterpret_cast<char *>(malloc(name.size() + 1));
     strscpy(rawfile_name, name.data(), name.size() + 1);
     raw_file->name = rawfile_name;
@@ -996,12 +1002,31 @@ void load_rawfile_buf(const std::string &name, const std::string &data) {
     memcpy(raw_file->buffer, data.data(), data.length());
     raw_file->len = data.length();
 
-    while (loaded_rawfiles.try_emplace_l(
-        name,
-        [&](loadedRawFileMap_t::value_type &v) { v.second = raw_file; })) {
+    while (
+        loaded_assets.try_emplace_l(name, [&](loadedAssetMap_t::value_type &v) {
+          v.second.type = XAssetType::RAWFILE;
+          v.second.header.rawfile = raw_file;
+        })) {
     }
-    print_script_log(utils::string::va("Loaded rawfile '%s' (size %llu bytes)",
-                                       name.data(), raw_file->len));
+    print_asset_log(utils::string::va("Loaded rawfile '%s' (size %llu bytes)",
+                                      name.data(), raw_file->len));
+  }
+}
+
+void load_stringtable_buf(const std::string &name, const std::string &data) {
+
+  using namespace game::ddl;
+  if (!loaded_assets.if_contains(
+          name, []([[maybe_unused]] const loadedAssetMap_t::value_type &) {})) {
+    StringTable *table = new StringTable(name, data);
+
+    while (
+        loaded_assets.try_emplace_l(name, [&](loadedAssetMap_t::value_type &v) {
+          v.second.type = XAssetType::STRINGTABLE;
+          v.second.header.stringTable = table;
+        })) {
+    }
+    print_asset_log(utils::string::va("Loaded stringtable '%s'", name.data()));
   }
 }
 
@@ -1009,8 +1034,8 @@ constexpr uint8_t HKS_LUA_BYTECODE_MAGIC[8] = {'\x1b', 'L',    'u',    'a',
                                                'Q',    '\x0e', '\x01', '\x04'};
 bool lua_bytecode(std::string &data) {
   return data.size() > std::size(HKS_LUA_BYTECODE_MAGIC) &&
-         !memcmp(HKS_LUA_BYTECODE_MAGIC, data.data(),
-                 std::size(HKS_LUA_BYTECODE_MAGIC));
+         memcmp(HKS_LUA_BYTECODE_MAGIC, data.data(),
+                std::size(HKS_LUA_BYTECODE_MAGIC)) == 0;
 }
 
 int write_lua_bytecode([[maybe_unused]] hksc_State *state, const void *data,
@@ -1037,8 +1062,8 @@ bool compile_lua(std::string &data, const std::filesystem::path &script_file,
   settings.compilersettings.ignore_debug = 1;
 
   hksc_State *state = hksI_newstate(&settings);
-  if (!state) {
-    print_script_log(utils::string::va(
+  if (state == nullptr) {
+    print_asset_log(utils::string::va(
         "Failed to compile Lua rawfile '%s': out of memory", name.data()));
     return false;
   }
@@ -1048,18 +1073,18 @@ bool compile_lua(std::string &data, const std::filesystem::path &script_file,
   const int status =
       hksI_parser_buffer(state, data.data(), data.size(), source.data(),
                          dump_lua_bytecode, &bytecode);
-  if (status) {
+  if (status != 0) {
     const char *error = lua_geterror(state);
-    print_script_log(
+    print_asset_log(
         utils::string::va("Failed to compile Lua rawfile '%s': %s", name.data(),
-                          error ? error : "unknown compiler error"));
+                          error == nullptr ? "unknown compiler error" : error));
     hksI_close(state);
     return false;
   }
 
   hksI_close(state);
   if (!lua_bytecode(bytecode)) {
-    print_script_log(utils::string::va(
+    print_asset_log(utils::string::va(
         "Failed to compile Lua rawfile '%s': invalid bytecode", name.data()));
     return false;
   }
@@ -1068,17 +1093,21 @@ bool compile_lua(std::string &data, const std::filesystem::path &script_file,
   return true;
 }
 
-void load_rawfile_file(std::string &data,
-                       const std::filesystem::path &script_file,
-                       const std::string &name) {
-  if (!name.ends_with(".lua") || lua_bytecode(data) ||
-      compile_lua(data, script_file, name)) {
+void load_asset_file(std::string &data,
+                     const std::filesystem::path &script_file,
+                     const std::string &name) {
+  const std::string ext = script_file.extension().generic_string();
+
+  if (ext == ".csv") {
+    load_stringtable_buf(name, data);
+  } else if (!name.ends_with(".lua") || lua_bytecode(data) ||
+             compile_lua(data, script_file, name)) {
     print_loading_script(name);
     load_rawfile_buf(name, data);
   }
 }
 
-void load_rawfiles_directory(
+void load_assets_directory(
     const std::string &script_dir, const bool recurse,
     const std::optional<std::string_view> strip_base = std::nullopt) {
   if (utils::io::directory_exists(script_dir)) {
@@ -1115,7 +1144,7 @@ void load_rawfiles_directory(
               }
             }
 
-            load_rawfile_file(data, script, name);
+            load_asset_file(data, script, name);
           }
         };
 
@@ -1124,15 +1153,15 @@ void load_rawfiles_directory(
   }
 }
 
-void load_rawfiles_directory_from_trees(const TreeDirectory &dir) {
-  load_rawfiles_directory((get_data_path() / dir.path).string(),
-                          dir.load_recursively, dir.strip_base);
-  load_rawfiles_directory((get_boiii_dir_path() / dir.path).string(),
-                          dir.load_recursively, dir.strip_base);
+void load_assets_directory_from_trees(const TreeDirectory &dir) {
+  load_assets_directory((get_data_path() / dir.path).string(),
+                        dir.load_recursively, dir.strip_base);
+  load_assets_directory((get_boiii_dir_path() / dir.path).string(),
+                        dir.load_recursively, dir.strip_base);
 }
 
 static std::mutex script_load_mutex;
-void load_rawfiles() {
+void load_assets() {
   std::scoped_lock lock(script_load_mutex);
 
   const utils::nt::library host{};
@@ -1216,15 +1245,14 @@ void load_rawfiles() {
                               map_override_directories.end());
 
   std::for_each(std::execution::par, applicable_tree_dirs.begin(),
-                applicable_tree_dirs.end(), load_rawfiles_directory_from_trees);
+                applicable_tree_dirs.end(), load_assets_directory_from_trees);
 }
 
-RawFile *get_loaded_rawfile(const std::string &name) {
+XAsset get_loaded_asset(const std::string &name) {
   std::scoped_lock script_load_lock(script_load_mutex);
-  RawFile *result = nullptr;
-  loaded_rawfiles.if_contains(
-      name,
-      [&](const loadedRawFileMap_t::value_type &v) { result = v.second; });
+  XAsset result{};
+  loaded_assets.if_contains(
+      name, [&](const loadedAssetMap_t::value_type &v) { result = v.second; });
   return result;
 }
 
@@ -1233,8 +1261,7 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
                                              const bool error_if_missing,
                                              const int32_t wait_time) {
   XAssetHeader result{.rawfile = nullptr};
-  // Check our loaded scripts first to avoid "Could not find scriptparsetree"
-  // spam
+  // Check our loaded assets first to attempt override or custom script load
   if (name != nullptr && name[0] != NULL) {
     switch (type) {
     case XAssetType::SCRIPTPARSETREE: {
@@ -1242,9 +1269,14 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
       break;
     }
     case XAssetType::RAWFILE: {
-      result.rawfile = get_loaded_rawfile(name);
+      result.rawfile = get_loaded_asset(name).header.rawfile;
       break;
     }
+    case XAssetType::STRINGTABLE: {
+      result.stringTable = get_loaded_asset(name).header.stringTable;
+      break;
+    }
+
     case XAssetType::IMAGE: {
       result.image = mod_previews::find_image(name);
       break;
@@ -1266,16 +1298,50 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
   return result;
 }
 
+void free_loaded_assets() {
+  // Collect keys first so we don't invalidate iterators while traversing.
+  std::vector<std::string> keys_to_erase;
+  loaded_assets.for_each(
+      [&keys_to_erase](const loadedAssetMap_t::value_type &v) {
+        switch (v.second.type) {
+        case XAssetType::STRINGTABLE: {
+          keys_to_erase.push_back(v.first);
+          break;
+        }
+        default: {
+          break;
+        }
+        }
+      });
+
+  for (const std::string &key : keys_to_erase) {
+    loaded_assets.erase_if(key, [](loadedAssetMap_t::value_type &v) {
+      switch (v.second.type) {
+      case XAssetType::STRINGTABLE: {
+        delete v.second.header.stringTable;
+        v.second.header.stringTable = nullptr;
+        return true;
+      }
+      default: {
+        return false;
+      }
+      }
+    });
+  }
+}
+
 void clear_script_memory() {
   std::scoped_lock lock(script_load_mutex);
 
+  free_loaded_assets();
   execution_queue.clear();
   loaded_scripts.clear();
   script_gdbs.clear();
   script_hash_names.clear();
   script_sources.clear();
-  pending_detours.access(
-      [](auto &pending_detours) { pending_detours.clear(); });
+  pending_detours.access([](std::vector<pending_detour> &pending_detours) {
+    pending_detours.clear();
+  });
   allocator.clear();
 }
 
@@ -1290,7 +1356,7 @@ void rebuild_script_gdb() {
           existing_entries = utils::compression::zip::extract(data);
       for (const auto &[key, value] : existing_entries) {
         if (!script_gdbs.contains(key)) {
-          script_gdbs[key] = std::move(value);
+          script_gdbs[key] = value;
         }
       }
     } catch (...) {
@@ -1332,7 +1398,7 @@ void load_global_hash_table() {
         }
         const char *log = utils::string::va("Loaded %zu hash names from '%s'",
                                             count, path.string().c_str());
-        print_script_log(log);
+        print_asset_log(log);
         return true;
       }
 
@@ -1356,30 +1422,29 @@ void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
 
   scr::Scr_BeginLoadScripts(inst, user);
 
-  if (!com::Com_IsInGame() || com::Com_IsRunningUILevel()) {
-    return;
-  }
+  if (com::Com_IsInGame()) {
+    {
+      std::scoped_lock lock(script_load_mutex);
+      execution_queue.clear();
+      load_scripts();
+      rebuild_script_gdb();
+    }
 
-  {
+    for (const queued_script &script : execution_queue) {
+      execute_queued_script(script);
+    }
+
     std::scoped_lock lock(script_load_mutex);
-    execution_queue.clear();
-    load_scripts();
-    rebuild_script_gdb();
-  }
-
-  for (const queued_script &script : execution_queue) {
-    execute_queued_script(script);
-  }
-
-  std::scoped_lock lock(script_load_mutex);
-  if (!pending_detours.access<bool>(
-          [](auto &pending_detours) { return pending_detours.empty(); })) {
-    apply_pending_detours();
+    if (!pending_detours.access<bool>(
+            [](const std::vector<pending_detour> &pending_detours) {
+              return pending_detours.empty();
+            })) {
+      apply_pending_detours();
+    }
   }
 }
 
 std::string resolve_hash(ScrVarCanonicalName_t hash) {
-
   std::optional<std::string> result;
   script_hash_names.if_contains(
       hash, [&result](const scriptHashNameMap_t::value_type &v) {
@@ -1581,7 +1646,7 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
         error == nullptr ? "NULL" : error, terminal ? "true" : "false",
         prev_code_positions_string.c_str());
 
-    print_script_log(error_log);
+    print_asset_log(error_log);
   }
   Scr_Error_hook.invoke(inst, error, terminal);
 }

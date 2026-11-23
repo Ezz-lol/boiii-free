@@ -450,7 +450,7 @@ void DB_AssetPoolInit_stub() {
   apply_asset_limits();
   pool::DB_InitBSPGlobals_Impl();
 
-  script::load_rawfiles();
+  script::load_assets();
 }
 
 utils::hook::detour DB_AssetPoolAlloc_hook;

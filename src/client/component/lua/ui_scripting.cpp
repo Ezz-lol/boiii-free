@@ -449,8 +449,8 @@ arguments lua_print(variadic_args args) {
 
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", message.c_str());
-  fprintf(stdout, "%s\n", message.c_str());
-  fflush(stdout);
+  std::println(std::cout, "{}", message);
+  std::cout.flush();
 #ifndef NDEBUG
   game::trace("[Lua] {}", message.c_str());
 #endif
@@ -482,7 +482,7 @@ void print_error(const std::string &error) {
 }
 
 void print_loading_script(const std::string_view &name) {
-  printf("Loading LUI script '%s'\n", name.data());
+  std::println("Loading LUI script '{}'", name.data());
   game::trace("Loading LUI script '{}'", name);
 }
 
@@ -694,7 +694,7 @@ void try_start() {
   try {
     start();
   } catch (const std::exception &ex) {
-    printf("Failed to load LUI scripts: %s\n", ex.what());
+    std::println("Failed to load LUI scripts: {}", ex.what());
   }
 }
 
@@ -824,7 +824,8 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
       try {
         reload_private_game_menu_scripts();
       } catch (const std::exception &ex) {
-        printf("Failed to reload private-game menu scripts: %s\n", ex.what());
+        std::println("Failed to reload private-game menu scripts: {}",
+                     ex.what());
       }
     }
     return;
@@ -1569,8 +1570,8 @@ void lua_cod_luastatemanager_error_stub(const char *error, lua_State *luaVM) {
     const char *resolved_stack = error_stack;
 
     // Suppress known benign nil errors from server_browser scripts
-    if (stack_str.find("Attempt to call a nil value") != std::string::npos &&
-        stack_str.find("server_browser/") != std::string::npos) {
+    if (stack_str.contains("Attempt to call a nil value") &&
+        stack_str.contains("server_browser/")) {
       const std::string colored =
           colorize_lua_error("LUI script (suppressed)", error_stack);
       game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
@@ -1740,8 +1741,12 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
                                            const char *func_name) {
 #ifndef STUB_LOAD
 #define STUB_LOAD(reason)                                                      \
-  printf("[Lua] Not loading \"%s\" (%s): %s\n", filename ? filename : "NULL",  \
-         func_name ? func_name : "NULL", reason);                              \
+  const std::string log = std::format("[Lua] Not loading \"{}\" ({}): {}",     \
+                                      filename ? filename : "NULL",            \
+                                      func_name ? func_name : "NULL", reason); \
+  std::println("{}", log);                                                     \
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,           \
+                        game::consoleLabel_e::DEFAULT, "%s\n", log.c_str());   \
   lua_pushfunction(s, lua_stub_func, func_name);                               \
   return luaReturnCount_e::ONE;
 #endif
@@ -1751,7 +1756,7 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
   }
 
   std::string redirected;
-  if (filename) {
+  if (filename != nullptr) {
     std::filesystem::path file_path = filename;
 
     if (!std::filesystem::exists(file_path)) {
@@ -2209,8 +2214,11 @@ inline const uint8_t *
 Lua_CoD_FFReader_EnforceOverride(lua_State *luaVM, RawFile *ud, size_t *size) {
   if (ud != nullptr) {
     if (ud->name != nullptr && ud->name[0] != NULL) {
-      RawFile *override = script::get_loaded_rawfile(ud->name);
-      if (override != nullptr && override->buffer != ud->buffer) {
+      XAsset override_asset = script::get_loaded_asset(ud->name);
+
+      if (override_asset.type == XAssetType::RAWFILE && override_asset.header.rawfile != nullptr && override_asset.header.rawfile->buffer != ud->buffer) {
+              RawFile *override = override_asset.header.rawfile;
+
 // TODO: how and why does this happen? How do scripts arrive here if not fetched
 // with `DB_FindXAssetHeader`?
 #ifndef NDEBUG
@@ -2266,8 +2274,8 @@ void print_info(game::consoleLabel_e label, const std::string_view &msg) {
   const char *log = utils::string::va("[Lua][Info][%s] %s",
                                       game::serialize(label), msg.data());
   game::trace("{}", log);
-  fprintf(stdout, "%s\n", log);
-  fflush(stdout);
+  std::println(std::cout, "{}", log);
+  std::cout.flush();
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
                         "%s\n", log);
 }
@@ -2276,8 +2284,8 @@ void print_error(game::consoleLabel_e label, const std::string_view &msg) {
   const char *log = utils::string::va("[Lua][Error][%s] %s",
                                       game::serialize(label), msg.data());
   game::trace("{}", log);
-  fprintf(stderr, "%s\n", log);
-  fflush(stderr);
+  std::println(std::cerr, "{}", log);
+  std::cerr.flush();
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
                         "%s\n", log);
 }
@@ -2286,8 +2294,8 @@ void print_warning(game::consoleLabel_e label, const std::string_view &msg) {
   const char *log = utils::string::va("[Lua][Warn][%s] %s",
                                       game::serialize(label), msg.data());
   game::trace("{}", log);
-  fprintf(stdout, "%s\n", log);
-  fflush(stdout);
+  std::println(std::cout, "{}", log);
+  std::cout.flush();
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
                         "%s\n", log);
 }
