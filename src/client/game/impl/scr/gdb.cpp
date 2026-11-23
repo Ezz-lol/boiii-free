@@ -22,8 +22,8 @@ public:
   ZipFile(const ZipFile &) = delete;
   ZipFile &operator=(const ZipFile &) = delete;
 
-  bool IsOpen() const { return m_handle != nullptr; }
-  unzFile GetHandle() const { return m_handle; }
+  [[nodiscard]] bool IsOpen() const { return m_handle != nullptr; }
+  [[nodiscard]] unzFile GetHandle() const { return m_handle; }
 
 private:
   unzFile m_handle;
@@ -68,8 +68,8 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info,
     }
 
     if (strings.size() != header->stringtable_count) {
-      fprintf(stderr, "Invalid GDB string table for script '%s'\n",
-              debug->filename ? debug->filename : "<unknown>");
+      std::println(std::cerr, "Invalid GDB string table for script '{}'",
+                   debug->filename == nullptr ? "<unknown>" : debug->filename);
       free(debug->gdb);
       debug->gdb = nullptr;
       return;
@@ -81,7 +81,7 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info,
        8‑byte aligned. Each entry is a 32‑bit offset that becomes an
        absolute pointer into the gdbBuffer.
     */
-    uint64_t *lineInfo = align(header->lineinfo(), sizeof(uint64_t));
+    uint64_t *lineInfo = align(header->lineinfo().data(), sizeof(uint64_t));
 
     const uint32_t lineinfoCount = header->lineinfo_count;
 
@@ -99,13 +99,13 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info,
     for (const char *name : strings) {
       const ScrVarCanonicalName_t hash = builtin::fnv1a(name);
       const char *existing = sl::SL_LookupCanonicalString(hash);
-      if (existing && strcmp(existing, name) != 0) {
-        fprintf(stderr,
-                "Canonical name hash collision in script '%s': '%s' and "
-                "'%s'\n",
-                debug->filename ? debug->filename : "<unknown>", existing,
-                name);
-        fflush(stderr);
+      if (existing != nullptr && strcmp(existing, name) != 0) {
+        std::println(
+            std::cerr,
+            "Canonical name hash collision in script '{}': '{}' and '{}'",
+            debug->filename == nullptr ? "<unknown>" : debug->filename,
+            existing, name);
+        std::cerr.flush();
       }
       sl::SL_GenerateCanonicalString(name);
     }
@@ -177,7 +177,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
   } // zipFile destroyed here
 
   // If a mod is active, also try to load from per‑zone GDB files
-  if (ugc::active_mod->publisherId[0]) {
+  if (ugc::active_mod->publisherId[0] != NULL) {
     const uint32_t objCount = gObjFileInfoCount->instance[inst];
 
     for (ZoneType zoneType = ZoneType::MOD; zoneType < ZoneType::COUNT;
@@ -196,7 +196,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
 
         // Resolve the virtual path into a concrete filesystem location
         if (ugc::UGC_ZoneSourcePath_Impl(relPath, ".gdb", std::size(fullPath),
-                                         fullPath, zoneType, pubId)) {
+                                         fullPath, zoneType, pubId) != 0) {
           std::ifstream file(fullPath, std::ios::binary);
           if (file.is_open()) {
             file.seekg(0, std::ios::end);
@@ -268,7 +268,7 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
   }
 
   // If a UGC mod is active, attempt to load from per‑zone GDB files.
-  if (ugc::active_mod->publisherId[0]) {
+  if (ugc::active_mod->publisherId[0] != NULL) {
 
     for (ZoneType zoneType = ZoneType::MOD; zoneType < ZoneType::COUNT;
          ++zoneType) {
@@ -282,7 +282,7 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
       const char *const pubId = ugc::active_mod->publisherId;
 
       if (ugc::UGC_ZoneSourcePath_Impl(relPath, ".gdb", std::size(fullPath),
-                                       fullPath, zoneType, pubId)) {
+                                       fullPath, zoneType, pubId) != 0) {
         std::ifstream file(fullPath, std::ios::binary);
         if (file.is_open()) {
           file.seekg(0, std::ios::end);
@@ -463,9 +463,10 @@ void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
   }
 
   const char *lookupResult = sl::SL_LookupCanonicalString(import->name);
-  const std::string functionName = lookupResult && lookupResult[0]
-                                       ? lookupResult
-                                       : std::format("{:X}", import->name);
+  const std::string functionName =
+      lookupResult != nullptr && lookupResult[0] != NULL
+          ? lookupResult
+          : std::format("{:X}", import->name);
 
   const std::string errorMessage =
       std::format(" \"{}\" with {} parameters in \"{}\" at {} {} ****\n",

@@ -152,7 +152,7 @@ bool bg_unlockablesemblemorbackinglockedbychallenge_stub(
 
 bool bg_unlockedgetchallengeunlockedforindex_stub(
     game::eModes mode, const game::ControllerIndex_t controllerIndex,
-    unsigned __int16 index, int itemIndex) {
+    uint16_t index, int itemIndex) {
   if (dvar_cg_unlockall_camos_and_reticles.get_bool()) {
     return true;
   }

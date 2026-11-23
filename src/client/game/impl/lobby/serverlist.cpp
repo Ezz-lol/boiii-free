@@ -9,7 +9,7 @@ msg::Msg_InfoResponseLobbyServer *
 CheckForDuplicate(msg::Msg_InfoResponseLobbyServer &newLobbyServerInfo,
                   LobbyServerList &serverList) {
   for (msg::Msg_InfoResponseLobbyServer &serverInfo :
-       serverList.getServerInfo()) {
+       serverList.get_serverInfo()) {
     if ((serverInfo.lobby.host.hostXuid != 0 &&
          newLobbyServerInfo.lobby.host.hostXuid != 0 &&
          serverInfo.lobby.host.hostXuid ==

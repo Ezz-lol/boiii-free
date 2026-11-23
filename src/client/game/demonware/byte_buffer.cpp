@@ -52,7 +52,7 @@ bool byte_buffer::read_int64(__int64 *output) {
   return this->read(8, output);
 }
 
-bool byte_buffer::read_uint64(unsigned __int64 *output) {
+bool byte_buffer::read_uint64(uint64_t *output) {
   if (!this->read_data_type(10))
     return false;
   return this->read(8, output);
@@ -200,7 +200,7 @@ bool byte_buffer::write_int64(__int64 data) {
   return this->write(8, &data);
 }
 
-bool byte_buffer::write_uint64(unsigned __int64 data) {
+bool byte_buffer::write_uint64(uint64_t data) {
   this->write_data_type(10);
   return this->write(8, &data);
 }

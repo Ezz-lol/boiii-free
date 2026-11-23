@@ -31,8 +31,8 @@ namespace fs {
 const std::filesystem::path &scriptdata_path() {
   static const std::filesystem::path result =
       std::filesystem::absolute(
-          path::cwd() / utils::flags::get<std::string>("scriptdata-path")
-                            .value_or("boiii/scriptdata"))
+          utils::flags::get<std::string>("scriptdata-path")
+              .value_or("boiii/scriptdata"))
           .lexically_normal();
 
   return result;

@@ -644,7 +644,7 @@ std::string report_text(const report &report, const std::string &outcome) {
 void print_report(const report &report, const std::string &outcome) {
   std::string text = report_text(report, outcome);
   text.pop_back();
-  script::print_script_log(text.c_str());
+  script::print_asset_log(text.c_str());
 }
 
 void report_runaway_loop(const game::scr::scriptInstance_t inst,

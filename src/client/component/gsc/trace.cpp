@@ -30,19 +30,17 @@ inline void log_method_call_helper(const char *table_name,
   const std::string_view method_name =
       gsc::builtin_method_name(canonId).value_or("UNKNOWN");
   game::trace(
-      "[Scr][Method] Calling built-in method with inst: {}, entref: {}, name "
-      "\"{}::{}\", address: {:p}",
+      R"([Scr][Method] Calling built-in method with inst: {}, entref: {}, name "{}::{}", address: {:p})",
       serialize(inst), entref->serialize(entref_str_buf), table_name,
       method_name, static_cast<void *>(game::derelocate(original_func)));
 
   original_func(inst, entref);
 
   entref->serialize(entref_str_buf);
-  game::trace("[Scr][Method] Returning from call to built-in method with "
-              "inst: {}, entref: {}, name \"{}::{}\", address: {:p}",
-              serialize(inst), entref->serialize(entref_str_buf), table_name,
-              method_name,
-              static_cast<void *>(game::derelocate(original_func)));
+  game::trace(
+      R"([Scr][Method] Returning from call to built-in method with inst: {}, entref: {}, name "{}::{}", address: {:p})",
+      serialize(inst), entref->serialize(entref_str_buf), table_name,
+      method_name, static_cast<void *>(game::derelocate(original_func)));
 }
 
 inline void log_function_call_helper(const char *table_name,
@@ -51,17 +49,17 @@ inline void log_function_call_helper(const char *table_name,
                                      scriptInstance_t inst) {
   const std::string_view function_name =
       gsc::builtin_function_name(canonId).value_or("UNKNOWN");
-  game::trace("[Scr][Function] Calling built-in function with inst: "
-              "{}, name \"{}::{}\", address: {:p}",
-              serialize(inst), table_name, function_name,
-              static_cast<void *>(game::derelocate(original_func)));
+  game::trace(
+      R"([Scr][Function] Calling built-in function with inst: {}, name "{}::{}", address: {:p})",
+      serialize(inst), table_name, function_name,
+      static_cast<void *>(game::derelocate(original_func)));
 
   original_func(inst);
 
-  game::trace("[Scr][Function] Returning from call to built-in function "
-              "with inst: {}, name \"{}::{}\", address: {:p}",
-              serialize(inst), table_name, function_name,
-              static_cast<void *>(game::derelocate(original_func)));
+  game::trace(
+      R"([Scr][Function] Returning from call to built-in function with inst: {}, name "{}::{}", address: {:p})",
+      serialize(inst), table_name, function_name,
+      static_cast<void *>(game::derelocate(original_func)));
 }
 
 inline void log_all_builtin_calls() {

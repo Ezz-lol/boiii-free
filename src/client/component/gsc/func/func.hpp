@@ -28,8 +28,8 @@ void deprecate(scriptInstance_t inst) {
       "Warning: %s has been deprecated, and will be removed in the next minor "
       "version - update your scripts to use %s instead. %s %s",
       APIName, ReplacementAPIName, ReplacementAPIName, InfoMsg);
-  fprintf(stderr, "%s\n", deprecation_warning);
-  fflush(stderr);
+  std::println(std::cerr, "{}", deprecation_warning);
+  std::cerr.flush();
   game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n",
                         deprecation_warning);
@@ -1112,19 +1112,19 @@ inline void push(scriptInstance_t inst, const vec3_t *vec) {
 }
 
 inline void push(scriptInstance_t inst, const char *val) {
-  return push_string(inst, val);
+  push_string(inst, val);
 }
 
 inline void push(scriptInstance_t inst, const std::filesystem::path &val) {
-  return push_string(inst, std::move(val));
+  push_string(inst, val);
 }
 
 inline void push(scriptInstance_t inst, const std::string_view &val) {
-  return push_string(inst, std::move(val));
+  push_string(inst, val);
 }
 
 inline void push(scriptInstance_t inst, const std::string &val) {
-  return push_string(inst, std::move(val));
+  push_string(inst, val);
 }
 
 template <IntegralLike<int32_t> Prim>
@@ -1141,8 +1141,8 @@ inline void push(scriptInstance_t inst, int64_t val) { push_int(inst, val); }
 
 inline void push(scriptInstance_t inst, std::vector<std::string> &&arr) {
   Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); ++i) {
-    const char *str = arr[i].c_str();
+  for (const std::string &i : arr) {
+    const char *str = i.c_str();
     Scr_AddString(inst, str);
     Scr_AddArray(inst);
   }
@@ -1150,8 +1150,8 @@ inline void push(scriptInstance_t inst, std::vector<std::string> &&arr) {
 
 inline void push(scriptInstance_t inst, std::vector<std::string_view> &&arr) {
   Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); ++i) {
-    const char *str = arr[i].data();
+  for (const std::string_view &i : arr) {
+    const char *str = i.data();
     Scr_AddString(inst, str);
     Scr_AddArray(inst);
   }
@@ -1160,8 +1160,8 @@ inline void push(scriptInstance_t inst, std::vector<std::string_view> &&arr) {
 inline void push(scriptInstance_t inst,
                  std::vector<std::filesystem::path> &&arr) {
   Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); ++i) {
-    const std::string str = arr[i].string();
+  for (const std::filesystem::path &i : arr) {
+    const std::string str = i.string();
     const char *cstr = str.c_str();
     Scr_AddString(inst, cstr);
     Scr_AddArray(inst);
@@ -1170,40 +1170,40 @@ inline void push(scriptInstance_t inst,
 
 inline void push(scriptInstance_t inst, std::vector<float> &&arr) {
   Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); ++i) {
-    Scr_AddFloat(inst, arr[i]);
+  for (float i : arr) {
+    Scr_AddFloat(inst, i);
     Scr_AddArray(inst);
   }
 }
 
 inline void push(scriptInstance_t inst, std::vector<const char *> &&arr) {
   Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); ++i) {
-    Scr_AddString(inst, arr[i]);
+  for (const char *&i : arr) {
+    Scr_AddString(inst, i);
     Scr_AddArray(inst);
   }
 }
 
 inline void push(scriptInstance_t inst, std::vector<bool> &&arr) {
   Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); ++i) {
-    Scr_AddInt(inst, static_cast<qboolean>((arr[i])));
+  for (bool &&i : arr) {
+    Scr_AddInt(inst, static_cast<qboolean>(i));
     Scr_AddArray(inst);
   }
 }
 
 inline void push(scriptInstance_t inst, std::vector<uint32_t> &&arr) {
   Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); ++i) {
-    Scr_AddInt(inst, static_cast<int32_t>(arr[i]));
+  for (unsigned int i : arr) {
+    Scr_AddInt(inst, static_cast<int32_t>(i));
     Scr_AddArray(inst);
   }
 }
 
 inline void push(scriptInstance_t inst, std::vector<int32_t> &&arr) {
   Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); ++i) {
-    Scr_AddInt(inst, arr[i]);
+  for (int i : arr) {
+    Scr_AddInt(inst, i);
     Scr_AddArray(inst);
   }
 }
@@ -1265,7 +1265,7 @@ template <IntegralLike auto ArraySize>
 inline void push(scriptInstance_t inst, const array<bool, ArraySize> &&arr) {
   Scr_MakeArray(inst);
   for (uint64_t i = 0; i < static_cast<uint64_t>(ArraySize); ++i) {
-    Scr_AddInt(inst, static_cast<qboolean>((arr[i])));
+    Scr_AddInt(inst, static_cast<qboolean>(arr[i]));
     Scr_AddArray(inst);
   }
 }
@@ -1292,29 +1292,23 @@ inline void push(scriptInstance_t inst, const array<int32_t, ArraySize> &&arr) {
 // Push empty array
 inline void push(scriptInstance_t inst) { Scr_MakeArray(inst); }
 
-template <SizedIntegralLike<int32_t> Prim,
-          // Ensure specific overrides remain respected
-          typename std::enable_if<
-              !std::disjunction<
-                  std::is_same<Prim, int32_t>, std::is_same<Prim, uint32_t>,
-                  std::is_same<Prim, bool>, std::is_same<Prim, qboolean>,
-                  std::is_same<Prim, int64_t>, std::is_same<Prim, uint64_t>,
-                  std::is_array<Prim>>::value,
-              int>::type = 0>
-inline void push(scriptInstance_t inst, Prim val) {
+template <SizedIntegralLike<int32_t> Prim>
+inline void push(scriptInstance_t inst, Prim val)
+  requires(!std::disjunction_v<
+           std::is_same<Prim, int32_t>, std::is_same<Prim, uint32_t>,
+           std::is_same<Prim, bool>, std::is_same<Prim, qboolean>,
+           std::is_same<Prim, int64_t>, std::is_same<Prim, uint64_t>,
+           std::is_array<Prim>>)
+{
   return push_int(inst, val);
 }
 
-template <SizedIntegralLike<int32_t> Prim,
-          // Ensure specific overrides remain respected
-          typename std::enable_if<
-              !std::disjunction<
-                  std::is_same<Prim, int32_t>, std::is_same<Prim, uint32_t>,
-                  std::is_same<Prim, bool>, std::is_same<Prim, qboolean>,
-                  std::is_same<Prim, int64_t>, std::is_same<Prim, uint64_t>,
-                  std::is_array<Prim>>::value,
-              int>::type = 0,
-          IntegralLike auto ArraySize>
+template <SizedIntegralLike<int32_t> Prim, IntegralLike auto ArraySize>
+  requires(!std::disjunction_v<
+           std::is_same<Prim, int32_t>, std::is_same<Prim, uint32_t>,
+           std::is_same<Prim, bool>, std::is_same<Prim, qboolean>,
+           std::is_same<Prim, int64_t>, std::is_same<Prim, uint64_t>,
+           std::is_array<Prim>>)
 inline void push(scriptInstance_t inst, const array<Prim, ArraySize> &&arr) {
   Scr_MakeArray(inst);
   for (uint64_t i = 0; i < static_cast<uint64_t>(ArraySize); ++i) {
@@ -1323,16 +1317,14 @@ inline void push(scriptInstance_t inst, const array<Prim, ArraySize> &&arr) {
   }
 }
 
-template <SizedIntegralLike<int32_t> Prim,
-          // Ensure specific overrides remain respected
-          typename std::enable_if<
-              !std::disjunction<
-                  std::is_same<Prim, int32_t>, std::is_same<Prim, uint32_t>,
-                  std::is_same<Prim, bool>, std::is_same<Prim, qboolean>,
-                  std::is_same<Prim, int64_t>, std::is_same<Prim, uint64_t>,
-                  std::is_array<Prim>>::value,
-              int>::type = 0>
-inline void push(scriptInstance_t inst, const std::vector<Prim> &&arr) {
+template <SizedIntegralLike<int32_t> Prim>
+inline void push(scriptInstance_t inst, const std::vector<Prim> &&arr)
+  requires(!std::disjunction_v<
+           std::is_same<Prim, int32_t>, std::is_same<Prim, uint32_t>,
+           std::is_same<Prim, bool>, std::is_same<Prim, qboolean>,
+           std::is_same<Prim, int64_t>, std::is_same<Prim, uint64_t>,
+           std::is_array<Prim>>)
+{
   Scr_MakeArray(inst);
   for (uint64_t i = 0; i < arr.size(); ++i) {
     push_int(inst, arr[i]);

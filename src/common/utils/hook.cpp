@@ -313,11 +313,12 @@ void nop(void *place_arg, const size_t length) {
   // Validate memory region and ensure VirtualProtect covers the exact length
   // (inherently handles cross-page boundaries if within the same allocation)
   MEMORY_BASIC_INFORMATION mbi;
-  if (!VirtualQuery(place, &mbi, sizeof(mbi))) {
+  if (VirtualQuery(place, &mbi, sizeof(mbi)) == 0u) {
     throw std::runtime_error("VirtualQuery failed during NOP patch");
   }
 
-  if (!VirtualProtect(place, length, PAGE_EXECUTE_READWRITE, &old_protect)) {
+  if (VirtualProtect(place, length, PAGE_EXECUTE_READWRITE, &old_protect) ==
+      0) {
     throw std::runtime_error("VirtualProtect failed during NOP patch");
   }
 
@@ -424,7 +425,7 @@ bool is_relatively_far(const size_t pointer, const size_t data,
 void call(void *pointer, const void *data) {
   if (is_relatively_far(pointer, data)) {
     void *trampoline = get_memory_near(pointer, 14);
-    if (!trampoline) {
+    if (trampoline == nullptr) {
       throw std::runtime_error("Too far away to create 32bit relative branch");
     }
 
@@ -436,31 +437,32 @@ void call(void *pointer, const void *data) {
   uint8_t copy_data[5];
   copy_data[0] = 0xE8;
   *reinterpret_cast<int32_t *>(&copy_data[1]) = static_cast<int32_t>(
-      reinterpret_cast<size_t>(data) - (reinterpret_cast<size_t>(pointer) + 5));
+      reinterpret_cast<size_t>(data) -
+      (reinterpret_cast<size_t>(pointer) + std::size(copy_data)));
 
   uint8_t *patch_pointer = static_cast<uint8_t *>(pointer);
   copy(patch_pointer, copy_data, sizeof(copy_data));
 }
 
 void call(const size_t pointer, const void *data) {
-  return call(reinterpret_cast<void *>(pointer), data);
+  call(reinterpret_cast<void *>(pointer), data);
 }
 
 void call(const size_t pointer, const size_t data) {
-  return call(pointer, reinterpret_cast<void *>(data));
+  call(pointer, reinterpret_cast<void *>(data));
 }
 
 void jump(void *pointer, const void *data, const bool use_far,
           const bool use_safe) {
-  static const unsigned char jump_data[] = {0x48, 0xb8, 0x88, 0x77, 0x66, 0x55,
-                                            0x44, 0x33, 0x22, 0x11, 0xff, 0xe0};
+  constexpr unsigned char JUMP_DATA[] = {0x48, 0xb8, 0x88, 0x77, 0x66, 0x55,
+                                         0x44, 0x33, 0x22, 0x11, 0xff, 0xe0};
 
-  static const unsigned char jump_data_safe[] = {0xFF, 0x25, 0x00,
-                                                 0x00, 0x00, 0x00};
+  constexpr unsigned char JUMP_DATA_SAFE[] = {0xFF, 0x25, 0x00,
+                                              0x00, 0x00, 0x00};
 
   if (!use_far && is_relatively_far(pointer, data)) {
     void *trampoline = get_memory_near(pointer, 14);
-    if (!trampoline) {
+    if (trampoline == nullptr) {
       throw std::runtime_error("Too far away to create 32bit relative branch");
     }
     jump(pointer, trampoline, false, false);
@@ -472,14 +474,14 @@ void jump(void *pointer, const void *data, const bool use_far,
 
   if (use_far) {
     if (use_safe) {
-      uint8_t copy_data[sizeof(jump_data_safe) + sizeof(data)];
-      memcpy(copy_data, jump_data_safe, sizeof(jump_data_safe));
-      memcpy(copy_data + sizeof(jump_data_safe), &data, sizeof(data));
+      uint8_t copy_data[sizeof(JUMP_DATA_SAFE) + sizeof(data)];
+      memcpy(copy_data, JUMP_DATA_SAFE, sizeof(JUMP_DATA_SAFE));
+      memcpy(copy_data + sizeof(JUMP_DATA_SAFE), &data, sizeof(data));
 
       copy(patch_pointer, copy_data, sizeof(copy_data));
     } else {
-      uint8_t copy_data[sizeof(jump_data)];
-      memcpy(copy_data, jump_data, sizeof(jump_data));
+      uint8_t copy_data[sizeof(JUMP_DATA)];
+      memcpy(copy_data, JUMP_DATA, sizeof(JUMP_DATA));
       memcpy(copy_data + 2, &data, sizeof(data));
 
       copy(patch_pointer, copy_data, sizeof(copy_data));
@@ -488,7 +490,8 @@ void jump(void *pointer, const void *data, const bool use_far,
     uint8_t copy_data[5];
     copy_data[0] = 0xE9;
     *reinterpret_cast<int32_t *>(&copy_data[1]) =
-        static_cast<int32_t>(size_t(data) - (size_t(pointer) + 5));
+        static_cast<int32_t>(reinterpret_cast<uintptr_t>(data) -
+                             (reinterpret_cast<uintptr_t>(pointer) + 5));
 
     copy(patch_pointer, copy_data, sizeof(copy_data));
   }
@@ -496,12 +499,12 @@ void jump(void *pointer, const void *data, const bool use_far,
 
 void jump(const size_t pointer, const void *data, const bool use_far,
           const bool use_safe) {
-  return jump(reinterpret_cast<void *>(pointer), data, use_far, use_safe);
+  jump(reinterpret_cast<void *>(pointer), data, use_far, use_safe);
 }
 
 void jump(const size_t pointer, const size_t data, const bool use_far,
           const bool use_safe) {
-  return jump(pointer, reinterpret_cast<void *>(data), use_far, use_safe);
+  jump(pointer, reinterpret_cast<void *>(data), use_far, use_safe);
 }
 
 void *assemble(const std::function<void(assembler &)> &asm_function) {

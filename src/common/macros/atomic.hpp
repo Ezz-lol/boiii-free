@@ -217,7 +217,7 @@ alwaysinline T atomic_and(volatile T *ptr, T value) {
                                static_cast<long>(value));
     return static_cast<T>(old & static_cast<long>(value));
   } else if constexpr (sizeof(T) == 8) {
-    __int64 old = _InterlockedAnd64(reinterpret_cast<__int64 volatile *>(ptr),
+    int64_t old = _InterlockedAnd64(reinterpret_cast<__int64 volatile *>(ptr),
                                     static_cast<__int64>(value));
     return static_cast<T>(old & static_cast<__int64>(value));
   }
@@ -244,7 +244,7 @@ alwaysinline T atomic_or(volatile T *ptr, T value) {
                               static_cast<long>(value));
     return static_cast<T>(old | static_cast<long>(value));
   } else if constexpr (sizeof(T) == 8) {
-    __int64 old = _InterlockedOr64(reinterpret_cast<__int64 volatile *>(ptr),
+    int64_t old = _InterlockedOr64(reinterpret_cast<__int64 volatile *>(ptr),
                                    static_cast<__int64>(value));
     return static_cast<T>(old | static_cast<__int64>(value));
   }
@@ -271,7 +271,7 @@ alwaysinline T atomic_xor(volatile T *ptr, T value) {
                                static_cast<long>(value));
     return static_cast<T>(old ^ static_cast<long>(value));
   } else if constexpr (sizeof(T) == 8) {
-    __int64 old = _InterlockedXor64(reinterpret_cast<__int64 volatile *>(ptr),
+    int64_t old = _InterlockedXor64(reinterpret_cast<__int64 volatile *>(ptr),
                                     static_cast<__int64>(value));
     return static_cast<T>(old ^ static_cast<__int64>(value));
   }

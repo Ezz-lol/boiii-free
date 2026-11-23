@@ -53,8 +53,8 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
     try {
       callbacks[cmd_string](*address, data, localClientNum);
     } catch (const std::exception &e) {
-      fprintf(stderr, "[Network] handle_command error: %s\n", e.what());
-      fflush(stderr);
+      std::println(std::cerr, "[Network] handle_command error: {}", e.what());
+      std::cerr.flush();
 #ifndef NDEBUG
       game::trace("[Network] handle_command error: {}", e.what());
 #endif
@@ -431,16 +431,16 @@ void client_listing_command(const command::params &params) {
     if (curr_chunk_size) {
       const std::string_view chunk =
           complete_listing_view.substr(i, curr_chunk_size);
-      fprintf(stdout, "%s", chunk.data());
-      fflush(stdout);
+      std::print(stdout, "{}", chunk.data());
+      std::cout.flush();
 
       game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
                             game::consoleLabel::DEFAULT, "%s", chunk.data());
     }
   }
 
-  fprintf(stdout, "\n");
-  fflush(stdout);
+  std::println(std::cout, "");
+  std::cout.flush();
 
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
                         game::consoleLabel::DEFAULT, "\n");

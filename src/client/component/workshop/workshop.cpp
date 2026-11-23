@@ -1740,8 +1740,8 @@ public:
 
       command::add("printmod", [](const command::params &params) {
         const auto print = [](const std::string_view &msg) -> void {
-          fprintf(stdout, "%s\n", msg.data());
-          fflush(stdout);
+          std::println(std::cout, "{}", msg.data());
+          std::cout.flush();
 
           game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                                 game::consoleLabel_e::DEFAULT, "%s\n",

@@ -278,7 +278,7 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
     int32_t memberCount = msgData.memberCount;
     bool hasBannedMember = false;
     if (memberCount > 0) {
-      for (const join::JoinPartyMember &member : msgData.getMembers()) {
+      for (const join::JoinPartyMember &member : msgData.get_members()) {
         if (!isXUIDLocalPlayer &&
             live::user::LiveUser_IsPermaBanned(member.xuid)) {
           hasBannedMember = true;
@@ -1254,7 +1254,7 @@ void HandleLobbyStateGame(ControllerIndex_t controllerIndex,
               lua::Lua_EndTable(event._vm);
               lua::Lua_BeginTable("RestrictedItemVotes", event._vm);
               for (const session::ItemVote &vote :
-                   lobbyGame.getPregameVotes()) {
+                   lobbyGame.get_pregameVotes()) {
                 lua::Lua_SetTableInt(
                     "itemType", static_cast<int32_t>(vote.itemType), event._vm);
                 lua::Lua_SetTableInt("itemIndex",

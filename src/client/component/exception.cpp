@@ -53,9 +53,9 @@ void exception_log(bool err, const char *fmt, ...) {
   vsnprintf(buffer.data(), buffer.size() + 1, fmt, args);
   va_end(args);
 
-  std::FILE *io = err ? stderr : stdout;
-  fprintf(io, "%s\n", buffer.c_str());
-  fflush(io);
+  std::ostream &io = err ? std::cerr : std::cout;
+  std::println(io, "{}", buffer);
+  io.flush();
 
   if (err) {
     console::print("^1" + buffer + "\n");
@@ -796,7 +796,7 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
         exception_log(true, "    [%zu] 0x%llX - %s + 0x%llX", i, f->address,
                       f->module_name.c_str(), f->rva);
       }
-      fflush(stderr);
+      std::cerr.flush();
     }
   }
   exception_log(true, "=====================================");

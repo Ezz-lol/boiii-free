@@ -126,7 +126,7 @@ void lua_server_info_to_table_stub(game::lua::hks::lua_State *state,
                                    int index) {
   lua_server_info_to_table_hook.invoke(state, server_info, index);
 
-  if (state) {
+  if (state != nullptr) {
     const int32_t bot_count =
         atoi(game::info::Info_ValueForKey(server_info.tags, "bots"));
     game::lua::Lua_SetTableInt("botCount", bot_count, state);
@@ -140,7 +140,8 @@ void lua_server_info_to_table_stub(game::lua::hks::lua_State *state,
 
     game::lua::Lua_SetTableInt(
         "campaign",
-        qboolean::from(campaign_str && !std::strcmp(campaign_str, "true")),
+        qboolean::from(campaign_str != nullptr &&
+                       std::strcmp(campaign_str, "true") == 0),
         state);
   }
 }
@@ -230,17 +231,23 @@ constexpr std::string_view LAN_SERVER_PATH =
     "boiii_players/user/lan_servers.txt";
 
 std::string normalize_lan_input(std::string in) {
-  in.erase(std::remove(in.begin(), in.end(), '\r'), in.end());
-  in.erase(std::remove(in.begin(), in.end(), '\n'), in.end());
-  if (in.empty()) {
-    return {};
+  const std::ranges::borrowed_subrange_t<std::string &> cr =
+      std::ranges::remove(in, '\r');
+  in.erase(cr.begin(), cr.end());
+
+  const std::ranges::borrowed_subrange_t<std::string &> lf =
+      std::ranges::remove(in, '\n');
+  in.erase(lf.begin(), lf.end());
+
+  if (!in.empty()) {
+    if (!in.contains(':')) {
+      in.append(":27017");
+    }
+
+    return in;
   }
 
-  if (in.find(':') == std::string::npos) {
-    in.append(":27017");
-  }
-
-  return in;
+  return {};
 }
 
 void add_lan_server_from_string(const std::string &in) {
@@ -309,7 +316,8 @@ inline void parse_master_server_hosts() {
 
   const std::optional<std::string> master_server_list_flag =
       utils::flags::get<std::string>("master-servers");
-  if (master_server_list_flag.has_value()) {
+  if (master_server_list_flag.has_value() &&
+      !master_server_list_flag.value().empty()) {
     const std::vector<std::string> master_servers =
         utils::string::split(master_server_list_flag.value(), ',');
     std::string write;

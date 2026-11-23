@@ -193,6 +193,9 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
     return 0x60;
   case XAssetType::AIMTABLE:
     return 0x330;
+    // We want explicit per-case handling here to clearly, explicitly mark each
+    // asset type's size.
+    // NOLINTNEXTLINE(bugprone-branch-clone)
   case XAssetType::ANIMSELECTORTABLESET:
     return 0x18;
   case XAssetType::ANIMMAPPINGTABLE:
@@ -292,18 +295,19 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
 
     // Skip if pool already meets or exceeds requested size
     if (!pool->isSingleton && std::cmp_less(pool->itemCount, new_size)) {
-      fprintf(stdout, "Reallocating asset pool type %d: %d -> %u entries\n",
-              +type, pool->itemCount, new_size);
-      fflush(stdout);
+      std::println(std::cout,
+                   "Reallocating asset pool type {}: {} -> {} entries", +type,
+                   pool->itemCount, new_size);
+      std::cout.flush();
       const bool empty = pool->itemAllocCount == 0;
       const uint32_t count =
           empty ? new_size : new_size - static_cast<uint32_t>(pool->itemCount);
       char *block = static_cast<char *>(calloc(count, entry_size));
       if (block == nullptr) {
-        fprintf(stderr,
-                "Failed to allocate asset pool for type %d (size: %u)\n",
-                static_cast<int32_t>(type), new_size);
-        fflush(stderr);
+        std::println(std::cerr,
+                     "Failed to allocate asset pool for type {} (size: {})",
+                     static_cast<int32_t>(type), new_size);
+        std::cerr.flush();
         return;
       }
 
@@ -321,9 +325,10 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
         pool->pool = block;
       }
 
-      fprintf(stdout, "Reallocated asset pool type %d: %d -> %u entries\n",
-              +type, pool->itemCount, new_size);
-      fflush(stdout);
+      std::println(std::cout,
+                   "Reallocated asset pool type {}: {} -> {} entries", +type,
+                   pool->itemCount, new_size);
+      std::cout.flush();
 
       pool->itemSize = entry_size;
       pool->itemCount = static_cast<int32_t>(new_size);
@@ -345,27 +350,27 @@ void *DB_AssetPoolAlloc_Impl(XAssetType type) {
   // reallocation
   std::scoped_lock<std::mutex> asset_alloc_lock(asset_alloc_mutex);
 
-  XAssetPool *pool = &s_assetPools->pools[+type];
+  XAssetPool &pool = s_assetPools->pools[+type];
   if (game::is_server() && type == XAssetType::IMAGE) {
-    ++pool->itemAllocCount;
-    return pool->freeHead;
+    ++pool.itemAllocCount;
+    return pool.freeHead;
   }
-  if (pool->isSingleton) {
-    return pool->pool;
+
+  if (pool.isSingleton) {
+    return pool.pool;
   }
 
   // PATCH: expand asset pool if we have reached capacity
-  if (!nonnull(pool->freeHead)) {
+  if (!nonnull(pool.freeHead)) {
     reallocate_asset_pool(
-        type, std::max<int32_t>(pool->itemCount * 2,
+        type, std::max<int32_t>(pool.itemCount * 2,
                                 2 /* In case current pool size is 0 */));
   }
 
-  AssetLink *freeHead = pool->freeHead;
+  AssetLink *freeHead = pool.freeHead;
   if (nonnull(freeHead)) {
-    AssetLink *next = freeHead->next;
-    ++pool->itemAllocCount;
-    pool->freeHead = next;
+    ++pool.itemAllocCount;
+    pool.freeHead = freeHead->next;
   }
 
   return freeHead;

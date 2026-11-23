@@ -26,7 +26,7 @@ concept ScopedIntegralLike =
 
 template <typename From, typename To = uint64_t>
 concept IntegralLike =
-    std::is_integral_v<To> &&
+    (ScopedEnum<To> || std::is_integral_v<To>) &&
     (std::is_convertible_v<From, To> || ScopedIntegralLike<From, To>);
 
 template <typename From, typename To>

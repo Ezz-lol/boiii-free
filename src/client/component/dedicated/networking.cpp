@@ -35,7 +35,8 @@ bool rate_limited(const game::net::netadr_t &adr) {
   if (adr.type != game::net::netadrtype_t::BOT) {
     const std::chrono::time_point now = std::chrono::steady_clock::now();
 
-    const connect_attempt new_val = {adr.addr, now, 1};
+    const connect_attempt new_val = {
+        .ip = adr.addr, .last_attempt = now, .attempts = 1};
     if (connect_attempts.try_emplace_l(
             adr.addr,
             [now, &adr, &result](auto &v) {
@@ -50,12 +51,11 @@ bool rate_limited(const game::net::netadr_t &adr) {
                 attempt.last_attempt = now;
 
                 if (attempt.attempts > MAX_CONNECT_ATTEMPTS) {
-                  fprintf(
-                      stderr,
-                      "[Security] Rate limited connection from IP 0x%08X (%d "
-                      "attempts)\n",
-                      adr.addr, attempt.attempts);
-                  fflush(stderr);
+                  std::println(std::cerr,
+                               "[Security] Rate limited connection from IP "
+                               "0x{:08X} ({} attempts)",
+                               adr.addr, attempt.attempts);
+                  std::cerr.flush();
                   result = true;
                 }
               }

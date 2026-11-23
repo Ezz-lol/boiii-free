@@ -36,14 +36,14 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
   if (msg == nullptr || msg[0] == '\0') {
     msg = "No message provided!";
   }
-  fprintf(stderr, "[Sys_Error] Called from 0x%p with message: \"%s\"",
+  std::println(std::cerr, "[Sys_Error] Called from 0x{:p} with message: \"{}\"",
           game::derelocate(callerAddr), msg);
-  fflush(stderr);
+  std::cerr.flush();
   game::trace("[Sys_Error] Called from {:p} with message: \"{}\"",
               game::derelocate(callerAddr), msg);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT,
-                        "[Sys_Error] Called from 0x%p with message: \"%s\"",
+                        "[Sys_Error] Called from 0x%p with message: \"%s\"\n",
                         game::derelocate(callerAddr), msg);
   if (!game::is_server()) {
     exception::show_fatal_error(msg);
@@ -79,7 +79,7 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
         buffer[0] ? buffer : "No message provided!",
         static_cast<int32_t>(code));
     fprintf(stderr, "%s\n", log);
-    fflush(stderr);
+    std::cerr.flush();
     game::trace("{}", log);
     game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                           game::consoleLabel_e::DEFAULT, "%s\n", log);
@@ -268,9 +268,9 @@ void PhysPrint_AllOutputs(const char *fmt, ...) {
 
   const char *formatted_msg =
       utils::string::va("[Phys][Print(0x%p)]%s%s", game::derelocate(callerAddr),
-                        msg[0] ? " " : "", msg);
-  fprintf(stdout, "%s\n", formatted_msg);
-  fflush(stdout);
+                        msg[0] != NULL ? " " : "", msg);
+  std::println(std::cout, "{}", formatted_msg);
+  std::cout.flush();
 
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", formatted_msg);
@@ -280,7 +280,7 @@ void PhysPrint_AllOutputs(const char *fmt, ...) {
 utils::hook::detour AddRow_hook;
 void AddRow_Trace(game::lobby::debug::DebugSystem system, const char *str) {
   const void *returnAddr = _ReturnAddress();
-  if (str && str[0]) {
+  if (str != nullptr && str[0] != NULL) {
     game::trace("[Lobby][Debug][{}][@{:p}] {}",
                 game::lobby::debug::serialize(system), returnAddr, str);
   }

@@ -66,11 +66,11 @@ inline OP_TYPE map_opcode(Opcode op) {
     return OPCODE_BYTECODE_MAP.at(op)[0];
   }
 
-  fprintf(stderr,
-          "Warning: could not find valid bytecode value for opcode: "
-          "0x%02X. Emitting a no-op opcode.\n",
-          static_cast<uint8_t>(op));
-  fflush(stderr);
+  std::println(std::cerr,
+               "Warning: could not find valid bytecode value for opcode: "
+               "0x{:02X}. Emitting a no-op opcode.",
+               static_cast<uint8_t>(op));
+  std::cerr.flush();
   return OPCODE_BYTECODE_MAP.at(Opcode::UnknownOrInvalid)[0];
 }
 
@@ -263,7 +263,8 @@ struct emitter_state {
   void emit_string_ref(Opcode op, const std::string &str, uint64_t line) {
     const size_t idx = add_string(str);
     emit<Opcode>(op, line);
-    size_t aligned_ofs = emit_aligned<uint32_t>(0xFFFFFFFF, line);
+    size_t aligned_ofs =
+        emit_aligned<uint32_t>(std::numeric_limits<uint32_t>::max(), line);
     strings[idx].references.emplace_back(current_export_index,
                                          static_cast<uint32_t>(aligned_ofs));
   }
@@ -1839,10 +1840,10 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
   exp.num_params = static_cast<uint8_t>(params_node->children.size());
   exp.flags = GSC_EXPORT_FLAGS::NONE;
   const std::string &flags_str = flags_node->value;
-  if (flags_str.find("autoexec") != std::string::npos) {
+  if (flags_str.contains("autoexec")) {
     exp.flags |= GSC_EXPORT_FLAGS::AUTOEXEC;
   }
-  if (flags_str.find("private") != std::string::npos) {
+  if (flags_str.contains("private")) {
     exp.flags |= GSC_EXPORT_FLAGS::PRIVATE;
   }
 
@@ -1965,7 +1966,7 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
 }
 
 uint32_t crc32_calc(const uint8_t *data, size_t len) {
-  uint32_t crc = 0xFFFFFFFF;
+  uint32_t crc = std::numeric_limits<uint32_t>::max();
   for (size_t i = 0; i < len; i++) {
     crc ^= data[i];
     for (int j = 0; j < 8; j++) {
