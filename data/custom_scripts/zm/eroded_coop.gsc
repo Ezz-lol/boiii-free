@@ -97,6 +97,7 @@ function install(limit, epoch, map)
     level.eroded_coop_limit = limit;
     level.player_too_many_players_check_func = &player_count_check;
     level.func_get_zombie_spawn_delay = &spawn_delay;
+    install_bgb_movement_hook();
     level thread round_listener(epoch, map);
     level thread diagnostic_heartbeat(epoch, map);
     setdvar("zm_coopReadyMap", map);
@@ -184,6 +185,64 @@ function owns_callbacks()
         isdefined(level.eroded_coop_stock_spawn_delay) &&
         level.player_too_many_players_check_func == &player_count_check &&
         level.func_get_zombie_spawn_delay == &spawn_delay;
+}
+
+
+// GobbleGum move-frequency fallback reviewed from ShawnDuPreez/cb-mods
+// 0b2eafd75aacc451d458e781caf3dec18b228b22 (GPL-3.0). The stock 1-4 table
+// was independently checked against ate47/bo3-source fe040b1187b4850fe8da3c78b703c986c87d1028,
+// scripts/zm/_zm_bgb_machine.gsc. Only the current expanded stock adapter installs it;
+// existing map/mod callbacks keep ownership. These are movement uses, not stock capacity.
+function bgb_movement_limits(count)
+{
+    if (!isint(count) || count < 1 || count > 8)
+        return undefined;
+    if (count == 1)
+        return array(1, 3);
+    if (count == 2)
+        return array(1, 4);
+    if (count == 3)
+        return array(3, 5);
+    return array(3, 6);
+}
+
+function bgb_movement_limits_for_players(players)
+{
+    if (!isarray(players))
+        return undefined;
+    return bgb_movement_limits(players.size);
+}
+
+function bgb_context_current()
+{
+    if (!isdefined(level.eroded_coop_started_epoch) || !isint(level.eroded_coop_started_epoch) ||
+        level.eroded_coop_started_epoch < 1 || !isdefined(level.eroded_coop_started_map))
+        return false;
+    return startup_current(level.eroded_coop_started_epoch, level.eroded_coop_started_map) && owns_callbacks();
+}
+
+function install_bgb_movement_hook()
+{
+    if (!bgb_context_current())
+        return false;
+    if (isdefined(level.bgb_machine_movement_frequency_override_func))
+        return level.bgb_machine_movement_frequency_override_func == &bgb_machine_movement_frequency;
+    level.bgb_machine_movement_frequency_override_func = &bgb_machine_movement_frequency;
+    return true;
+}
+
+function bgb_machine_movement_frequency()
+{
+    if (!bgb_context_current() || !isdefined(level.bgb_machine_movement_frequency_override_func) ||
+        level.bgb_machine_movement_frequency_override_func != &bgb_machine_movement_frequency)
+        return;
+    limits = bgb_movement_limits_for_players(level.players);
+    if (!isdefined(limits))
+        return;
+    if (level.players.size > level.eroded_coop_limit)
+        return;
+    level.bgb_machine_min_uses_before_move = limits[0];
+    level.bgb_machine_max_uses_before_move = limits[1];
 }
 
 function round_listener(epoch, map)

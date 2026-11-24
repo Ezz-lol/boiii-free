@@ -133,3 +133,11 @@ failure is now logged once without discarding compiled scripts, and the handler
 reports an unhandled noncontinuable exception once before returning it to the
 OS. `tests/exception_recovery_policy.cpp` checks the exception flags and codes.
 Gameplay startup still has to pass the real read-only-assets canary.
+
+## More Players reference
+
+The [pinned More Players review](zombies-coop-more-players-review.md) records
+ShawnDuPreez's GPLv3 source, the bounded HUD and GobbleGum movement additions,
+and the paired GSC/CSC registration and joining-client work still required.
+These additions do not fix the extra-slot revive or score-field contracts and do
+not make this a release-ready eight-player implementation.
