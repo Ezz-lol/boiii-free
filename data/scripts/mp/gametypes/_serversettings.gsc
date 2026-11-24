@@ -26,7 +26,7 @@ function init()
 	SetDvar("ui_hostname", level.hostname);
 
 	level.motd = GetDvarString( "scr_motd" );
-	if (level.motd == "") {
+	if (!isdefined(level.motd)) {
 		level.motd = "";
 	}
 	SetDvar("scr_motd", level.motd);
@@ -48,23 +48,23 @@ function init()
 
 	if (GetDvarString( "scr_mapsize") == "") {
 		SetDvar("scr_mapsize", "64");
-	} else if (GetDvarfloat( "scr_mapsize") >= 64) {
+	} else if (GetDvarFloat( "scr_mapsize") >= 64) {
 		SetDvar("scr_mapsize", "64");
-	else if (GetDvarfloat( "scr_mapsize") >= 32) {
+	} else if (GetDvarFloat( "scr_mapsize") >= 32) {
 		SetDvar("scr_mapsize", "32");
-	} else if (GetDvarfloat( "scr_mapsize") >= 16) {
+	} else if (GetDvarFloat( "scr_mapsize") >= 16) {
 		SetDvar("scr_mapsize", "16");
 	} else {
 		SetDvar("scr_mapsize", "8");
 	}
-	level.mapsize = GetDvarfloat( "scr_mapsize");
+	level.mapsize = GetDvarFloat( "scr_mapsize");
 
 	constrain_gametype(GetDvarString( "g_gametype"));
 	constrain_map_size(level.mapsize);
 	
 	thread setup_callbacks();
 
-  while(true)	
+  while(true) {	
 		update();
 		wait 5;
 	}
