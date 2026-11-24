@@ -46,7 +46,8 @@ enum class gadgetPulseShareType_e : int32_t {
   COUNT = 0x5,
 };
 
-[[nodiscard]] constexpr const char *serialize(const gadgetPulseShareType_e type) {
+[[nodiscard]] constexpr const char *
+serialize(const gadgetPulseShareType_e type) {
   switch (type) {
   case gadgetPulseShareType_e::DEFAULT:
     return "GADGETPULSESHARE_DEFAULT";
@@ -408,7 +409,8 @@ enum class weapOverlayReticle_t : int32_t {
   COUNT = 0x2,
 };
 
-[[nodiscard]] constexpr const char *serialize(const weapOverlayReticle_t reticle) {
+[[nodiscard]] constexpr const char *
+serialize(const weapOverlayReticle_t reticle) {
   switch (reticle) {
   case weapOverlayReticle_t::NONE:
     return "RETICLE_NONE";
@@ -1460,7 +1462,8 @@ enum class WeapStickOrientation : int32_t {
   COUNT = 0x3,
 };
 
-[[nodiscard]] constexpr const char *serialize(const WeapStickOrientation orient) {
+[[nodiscard]] constexpr const char *
+serialize(const WeapStickOrientation orient) {
   switch (orient) {
   case WeapStickOrientation::NONE:
     return "STICKORIENT_NONE";
@@ -1965,7 +1968,8 @@ enum class weaponIconRatioType_t : int32_t {
   WEAPON_ICON_RATIO_COUNT = 0x3,
 };
 
-[[nodiscard]] constexpr const char *serialize(const weaponIconRatioType_t ratio) {
+[[nodiscard]] constexpr const char *
+serialize(const weaponIconRatioType_t ratio) {
   switch (ratio) {
   case weaponIconRatioType_t::WEAPON_ICON_RATIO_1TO1:
     return "RATIO_1TO1";
@@ -2118,7 +2122,8 @@ enum class WeapOverlayInteface_t : int32_t {
   COUNT = 0x3,
 };
 
-[[nodiscard]] constexpr const char *serialize(const WeapOverlayInteface_t iface) {
+[[nodiscard]] constexpr const char *
+serialize(const WeapOverlayInteface_t iface) {
   switch (iface) {
   case WeapOverlayInteface_t::NONE:
     return "OVERLAYINT_NONE";

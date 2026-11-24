@@ -84,7 +84,10 @@ end
 local addButtonsForTarget = CoD.LobbyMenus.AddButtonsForTarget
 CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
   local buttons = addButtonsForTarget(controller, id)
-  if buttons and (id == LobbyData.UITargets.UI_MPLOBBYONLINETHEATER.id or id == LobbyData.UITargets.UI_ZMLOBBYONLINETHEATER.id) then
+  if
+    buttons
+    and (id == LobbyData.UITargets.UI_MPLOBBYONLINETHEATER.id or id == LobbyData.UITargets.UI_ZMLOBBYONLINETHEATER.id)
+  then
     if buttons[#buttons] then
       buttons[#buttons].isLastButtonInGroup = true
     end

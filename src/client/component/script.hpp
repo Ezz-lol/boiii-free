@@ -28,7 +28,7 @@ typedef concurrent_hash_map<std::string, std::vector<uint8_t>> scriptGdbMap_t;
 extern scriptGdbMap_t script_gdbs;
 
 void load_assets();
-void print_asset_log(const std::string_view& message);
+void print_asset_log(const std::string_view &message);
 
 ScriptParseTree *get_loaded_script(const std::string &name);
 XAsset get_loaded_asset(const std::string &name);

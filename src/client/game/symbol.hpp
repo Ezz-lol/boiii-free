@@ -49,6 +49,8 @@ struct symbol<T(Args...)> : base_symbol<T(Args...)> {
 
   using base_symbol<func_type>::base_symbol;
 
-  T call_safe(Args... args) const { return tac::call_safe(*this->get(), args...); }
+  T call_safe(Args... args) const {
+    return tac::call_safe(*this->get(), args...);
+  }
 };
 } // namespace game

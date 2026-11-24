@@ -37,7 +37,7 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
     msg = "No message provided!";
   }
   std::println(std::cerr, "[Sys_Error] Called from 0x{:p} with message: \"{}\"",
-          game::derelocate(callerAddr), msg);
+               game::derelocate(callerAddr), msg);
   std::cerr.flush();
   game::trace("[Sys_Error] Called from {:p} with message: \"{}\"",
               game::derelocate(callerAddr), msg);

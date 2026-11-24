@@ -64,9 +64,8 @@ utils::info_string film_info() {
   utils::info_string info;
   info.set("map", game::get_mapname().value_or(""));
   info.set("gametype", game::gametype().value_or(""));
-  info.set("mode",
-           std::to_string(static_cast<int32_t>(
-               game::com::Com_SessionMode_GetMode())));
+  info.set("mode", std::to_string(static_cast<int32_t>(
+                       game::com::Com_SessionMode_GetMode())));
   info.set("author", name::get_player_name());
   return info;
 }
@@ -123,8 +122,9 @@ void record_film(const game::ControllerIndex_t controller,
   utils::io::write_file(film_path(id, "info"), info.build());
   recording = false;
 
-  scheduler::once([controller, upload, id] { upload.onSuccess(controller, id); },
-                  scheduler::pipeline::main);
+  scheduler::once(
+      [controller, upload, id] { upload.onSuccess(controller, id); },
+      scheduler::pipeline::main);
 }
 
 game::dw::TaskRecord *
@@ -165,9 +165,9 @@ update_metadata_stub(const game::ControllerIndex_t controller,
     utils::io::write_file(film_path(update->fileId, "thumb"),
                           std::string(update->summary, update->summarySize));
   }
-  scheduler::once([controller,
-                   callback = update->onSuccess] { callback(controller); },
-                  scheduler::pipeline::main);
+  scheduler::once(
+      [controller, callback = update->onSuccess] { callback(controller); },
+      scheduler::pipeline::main);
   return &film_task;
 }
 
@@ -217,8 +217,8 @@ void play_film(const game::ControllerIndex_t controller,
   uint32_t received = 0;
   std::array<char, 0x10000> buffer;
   while (serial == download_serial && download.rangeStart + received < end) {
-    const uint32_t size = std::min<uint32_t>(
-        buffer.size(), end - download.rangeStart - received);
+    const uint32_t size =
+        std::min<uint32_t>(buffer.size(), end - download.rangeStart - received);
     if (!file.read(buffer.data(), size)) {
       break;
     }

@@ -797,16 +797,9 @@ PACKED(struct serverInfo_t {
   uint8_t hardware;
   uint8_t mod;
   uint8_t requestCount;
-  DEF_PAD(071;
-  int16_t minPing;
-  int16_t maxPing;
-  int16_t ping;
-  str32_t hostName;
-  str32_t mapName;
-  str24_t game;
-  str16_t gameType;
-  bool isInGame;
-  uint8_t _padding0E1, 7);
+  DEF_PAD(071; int16_t minPing; int16_t maxPing; int16_t ping; str32_t hostName;
+          str32_t mapName; str24_t game; str16_t gameType; bool isInGame;
+          uint8_t _padding0E1, 7);
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"xnaddr\": {}, \"xnkey\": {}, \"xnkid\": {}, \"publicSlots\": {}, "

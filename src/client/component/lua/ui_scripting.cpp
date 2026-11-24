@@ -2216,8 +2216,10 @@ Lua_CoD_FFReader_EnforceOverride(lua_State *luaVM, RawFile *ud, size_t *size) {
     if (ud->name != nullptr && ud->name[0] != NULL) {
       XAsset override_asset = script::get_loaded_asset(ud->name);
 
-      if (override_asset.type == XAssetType::RAWFILE && override_asset.header.rawfile != nullptr && override_asset.header.rawfile->buffer != ud->buffer) {
-              RawFile *override = override_asset.header.rawfile;
+      if (override_asset.type == XAssetType::RAWFILE &&
+          override_asset.header.rawfile != nullptr &&
+          override_asset.header.rawfile->buffer != ud->buffer) {
+        RawFile *override = override_asset.header.rawfile;
 
 // TODO: how and why does this happen? How do scripts arrive here if not fetched
 // with `DB_FindXAssetHeader`?

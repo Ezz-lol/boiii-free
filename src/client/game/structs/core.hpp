@@ -653,7 +653,8 @@ enum ControllerIndex_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(ControllerIndex_t);
 
-[[nodiscard]] constexpr const char *serialize(const ControllerIndex_t controllerIndex) {
+[[nodiscard]] constexpr const char *
+serialize(const ControllerIndex_t controllerIndex) {
   switch (controllerIndex) {
   case CONTROLLER_INDEX_0:
     return "CONTROLLER_INDEX_0";
@@ -1729,7 +1730,8 @@ enum class KillCamEntityRestState : int32_t {
 };
 IMPL_ENUM_OPERATORS(KillCamEntityRestState);
 
-[[nodiscard]] constexpr const char *serialize(const KillCamEntityRestState state) {
+[[nodiscard]] constexpr const char *
+serialize(const KillCamEntityRestState state) {
   switch (state) {
   case KillCamEntityRestState::MOVING:
     return "KC_REST_MOVING";
@@ -1888,7 +1890,8 @@ enum class SettingTeamIndicator : int32_t {
 };
 IMPL_ENUM_OPERATORS(SettingTeamIndicator);
 
-[[nodiscard]] constexpr const char *serialize(const SettingTeamIndicator indicator) {
+[[nodiscard]] constexpr const char *
+serialize(const SettingTeamIndicator indicator) {
   switch (indicator) {
   case SettingTeamIndicator::FULL:
     return "TEAMINDICATOR_FULL";

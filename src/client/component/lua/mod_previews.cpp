@@ -3,8 +3,8 @@
 #include "launcher/launcher.hpp"
 #include "mod_previews.hpp"
 
-#include "component/scheduler.hpp"
 #include "component/lua/lua_state.hpp"
+#include "component/scheduler.hpp"
 
 #include <loader/component_loader.hpp>
 
