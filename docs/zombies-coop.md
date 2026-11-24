@@ -76,3 +76,28 @@ are deliberately unchanged.
 
 Do not promote this work based on a successful compile, policy tests or an empty
 eight-slot server alone. Bug/security backports are a separate change set.
+
+## Crash and lifecycle review follow-up
+
+The startup gate now rejects remote expanded-game admission until the current
+map acknowledges the native epoch and installed callbacks. Failed/missing
+adapters and lost ownership stop expansion from the main frame, after scheduler
+and feature-state locks have been released. Native loopback bootstraps listen
+hosts. The native 18-slot ABI and normal four-player protocol are unchanged.
+Capacity is applied per hosted session; changing it requires a frontend rehost
+or dedicated process restart. Expanded startup rejects active Workshop sessions
+and mismatched host capacity instead of enlarging a potentially allocated pool.
+
+The gate allows normal paused GSC time: a stationary heartbeat alone is not a
+failure. This also means it does not prove every script thread remains alive.
+Same-export modified stock scripts still need image/fingerprint coverage.
+Matching-client capability negotiation, trusted-admin bot insertion, occupied
+five-to-eight-player joins, HUD, spectators and character/quest behavior remain
+unverified. These are draft changes, not a completed compatibility
+certification.
+
+`tests/zombies_coop_startup.cpp` checks epochs, cold loads, timeouts, decline,
+pause and readiness revocation. `tests/gsc/eroded_coop_selftest.gsc` is an
+isolated actual-VM fixture; keep it out of production data. It exercises the
+runtime arithmetic and duplicate-startup behavior, publishing
+`zm_coopSelfTestStatus` and `zm_coopSelfTestFailures`.

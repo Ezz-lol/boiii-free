@@ -1,11 +1,13 @@
--- This module only configures lobby capacity; map/gameplay support is separate.
+-- Only custom/LAN Zombies targets belong to the expanded coop policy.
 local policy = rawget(_G, "BoiiiZombiesCoopPolicy")
-if policy then
+if type(policy) == "table" and policy.version == 2 then
   return policy
 end
 
-policy = {}
+policy = { version = 2 }
 local originals = setmetatable({}, { __mode = "k" })
+local applied = setmetatable({}, { __mode = "k" })
+local targets = { UI_ZMLOBBYONLINECUSTOMGAME = true, UI_ZMLOBBYLANGAME = true }
 
 local function valid(value)
   return type(value) == "number" and value == math.floor(value) and value >= 1 and value <= 8
@@ -21,40 +23,58 @@ function policy.isZombies()
 end
 
 local function gameLimit()
-  if policy.isZombies() and Engine.IsInGame() and Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) then
-    local value = Engine.GetLobbyMaxClients(Enum.LobbyType.LOBBY_TYPE_GAME)
-    if valid(value) then
-      return value
+  local game = Enum.LobbyType.LOBBY_TYPE_GAME
+  if policy.isZombies() and Engine.IsLobbyActive(game) then
+    -- A joining client is not in-game yet. Preserve its host's capacity
+    -- during loading; frontend hosts can still change their next lobby.
+    if Engine.IsInGame() or not Engine.IsLobbyHost(game) then
+      local value = Engine.GetLobbyMaxClients(game)
+      if valid(value) then
+        return value
+      end
     end
   end
+end
+
+local function targetLimit(target)
+  local value = type(target) == "table" and target.maxClients or nil
+  if type(value) == "number" and value >= 0 and value < math.huge and value == math.floor(value) then
+    return value
+  end
+  return 0
 end
 
 function policy.applyTargets()
   local limit = gameLimit() or policy.configuredLimit()
   for name, target in pairs(LobbyData.UITargets) do
-    if type(name) == "string" and name:match("^UI_ZM") and type(target) == "table" then
+    if targets[name] and type(target) == "table" then
+      -- Forget our baseline if another mod or the engine changed the
+      -- table since our last write. Never restore over an outside cap.
+      if applied[target] ~= nil and applied[target] ~= target.maxClients then
+        originals[target] = nil
+      end
       local original = originals[target] or target.maxClients
       if type(original) == "number" and original >= 2 and original <= 4 then
         originals[target] = original
         target.maxClients = limit
+        applied[target] = limit
+      else
+        applied[target] = nil
       end
     end
   end
 end
 
 function policy.targetLimit(target)
-  if policy.isZombies() then
-    local live = gameLimit()
-    if live then
-      return live
-    end
-  end
-  return target.maxClients
+  -- Refresh on navigation/profile queries as well as module load: an owner
+  -- may change the next host limit while remaining in the frontend VM.
+  policy.applyTargets()
+  return gameLimit() or targetLimit(target)
 end
 
 function policy.gameLimit(target, stockLimit)
   if policy.isZombies() then
-    return gameLimit() or policy.targetLimit(target)
+    return gameLimit() or targetLimit(target)
   end
   return stockLimit
 end

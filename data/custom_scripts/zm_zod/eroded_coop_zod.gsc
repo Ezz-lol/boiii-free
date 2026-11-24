@@ -5,7 +5,7 @@
 
 function autoexec main()
 {
-    if (getdvarint("zm_coopPlayerLimit") > 4)
+    if (getdvarint("zm_coopAppliedLimit") > 4 && getdvarint("zm_coopAppliedLimit") <= 8)
     {
         level.eroded_coop_zod_delay = &zm_zod::function_59804866;
         level.eroded_coop_known_custom_spawn = &zm_zod::function_33aa4940;

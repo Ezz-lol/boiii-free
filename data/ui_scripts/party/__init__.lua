@@ -27,7 +27,10 @@ CoD.IsTeamChangeAllowed = function()
 end
 
 -- Set com_maxclients InGame so players can join via direct connect (default from lobbydata)
-Engine.SetDvar("com_maxclients", coop.gameLimit(modeInfo, maxClients))
+local effectiveLimit = coop.gameLimit(modeInfo, maxClients)
+if type(effectiveLimit) == "number" and effectiveLimit >= 1 then
+  Engine.SetDvar("com_maxclients", effectiveLimit)
+end
 
 require("datasources_start_menu_game_options")
 

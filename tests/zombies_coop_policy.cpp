@@ -1,10 +1,13 @@
 #include "../src/client/component/zombies/coop_policy.hpp"
 #include <cassert>
 #include <iostream>
+#include <type_traits>
 
 using namespace zombies::coop;
 
 int main() {
+  static_assert(!std::is_copy_constructible_v<roster> &&
+                !std::is_copy_assignable_v<roster>);
   assert(supported_map("zm_zod") && supported_map("zm_tomb"));
   assert(!supported_map("zm_castle") && !supported_map("core_frontend") &&
          !supported_map(""));
@@ -73,6 +76,10 @@ int main() {
   machine.reset(players);
   assert(machine.commit(players, buyer, 1));
   assert(!machine.commit(players, buyer, 1));
+  const auto duplicate_join = players.join(0, 42).value();
+  assert(duplicate_join == buyer);
+  assert(!machine.commit(players, duplicate_join,
+                         1)); // duplicate join cannot replay a purchase
   machine.reset(players);
   assert(machine.remaining() ==
          15); // repeated initialization cannot refill stock
@@ -91,6 +98,31 @@ int main() {
   assert(!machine.commit(players, buyer, 2));
   assert(machine.commit(players, moved, 1));
   assert(machine.remaining() == 14); // reconnect doesn't refill a machine
+  roster other_map_owner;
+  other_map_owner.reset(8);
+  const auto other_buyer = other_map_owner.join(0, 42).value();
+  // Map/generation counters are scoped to an authority, not globally unique.
+  assert(!machine.commit(other_map_owner, other_buyer, 2));
+  machine.reset(other_map_owner);
+  assert(machine.remaining() == 16);
+  assert(!machine.commit(players, moved, 2));
+  assert(machine.commit(other_map_owner, other_buyer, 1));
+  roster authority_a;
+  roster authority_b;
+  authority_a.reset(8);
+  authority_b.reset(8);
+  const auto token_a = authority_a.join(0, 1234).value();
+  const auto token_b = authority_b.join(0, 1234).value();
+  assert(token_a == token_b); // colliding local counters are deliberate
+  finite_stock authority_stock;
+  authority_stock.reset(authority_a);
+  assert(authority_stock.commit(authority_a, token_a, 1));
+  assert(!authority_stock.commit(authority_b, token_b, 2));
+  assert(authority_stock.remaining() == 15);
+  authority_stock.reset(authority_b);
+  assert(authority_stock.remaining() == 16);
+  assert(!authority_stock.commit(authority_a, token_a, 2));
+  assert(authority_stock.commit(authority_b, token_b, 1));
   std::cout << "PASS: 1-8 capacity, roster lifecycle, current round budgets, "
                "finite shared stock\n";
 }

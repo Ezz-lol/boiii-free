@@ -8,6 +8,7 @@
 #include "party.hpp"
 #include "profile_infos.hpp"
 #include "scheduler.hpp"
+#include "zombies/coop_runtime.hpp"
 
 #include <game/utils.hpp>
 
@@ -522,6 +523,14 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
   const command::params_sv params(connect_data);
 
   if (params.size() < 2) {
+    return;
+  }
+
+  // A real engine loopback client can bootstrap a listen host. An IP
+  // address in 127/8 is not that transport and must wait for map validation.
+  if (target.type != game::net::netadrtype_t::LOOPBACK &&
+      !zombies::coop::admission_ready()) {
+    network::send(target, "error", "Expanded Zombies adapter is not ready");
     return;
   }
 

@@ -90,6 +90,10 @@ struct player_token {
 // Fixed capacity matches the Zombies feature, not the native MP wire layout.
 class roster {
 public:
+  roster() = default;
+  roster(const roster &) = delete;
+  roster &operator=(const roster &) = delete;
+
   void reset(const int limit) {
     ++map_;
     active_ = true;
@@ -108,6 +112,10 @@ public:
     if (!active_ || slot < 0 || slot >= limit_ || identity == 0) {
       return std::nullopt;
     }
+    // Duplicate authoritative join notifications are not a reconnect. Keeping
+    // the generation also keeps purchase receipts from being reset/replayed.
+    if (players_[slot].identity == identity)
+      return players_[slot];
     // A reconnect may claim a new slot before the old disconnect callback.
     for (auto &previous : players_) {
       if (previous.identity == identity)
@@ -153,9 +161,11 @@ private:
 class finite_stock {
 public:
   void reset(const roster &players) {
-    if (!players.active() || (initialized_ && map_ == players.map()))
+    if (!players.active() ||
+        (initialized_ && owner_ == &players && map_ == players.map()))
       return;
     initialized_ = true;
+    owner_ = &players;
     map_ = players.map();
     remaining_ = machine_stock;
     receipts_.fill({});
@@ -163,8 +173,8 @@ public:
 
   bool commit(const roster &players, const player_token &buyer,
               const std::uint64_t sequence) {
-    if (!initialized_ || remaining_ == 0 || sequence == 0 ||
-        map_ != players.map() || !players.contains(buyer)) {
+    if (!initialized_ || owner_ != &players || remaining_ == 0 ||
+        sequence == 0 || map_ != players.map() || !players.contains(buyer)) {
       return false;
     }
     auto &receipt = receipts_[buyer.slot];
@@ -184,6 +194,7 @@ private:
     std::uint64_t generation{};
     std::uint64_t sequence{};
   };
+  const roster *owner_{};
   std::uint64_t map_{};
   bool initialized_{};
   int remaining_{machine_stock};

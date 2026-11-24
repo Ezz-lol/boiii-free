@@ -11,6 +11,7 @@
 #include "game/utils.hpp"
 
 #include "handler.hpp"
+#include <component/zombies/coop_runtime.hpp>
 
 namespace game {
 namespace lobby {
@@ -361,6 +362,17 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
 
     join::JoinRequestLuaCheck(activeControllerIndex, fromXUID, &msgData,
                               &joinResponse);
+
+    // Run after Lua's policy check so a callback cannot accidentally reopen a
+    // map that has not validated its expanded adapter. Do not affect private
+    // parties, MP/campaign, or an earlier authentication/privacy refusal.
+    const bool nativeLoopback =
+        fromAdr != nullptr && fromAdr->type == net::netadrtype_t::LOOPBACK;
+    if (joinResponse.response == join::JoinResult::SUCCESS &&
+        lobbyType == LobbyType::GAME && mainMode == LobbyMainMode::ZM &&
+        !nativeLoopback && !::zombies::coop::admission_ready()) {
+      joinResponse.response = join::JoinResult::NOT_JOINABLE_NOT_IDLE;
+    }
 
     if (joinResponse.response == join::JoinResult::SUCCESS) {
       bool reserveSuccess = join::LobbyJoin_Reserve(
