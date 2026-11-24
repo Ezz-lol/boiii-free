@@ -125,3 +125,11 @@ unverified. Unexplained additions and counter resets still relinquish ownership.
 `tests/zombies_coop_stock_session.cpp` covers stock bootstrap and Workshop
 classification. Startup tests include all configured 1-8/native 1-18 pairs,
 Solo/Public selection, and mismatched expanded capacity.
+
+The isolated read-only-assets test also exposed an existing Ezz startup failure:
+persisting the optional `zone/scriptgdb.zip` threw before script startup, and
+the crash handler repeatedly resumed a noncontinuable exception. Archive output
+failure is now logged once without discarding compiled scripts, and the handler
+reports an unhandled noncontinuable exception once before returning it to the
+OS. `tests/exception_recovery_policy.cpp` checks the exception flags and codes.
+Gameplay startup still has to pass the real read-only-assets canary.

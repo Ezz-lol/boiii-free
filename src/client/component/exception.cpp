@@ -18,6 +18,7 @@
 #include <utils/thread.hpp>
 
 #include <exception/minidump.hpp>
+#include <exception/recovery_policy.hpp>
 
 // In case of clangd compilation
 #if __has_include("version.hpp")
@@ -732,7 +733,17 @@ bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo) {
 std::atomic<bool> crashed{false};
 
 long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
-  if (is_harmless_error(exceptioninfo)) {
+  const bool can_resume =
+      can_resume_exception(exceptioninfo->ExceptionRecord->ExceptionCode,
+                           exceptioninfo->ExceptionRecord->ExceptionFlags);
+  // A noncontinuable exception must reach the OS termination path. Attempt
+  // one report only, including when reporting itself raises another exception.
+  static std::atomic_flag noncontinuable_reported = ATOMIC_FLAG_INIT;
+  if (!can_resume &&
+      noncontinuable_reported.test_and_set(std::memory_order_relaxed)) {
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
+  if (can_resume && is_harmless_error(exceptioninfo)) {
     return EXCEPTION_CONTINUE_EXECUTION;
   }
   crashed = true;
@@ -803,6 +814,9 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
   exception_data.scripts = describe_scripts();
 
   write_minidump(exceptioninfo);
+  if (!can_resume) {
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
   exceptioninfo->ContextRecord->Rip = get_reset_state_stub();
 
   return EXCEPTION_CONTINUE_EXECUTION;

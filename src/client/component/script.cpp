@@ -1275,27 +1275,40 @@ void clear_script_memory() {
 }
 
 void rebuild_script_gdb() {
-  const std::filesystem::path scriptgdb_archive_path =
-      get_game_path() / "zone" / "scriptgdb.zip";
+  // GDB data helps diagnostics; inability to persist it must not prevent the
+  // already compiled game scripts from loading on a read-only installation.
+  try {
+    const std::filesystem::path scriptgdb_archive_path =
+        get_game_path() / "zone" / "scriptgdb.zip";
 
-  if (std::filesystem::exists(scriptgdb_archive_path)) {
-    const std::string data = utils::io::read_file(scriptgdb_archive_path);
-    try {
-      const std::unordered_map<std::string, std::vector<uint8_t>>
-          existing_entries = utils::compression::zip::extract(data);
-      for (const auto &[key, value] : existing_entries) {
-        if (!script_gdbs.contains(key)) {
-          script_gdbs[key] = std::move(value);
+    if (std::filesystem::exists(scriptgdb_archive_path)) {
+      const std::string data = utils::io::read_file(scriptgdb_archive_path);
+      try {
+        const std::unordered_map<std::string, std::vector<uint8_t>>
+            existing_entries = utils::compression::zip::extract(data);
+        for (const auto &[key, value] : existing_entries) {
+          if (!script_gdbs.contains(key)) {
+            script_gdbs[key] = std::move(value);
+          }
         }
+      } catch (...) {
       }
-    } catch (...) {
     }
-    std::filesystem::remove(scriptgdb_archive_path);
-  }
 
-  utils::compression::zip::write_file(
-      scriptgdb_archive_path,
-      std::vector(script_gdbs.begin(), script_gdbs.end()));
+    // APPEND_STATUS_CREATE already replaces the archive after a successful
+    // open. Do not delete existing stock debug data before that open succeeds.
+    utils::compression::zip::write_file(
+        scriptgdb_archive_path,
+        std::vector(script_gdbs.begin(), script_gdbs.end()));
+  } catch (const std::exception &error) {
+    static std::atomic_flag warning_reported = ATOMIC_FLAG_INIT;
+    if (!warning_reported.test_and_set(std::memory_order_relaxed)) {
+      print_script_log(
+          utils::string::va("Script debug archive was not updated; gameplay "
+                            "scripts remain loaded: %.512s",
+                            error.what()));
+    }
+  }
 }
 
 int32_t CG_TestServerScriptChecksum_AlwaysMatch() { return 1; }
