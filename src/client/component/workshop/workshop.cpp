@@ -891,28 +891,32 @@ uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
 
   uint64_t total = 0;
 
-  const std::filesystem::path resolved_directory = path::resolve(folder, ec);
-  if (!ec && std::filesystem::is_directory(resolved_directory)) {
-    for (const std::filesystem::directory_entry &entry :
-         std::filesystem::recursive_directory_iterator(
-             resolved_directory,
-             std::filesystem::directory_options::skip_permission_denied |
-                 std::filesystem::directory_options::follow_directory_symlink,
-             ec)) {
-      if (ec) {
-        break;
-      }
-
-      std::filesystem::path resolved_entry = path::resolve(entry.path(), ec);
-
-      if (!ec && std::filesystem::is_regular_file(resolved_entry, ec) && !ec) {
-        total += static_cast<uint64_t>(
-            std::filesystem::file_size(resolved_entry, ec));
+  try {
+    const std::filesystem::path resolved_directory = path::resolve(folder, ec);
+    if (!ec && std::filesystem::is_directory(resolved_directory)) {
+      for (const std::filesystem::directory_entry &entry :
+           std::filesystem::recursive_directory_iterator(
+               folder,
+               std::filesystem::directory_options::skip_permission_denied |
+                   std::filesystem::directory_options::follow_directory_symlink,
+               ec)) {
         if (ec) {
           break;
         }
+
+        std::filesystem::path resolved_entry = path::resolve(entry.path(), ec);
+
+        if (!ec && std::filesystem::is_regular_file(resolved_entry, ec) &&
+            !ec) {
+          total += static_cast<uint64_t>(
+              std::filesystem::file_size(resolved_entry, ec));
+          if (ec) {
+            break;
+          }
+        }
       }
     }
+  } catch (...) {
   }
   return total;
 }
