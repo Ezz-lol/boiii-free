@@ -3,6 +3,8 @@
 #include <functional>
 #include <string>
 
+struct IDXGISwapChain;
+
 namespace imgui_overlay {
 struct download_state {
   bool active{false};
@@ -15,6 +17,14 @@ struct download_state {
   std::string status_line;    // secondary info, e.g. "File 3/12: map.xpak"
   std::function<void()> on_cancel{nullptr}; // nullptr = hide Stop button
 };
+
+/**
+ * @brief Draw the download UI immediately before the game presents a frame.
+ * @details Called by the game swap-chain hook in flip_model.cpp. The caller
+ * owns the chain and calls the original DXGI Present after this returns.
+ * @param swap_chain The game's Direct3D 11 swap chain.
+ */
+void render_frame(IDXGISwapChain *swap_chain);
 
 void update(const download_state &state);
 void clear();
