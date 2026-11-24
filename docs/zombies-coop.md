@@ -42,6 +42,9 @@ source. The equivalent source has also passed the BO3 revision-1C ACTS compiler
 syntax check, which does not replace validation with Ezz's own compiler at
 runtime.
 
+Shadows of Evil keeps its stock opening-round pacing and known parasite/raps
+callback. Its map-specific imports load only from `custom_scripts/zm_zod`.
+
 ## Local checks
 
 In an x64 Visual Studio Developer shell:

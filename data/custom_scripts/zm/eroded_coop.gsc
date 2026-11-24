@@ -29,7 +29,8 @@ function install(limit)
     }
 
     deadline = gettime() + 30000;
-    while (!isdefined(level.player_too_many_players_check_func) || !isdefined(level.func_get_zombie_spawn_delay))
+    while (!isdefined(level.player_too_many_players_check_func) || !isdefined(level.func_get_zombie_spawn_delay) ||
+        (map == "zm_zod" && !isdefined(level.eroded_coop_zod_delay)))
     {
         if (gettime() >= deadline)
         {
@@ -38,13 +39,25 @@ function install(limit)
         }
         wait 0.05;
     }
-    if (level.player_too_many_players_check_func != &zm::player_too_many_players_check ||
-        level.func_get_zombie_spawn_delay != &zm::get_zombie_spawn_delay ||
-        level.scr_zm_ui_gametype != "zclassic")
+    expected_delay = &zm::get_zombie_spawn_delay;
+    if (map == "zm_zod")
+        expected_delay = level.eroded_coop_zod_delay;
+    if (level.player_too_many_players_check_func != &zm::player_too_many_players_check)
     {
-        setdvar("zm_coopStatus", "custom_callbacks_preserved");
+        setdvar("zm_coopStatus", "custom_player_check_preserved");
         return;
     }
+    if (level.func_get_zombie_spawn_delay != expected_delay)
+    {
+        setdvar("zm_coopStatus", "custom_spawn_delay_preserved");
+        return;
+    }
+    if (level.scr_zm_ui_gametype != "zclassic")
+    {
+        setdvar("zm_coopStatus", "custom_gametype_preserved");
+        return;
+    }
+    level.eroded_coop_stock_spawn_delay = expected_delay;
     level.eroded_coop_limit = limit;
     level.player_too_many_players_check_func = &player_count_check;
     level.func_get_zombie_spawn_delay = &spawn_delay;
@@ -80,7 +93,10 @@ function spawn_delay(round)
 {
     count = level.players.size;
     if (count <= 4)
-        return zm::get_zombie_spawn_delay(round);
+        return [[ level.eroded_coop_stock_spawn_delay ]](round);
+    // Zod deliberately paces round 1 at 3s and rounds 2-4 at 2s, for all counts.
+    if (getdvarstring("mapname") == "zm_zod" && round < 5)
+        return [[ level.eroded_coop_stock_spawn_delay ]](round);
     // Extend four-player pacing without raising the concurrent AI/actor limits.
     delay = 0.67 * 4 / count;
     if (round > 60)
@@ -116,6 +132,18 @@ function valid_counters(total, respawns)
     return isdefined(total) && isdefined(respawns) && total >= 0 && respawns >= 0 && respawns <= total;
 }
 
+function custom_round_controller()
+{
+    if (isdefined(level.zombie_total_set_func))
+        return true;
+    if (!isdefined(level.fn_custom_round_ai_spawn))
+        return false;
+    // Known Zod parasite/raps spawning keeps running unchanged. Its quota
+    // decrements are observed along with ordinary spawns, not replaced.
+    return !isdefined(level.eroded_coop_known_custom_spawn) ||
+        level.fn_custom_round_ai_spawn != level.eroded_coop_known_custom_spawn;
+}
+
 function track_round()
 {
     level endon(#"intermission");
@@ -124,8 +152,7 @@ function track_round()
     level endon(#"restart_round");
     level endon(#"zombie_total_set");
     // Custom round controllers and special-round paths retain ownership.
-    if (!owns_callbacks() || isdefined(level.zombie_total_set_func) ||
-        isdefined(level.fn_custom_round_ai_spawn))
+    if (!owns_callbacks() || custom_round_controller())
         return;
     count = getplayers().size;
     if (count < 1 || count > level.eroded_coop_limit || count != level.players.size)
@@ -143,7 +170,7 @@ function track_round()
     {
         wait 0.1;
         if (!owns_callbacks() || level.round_number != round ||
-            isdefined(level.zombie_total_set_func) || isdefined(level.fn_custom_round_ai_spawn) ||
+            custom_round_controller() ||
             !valid_counters(level.zombie_total, level.zombie_respawns))
             return;
         current_pending = level.zombie_total - level.zombie_respawns;
