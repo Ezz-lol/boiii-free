@@ -1278,6 +1278,53 @@ void offer_download(game::ZoneType zoneType, const std::string_view &name,
       });
 }
 
+namespace {
+/**
+ * @brief Get the current game lobby while the local client is a private-match
+ * guest.
+ * @return The current client session, or nullptr outside a private-match lobby.
+ * @details LobbyType::GAME also covers the private-match staging menu. The
+ * UI-level test keeps this helper in the menus, and the CUSTOM mode check
+ * distinguishes a private match from other uses of the game lobby.
+ */
+const game::lobby::session::LobbySession *private_match_guest_session() {
+  using namespace game::lobby;
+  if (!game::com::Com_IsRunningUILevel() ||
+      party::cl_connected_to_dedi.get_bool() ||
+      !client::LobbyClient_IsActive(LobbyType::GAME) ||
+      client::LobbyClient_IsHost(LobbyType::GAME)) {
+    return nullptr;
+  }
+  // skip recovery while the host or map selection can still change
+  const auto *session = client::LobbyClientData_GetSession(LobbyType::GAME);
+  return session && session->mode == LobbyMode::CUSTOM && !session->inRecovery
+             ? session
+             : nullptr;
+}
+
+/**
+ * @brief Update the unchanged map selection after its assets become available.
+ */
+void refresh_private_match_map_preview() {
+  const auto *session = private_match_guest_session();
+  if (!session)
+    return;
+  // use the current selection in case the host switched maps during the download
+  const char *map = session->lobbyData.lobbyGame.mapName;
+  if (!map[0] || !has_usermap(map))
+    return;
+  const auto global = game::ui::UI_Model_GetGlobalModel();
+  if (!global)
+    return;
+  if (const auto model = game::ui::UI_Model_GetModelFromPath(
+          global, "lobbyRoot.selectedMapId")) {
+    // update the image before notifying the UI about the unchanged map ID
+    game::ugc::UGC_SetMapPreviewImageByPublisherId_Impl(map);
+    game::ui::UI_Model_ForceNotify(model);
+  }
+}
+} // namespace
+
 bool valid_workshop_name(const std::string_view &name) {
   return std::ranges::all_of(name, [](unsigned char c) {
     return std::isalnum(c) || c == '_' || c == '-';
@@ -1734,8 +1781,11 @@ public:
 
       command::add("userContentReload", [](const command::params &params) {
         game::ugc::UGC_LoadPools_Impl();
-        if (!game::is_server())
+        if (!game::is_server()) {
+          // lobby UI needs a separate notification for refresh
+          refresh_private_match_map_preview();
           toast::info("Workshop", "User content reloaded");
+        }
       });
       command::add("workshop_config", [](const command::params &params) {
         printf("[ Workshop ] workshop_retry_attempts: %d (set in game or "
