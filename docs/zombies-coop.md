@@ -136,8 +136,9 @@ Gameplay startup still has to pass the real read-only-assets canary.
 
 ## More Players reference
 
-The [pinned More Players review](zombies-coop-more-players-review.md) records
-ShawnDuPreez's GPLv3 source, the bounded HUD and GobbleGum movement additions,
-and the paired GSC/CSC registration and joining-client work still required.
+The [pinned compatibility review](zombies-coop-more-players-review.md) records
+factual source and GPLv3 provenance, independently written bounded HUD guards
+using stock APIs, and the retail-verified GobbleGum movement fallback. It also
+records the paired GSC/CSC registration and joining-client work still required.
 These additions do not fix the extra-slot revive or score-field contracts and do
 not make this a release-ready eight-player implementation.

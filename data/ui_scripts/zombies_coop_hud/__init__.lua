@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: GPL-3.0-only
--- Score palette/scoreboard approach adapted from ShawnDuPreez's More Players:
--- https://github.com/ShawnDuPreez/cb-mods/tree/0b2eafd75aacc451d458e781caf3dec18b228b22/BO3/more-players
--- Modified for dynamic advertised capacity and stock/foreign-function preservation.
+-- Dynamic HUD guards implemented against stock BO3 Lua APIs.
+-- Extra-slot colours were selected independently for this module.
+-- Compatibility references: docs/zombies-coop-more-players-review.md.
 -- No lobby limits, dvars, score-list children or revive objectives are changed.
 local previous = rawget(_G, "BoiiiZombiesCoopHud")
 if type(previous) == "table" and previous.version == 1 and type(previous.install) == "function" then
@@ -13,10 +13,10 @@ local hud = { version = 1 }
 BoiiiZombiesCoopHud = hud
 local unpackValues = unpack
 local palette = {
-  [4] = { 0.96, 0.58, 0.31 },
-  [5] = { 0.93, 0.55, 0.80 },
-  [6] = { 0.70, 0.62, 0.95 },
-  [7] = { 0.55, 0.90, 0.88 },
+  [4] = { 1.00, 0.20, 0.20 },
+  [5] = { 0.65, 0.30, 1.00 },
+  [6] = { 0.05, 0.85, 0.70 },
+  [7] = { 1.00, 0.50, 0.05 },
 }
 
 local function pack(...)

@@ -135,11 +135,11 @@ do
   )
   w.custom = { n = 3, 0 / 0, 0.1, 0.2 }
   result = pack(e.ZombieClientScoreboardColor(6))
-  check(result[1] == 0.70 and result[2] == 0.62 and result[3] == 0.95, "NaN foreign RGB falls back")
+  check(result[1] == 0.05 and result[2] == 0.85 and result[3] == 0.70, "NaN foreign RGB falls back")
   w.custom = { n = 3, 1, math.huge, 0.2 }
-  check(e.ZombieClientScoreboardColor(6) == 0.70, "infinite foreign RGB falls back")
+  check(e.ZombieClientScoreboardColor(6) == 0.05, "infinite foreign RGB falls back")
   w.custom = { n = 3, nil, nil, nil }
-  check(e.ZombieClientScoreboardColor(6) == 0.70, "undefined foreign RGB falls back")
+  check(e.ZombieClientScoreboardColor(6) == 0.05, "undefined foreign RGB falls back")
   w.custom = nil
   w.echo = true
   for _, slot in ipairs({ -1, 4.5, 8, 18, "5", 0 / 0, math.huge }) do
@@ -304,7 +304,7 @@ do
   w.cap = 7
   e.Engine.GetCurrentMap()
   check(
-    e.ZombieClientScoreboardColor(6) == 0.70
+    e.ZombieClientScoreboardColor(6) == 0.05
       and e.CoD.ScoreboardWidgetCP.new().ScoreboardFactionScoresListCP0.Team1.rows == 7,
     "late helpers and widget installed by map query"
   )

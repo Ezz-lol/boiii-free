@@ -1,21 +1,26 @@
 # More Players reference review
 
-## Source and attribution
+## Pinned reference and licenses
 
-Reviewed on 2026-11-24: ShawnDuPreez's **More Players (Black Ops 3 zombies)**,
+Reviewed on 2026-11-24: the **More Players (Black Ops 3 zombies)** project
 submitted through
 [CBServers/mods-index issue 34](https://github.com/CBServers/mods-index/issues/34).
 The reviewed source is pinned to
 [`0b2eafd75aacc451d458e781caf3dec18b228b22`](https://github.com/ShawnDuPreez/cb-mods/tree/0b2eafd75aacc451d458e781caf3dec18b228b22/BO3/more-players).
-The source repository and both BOIII forks declare GPLv3; retain the upstream
-license, creator attribution and pinned provenance for adapted additions. See
-the
-[upstream license](https://github.com/ShawnDuPreez/cb-mods/blob/0b2eafd75aacc451d458e781caf3dec18b228b22/LICENSE)
+The reference project and both BOIII forks declare GPLv3. Existing project
+licenses and copyright notices remain unchanged. Any future source import must
+preserve its applicable required license notices. See the
+[reference license](https://github.com/ShawnDuPreez/cb-mods/blob/0b2eafd75aacc451d458e781caf3dec18b228b22/LICENSE)
 and
-[upstream README and stock-source credits](https://github.com/ShawnDuPreez/cb-mods/blob/0b2eafd75aacc451d458e781caf3dec18b228b22/BO3/more-players/README.md).
+[reference documentation and stock-source links](https://github.com/ShawnDuPreez/cb-mods/blob/0b2eafd75aacc451d458e781caf3dec18b228b22/BO3/more-players/README.md).
+
+The bounded HUD guards in this PR are independently written against stock APIs
+and use an independent colour palette, informed by the compatibility review. No
+functions from the reference mod are copied. The GobbleGum movement table is
+verified against the separately pinned retail source below.
 
 This review does not install the external mod or enable its complete script set.
-The changes adopted here are a bounded HUD colour fallback, scoreboard row-count
+The changes here are a bounded HUD colour fallback, scoreboard row-count
 adaptation, and a stock GobbleGum movement-frequency fallback above four
 players. They do **not** fix the missing revive/score replication contracts or
 complete an eight-player gameplay implementation. The PR remains experimental
@@ -150,19 +155,19 @@ These are compatibility limitations, not verified fixes in this PR.
 
 ## What evidence exists
 
-The author's README reports a host plus seven bots across 14 maps. Seven maps
+The reference README reports a host plus seven bots across 14 maps. Seven maps
 are listed on the final scripts, six on earlier scripts before the added revive
 icon, and Moon only at startup without completing three rounds. The reported
-15-round Giant run also predates the revive icon. These are the author's
-reported results, not tests rerun by this PR. The author explicitly has not
-tried real people in slots 5-8, late network joins without the mod, or all long
-games, quests and bosses. Bots do not supply independent profiles, loadouts,
+15-round Giant run also predates the revive icon. These are observations
+reported in the reference documentation, not tests rerun by this PR. Real people
+in slots 5-8, late network joins without the mod, and all long games, quests and
+bosses remain untested there. Bots do not supply independent profiles, loadouts,
 HUDs or network connections.
 
 Our own checks are listed in the PR description and private build/test report.
 The bounded Lua tests, GSC fixture and server-only canaries are separate from
-the author's bot runs. They do not establish real-client revive, score-field,
-character, spectating or join/reconnect compatibility.
+the reference's reported bot runs. They do not establish real-client revive,
+score-field, character, spectating or join/reconnect compatibility.
 
 ## Concrete next steps
 
