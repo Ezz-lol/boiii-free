@@ -212,7 +212,12 @@ std::filesystem::path find_installed(const std::string_view &id) {
   const auto has_content = [](const std::filesystem::path &folder) {
     std::error_code ec;
     std::uintmax_t total = 0;
-    for (std::filesystem::recursive_directory_iterator it(folder, ec), end;
+    for (std::filesystem::recursive_directory_iterator it(
+             folder,
+             std::filesystem::directory_options::skip_permission_denied |
+                 std::filesystem::directory_options::follow_directory_symlink,
+             ec),
+         end;
          !ec && it != end; it.increment(ec)) {
       std::error_code file_ec;
       if (!it->is_regular_file(file_ec))

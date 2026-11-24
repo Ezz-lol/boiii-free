@@ -39,7 +39,12 @@ std::string read_at(std::ifstream &file, const uint64_t offset,
 content_info compute_content(const std::filesystem::path &folder) {
   std::vector<std::pair<std::string, std::filesystem::path>> files;
   std::error_code ec;
-  for (std::filesystem::recursive_directory_iterator it(folder, ec), end;
+  for (std::filesystem::recursive_directory_iterator
+           it(folder,
+              std::filesystem::directory_options::skip_permission_denied |
+                  std::filesystem::directory_options::follow_directory_symlink,
+              ec),
+       end;
        !ec && it != end; it.increment(ec)) {
     std::error_code file_ec;
     const std::string file_name =

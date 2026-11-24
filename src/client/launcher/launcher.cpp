@@ -821,27 +821,31 @@ std::string get_mode_files_info() {
   GetCurrentDirectoryA(sizeof(cwd), cwd);
   std::filesystem::path base(cwd);
 
-  mode_info modes[] = {{"cp_", "campaign", 0, 0},
-                       {"mp_", "multiplayer", 0, 0},
-                       {"zm_", "zombies", 0, 0}};
+  mode_info modes[] = {
+      {.prefix = "cp_", .key = "campaign", .total_size = 0, .file_count = 0},
+      {.prefix = "mp_", .key = "multiplayer", .total_size = 0, .file_count = 0},
+      {.prefix = "zm_", .key = "zombies", .total_size = 0, .file_count = 0}};
   for (const std::string_view &dir_name : SCAN_DIRECTORIES) {
     std::filesystem::path dir = base / dir_name;
-    if (!std::filesystem::exists(dir))
-      continue;
+    if (std::filesystem::exists(dir)) {
+      std::error_code ec;
+      for (const std::filesystem::directory_entry &entry :
+           std::filesystem::recursive_directory_iterator(
+               dir,
+               std::filesystem::directory_options::skip_permission_denied |
+                   std::filesystem::directory_options::follow_directory_symlink,
+               ec)) {
+        if (entry.is_regular_file(ec)) {
+          const std::string filename =
+              utils::string::to_lower(entry.path().filename().string());
 
-    std::error_code ec;
-    for (const std::filesystem::directory_entry &entry :
-         std::filesystem::recursive_directory_iterator(dir, ec)) {
-      if (!entry.is_regular_file(ec))
-        continue;
-      const std::string filename =
-          utils::string::to_lower(entry.path().filename().string());
-
-      for (mode_info &m : modes) {
-        if (filename.rfind(m.prefix, 0) == 0) {
-          m.total_size += entry.file_size(ec);
-          m.file_count++;
-          break;
+          for (mode_info &m : modes) {
+            if (filename.starts_with(m.prefix)) {
+              m.total_size += entry.file_size(ec);
+              m.file_count++;
+              break;
+            }
+          }
         }
       }
     }
@@ -862,7 +866,7 @@ std::string get_mode_files_info() {
     w.EndObject();
   }
   w.EndObject();
-  return std::string(buf.GetString(), buf.GetSize());
+  return {buf.GetString(), buf.GetSize()};
 }
 
 std::string remove_mode_files(const std::string &prefixes_csv) {
@@ -871,26 +875,30 @@ std::string remove_mode_files(const std::string &prefixes_csv) {
   std::filesystem::path base(cwd);
 
   std::vector<std::string> prefixes = utils::string::split(prefixes_csv, ',');
-  for (std::string &p : prefixes)
+  for (std::string &p : prefixes) {
     utils::string::trim(p);
+  }
   std::vector<std::filesystem::path> to_delete;
   for (const std::string_view &dir_name : SCAN_DIRECTORIES) {
     std::filesystem::path dir = base / dir_name;
-    if (!std::filesystem::exists(dir))
-      continue;
+    if (std::filesystem::exists(dir)) {
+      std::error_code ec;
+      for (const std::filesystem::directory_entry &entry :
+           std::filesystem::recursive_directory_iterator(
+               dir,
+               std::filesystem::directory_options::skip_permission_denied |
+                   std::filesystem::directory_options::follow_directory_symlink,
+               ec)) {
+        if (entry.is_regular_file(ec)) {
+          const std::string filename =
+              utils::string::to_lower(entry.path().filename().string());
 
-    std::error_code ec;
-    for (const std::filesystem::directory_entry &entry :
-         std::filesystem::recursive_directory_iterator(dir, ec)) {
-      if (!entry.is_regular_file(ec))
-        continue;
-      const std::string filename =
-          utils::string::to_lower(entry.path().filename().string());
-
-      for (const std::string &prefix : prefixes) {
-        if (!prefix.empty() && filename.rfind(prefix, 0) == 0) {
-          to_delete.push_back(entry.path());
-          break;
+          for (const std::string &prefix : prefixes) {
+            if (!prefix.empty() && filename.starts_with(prefix)) {
+              to_delete.push_back(entry.path());
+              break;
+            }
+          }
         }
       }
     }
@@ -921,7 +929,7 @@ std::string remove_mode_files(const std::string &prefixes_csv) {
   w.Key("failedCount");
   w.Uint(failed_count);
   w.EndObject();
-  return std::string(buf.GetString(), buf.GetSize());
+  return {buf.GetString(), buf.GetSize()};
 }
 
 const std::filesystem::path &get_steam_workshop_path() {
@@ -942,8 +950,9 @@ std::uint64_t get_folder_mtime_epoch(const std::filesystem::path &folder) {
     std::error_code ec;
     std::filesystem::file_time_type lwt =
         std::filesystem::last_write_time(folder, ec);
-    if (ec)
+    if (ec) {
       return 0;
+    }
     std::chrono::system_clock::time_point sctp =
         std::chrono::time_point_cast<std::chrono::system_clock::duration>(
             lwt - std::filesystem::file_time_type::clock::now() +
@@ -1393,7 +1402,11 @@ std::filesystem::path back_up_profile(const std::string &suffix = {}) {
   utils::compression::zip::archive archive;
   size_t files = 0;
   for (const std::filesystem::directory_entry &entry :
-       std::filesystem::recursive_directory_iterator(profile, ec)) {
+       std::filesystem::recursive_directory_iterator(
+           profile,
+           std::filesystem::directory_options::skip_permission_denied |
+               std::filesystem::directory_options::follow_directory_symlink,
+           ec)) {
     if (!entry.is_regular_file(ec))
       continue;
     std::string data;

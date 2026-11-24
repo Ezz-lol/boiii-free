@@ -200,30 +200,34 @@ void fire_debug_reload(const char *root_name) {
 }
 
 int hot_reload_check_files() {
-  if (hot_reload_path.empty())
+  if (hot_reload_path.empty()) {
     return 0;
+  }
 
   std::vector<std::filesystem::directory_entry> changed;
 
   try {
     for (const std::filesystem::directory_entry &entry :
-         std::filesystem::recursive_directory_iterator(hot_reload_path)) {
-      if (!entry.is_regular_file())
-        continue;
-      if (entry.path().extension() != ".lua")
-        continue;
+         std::filesystem::recursive_directory_iterator(
+             hot_reload_path,
+             std::filesystem::directory_options::skip_permission_denied |
+                 std::filesystem::directory_options::
+                     follow_directory_symlink)) {
+      if (entry.is_regular_file() && entry.path().extension() == ".lua") {
 
-      const std::string path_str = entry.path().string();
-      const std::filesystem::file_time_type mod_time = entry.last_write_time();
+        const std::string path_str = entry.path().string();
+        const std::filesystem::file_time_type mod_time =
+            entry.last_write_time();
 
-      std::map<std::string, std::filesystem::file_time_type>::iterator it =
-          hot_reload_files.find(path_str);
-      if (it == hot_reload_files.end()) {
-        hot_reload_files[path_str] = mod_time;
-        changed.push_back(entry);
-      } else if (it->second < mod_time) {
-        it->second = mod_time;
-        changed.push_back(entry);
+        std::map<std::string, std::filesystem::file_time_type>::iterator it =
+            hot_reload_files.find(path_str);
+        if (it == hot_reload_files.end()) {
+          hot_reload_files[path_str] = mod_time;
+          changed.push_back(entry);
+        } else if (it->second < mod_time) {
+          it->second = mod_time;
+          changed.push_back(entry);
+        }
       }
     }
   } catch (const std::exception &ex) {
@@ -233,8 +237,9 @@ int hot_reload_check_files() {
     return 0;
   }
 
-  if (changed.empty())
+  if (changed.empty()) {
     return 0;
+  }
 
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT,
@@ -2001,25 +2006,30 @@ inline void register_lui_commands() {
             std::string errors;
             const std::function<void(const std::string &script_dir)>
                 reload_dir = [&](const std::string &script_dir) {
-                  if (!utils::io::directory_exists(script_dir))
-                    return;
-                  for (const std::filesystem::directory_entry &entry :
-                       std::filesystem::recursive_directory_iterator(
-                           script_dir)) {
-                    if (!entry.is_regular_file())
-                      continue;
-                    if (entry.path().extension() != ".lua")
-                      continue;
-
-                    std::string data;
-                    if (utils::io::read_file(entry.path().string(), &data)) {
-                      std::string chunk = entry.path().string();
-                      if (chunk.starts_with(script_dir))
-                        chunk = chunk.substr(script_dir.size());
-                      if (execute_raw_lua(data, chunk.c_str()))
-                        count++;
-                      else
-                        errors += chunk + "\n";
+                  if (utils::io::directory_exists(script_dir)) {
+                    for (const std::filesystem::directory_entry &entry :
+                         std::filesystem::recursive_directory_iterator(
+                             script_dir,
+                             std::filesystem::directory_options::
+                                     skip_permission_denied |
+                                 std::filesystem::directory_options::
+                                     follow_directory_symlink)) {
+                      if (entry.is_regular_file() &&
+                          entry.path().extension() == ".lua") {
+                        std::string data;
+                        if (utils::io::read_file(entry.path().string(),
+                                                 &data)) {
+                          std::string chunk = entry.path().string();
+                          if (chunk.starts_with(script_dir)) {
+                            chunk = chunk.substr(script_dir.size());
+                          }
+                          if (execute_raw_lua(data, chunk.c_str())) {
+                            count++;
+                          } else {
+                            errors += chunk + "\n";
+                          }
+                        }
+                      }
                     }
                   }
                 };
@@ -2110,21 +2120,25 @@ inline void register_lui_commands() {
             std::string errors;
             if (utils::io::directory_exists(script_dir)) {
               for (const std::filesystem::directory_entry &entry :
-                   std::filesystem::recursive_directory_iterator(script_dir)) {
-                if (!entry.is_regular_file())
-                  continue;
-                if (entry.path().extension() != ".lua")
-                  continue;
-
-                std::string data;
-                if (utils::io::read_file(entry.path().string(), &data)) {
-                  std::string chunk = entry.path().string();
-                  if (chunk.starts_with(script_dir))
-                    chunk = chunk.substr(script_dir.size());
-                  if (execute_raw_lua(data, chunk.c_str()))
-                    count++;
-                  else
-                    errors += chunk + "\n";
+                   std::filesystem::recursive_directory_iterator(
+                       script_dir, std::filesystem::directory_options::
+                                           skip_permission_denied |
+                                       std::filesystem::directory_options::
+                                           follow_directory_symlink)) {
+                if (entry.is_regular_file() &&
+                    entry.path().extension() == ".lua") {
+                  std::string data;
+                  if (utils::io::read_file(entry.path().string(), &data)) {
+                    std::string chunk = entry.path().string();
+                    if (chunk.starts_with(script_dir)) {
+                      chunk = chunk.substr(script_dir.size());
+                    }
+                    if (execute_raw_lua(data, chunk.c_str())) {
+                      count++;
+                    } else {
+                      errors += chunk + "\n";
+                    }
+                  }
                 }
               }
             }
@@ -2139,9 +2153,7 @@ inline void register_lui_commands() {
                                           "': " + std::to_string(count) +
                                           " file(s)";
             scheduler::once(
-                [toast_msg] {
-                  toast::success("Lua Reload Mod", toast_msg.c_str());
-                },
+                [toast_msg] { toast::success("Lua Reload Mod", toast_msg); },
                 scheduler::pipeline::renderer, 2s);
 
             fire_debug_reload("UIRootFull");

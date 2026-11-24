@@ -626,24 +626,28 @@ void write_manifest(const std::filesystem::path &folder,
   writer.StartArray();
   size_t count = 0;
   std::error_code ec;
-  for (std::filesystem::recursive_directory_iterator it(folder, ec), end;
+  for (std::filesystem::recursive_directory_iterator
+           it(folder,
+              std::filesystem::directory_options::skip_permission_denied |
+                  std::filesystem::directory_options::follow_directory_symlink,
+              ec),
+       end;
        !ec && it != end; it.increment(ec)) {
     std::error_code file_ec;
-    if (!it->is_regular_file(file_ec)) {
-      continue;
+    if (it->is_regular_file(file_ec)) {
+      const std::string name =
+          std::filesystem::relative(it->path(), folder, file_ec)
+              .generic_string();
+      if (!file_ec && utils::string::to_lower(name) != "manifest.json") {
+        std::ifstream file(it->path(), std::ios::binary);
+        writer.StartArray();
+        writer.String(name.c_str());
+        writer.Int64(static_cast<int64_t>(it->file_size(file_ec)));
+        writer.String(get_hash(file).c_str());
+        writer.EndArray();
+        ++count;
+      }
     }
-    const std::string name =
-        std::filesystem::relative(it->path(), folder, file_ec).generic_string();
-    if (file_ec || utils::string::to_lower(name) == "manifest.json") {
-      continue;
-    }
-    std::ifstream file(it->path(), std::ios::binary);
-    writer.StartArray();
-    writer.String(name.c_str());
-    writer.Int64(static_cast<int64_t>(it->file_size(file_ec)));
-    writer.String(get_hash(file).c_str());
-    writer.EndArray();
-    ++count;
   }
   writer.EndArray();
 

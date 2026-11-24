@@ -1095,22 +1095,63 @@ std::vector<item_details> get_details(const std::vector<std::string> &ids) {
   return result;
 }
 
-std::uint64_t newest_write_time(const std::filesystem::path &folder) {
-  std::uint64_t newest = 0;
+uint64_t newest_write_time(const std::filesystem::path &folder) {
+  uint64_t result = 0;
   std::error_code ec;
-  for (std::filesystem::recursive_directory_iterator it(folder, ec), end;
+
+  bool has_time = false;
+  std::filesystem::file_time_type newest_ft{};
+
+  for (std::filesystem::recursive_directory_iterator
+           it(folder,
+              std::filesystem::directory_options::skip_permission_denied |
+                  std::filesystem::directory_options::follow_directory_symlink,
+              ec),
+       end;
        !ec && it != end; it.increment(ec)) {
-    if (it->is_regular_file(ec)) {
-      const std::filesystem::file_time_type time = it->last_write_time(ec);
+    ec.clear();
+    const bool is_reg = it->is_regular_file(ec);
+    if (!ec && is_reg) {
+      ec.clear();
+      const std::filesystem::file_time_type ft = it->last_write_time(ec);
       if (!ec) {
-        newest = std::max<std::uint64_t>(
-            newest,
-            std::chrono::system_clock::to_time_t(
-                std::chrono::clock_cast<std::chrono::system_clock>(time)));
+        if (!has_time || ft > newest_ft) {
+          newest_ft = ft;
+          has_time = true;
+        }
       }
     }
   }
-  return newest;
+
+  if (has_time) {
+    try {
+      const std::chrono::system_clock::time_point sys_tp =
+          std::chrono::clock_cast<std::chrono::system_clock>(newest_ft);
+      const std::time_t tt = std::chrono::system_clock::to_time_t(sys_tp);
+      if (tt > 0) {
+        result = static_cast<uint64_t>(tt);
+      }
+    } catch (...) {
+      // Fallback if utc_clock::to_sys throws (e.g., missing leap-second/tzdb
+      // data) using the standard 11644473600s offset between 1601-01-01
+      // (Windows/file_clock) and 1970-01-01 (Unix epoch) when file_clock uses
+      // 100ns ticks.
+      constexpr uint64_t K_WINDOWS_TO_UNIX_EPOCH_SECONDS = 11644473600ULL;
+      const uint64_t ticks_100ns =
+          std::chrono::duration_cast<
+              std::chrono::duration<uint64_t, std::ratio<1, 10'000'000>>>(
+              newest_ft.time_since_epoch())
+              .count();
+      if (ticks_100ns > 0) {
+        const uint64_t secs_since_1601 = ticks_100ns / 10'000'000ULL;
+        if (secs_since_1601 > K_WINDOWS_TO_UNIX_EPOCH_SECONDS) {
+          result = secs_since_1601 - K_WINDOWS_TO_UNIX_EPOCH_SECONDS;
+        }
+      }
+    }
+  }
+
+  return result;
 }
 
 void warn_if_outdated(const std::string &id, const std::string &title,
@@ -1122,11 +1163,11 @@ void warn_if_outdated(const std::string &id, const std::string &title,
     const std::vector<item_details> details = get_details({id});
     const std::uint64_t local = newest_write_time(folder);
     if (!details.empty() && local && local < details[0].time_updated) {
-      printf("[ Workshop ] WARNING: '%s' (%s) is older than the version on "
-             "the Steam Workshop. Players who download it can't join until "
-             "the server is updated. Use fastdl if you want players to use "
-             "this version.\n",
-             title.c_str(), id.c_str());
+      std::println(
+          "[ Workshop ] WARNING: '{}' ({}) is older than the version on the "
+          "Steam Workshop. Players who download it can't join until the server "
+          "is updated. Use fastdl if you want players to use this version.",
+          title, id);
     }
   }).detach();
 }

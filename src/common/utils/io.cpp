@@ -145,7 +145,11 @@ list_files(const std::filesystem::path &directory, const bool recursive,
 
   if (recursive) {
     for (const std::filesystem::directory_entry &file :
-         std::filesystem::recursive_directory_iterator(directory, code)) {
+         std::filesystem::recursive_directory_iterator(
+             directory,
+             std::filesystem::directory_options::skip_permission_denied |
+                 std::filesystem::directory_options::follow_directory_symlink,
+             code)) {
       if (include_directories || !file.is_directory()) {
         files.push_back(file.path());
       }

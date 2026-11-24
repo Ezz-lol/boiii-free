@@ -386,7 +386,11 @@ luaReturnCount_e list_files(lua_State *luaVM) {
           arg_path ? path::normalize(arg_path) : path::cwd();
       if (std::filesystem::is_directory(path)) {
         for (const std::filesystem::directory_entry &entry :
-             std::filesystem::recursive_directory_iterator(path)) {
+             std::filesystem::recursive_directory_iterator(
+                 path,
+                 std::filesystem::directory_options::skip_permission_denied |
+                     std::filesystem::directory_options::
+                         follow_directory_symlink)) {
           entries.push_back(entry);
         }
       }
