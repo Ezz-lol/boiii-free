@@ -219,6 +219,36 @@ function remaining_budget(target, consumed, respawns)
     return remaining + respawns;
 }
 
+function accounted_spawn_delta(previous_pending, current_pending, recycle_delta)
+{
+    if (!isint(previous_pending) || !isint(current_pending) || !isint(recycle_delta) ||
+        previous_pending < 0 || current_pending < 0 || recycle_delta < 0 ||
+        recycle_delta > 2147483647 - previous_pending)
+        return undefined;
+    available = previous_pending + recycle_delta;
+    // Only stock-accounted additions are ours. Leave other map/mod budgets alone.
+    if (current_pending > available)
+        return undefined;
+    return available - current_pending;
+}
+
+function recycle_credit_balance(previous_credits, recycle_delta, spawns, current_pending)
+{
+    if (!isint(previous_credits) || !isint(recycle_delta) || !isint(spawns) ||
+        !isint(current_pending) || previous_credits < 0 || recycle_delta < 0 || spawns < 0 || current_pending < 0 ||
+        recycle_delta > 2147483647 - previous_credits)
+        return undefined;
+    // A normal spawn followed by a recycle can occur within one polling sample.
+    // Keep the maximum queued replacements consistent with the observed queue;
+    // otherwise shrinking its target could erase a still-pending replacement.
+    credits = previous_credits + recycle_delta;
+    if (credits > current_pending)
+        credits = current_pending;
+    if (previous_credits + recycle_delta - credits > spawns)
+        return undefined;
+    return credits;
+}
+
 function custom_round_controller()
 {
     if (isdefined(level.zombie_total_set_func))
@@ -248,12 +278,18 @@ function track_round(epoch, map)
         return;
     round = level.round_number;
     target = zm::get_zombie_count_for_round(round, count);
-    if (!isint(target) || target < 0 || !valid_counters(level.zombie_total, level.zombie_respawns))
+    if (!isint(target) || target < 0 || !valid_counters(level.zombie_total, level.zombie_respawns) ||
+        !isint(level.zombie_total_subtract) || level.zombie_total_subtract < 0)
         return;
     pending = level.zombie_total - level.zombie_respawns;
     if (pending > target)
         return;
     consumed = target - pending;
+    // Stock timeout/recycle paths add total++ and total_subtract++, separately
+    // from the map cleanup total++/respawns++ pair. The subtract counter is
+    // cumulative for the entire map, not reset when a new round starts.
+    recycle_total = level.zombie_total_subtract;
+    recycle_credits = 0;
     setdvar("zm_coopRoundStatus", "tracking");
     level.zombie_vars["zombie_spawn_delay"] = spawn_delay(round);
     while (true)
@@ -263,13 +299,23 @@ function track_round(epoch, map)
             !isdefined(level.players) || !isarray(level.players) || custom_round_controller() ||
             !valid_counters(level.zombie_total, level.zombie_respawns))
             return;
-        current_pending = level.zombie_total - level.zombie_respawns;
-        if (current_pending > pending)
+        if (!isint(level.zombie_total_subtract) || level.zombie_total_subtract < recycle_total)
         {
             setdvar("zm_coopRoundStatus", "custom_round_budget_preserved");
             return;
         }
-        delta = pending - current_pending;
+        recycle_delta = level.zombie_total_subtract - recycle_total;
+        current_pending = level.zombie_total - level.zombie_respawns;
+        spawns = accounted_spawn_delta(pending, current_pending, recycle_delta);
+        next_credits = recycle_credit_balance(recycle_credits, recycle_delta, spawns, current_pending);
+        if (!isdefined(spawns) || !isdefined(next_credits) || next_credits > current_pending)
+        {
+            setdvar("zm_coopRoundStatus", "custom_round_budget_preserved");
+            return;
+        }
+        // Consume ordinary quota first and retain possibly queued recycling.
+        // Stock does not expose the ordering of individual recycle/spawn events.
+        delta = spawns - (recycle_credits + recycle_delta - next_credits);
         if (delta > 2147483647 - consumed)
         {
             setdvar("zm_coopRoundStatus", "counter_range_preserved");
@@ -277,6 +323,8 @@ function track_round(epoch, map)
         }
         consumed += delta;
         pending = current_pending;
+        recycle_credits = next_credits;
+        recycle_total = level.zombie_total_subtract;
         current_count = getplayers().size;
         // No empty-server round advancement. Wait for stable authoritative membership.
         if (current_count < 1 || current_count > level.eroded_coop_limit ||
@@ -285,8 +333,15 @@ function track_round(epoch, map)
         target = zm::get_zombie_count_for_round(round, current_count);
         if (!isint(target) || target < 0)
             return;
-        // Replacement spawns are not normal round quota and must survive scaling.
-        next_total = remaining_budget(target, consumed, level.zombie_respawns);
+        // Both replacement systems survive a reduced target, including when
+        // ordinary quota has clamped to zero. Do not reset the stock counters.
+        replacements = level.zombie_respawns;
+        if (recycle_credits > 2147483647 - replacements)
+        {
+            setdvar("zm_coopRoundStatus", "counter_range_preserved");
+            return;
+        }
+        next_total = remaining_budget(target, consumed, replacements + recycle_credits);
         if (!isdefined(next_total))
         {
             setdvar("zm_coopRoundStatus", "counter_range_preserved");

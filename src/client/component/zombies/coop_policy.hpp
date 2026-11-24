@@ -36,35 +36,59 @@ constexpr int remaining_spawns(const int target, const int spawned) {
 // to zero, but a later join must not forget zombies already created this round.
 class round_budget {
 public:
-  bool begin(const int target, const int remaining, const int respawns) {
+  bool begin(const int target, const int remaining, const int respawns,
+             const int recycled = 0) {
     active_ = valid_counters(remaining, respawns) && target >= 0 &&
-              remaining - respawns <= target;
+              recycled >= 0 && remaining - respawns <= target;
     if (!active_)
       return false;
     consumed_ = target - (remaining - respawns);
     last_pending_ = remaining - respawns;
+    last_recycled_ = recycled;
+    recycle_credits_ = 0;
     return true;
   }
 
   std::optional<int> update(const int remaining, const int respawns,
-                            const int target) {
-    if (!active_ || !valid_counters(remaining, respawns) || target < 0)
+                            const int target, const int recycled = 0) {
+    if (!active_ || !valid_counters(remaining, respawns) || target < 0 ||
+        recycled < last_recycled_)
       return invalidate();
     const auto pending = remaining - respawns;
-    // Unexpected additions belong to a map/mod controller. Stop adapting it.
-    if (pending > last_pending_)
+    const auto recycle_delta = recycled - last_recycled_;
+    // Stock recycling adds total++ and cumulative total_subtract++; explicit
+    // map cleanup replacements instead add total++ and respawns++.
+    const auto available =
+        static_cast<std::int64_t>(last_pending_) + recycle_delta;
+    const auto credits =
+        static_cast<std::int64_t>(recycle_credits_) + recycle_delta;
+    const auto maximum = (std::numeric_limits<int>::max)();
+    if (available > maximum || credits > maximum || pending > available)
       return invalidate();
-    consumed_ += static_cast<std::int64_t>(last_pending_) - pending;
+    const auto spawns = available - pending;
+    // Polling cannot order a spawn and a new recycle in the same sample.
+    // Retain the maximum queued credits consistent with the observed queue.
+    const auto next_credits =
+        (std::min)(static_cast<std::int64_t>(pending), credits);
+    const auto recycled_spawns = credits - next_credits;
+    const auto consumed = consumed_ + spawns - recycled_spawns;
+    if (next_credits > pending || consumed > maximum)
+      return invalidate();
     const auto next = (std::max)(std::int64_t{0},
-                                 static_cast<std::int64_t>(target) - consumed_);
-    if (next + respawns > (std::numeric_limits<int>::max)())
+                                 static_cast<std::int64_t>(target) - consumed) +
+                      next_credits;
+    if (next + respawns > maximum)
       return invalidate();
-    last_pending_ = static_cast<int>(next);
+    consumed_ = consumed;
+    recycle_credits_ = static_cast<int>(next_credits);
+    last_recycled_ = recycled;
+    last_pending_ = static_cast<int>(next); // includes queued stock recycling
     return last_pending_ + respawns;
   }
 
   bool active() const { return active_; }
   std::int64_t consumed() const { return consumed_; }
+  int recycle_pending() const { return recycle_credits_; }
 
 private:
   static bool valid_counters(const int remaining, const int respawns) {
@@ -76,6 +100,8 @@ private:
   }
   bool active_{};
   int last_pending_{};
+  int last_recycled_{};
+  int recycle_credits_{};
   std::int64_t consumed_{};
 };
 

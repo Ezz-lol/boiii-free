@@ -6,6 +6,7 @@
 #include "zombies/coop_policy.hpp"
 #include "zombies/coop_runtime.hpp"
 #include "zombies/startup_gate.hpp"
+#include "zombies/stock_session.hpp"
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -22,25 +23,32 @@ bool reported = false;
 std::string active_map;
 std::chrono::steady_clock::time_point next_poll{};
 
-const char *preflight_error(int requested) {
-  if (requested < 1 || requested > player_limit)
+const char *preflight_error(int configured, int requested) {
+  if (configured < 1 || configured > player_limit)
     return "Invalid Zombies coop capacity. Select one through eight before "
            "hosting.";
+  if (!requested)
+    return "Zombies coop host capacity does not match the configured limit. "
+           "Rehost with matching lobby settings before loading a map.";
   if (applied_limit && requested != applied_limit)
     return "Zombies coop capacity changed during a hosted session. Return to "
            "the frontend, or restart the dedicated process, to apply it.";
   if (requested <= stock_limit)
     return nullptr;
-  if (game::get_dvar_int("com_maxclients").value_or(0) != requested)
-    return "Zombies coop host capacity does not match the configured limit. "
-           "Rehost with matching lobby settings before loading a map.";
   if (!supported_map(
           std::string(game::get_dvar_string("mapname").value_or(""))))
     return "Experimental Zombies coop supports zm_zod and zm_tomb only. Rehost "
            "with four players for other maps.";
-  if (!game::get_fs_game().value_or("").empty())
-    return "Experimental Zombies coop requires an unmodified stock session. "
-           "Unload the Workshop mod and rehost.";
+  const auto selected_mod = game::get_fs_game().value_or("");
+  const bool mod_loaded = game::ugc::UGC_ActiveMod_Loaded();
+  const char *mod_publisher =
+      mod_loaded ? game::ugc::UGC_ActiveMod_PublisherId() : "";
+  if (!stock_session_allowed(selected_mod, mod_loaded,
+                             mod_publisher ? mod_publisher : "",
+                             game::ugc::active_usermap->publisherId[0] != 0))
+    return "Experimental Zombies coop requires a stock map without a Workshop "
+           "gameplay mod. "
+           "Unload the mod or usermap and rehost.";
   return nullptr;
 }
 
@@ -89,17 +97,19 @@ const char *begin_startup() {
   const std::lock_guard<std::mutex> lock(state_mutex);
   if (game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES)
     return nullptr;
-  const int requested =
+  const int configured =
       game::get_dvar_int("zm_coopPlayerLimit").value_or(stock_limit);
-  blocked.store(requested > stock_limit || applied_limit > stock_limit,
-                std::memory_order_release);
+  const int requested = resolve_session_limit(
+      configured, game::get_dvar_int("com_maxclients").value_or(0));
+  blocked.store(true, std::memory_order_release);
   // All temporary strings are destroyed before invoking engine longjmp error
   // paths.
-  if (const char *error = preflight_error(requested)) {
+  if (const char *error = preflight_error(configured, requested)) {
     reported = true;
     return error;
   }
   applied_limit = requested;
+  blocked.store(requested > stock_limit, std::memory_order_release);
   epoch = epoch == INT_MAX ? 1 : epoch + 1;
   active_map = std::string(game::get_dvar_string("mapname").value_or(""));
   reported = false;

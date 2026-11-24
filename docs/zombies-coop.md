@@ -33,6 +33,13 @@ above-four setting during script startup with a recoverable game error. This
 allowlist is a testing boundary, not a claim that occupied gameplay is
 validated.
 
+The native preflight permits the engine's exact `usermaps` bootstrap used by
+stock dedicated lobbies. Other selected or active Workshop mods and loaded
+usermaps are rejected. This checks native content selection, not file integrity:
+modified fastfiles or files placed under the builtin `usermaps` directory are
+not fingerprinted. Matching callbacks and unmodified stock assets remain
+required.
+
 ## Ezz script packaging
 
 Ezz compiles `data/custom_scripts/zm/eroded_coop.gsc` with its own script
@@ -101,3 +108,20 @@ pause and readiness revocation. `tests/gsc/eroded_coop_selftest.gsc` is an
 isolated actual-VM fixture; keep it out of production data. It exercises the
 runtime arithmetic and duplicate-startup behavior, publishing
 `zm_coopSelfTestStatus` and `zm_coopSelfTestFailures`.
+
+The selected native `com_maxclients` determines stock Solo/Public capacity even
+when the saved next-custom-lobby preference is eight. Above-four sessions must
+match that preference; no already allocated capacity is enlarged. The builtin
+`usermaps` bootstrap is permitted, while active Workshop maps/gameplay mods are
+rejected. This does not fingerprint modified builtin assets or stock scripts.
+
+Stock timeout recycling is tracked using cumulative `zombie_total_subtract`
+deltas, separately from `zombie_respawns`. A polling sample cannot order every
+spawn/recycle event, so the controller conservatively retains the maximum
+possibly queued replacements when membership shrinks. It can retain extra
+recycled quota after a shrink; exact per-AI event attribution remains
+unverified. Unexplained additions and counter resets still relinquish ownership.
+
+`tests/zombies_coop_stock_session.cpp` covers stock bootstrap and Workshop
+classification. Startup tests include all configured 1-8/native 1-18 pairs,
+Solo/Public selection, and mismatched expanded capacity.

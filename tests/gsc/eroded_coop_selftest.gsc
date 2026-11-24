@@ -38,6 +38,25 @@ function run()
     failures += check(!isdefined(eroded_coop::remaining_budget(100, -1, 0)));
     failures += check(!isdefined(eroded_coop::remaining_budget(100, 0, -1)));
     failures += check(!isdefined(eroded_coop::remaining_budget(100.5, 0, 0)));
+    // A stock recycle is accounted even if a spawn hides the addition between polls.
+    failures += check(eroded_coop::accounted_spawn_delta(20, 25, 5) == 0);
+    failures += check(eroded_coop::accounted_spawn_delta(20, 20, 5) == 5);
+    failures += check(eroded_coop::accounted_spawn_delta(23, 18, 2) == 7);
+    failures += check(!isdefined(eroded_coop::accounted_spawn_delta(20, 26, 5)));
+    failures += check(!isdefined(eroded_coop::accounted_spawn_delta(2147483647, 1, 1)));
+    failures += check(!isdefined(eroded_coop::accounted_spawn_delta(1, 1, -1)));
+    failures += check(!isdefined(eroded_coop::accounted_spawn_delta(1.5, 1, 0)));
+    failures += check(eroded_coop::recycle_credit_balance(0, 5, 0, 25) == 5);
+    failures += check(eroded_coop::recycle_credit_balance(5, 0, 2, 3) == 3);
+    failures += check(eroded_coop::recycle_credit_balance(3, 2, 7, 18) == 5);
+    failures += check(eroded_coop::recycle_credit_balance(0, 5, 5, 0) == 0);
+    failures += check(eroded_coop::recycle_credit_balance(0, 10, 10, 20) == 10);
+    failures += check(!isdefined(eroded_coop::recycle_credit_balance(2147483647, 1, 1, 1)));
+    failures += check(!isdefined(eroded_coop::recycle_credit_balance(0, 0, undefined, 0)));
+    failures += check(!isdefined(eroded_coop::recycle_credit_balance(0, -1, 0, 0)));
+    failures += check(!isdefined(eroded_coop::recycle_credit_balance(1, 0, 0, 0)));
+    failures += check(eroded_coop::remaining_budget(50, 80, 5) == 5);
+    failures += check(eroded_coop::remaining_budget(100, 80, 3) == 23);
     failures += check(eroded_coop::extended_spawn_delay(1, 8) == 0.335);
     failures += check(eroded_coop::extended_spawn_delay(1, 0) == 0.67);
     failures += check(eroded_coop::extended_spawn_delay(1, 9) == 0.67);

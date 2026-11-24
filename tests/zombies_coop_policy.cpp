@@ -65,6 +65,89 @@ int main() {
   assert(!budget.update(20, 0, -1));
   assert(budget.begin(0, 2147483647, 2147483647));
   assert(!budget.update(2147483647, 2147483647, 1));
+  // Cumulative recycle count belongs to the map, not to the current round.
+  assert(budget.begin(100, 20, 0, 300));
+  assert(budget.update(25, 0, 50, 305) ==
+         5); // 8 -> 4 preserves five queued recycled AI
+  assert(budget.consumed() == 80 && budget.recycle_pending() == 5);
+  assert(budget.update(3, 0, 100, 305) ==
+         23); // two recycled AI spawn before rejoin
+  assert(budget.consumed() == 80 && budget.recycle_pending() == 3);
+  assert(budget.update(18, 0, 100, 307) ==
+         18); // two more recycle; seven spawn in same poll
+  assert(budget.consumed() == 87 && budget.recycle_pending() == 5);
+  assert(budget.update(15, 0, 100, 307) == 15);
+  assert(budget.consumed() == 90);
+  assert(budget.update(18, 3, 70, 307) ==
+         8); // explicit and recycled replacements are separate
+  assert(budget.update(6, 1, 100, 312) ==
+         16); // mixed respawns and five queued recycle credits
+  assert(budget.consumed() == 90 && budget.recycle_pending() == 5);
+  assert(!budget.update(17, 1, 100,
+                        312)); // unexplained addition remains delegated
+  assert(budget.begin(100, 20, 0, 900));
+  assert(!budget.update(20, 0, 100, 899)); // counter reset within same round
+  assert(!budget.begin(100, 20, 0, -1));
+  assert(budget.begin(0, 0, 0, 0));
+  assert(budget.update(1, 0, 0, 1) ==
+         1); // recycle survives an exhausted normal quota
+  assert(budget.update(0, 0, 0, 1) == 0);
+  assert(budget.consumed() == 0 && budget.recycle_pending() == 0);
+  assert(budget.begin(2147483647, 2147483647, 0));
+  assert(!budget.update(2147483647, 0, 2147483647,
+                        1)); // GSC intermediate overflow guard
+  assert(budget.begin(2147483647, 0, 0));
+  assert(budget.update(1, 0, 0, 1) == 1);
+  assert(budget.consumed() == 2147483647 && budget.recycle_pending() == 1);
+  assert(budget.begin(100, 20, 0,
+                      312)); // new round snapshots map cumulative count
+  assert(budget.recycle_pending() == 0 && budget.update(20, 0, 100, 312) == 20);
+  assert(budget.begin(100, 20, 0));
+  assert(budget.update(20, 0, 50, 10) ==
+         10); // spawn-then-recycle ordering within a sample
+  assert(budget.consumed() == 90 && budget.recycle_pending() == 10);
+  assert(budget.update(5, 0, 100, 10) ==
+         15); // retained replacements survive disconnect/rejoin
+  assert(budget.consumed() == 90 && budget.recycle_pending() == 5);
+  // All six-event samples of stock spawning, recycling and explicit cleanup.
+  // An unchanged target must never invent/delete quota despite event ordering;
+  // reducing then restoring a target without intervening spawns must be
+  // lossless.
+  for (int initial = 0; initial <= 6; ++initial) {
+    for (int sequence = 0; sequence < 4096; ++sequence) {
+      round_budget sample;
+      assert(sample.begin(10, initial, 0, 900));
+      int total = initial, respawns = 0, recycled = 900, events = sequence;
+      for (int event = 0; event < 6; ++event, events /= 4) {
+        switch (events % 4) {
+        case 0:
+          if (total > 0) {
+            --total;
+            if (respawns > 0)
+              --respawns;
+          }
+          break;
+        case 1:
+          ++total;
+          ++recycled;
+          break;
+        case 2:
+          ++total;
+          ++respawns;
+          break;
+        default:
+          break;
+        }
+      }
+      assert(sample.update(total, respawns, 10, recycled) == total);
+      assert(sample.consumed() >= 0 && sample.consumed() <= 10);
+      assert(sample.recycle_pending() >= 0 &&
+             sample.recycle_pending() <= total - respawns);
+      const auto reduced = sample.update(total, respawns, 0, recycled).value();
+      assert(reduced >= respawns && reduced <= total);
+      assert(sample.update(reduced, respawns, 10, recycled) == total);
+    }
+  }
 
   assert(remaining_spawns(50, 30) == 20);
   assert(remaining_spawns(100, 30) == 70);

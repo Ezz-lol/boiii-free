@@ -4,6 +4,20 @@
 #include <string_view>
 
 namespace zombies::coop {
+// The configured value selects the next custom lobby, not Solo/Public.
+// Never raise an already allocated host capacity. Zero rejects an invalid
+// configuration or an opted-in expansion whose native capacity mismatches.
+// With expansion off, foreign capacities remain outside this policy.
+constexpr int resolve_session_limit(int configured, int capacity) {
+  if (configured < 1 || configured > 8 || capacity < 1)
+    return 0;
+  if (capacity <= 4)
+    return capacity;
+  if (configured <= 4)
+    return configured;
+  return capacity == configured ? configured : 0;
+}
+
 // Main-thread state only. Network handlers consume a separately published
 // atomic.
 class startup_gate {
