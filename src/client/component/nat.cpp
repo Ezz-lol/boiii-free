@@ -533,6 +533,34 @@ void join_lobby(const game::net::netadr_t &host,
   }
 
   if (!same_mod) {
+    if (needs_usermaps && !usermap.empty()) {
+      // reload the frontend like the Custom Maps menu does
+      // ask for fresh lobby info once the load finishes
+      game::ugc::UGC_LoadModByPublisherId_Impl(
+          game::LOCAL_CLIENT_0, "usermaps", true);
+      // a slow test laptop took about 30 seconds to return to the menus
+      const auto deadline = std::chrono::steady_clock::now() + 60s;
+      scheduler::schedule(
+          [host, token = parts[0], deadline] {
+            if (game::ugc::active_mod->loadState ==
+                    game::ugc::ModLoadState::IDLE &&
+                game::ugc::UGC_ActiveMod_PublisherId() == "usermaps"sv &&
+                !game::ugc::UGC_ModLoad_XZoneLoading() &&
+                mod_stack::is_loaded() && lobby_host_info()) {
+              request_lobby(host, token);
+              return scheduler::COND_END;
+            }
+            if (std::chrono::steady_clock::now() >= deadline) {
+              show_error(
+                  "Custom Maps did not finish loading. Try joining again.");
+              return scheduler::COND_END;
+            }
+            return scheduler::COND_CONTINUE;
+          },
+          scheduler::pipeline::main, 250ms);
+      return;
+    }
+
     workshop::setup_same_mod_as_host(game::LOCAL_CLIENT_0, usermap, host_mod);
     scheduler::once(
         [friend_id = joining.friend_id] {
