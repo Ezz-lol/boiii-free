@@ -84,6 +84,7 @@ inline constexpr auto BINARY_PAYLOAD_SIZE = 0x14000000;
 #include <map>           // IWYU pragma: export
 #include <mutex>         // IWYU pragma: export
 #include <optional>      // IWYU pragma: export
+#include <print>         // IWYU pragma: export
 #include <queue>         // IWYU pragma: export
 #include <random>        // IWYU pragma: export
 #include <regex>         // IWYU pragma: export

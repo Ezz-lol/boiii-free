@@ -69,7 +69,7 @@ size_t write_callback(void *contents, const size_t size, const size_t nmemb,
 }
 
 struct limited_buffer {
-  std::string data;
+  std::string data{};
   size_t max_size{};
 };
 
