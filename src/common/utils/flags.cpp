@@ -91,6 +91,12 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Launch as a dedicated server")
       .default_value(false)
       .implicit_value(true);
+  program
+      .add_argument("-experimental-zombies-coop", "--experimental-zombies-coop")
+      .help("Allow experimental Zombies lobby limits above four; requires "
+            "matching gameplay scripts and clients")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-beta", "--beta")
       .help("Launch a dedicated server on the beta update channel")
       .default_value(false)

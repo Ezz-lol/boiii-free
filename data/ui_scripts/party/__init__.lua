@@ -1,5 +1,7 @@
+local coop = require("zombies_coop")
+coop.applyTargets()
 local modeInfo = LobbyData:UITargetFromId(Engine.GetLobbyUIScreen())
-local maxClients = modeInfo.maxClients
+local maxClients = coop.targetLimit(modeInfo)
 
 -- Disable setting party privacy in menu. Auto set to open + max.
 Engine.SetDvar("partyprivacyenabled", 0)
@@ -25,7 +27,7 @@ CoD.IsTeamChangeAllowed = function()
 end
 
 -- Set com_maxclients InGame so players can join via direct connect (default from lobbydata)
-Engine.SetDvar("com_maxclients", maxClients)
+Engine.SetDvar("com_maxclients", coop.gameLimit(modeInfo, maxClients))
 
 require("datasources_start_menu_game_options")
 

@@ -12,6 +12,13 @@ Lobby.Process.CreateDedicatedModsLobby = function(controller, toTarget)
   if lobby_mode ~= "" then
     if lobby_mode == "zm" then
       toTarget = LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME
+      local limit = Engine.DvarInt(nil, "zm_coopPlayerLimit")
+      if type(limit) ~= "number" or limit ~= math.floor(limit) or limit < 1 or limit > 8 then
+        limit = 4
+      end
+      toTarget.maxClients = limit
+      Engine.SetDvar("party_maxplayers", limit)
+      Engine.SetDvar("com_maxclients", limit)
     elseif lobby_mode == "cp" then
       toTarget = LobbyData.UITargets.UI_CPLOBBYONLINECUSTOMGAME
     elseif lobby_mode == "cpzm" then

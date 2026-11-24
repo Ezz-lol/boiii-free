@@ -8,6 +8,7 @@
 #include <component/gsc/func/replacefunc.hpp>
 #include <component/mod_previews.hpp>
 #include <component/scheduler.hpp>
+#include <component/zombies/coop_runtime.hpp>
 #include <loader/component_loader.hpp>
 
 #include <game/utils.hpp>
@@ -1348,6 +1349,10 @@ void load_global_hash_table() {
 void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
   load_global_hash_table();
 
+  if (inst == SCRIPTINSTANCE_SERVER && com::Com_IsInGame() &&
+      !com::Com_IsRunningUILevel()) {
+    zombies::coop::validate_startup();
+  }
   scr::Scr_BeginLoadScripts(inst, user);
 
   if (!com::Com_IsInGame() || com::Com_IsRunningUILevel()) {
