@@ -1259,8 +1259,20 @@ workshop_info get_steam_workshop_info(const std::string_view &workshop_id) {
   return info;
 }
 
+/**
+ * @brief Look up and display the existing Workshop download confirmation.
+ * @param zoneType The content type used in the prompt and the download queue.
+ * @param name The display name or map identifier shown in the message.
+ * @param workshop_id The Steam Workshop item ID that will be queued.
+ * @param on_queued For guarded lobby offers, starts watching an accepted item
+ * once the queue has actually added it.
+ * @param still_selected Optional main-thread predicate for lobby offers. When
+ * supplied, check the current selection before displaying or queuing the offer.
+ */
 void offer_download(game::ZoneType zoneType, const std::string_view &name,
-                    const std::string_view &workshop_id) {
+                    const std::string_view &workshop_id,
+                    std::function<void()> on_queued = {},
+                    std::function<bool()> still_selected = {}) {
   const workshop_info info = get_steam_workshop_info(workshop_id);
   std::string message =
       std::format("{}  '{}' was not found.\n", game::toString(zoneType), name);
@@ -1271,11 +1283,146 @@ void offer_download(game::ZoneType zoneType, const std::string_view &name,
   if (info.file_size > 0)
     message += "Size: " + human_readable_size(info.file_size) + "\n";
   message += "\nDo you want to download it from the Steam Workshop?";
-  imgui_overlay::show_confirmation(
-      std::format("Download {}?", game::toString(zoneType)), message,
-      [id = std::string(workshop_id), zoneType] {
-        start_download(id, zoneType);
-      });
+  // metadata lookup above can take time
+  // keep copies of what the dialog needs and delay the selection check
+  // until the dialog is about to open
+  auto show = [id = std::string(workshop_id), zoneType,
+               message = std::move(message), still_selected,
+               on_queued = std::move(on_queued)] {
+    if (still_selected && !still_selected())
+      return;
+    imgui_overlay::show_confirmation(
+        std::format("Download {}?", game::toString(zoneType)), message,
+        [id, zoneType, on_queued, still_selected] {
+          if (!still_selected) {
+            start_download(id, zoneType);
+            return;
+          }
+          // recheck the map on the main thread after Yes
+          // start watching once the item is queued
+          scheduler::once(
+              [id, zoneType, on_queued, still_selected] {
+                if (still_selected() && queue::add(id, zoneType))
+                  on_queued();
+              },
+              scheduler::pipeline::main);
+        });
+  };
+  // only lobby offers need the main thread to check the selection
+  if (still_selected)
+    scheduler::once(show, scheduler::pipeline::main);
+  else
+    show();
+}
+
+namespace {
+/**
+ * @brief Get the current game lobby while the local client is a private-match
+ * guest.
+ * @return The current client session, or nullptr outside a private-match lobby.
+ * @details LobbyType::GAME also covers the private-match staging menu. The
+ * UI-level test keeps this helper in the menus, and the CUSTOM mode check
+ * distinguishes a private match from other uses of the game lobby.
+ */
+const game::lobby::session::LobbySession *private_match_guest_session() {
+  using namespace game::lobby;
+  if (!game::com::Com_IsRunningUILevel() ||
+      party::cl_connected_to_dedi.get_bool() ||
+      !client::LobbyClient_IsActive(LobbyType::GAME) ||
+      client::LobbyClient_IsHost(LobbyType::GAME)) {
+    return nullptr;
+  }
+  // skip recovery while the host or map selection can still change
+  const auto *session = client::LobbyClientData_GetSession(LobbyType::GAME);
+  return session && session->mode == LobbyMode::CUSTOM && !session->inRecovery
+             ? session
+             : nullptr;
+}
+
+/**
+ * @brief Update the unchanged map selection after its assets become available.
+ */
+void refresh_private_match_map_preview() {
+  const auto *session = private_match_guest_session();
+  if (!session)
+    return;
+  // use the current selection in case the host switched maps during the download
+  const char *map = session->lobbyData.lobbyGame.mapName;
+  if (!map[0] || !has_usermap(map))
+    return;
+  const auto global = game::ui::UI_Model_GetGlobalModel();
+  if (!global)
+    return;
+  if (const auto model = game::ui::UI_Model_GetModelFromPath(
+          global, "lobbyRoot.selectedMapId")) {
+    // update the image before notifying the UI about the unchanged map ID
+    game::ugc::UGC_SetMapPreviewImageByPublisherId_Impl(map);
+    game::ui::UI_Model_ForceNotify(model);
+  }
+}
+
+/**
+ * @brief Re-offer an accepted download if it fails with the same map selected.
+ * @param id The Steam Workshop ID used to queue and identify the download.
+ * @param host The XUID of the host who selected the map.
+ * @param map The name or ID stored in the current lobby selection. This can
+ * differ from the Workshop ID.
+ */
+void offer_private_match_usermap(const std::string &id, game::XUID host,
+                                 const std::string &map) {
+  // only offer while the same host and map are selected and the map is still missing
+  const auto still_selected = [id, host, map] {
+    const auto *session = private_match_guest_session();
+    return session && session->host.info.xuid == host &&
+           session->lobbyData.lobbyGame.mapName == map && !has_usermap(id);
+  };
+  // fetch Workshop details off the main thread
+  scheduler::once(
+      [id, host, map, still_selected] {
+        offer_download(
+            game::ZoneType::USERMAP, id, id,
+            [id, host, map, still_selected] {
+              scheduler::schedule(
+                  [id, host, map, still_selected] {
+                    if (!still_selected())
+                      return scheduler::COND_END;
+                    const auto entries = queue::list();
+                    const auto item =
+                        std::ranges::find(entries, id, &queue::entry::id);
+                    if (item == entries.end() ||
+                        item->state == queue::item_state::done)
+                      return scheduler::COND_END;
+                    // offer again on failure or Stop Download
+                    // wait for any open confirmation to close first
+                    if ((item->state == queue::item_state::failed ||
+                         item->state == queue::item_state::cancelled) &&
+                        !imgui_overlay::confirmation_active()) {
+                      offer_private_match_usermap(id, host, map);
+                      return scheduler::COND_END;
+                    }
+                    return scheduler::COND_CONTINUE;
+                  },
+                  scheduler::pipeline::main, 250ms);
+            },
+            still_selected);
+      },
+      scheduler::pipeline::async);
+}
+} // namespace
+
+void offer_lobby_usermap(const std::string &id) {
+  if (const auto *session = private_match_guest_session()) {
+    const auto &map = session->lobbyData.lobbyGame;
+    // the lobby can store the Workshop ID in either field
+    if (map.mapName == id || map.ugcInfo.publisherId == id) {
+      if (!has_usermap(id))
+        offer_private_match_usermap(id, session->host.info.xuid, map.mapName);
+      return;
+    }
+  }
+  // use the regular Workshop offer outside private matches
+  scheduler::once([id] { check_valid_usermap_id(id, id, id, {}); },
+                  scheduler::pipeline::async);
 }
 
 bool valid_workshop_name(const std::string_view &name) {
@@ -1734,8 +1881,11 @@ public:
 
       command::add("userContentReload", [](const command::params &params) {
         game::ugc::UGC_LoadPools_Impl();
-        if (!game::is_server())
+        if (!game::is_server()) {
+          // lobby UI needs a separate notification for refresh
+          refresh_private_match_map_preview();
           toast::info("Workshop", "User content reloaded");
+        }
       });
       command::add("workshop_config", [](const command::params &params) {
         printf("[ Workshop ] workshop_retry_attempts: %d (set in game or "
