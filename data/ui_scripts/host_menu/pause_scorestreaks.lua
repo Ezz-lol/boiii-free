@@ -95,10 +95,16 @@ Tile.new = function(menu, controller)
     name:setText(Engine.GetModelValue(model) or "")
   end)
   self:addElement(name)
-  self.clipsPerState = { DefaultState = {
-    DefaultClip = function() background:setRGB(0.12, 0.12, 0.12) end,
-    Focus = function() background:setRGB(0.62, 0.28, 0.04) end,
-  } }
+  self.clipsPerState = {
+    DefaultState = {
+      DefaultClip = function()
+        background:setRGB(0.12, 0.12, 0.12)
+      end,
+      Focus = function()
+        background:setRGB(0.62, 0.28, 0.04)
+      end,
+    },
+  }
   return self
 end
 
@@ -117,22 +123,24 @@ return function(createListMenu, option)
     local session = sessions[controller]
     if not session or not session.slots or session.request then
       local offline = session and session.state == "offline" and not session.request
-      local row = option(offline and hints.retry or "...", hints[offline and "offline" or "waiting"],
-        function(menu)
-          if offline then
-            send(controller)
-            menu.Options:updateDataSource()
-          end
-        end)
+      local row = option(offline and hints.retry or "...", hints[offline and "offline" or "waiting"], function(menu)
+        if offline then
+          send(controller)
+          menu.Options:updateDataSource()
+        end
+      end)
       row.models.image = ""
       return { row }
     end
     local rows = {}
     for slot, item in ipairs(session.slots) do
-      table.insert(rows, entry(item, slot .. ". ", hints[session.state], function(menu)
-        session.slot = slot
-        OpenPopup(menu, "BoiiiScorestreakItems", controller)
-      end))
+      table.insert(
+        rows,
+        entry(item, slot .. ". ", hints[session.state], function(menu)
+          session.slot = slot
+          OpenPopup(menu, "BoiiiScorestreakItems", controller)
+        end)
+      )
     end
     return rows
   end, true)
@@ -141,28 +149,37 @@ return function(createListMenu, option)
     local session = sessions[controller]
     local occupied = {}
     for slot, item in ipairs(session.slots) do
-      if slot ~= session.slot then occupied[item] = true end
+      if slot ~= session.slot then
+        occupied[item] = true
+      end
     end
     local rows = {}
     local function add(item)
       local cost = item ~= 0 and Engine.GetItemMomentumCost(item, MP)
       local help = cost and string.format(hints.points, cost) or ""
-      table.insert(rows, entry(item, "", help, function(menu)
-        local nextSlots = { session.slots[1], session.slots[2], session.slots[3] }
-        nextSlots[session.slot] = item
-        send(controller, nextSlots)
-        GoBack(menu, controller)
-        session.menu.Options:updateDataSource()
-      end))
+      table.insert(
+        rows,
+        entry(item, "", help, function(menu)
+          local nextSlots = { session.slots[1], session.slots[2], session.slots[3] }
+          nextSlots[session.slot] = item
+          send(controller, nextSlots)
+          GoBack(menu, controller)
+          session.menu.Options:updateDataSource()
+        end)
+      )
     end
     add(0)
     local items = Engine.GetUnlockablesByGroupName("killstreak", MP)
     table.sort(items, CoD.CACRewardComparisonFunction)
     for _, item in ipairs(items) do
-      if not occupied[item]
+      if
+        not occupied[item]
         and Engine.GetItemRestrictionState(item) ~= Enum.ItemRestrictionState.ITEM_RESTRICTION_STATE_RESTRICTED
-        and (not IsProgressionEnabled(controller) or (not Engine.IsItemLocked(controller, item, MP)
-          and Engine.IsItemPurchased(controller, item, MP))) then
+        and (
+          not IsProgressionEnabled(controller)
+          or (not Engine.IsItemLocked(controller, item, MP) and Engine.IsItemPurchased(controller, item, MP))
+        )
+      then
         add(item)
       end
     end
@@ -190,7 +207,9 @@ return function(createListMenu, option)
     list:setHorizontalCount(3)
     list:setVerticalCount(1)
     send(controller)
-    menu:addElement(LUI.UITimer.newElementTimer(100, false, function() poll(menu, controller) end))
+    menu:addElement(LUI.UITimer.newElementTimer(100, false, function()
+      poll(menu, controller)
+    end))
     LUI.OverrideFunction_CallOriginalFirst(menu, "close", function()
       sessions[controller] = nil
     end)

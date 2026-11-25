@@ -144,9 +144,29 @@ strings.fulljapanese = strings.japanese
 
 -- Numeric IDs follow the engine's SEH language enumeration.
 local languageNames = {
-  [0] = "english", "french", "frenchcan", "german", "austrian", "italian", "spanish", "british",
-  "russian", "polish", "korean", "japanese", "czech", "fulljapanese", "portuguese", "mexicanspanish",
-  "arabic", "traditionalchinese", "simplifiedchinese", "englishgerman", "englishjapanese", "hebrew", "englisharabic",
+  [0] = "english",
+  "french",
+  "frenchcan",
+  "german",
+  "austrian",
+  "italian",
+  "spanish",
+  "british",
+  "russian",
+  "polish",
+  "korean",
+  "japanese",
+  "czech",
+  "fulljapanese",
+  "portuguese",
+  "mexicanspanish",
+  "arabic",
+  "traditionalchinese",
+  "simplifiedchinese",
+  "englishgerman",
+  "englishjapanese",
+  "hebrew",
+  "englisharabic",
 }
 
 return function(language)
