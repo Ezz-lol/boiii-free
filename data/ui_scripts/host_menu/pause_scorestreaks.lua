@@ -1,4 +1,13 @@
 local MP = Enum.eModes.MODE_MULTIPLAYER
+local hints = {
+  active = "Equipped this match.",
+  queued = "Saved for next match.",
+  rejected = "The server rejected the change.",
+  offline = "No server response. Select to retry.",
+  waiting = "Waiting for the server...",
+  retry = "Retry",
+  points = "%d points",
+}
 local sessions = {}
 local serial = 0
 
@@ -110,8 +119,6 @@ end
 
 return function(createListMenu, option)
   local title = Engine.Localize("MENU_SCORE_STREAKS_CAPS")
-  local getStrings = require("scorestreak_strings")
-  local hints = getStrings(Engine.GetLanguage())
   local function entry(item, prefix, help, action)
     local name = Engine.Localize(item == 0 and "MENU_NONE" or Engine.GetItemName(item, MP))
     local row = option(prefix .. name, help, action)

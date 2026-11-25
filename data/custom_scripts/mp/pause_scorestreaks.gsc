@@ -17,8 +17,6 @@ function init()
 	callback::on_connect(&connected);
 }
 
-// game[] survives round restarts. Process dvars survive ExitLevel(false),
-// including a vote that loads the same map again. Only carry occupied rows.
 function begin_match()
 {
 	if (isDefined(game["boiii_streaks_active"]))
@@ -58,7 +56,6 @@ function in_opening_countdown()
 
 function refresh_countdown_streaks()
 {
-	// A player still choosing a class will use the new indices on first spawn.
 	if (!isAlive(self) || self.sessionstate != "playing" || !isDefined(self.class_num_for_global_weapons)
 		|| !isDefined(self.killstreak) || isDefined(level.giveCustomLoadout))
 		return;
@@ -66,8 +63,6 @@ function refresh_countdown_streaks()
 	previous = self.killstreak;
 	if (isDefined(level.usingMomentum) && level.usingMomentum)
 	{
-		// giveKillstreaks only writes occupied slots. Clear the old bindings
-		// first so selecting None cannot leave an obsolete HUD action behind.
 		self SetActionSlot(4, "");
 		self SetActionSlot(2, "");
 		self SetActionSlot(1, "");
@@ -110,7 +105,6 @@ function stash(key, slots)
 {
 	index = self GetEntityNumber();
 	rows = game["boiii_streaks_rows"];
-	// A reconnect can give the same player a different network slot.
 	if (isDefined(rows[key]) && rows[key] != index)
 	{
 		oldName = "boiii_nextStreaks" + rows[key];
@@ -130,8 +124,6 @@ function connected()
 	key = "u" + self GetXuid();
 	self.boiii_streaks_key = key;
 	self thread listen(key);
-	// Stats and the item table are available by the first loadout. Carry a
-	// returning player's selection even on a map that temporarily bans it.
 	if (isDefined(game["boiii_streaks_pending"][key]))
 		self stash(key, game["boiii_streaks_pending"][key]);
 	else if (isDefined(game["boiii_streaks_active"][key]))
@@ -157,7 +149,6 @@ function listen(key)
 		if (isDefined(self.boiii_streaks_last_request) && now - self.boiii_streaks_last_request < 100)
 			continue;
 		self.boiii_streaks_last_request = now;
-		// A lost reply may be retried after the timer reaches zero.
 		if (isDefined(self.boiii_streaks_request) && self.boiii_streaks_request == response)
 		{
 			self setclientdvar(self.boiii_streaks_reply);
@@ -180,7 +171,6 @@ function listen(key)
 				{
 					game["boiii_streaks_active"][key] = submitted;
 					game["boiii_streaks_pending"][key] = undefined;
-					self.boiii_streaks_logged = undefined;
 					self refresh_countdown_streaks();
 				}
 				else
@@ -189,7 +179,6 @@ function listen(key)
 					state = "queued";
 				}
 				self stash(key, submitted);
-				// println("[scorestreaks] " + state + " player=" + self GetEntityNumber() + " items=" + submitted[0] + "," + submitted[1] + "," + submitted[2]);
 			}
 			else
 				state = "rejected";
@@ -208,7 +197,7 @@ function listen(key)
 			slots = [];
 			for (i = 0; i < 3; i++)
 			{
-				item = self streak_index(classNum, i, false);
+				item = self streak_index(classNum, i);
 				slots[i] = 0;
 				if (isDefined(item) && item > 0)
 					slots[i] = item;
@@ -225,14 +214,12 @@ function listen(key)
 	}
 }
 
-// This is the lookup giveKillstreaks uses BEFORE assigning HUD/action slots,
-// streak costs and weapons on every spawn. Preserve the stock fourth slot.
 detour loadout<scripts\mp\gametypes\_loadout.gsc>::getKillStreakIndex(weaponclass, killstreakNum)
 {
-	return self streak_index(weaponclass, killstreakNum, true);
+	return self streak_index(weaponclass, killstreakNum);
 }
 
-function streak_index(weaponclass, index, equipping)
+function streak_index(weaponclass, index)
 {
 	slot = "killstreak" + (index + 1);
 	if (GetDvarInt("custom_killstreak_mode") == 2)
@@ -242,11 +229,6 @@ function streak_index(weaponclass, index, equipping)
 		slots = game["boiii_streaks_active"][self.boiii_streaks_key];
 		if (isDefined(slots) && self valid_selection(slots))
 		{
-			if (equipping && index == 0 && !isDefined(self.boiii_streaks_logged))
-			{
-				println("[scorestreaks] loadout player=" + self GetEntityNumber() + " items=" + slots[0] + "," + slots[1] + "," + slots[2]);
-				self.boiii_streaks_logged = true;
-			}
 			return slots[index];
 		}
 	}

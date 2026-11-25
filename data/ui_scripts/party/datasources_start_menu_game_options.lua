@@ -168,7 +168,8 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
   return options
 end, true)
 
--- Preserve the mod's pause menu and append any missing BOIII options.
+-- With a mod loaded, keep the mod's pause menu and only add our options
+-- after its own, skipping any it already has
 local function appendHostOptions(dataSource)
   if not dataSource or dataSource.boiiiHostOptions then
     return
