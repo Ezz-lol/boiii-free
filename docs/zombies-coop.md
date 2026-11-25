@@ -20,7 +20,14 @@ and common revision/contract. It rejects partial or stale installation roots.
 The existing script asset lookup seam appends one include to a fresh retained
 copy of known stock anchors and the selected map root; it preserves the original
 bytecode and opaque source CRC. No new client offset or checksum bypass is added.
-Fresh copies isolate repeated lookup/link mutation and remain under a memory cap.
+Recursive native linking receives a stable object for each canonical name
+within an observed VM generation. A later generation copies the immutable
+pre-link template; prior backing stays retained under the same bounded budget.
+Exhaustion latches expanded admission closed until process restart. Valid
+reserved/original assets let the native resolver unwind without a null asset.
+The server BeginLoad seam is observed in the existing hook. Client generations
+follow verified request/session/map boundaries; same-map CSC reload without a
+new boundary is not established by source or dedicated tests.
 
 The native schema allocation is read-only to scripts/console. A verified join
 descriptor can prepare it before a frontend mode change. Native actual GAME
@@ -47,6 +54,11 @@ custom callback owners/gametypes decline adaptation rather than being overwritte
 Hard-coded four-player quest arrays, custom HUDs and arbitrary map-owned scripting
 cannot be made universally safe by changing the native capacity alone.
 
+At a captured normal-round quota event, the controller freezes the stock
+population/target/counters before starting a worker. That immutable seed survives
+transient native-versus-script roster differences; event generation revokes old
+workers even on a same-round restart. A missed or partial seed cannot establish
+consumed quota, so it logs an explicit status and waits for the next owned event.
 Normal-round targets and spawn delay follow actual current participants. Consumed
 spawns and living AI remain accounted for after a shrink; they are not deleted to
 match a smaller target. Explicit respawns and timeout recycling are tracked

@@ -172,6 +172,7 @@ std::string crash_diagnostics() {
               std::string(companion_contract) + "\"";
     std::array<char, cached_limit> snapshot;
     std::size_t length = 0;
+    result += ",\"capture_tick_ms\":" + std::to_string(GetTickCount64());
     result += ",\"cached_state\":";
     if (cached_state.copy(snapshot, length))
       result.append(snapshot.data(), length);

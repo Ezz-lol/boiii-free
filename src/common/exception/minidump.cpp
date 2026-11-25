@@ -1,4 +1,5 @@
 #include "minidump.hpp"
+#include "fault_memory.hpp"
 
 #include <dbghelp.h>
 #include <utils/nt.hpp>
@@ -27,6 +28,8 @@ HANDLE write_dump_to_temp_file(const LPEXCEPTION_POINTERS exceptioninfo) {
       .ThreadId = GetCurrentThreadId(),
       .ExceptionPointers = exceptioninfo,
       .ClientPointers = FALSE};
+  auto fault_pages = fault_memory::snapshot(exceptioninfo);
+  MINIDUMP_CALLBACK_INFORMATION callback_info = {fault_memory::callback, &fault_pages};
 
   HANDLE file_handle = CreateFileA(
       get_temp_filename().data(), GENERIC_WRITE | GENERIC_READ,
@@ -35,7 +38,8 @@ HANDLE write_dump_to_temp_file(const LPEXCEPTION_POINTERS exceptioninfo) {
 
   if (!MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(),
                          file_handle, OUTPUT_MINIDUMP_TYPE,
-                         &minidump_exception_info, nullptr, nullptr)) {
+                         &minidump_exception_info, nullptr,
+                         fault_pages.count ? &callback_info : nullptr)) {
     MessageBoxA(nullptr,
                 "There was an error creating the minidump! Hit OK to close the "
                 "program.",

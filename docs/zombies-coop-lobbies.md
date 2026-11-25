@@ -1,28 +1,18 @@
-# Lobby paths and validation
-
-Current schema/gameplay scope is described in [dynamic coop](zombies-coop.md)
-and [map profiles](zombies-coop-map-adapters.md). The previous two-map frontend
-listing restriction has been expanded to official profiles; custom/mod matches
-may list only after their actual in-match adapter/schema readiness validates.
-Frontend custom script ownership cannot be established before the map runs.
-Signed schema declarations and native field checks supplement the route policy
-below; descriptors alone do not prove a matching client runtime.
-
-Current schema/gameplay scope is described in [dynamic coop](zombies-coop.md)
-and [map profiles](zombies-coop-map-adapters.md). The previous two-map frontend
-listing restriction has been expanded to official profiles; custom/mod matches
-may list only after their actual in-match adapter/schema readiness validates.
-Frontend custom script ownership cannot be established before the map runs.
-Signed schema declarations and native field checks supplement the route policy
-below; descriptors alone do not prove a matching client runtime.
-
 # Zombies lobby paths, discovery, and validation
+
+Current schema/gameplay scope is described in [dynamic coop](zombies-coop.md)
+and [map profiles](zombies-coop-map-adapters.md). Frontend listing covers official
+stock profiles. Custom/mod matches may list after their in-match owned adapter
+and schema validate; their callback ownership cannot be established before load.
+Signed schema declarations and native field checks supplement the route policy
+below. Descriptors alone do not prove successful client CSC/UI execution.
 
 ## Status and scope
 
 This document describes the source policy for experimental 1-8-player Zombies lobby
-routing. It is not an end-to-end compatibility certification. The official fourteen-map profiles and compatible owned custom-map callbacks
-are described in the linked map adapter contract.
+routing. It is not an end-to-end compatibility certification. The official
+fourteen-map profiles and compatible owned custom-map callbacks are described
+in the linked map adapter contract.
 
 The implemented routing changes can be reviewed and unit-tested separately from
 unverified actual client CSC/UI execution. Actual eight-player listen hosting, LAN joins,

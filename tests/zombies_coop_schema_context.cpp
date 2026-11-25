@@ -3,6 +3,17 @@
 
 int main() {
   using namespace zombies::coop;
+  static_assert(peer_schema_prepare(7, 7, true, false, true) == peer_prepare_action::duplicate);
+  static_assert(peer_schema_prepare(7, 8, true, false, true) == peer_prepare_action::require_frontend);
+  static_assert(peer_schema_prepare(7, 7, false, false, true) == peer_prepare_action::require_frontend);
+  static_assert(peer_schema_prepare(7, 8, true, true, true) == peer_prepare_action::fresh);
+  static_assert(peer_schema_prepare(0, 1, false, false, false) == peer_prepare_action::fresh);
+  static_assert(peer_schema_prepare(0, 0, false, true, false) == peer_prepare_action::invalid);
+  static_assert(peer_schema_prepare(7, 7, false, true, true) == peer_prepare_action::observe_map);
+  // CSC sees a rotated map first; later server preparation must not clear it.
+  static_assert(!client_map_generation_changes("zm_tomb", "zm_tomb", false));
+  static_assert(client_map_generation_changes("zm_zod", "zm_tomb", false));
+  static_assert(client_map_generation_changes("zm_zod", "zm_zod", true));
   static_assert(!schema_host_eligible(true, 1, 400)); // Solo staging
   static_assert(schema_host_eligible(true, 1, 402));
   static_assert(schema_host_eligible(true, 1, 410));

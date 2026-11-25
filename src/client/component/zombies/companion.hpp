@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 
@@ -15,7 +16,7 @@ void schema_asset_failure(std::string_view reason);
 bool schema_assets_failed() noexcept;
 bool prepare_schema_session(int capacity, std::string_view map, std::string& error);
 // Only a caller which verified the remote ZM schema descriptor may use this.
-bool prepare_peer_schema_session(int capacity, std::string_view map, std::string& error);
+bool prepare_peer_schema_session(int capacity, std::string_view map, std::string& error, std::uint64_t request_id);
 void cancel_peer_schema_session() noexcept;
 void refresh_schema_session() noexcept;
 void schema_begin_server_vm();

@@ -27,6 +27,7 @@ std::atomic_bool assets_failed{};
 std::mutex context_mutex;
 std::string selected_map;
 schema_context_policy context_policy;
+std::uint64_t peer_request_id{};
 std::mutex bundle_mutex;
 bool bundle_pinned{};
 std::string score_wrapper;
@@ -145,6 +146,10 @@ void schema_asset_failure(std::string_view reason) {
 }
 
 bool companion_files_ready(std::string& error) {
+  if (schema_assets::retention_exhausted()) {
+    error = "Schema asset store exhausted; restart required.";
+    return false;
+  }
   const std::lock_guard lock(bundle_mutex);
   if (bundle_pinned) return true;
   try {
@@ -185,7 +190,7 @@ std::int64_t monotonic_ms() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now().time_since_epoch()).count();
 }
-bool prepare_session(int capacity, std::string_view map, bool peer, std::string& error) {
+bool prepare_session(int capacity, std::string_view map, bool peer, std::string& error, std::uint64_t request = 0) {
   if (capacity <= 4) { reset_schema_session(); return capacity >= 1; }
   if (capacity > 8 || !utils::flags::has_flag("experimental-zombies-coop") ||
       (!peer && !zombies_mode()) || !valid_map(map)) {
@@ -193,27 +198,54 @@ bool prepare_session(int capacity, std::string_view map, bool peer, std::string&
     return false;
   }
   if (!companion_files_ready(error)) return false;
+  if (schema_assets::retention_exhausted()) {
+    error = "Schema asset retention exhausted; restart required before another expanded session.";
+    return false;
+  }
   try {
+#ifdef BOIII_COOP_EZZ
+    const bool frontend = game::com::Com_IsRunningUILevel();
+    const bool active_vm = game::com::Com_IsInGame() && !frontend;
+#else
+    const bool frontend = game::Com_IsRunningUILevel();
+    const bool active_vm = game::Com_IsInGame() && !frontend;
+#endif
+    bool fresh_request = false;
     {
       const std::lock_guard lock(context_mutex);
-      if (schema_assets_failed() && schema_slots.load(std::memory_order_relaxed) >= 5) {
+      if (schema_assets_failed()) {
         error = "Paired Zombies schema failed. Rehost from the frontend with matching data.";
         return false;
       }
-      if (schema_slots.load(std::memory_order_relaxed) == capacity && selected_map == map) {
-        if (peer && !context_policy.peer_owned()) context_policy.peer(monotonic_ms());
-        return true;
-      }
+      const bool same_descriptor = schema_slots.load(std::memory_order_relaxed) == capacity && selected_map == map;
+      if (peer) {
+        const auto action = peer_schema_prepare(peer_request_id, request, same_descriptor, frontend,
+            active_vm || schema_slots.load(std::memory_order_relaxed) >= 5);
+        if (action == peer_prepare_action::invalid) { error = "Missing verified join request identity."; return false; }
+        if (action == peer_prepare_action::duplicate) return true;
+        if (action == peer_prepare_action::require_frontend) {
+          error = "Return to the frontend before reconnecting to an expanded Zombies session; the native CSC reload boundary is not verified.";
+          return false;
+        }
+        fresh_request = action == peer_prepare_action::fresh;
+      } else if (same_descriptor) return true;
+    }
+    bool client_generation_changed = false;
+    if (!schema_assets::prepare_client_generation(map, fresh_request, client_generation_changed)) {
+      error = "Could not establish a safe client schema generation.";
+      return false;
     }
     clear_receipt("zm_coopSchemaServerRevision", "zm_coopSchemaServerMask", "zm_coopSchemaServerContract");
-    clear_receipt("zm_coopSchemaClientRevision", "zm_coopSchemaClientMask", "zm_coopSchemaClientContract");
-    game::Dvar_SetFromStringByName("zm_coopSchemaUIRevision", "0", true);
+    if (client_generation_changed) {
+      clear_receipt("zm_coopSchemaClientRevision", "zm_coopSchemaClientMask", "zm_coopSchemaClientContract");
+      game::Dvar_SetFromStringByName("zm_coopSchemaUIRevision", "0", true);
+    }
     set_slots(capacity);
     {
       const std::lock_guard lock(context_mutex);
       selected_map = map;
-      if (peer) context_policy.peer(monotonic_ms()); else context_policy.host();
-      assets_failed.store(false, std::memory_order_release);
+      if (peer) { context_policy.peer(monotonic_ms()); peer_request_id = request; }
+      else { context_policy.host(); peer_request_id = 0; }
       schema_slots.store(capacity, std::memory_order_release);
     }
     diagnostic_event(peer ? "schema_peer_pending" : "schema_session_frozen", capacity);
@@ -248,8 +280,8 @@ int native_capacity(const void* pointer, int module, int* mode = nullptr) {
 bool prepare_schema_session(int capacity, std::string_view map, std::string& error) {
   return prepare_session(capacity, map, false, error);
 }
-bool prepare_peer_schema_session(int capacity, std::string_view map, std::string& error) {
-  return prepare_session(capacity, map, true, error);
+bool prepare_peer_schema_session(int capacity, std::string_view map, std::string& error, std::uint64_t request_id) {
+  return prepare_session(capacity, map, true, error, request_id);
 }
 
 void cancel_peer_schema_session() noexcept {
@@ -334,11 +366,13 @@ void schema_begin_server_vm() {
 void reset_schema_session() noexcept {
   reset_schema_allocation([] { set_slots(0); }, [] {
     const std::lock_guard lock(context_mutex);
+    schema_assets::reset_client_session_generation();
     selected_map.clear();
     context_policy.reset();
+    peer_request_id = 0;
     // Publish stock only after the engine's ROM dvar was verified as zero.
     schema_slots.store(0, std::memory_order_release);
-    assets_failed.store(false, std::memory_order_release);
+    assets_failed.store(schema_assets::retention_exhausted(), std::memory_order_release);
   }, [] {
     schema_asset_failure("Could not reset the native schema allocation; restart with matching data.");
   });

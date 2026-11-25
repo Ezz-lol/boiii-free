@@ -20,12 +20,6 @@ constexpr int configured_limit(const int value) {
   return valid_limit(value) ? value : stock_limit;
 }
 
-// Expanded adapters are deliberately limited until each map's quest/character
-// ownership, HUD and special rounds have been audited.
-constexpr bool supported_map(const std::string_view map) {
-  return map == "zm_zod" || map == "zm_tomb";
-}
-
 // Use the current target, never a historical high-water player count.
 // Already spawned AI complete naturally when the reduced target is exceeded.
 constexpr int remaining_spawns(const int target, const int spawned) {

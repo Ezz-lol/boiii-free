@@ -8,9 +8,6 @@ using namespace zombies::coop;
 int main() {
   static_assert(!std::is_copy_constructible_v<roster> &&
                 !std::is_copy_assignable_v<roster>);
-  assert(supported_map("zm_zod") && supported_map("zm_tomb"));
-  assert(!supported_map("zm_castle") && !supported_map("core_frontend") &&
-         !supported_map(""));
   for (int limit = 1; limit <= 8; ++limit) {
     roster players;
     assert(!players.join(0, 1));

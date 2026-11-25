@@ -392,6 +392,11 @@ newoption({
 })
 
 newoption({
+  trigger = "coop-debug-symbols",
+  description = "Keep private PDB symbols in optimized Release builds for crash investigation.",
+})
+
+newoption({
   trigger = "no-check",
   description = "Disable ownership checks.",
 })
@@ -452,7 +457,7 @@ platforms("x64")
 
 systemversion("latest")
 filter("configurations:Release")
-symbols("Off")
+symbols(_OPTIONS["coop-debug-symbols"] and "On" or "Off")
 filter({})
 filter("configurations:Debug")
 symbols("On")

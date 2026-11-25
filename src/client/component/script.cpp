@@ -1370,6 +1370,7 @@ void load_global_hash_table() {
 }
 
 void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
+  zombies::coop::schema_assets::begin_vm_generation(inst == SCRIPTINSTANCE_CLIENT);
   load_global_hash_table();
 
   if (inst == SCRIPTINSTANCE_SERVER && com::Com_IsInGame() &&

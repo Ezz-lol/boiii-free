@@ -1,8 +1,19 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 namespace zombies::coop {
+enum class peer_prepare_action { invalid, duplicate, require_frontend, fresh, observe_map };
+constexpr peer_prepare_action peer_schema_prepare(std::uint64_t previous, std::uint64_t request,
+    bool same_descriptor, bool frontend, bool active_context) noexcept {
+  if (!request) return peer_prepare_action::invalid;
+  if (previous == request && same_descriptor) return peer_prepare_action::duplicate;
+  if (!frontend && active_context) return peer_prepare_action::require_frontend;
+  return previous != request ? peer_prepare_action::fresh : peer_prepare_action::observe_map;
+}
+constexpr bool client_map_generation_changes(std::string_view current, std::string_view map,
+    bool fresh_request) noexcept { return fresh_request || current != map; }
 // Verified frontend targets: online CUSTOM402, LAN CUSTOM410. Screen400 also
 // stages Solo (playlist150) and must never inherit CUSTOM's temporary cap8.
 constexpr bool schema_host_eligible(bool frontend, int mode, int screen) noexcept {

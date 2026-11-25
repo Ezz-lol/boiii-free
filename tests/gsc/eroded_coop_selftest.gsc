@@ -1,5 +1,6 @@
 // Isolated canary fixture only. Do not install in production custom_scripts.
 #using custom_scripts/zm/eroded_coop;
+#using scripts/shared/ai/zombie_utility;
 #using scripts/zm/_zm;
 #namespace eroded_coop_selftest;
 
@@ -76,6 +77,22 @@ function run()
     failures += check(!eroded_coop::gum_pack_needs_fallback(array("weapon_null"), 4, 8));
     failures += check(!eroded_coop::gum_pack_needs_fallback(array("real", "weapon_null", "weapon_null", "weapon_null", "weapon_null"), 4, 8));
     saved_round_spawn = level.round_spawn_func;
+    failures += check(eroded_coop::count_callback_owned(undefined));
+    failures += check(eroded_coop::count_callback_owned(&zombie_utility::default_max_zombie_func));
+    failures += check(!eroded_coop::count_callback_owned(&custom_count_callback));
+    saved_count_callback = level.max_zombie_func;
+    saved_count_calls = level.eroded_coop_test_count_calls;
+    level.eroded_coop_test_count_calls = 0;
+    level.max_zombie_func = &custom_count_callback;
+    failures += check(eroded_coop::round_controller_reason() == "custom_count_callback_preserved");
+    failures += check(!isdefined(eroded_coop::normal_round_target(1, 8)));
+    failures += check(level.eroded_coop_test_count_calls == 0);
+    level.max_zombie_func = undefined;
+    failures += check(eroded_coop::count_callback_owned(level.max_zombie_func));
+    failures += check(!isdefined(eroded_coop::normal_round_target(1, 0)));
+    failures += check(!isdefined(eroded_coop::normal_round_target(0, 8)));
+    level.max_zombie_func = saved_count_callback;
+    level.eroded_coop_test_count_calls = saved_count_calls;
     saved_setup = level.zombie_total_set_func;
     saved_known_setup = level.eroded_coop_known_total_setup;
     saved_custom_spawn = level.fn_custom_round_ai_spawn;
@@ -106,6 +123,7 @@ function run()
     level.fn_custom_round_ai_spawn = saved_custom_spawn;
     level.eroded_coop_known_custom_spawn = saved_known_spawn;
     level.eroded_coop_test_setup_calls = saved_setup_calls;
+    failures += test_captured_round_event();
     failures += check(eroded_coop::valid_counters(100, 5));
     failures += check(!eroded_coop::valid_counters(1, 2));
     failures += check(!eroded_coop::valid_counters(-1, 0));
@@ -272,6 +290,81 @@ function run()
         setdvar("zm_coopSelfTestStatus", "failed");
 }
 
+// No real roster/counter writes or yields. These use the same pure helpers as
+// captured production events, including elapsed spawns/recycles while lists
+// temporarily disagree, and a same-round replacement generation.
+function test_captured_round_event()
+{
+    failures = 0;
+    failures += check(eroded_coop::next_round_generation(undefined) == 1);
+    failures += check(eroded_coop::next_round_generation(0) == 1);
+    failures += check(eroded_coop::next_round_generation(7) == 8);
+    failures += check(eroded_coop::next_round_generation(2147483646) == 2147483647);
+    failures += check(!isdefined(eroded_coop::next_round_generation(2147483647)));
+    failures += check(!isdefined(eroded_coop::next_round_generation(-1)));
+    failures += check(!isdefined(eroded_coop::next_round_generation(1.5)));
+    failures += check(!isdefined(eroded_coop::next_round_generation("8")));
+    failures += check(eroded_coop::round_generation_current(8, 8, 3, 3));
+    failures += check(!eroded_coop::round_generation_current(7, 8, 3, 3));
+    failures += check(!eroded_coop::round_generation_current(8, 8, 3, 4));
+    failures += check(!eroded_coop::round_generation_current(8, undefined, 3, 3));
+    failures += check(!eroded_coop::round_generation_current(0, 0, 3, 3));
+    failures += check(!eroded_coop::round_generation_current("8", 8, 3, 3));
+    failures += check(eroded_coop::stable_round_membership(8, 8, 8));
+    failures += check(eroded_coop::stable_round_membership(4, 4, 8));
+    failures += check(!eroded_coop::stable_round_membership(4, 8, 8));
+    failures += check(!eroded_coop::stable_round_membership(8, 4, 8));
+    failures += check(!eroded_coop::stable_round_membership(0, 0, 8));
+    failures += check(!eroded_coop::stable_round_membership(8, 8, 7));
+    failures += check(!eroded_coop::stable_round_membership(4, undefined, 8));
+    failures += check(!eroded_coop::stable_round_membership(4.5, 4.5, 8));
+    seed = eroded_coop::make_round_seed(3, 8, 100, 0, 17, 100, 8);
+    failures += check(isdefined(seed));
+    if (!isdefined(seed))
+        return failures + 1;
+    failures += check(seed.round == 3 && seed.count == 8 && seed.target == 100);
+    failures += check(seed.pending == 100 && seed.consumed == 0 && seed.recycle_total == 17 && seed.generation == 8);
+    // A partial/late/unknown seed is never reconstructed using today's roster.
+    failures += check(!isdefined(eroded_coop::make_round_seed(3, 8, 99, 0, 17, 100, 8)));
+    failures += check(!isdefined(eroded_coop::make_round_seed(3, 8, 101, 1, 17, 100, 8)));
+    failures += check(!isdefined(eroded_coop::make_round_seed(3, 8, 101, 0, 18, 100, 8)));
+    failures += check(!isdefined(eroded_coop::make_round_seed(3, 0, 100, 0, 17, 100, 8)));
+    failures += check(!isdefined(eroded_coop::make_round_seed(3, 9, 100, 0, 17, 100, 8)));
+    failures += check(!isdefined(eroded_coop::make_round_seed(0, 8, 100, 0, 17, 100, 8)));
+    failures += check(!isdefined(eroded_coop::make_round_seed(3, 8, 100, 0, -1, 100, 8)));
+    failures += check(!isdefined(eroded_coop::make_round_seed(3, 8, 100, 0, 17, undefined, 8)));
+    failures += check(!isdefined(eroded_coop::make_round_seed(3, 8, 100, 0, 17, 100, 0)));
+    // Ten spawns and two stock recycles occur after the captured event while
+    // actual=4/listed=8. Continue accounting without changing the frozen target.
+    current_pending = 92;
+    recycle_delta = 19 - seed.recycle_total;
+    spawns = eroded_coop::accounted_spawn_delta(seed.pending, current_pending, recycle_delta);
+    credits = eroded_coop::recycle_credit_balance(0, recycle_delta, spawns, current_pending);
+    consumed = seed.consumed + spawns - (recycle_delta - credits);
+    failures += check(spawns == 10 && credits == 2 && consumed == 10);
+    failures += check(!eroded_coop::stable_round_membership(4, 8, 8));
+    failures += check(seed.count == 8 && seed.target == 100 && seed.pending == 100);
+    // Once both lists settle at four, retain spent quota and queued recycling.
+    failures += check(eroded_coop::stable_round_membership(4, 4, 8));
+    pending = eroded_coop::remaining_budget(50, consumed, credits);
+    failures += check(pending == 42);
+    spawns = eroded_coop::accounted_spawn_delta(pending, 36, 0);
+    next_credits = eroded_coop::recycle_credit_balance(credits, 0, spawns, 36);
+    consumed += spawns - (credits - next_credits);
+    credits = next_credits;
+    failures += check(consumed == 16 && credits == 2);
+    failures += check(!eroded_coop::stable_round_membership(8, 4, 8));
+    failures += check(eroded_coop::stable_round_membership(8, 8, 8));
+    failures += check(eroded_coop::remaining_budget(100, consumed, credits) == 86);
+    // A zero roster may pause resizing without losing the event or accounting.
+    failures += check(!eroded_coop::stable_round_membership(0, 0, 8));
+    failures += check(seed.target == 100 && seed.generation == 8);
+    failures += check(!eroded_coop::round_generation_current(seed.generation, 9, seed.round, 3));
+    replacement = eroded_coop::make_round_seed(3, 4, 50, 0, 19, 50, 9);
+    failures += check(isdefined(replacement) && eroded_coop::round_generation_current(replacement.generation, 9, replacement.round, 3));
+    return failures;
+}
+
 function custom_bgb_callback()
 {
 }
@@ -279,4 +372,10 @@ function custom_bgb_callback()
 function custom_total_setup()
 {
     level.eroded_coop_test_setup_calls++;
+}
+
+function custom_count_callback(maximum, round)
+{
+    level.eroded_coop_test_count_calls++;
+    return maximum + round;
 }

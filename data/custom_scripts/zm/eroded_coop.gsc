@@ -4,6 +4,7 @@
 #using scripts/zm/_zm_game_module;
 #using scripts/zm/_zm_utility;
 #using scripts/shared/callbacks_shared;
+#using scripts/shared/ai/zombie_utility;
 
 #namespace eroded_coop;
 
@@ -560,13 +561,102 @@ function round_listener(epoch, map)
 {
     level endon(#"intermission");
     level endon(#"end_game");
+    setdvar("zm_coopRoundStatus", "awaiting_round_event");
+    // A late installer cannot recover a consumed budget from pending alone.
+    if (isdefined(level.round_start_time) && level.round_start_time > 0)
+    {
+        setdvar("zm_coopRoundStatus", "late_round_seed_unavailable");
+        diagnostic_event("late_round_seed_unavailable");
+    }
     while (true)
     {
         level waittill(#"zombie_total_set");
         if (!startup_current(epoch, map))
             return;
-        level thread track_round(epoch, map);
+        generation = next_round_generation(level.eroded_coop_round_generation);
+        if (!isdefined(generation))
+        {
+            setdvar("zm_coopRoundStatus", "round_generation_range_preserved");
+            diagnostic_event("round_generation_range_preserved");
+            return;
+        }
+        level.eroded_coop_round_generation = generation;
+        if (!owns_callbacks())
+        {
+            setdvar("zm_coopRoundStatus", "callback_ownership_lost");
+            diagnostic_event("callback_ownership_lost");
+            continue;
+        }
+        if (custom_round_controller())
+        {
+            reason = round_controller_reason();
+            setdvar("zm_coopRoundStatus", reason);
+            setdvar("zm_coopOwnerStatus", reason);
+            diagnostic_event(reason);
+            continue;
+        }
+        // Freeze the stock setter's inputs and counters before any yield or
+        // child thread. Do not substitute getplayers() for level.players.size:
+        // the two lists may temporarily differ during a join or departure.
+        count = undefined;
+        if (isdefined(level.players) && isarray(level.players))
+            count = level.players.size;
+        round = level.round_number;
+        total = level.zombie_total;
+        respawns = level.zombie_respawns;
+        recycle_total = level.zombie_total_subtract;
+        target = normal_round_target(round, count);
+        seed = make_round_seed(round, count, total, respawns, recycle_total, target, generation);
+        if (!isdefined(seed) || count > level.eroded_coop_limit)
+        {
+            setdvar("zm_coopRoundStatus", "round_seed_unavailable");
+            diagnostic_event("round_seed_unavailable");
+            continue;
+        }
+        level thread track_round(epoch, map, seed);
     }
+}
+
+function next_round_generation(current)
+{
+    if (!isdefined(current))
+        return 1;
+    // Never wrap and make an old same-round worker current again.
+    if (!isint(current) || current < 0 || current >= 2147483647)
+        return undefined;
+    return current + 1;
+}
+
+function round_generation_current(generation, current, round, current_round)
+{
+    return isint(generation) && generation > 0 && isint(current) && generation == current &&
+        isint(round) && round > 0 && isint(current_round) && round == current_round;
+}
+
+function stable_round_membership(actual, listed, limit)
+{
+    return isint(limit) && limit >= 1 && limit <= 8 && isint(actual) &&
+        actual >= 1 && actual <= limit && isint(listed) && actual == listed;
+}
+
+function make_round_seed(round, count, total, respawns, recycle_total, target, generation)
+{
+    if (!isint(round) || round < 1 || !isint(count) || count < 1 || count > 8 ||
+        !isint(target) || target < 0 || !isint(generation) || generation < 1 ||
+        !valid_counters(total, respawns) || !isint(recycle_total) || recycle_total < 0 ||
+        total != target || respawns != 0)
+        return undefined;
+    // Stock assigns the complete target, zeroes respawns, then notifies without
+    // yielding. Anything else is a late/custom seed, not recoverable evidence.
+    seed = spawnstruct();
+    seed.round = round;
+    seed.count = count;
+    seed.target = target;
+    seed.pending = total - respawns;
+    seed.consumed = target - seed.pending;
+    seed.recycle_total = recycle_total;
+    seed.generation = generation;
+    return seed;
 }
 
 function valid_counters(total, respawns)
@@ -619,6 +709,21 @@ function recycle_credit_balance(previous_credits, recycle_delta, spawns, current
     return credits;
 }
 
+// The stock count getter installs the default when this callback is absent.
+// Unknown map/mod functions may be stateful and must never be probed/replayed.
+function count_callback_owned(owner)
+{
+    return !isdefined(owner) || owner == &zombie_utility::default_max_zombie_func;
+}
+
+function normal_round_target(round, count)
+{
+    if (!isint(round) || round < 1 || !isint(count) || count < 1 || count > 8 ||
+        !count_callback_owned(level.max_zombie_func))
+        return undefined;
+    return zm::get_zombie_count_for_round(round, count);
+}
+
 function custom_round_controller()
 {
     return round_controller_reason() != "normal";
@@ -626,6 +731,8 @@ function custom_round_controller()
 
 function round_controller_reason()
 {
+    if (!count_callback_owned(level.max_zombie_func))
+        return "custom_count_callback_preserved";
     // Dog/spider/chaos rounds temporarily replace the normal spawner. Their
     // counters and special-actor budgets are not normal zombie quotas.
     if (isdefined(level.round_spawn_func) && level.round_spawn_func != &zm::round_spawning)
@@ -644,7 +751,7 @@ function round_controller_reason()
     return "normal";
 }
 
-function track_round(epoch, map)
+function track_round(epoch, map, seed)
 {
     level endon(#"intermission");
     level endon(#"end_game");
@@ -652,7 +759,8 @@ function track_round(epoch, map)
     level endon(#"restart_round");
     level endon(#"zombie_total_set");
     // Custom round controllers and special-round paths retain ownership.
-    if (!startup_current(epoch, map) || !owns_callbacks())
+    if (!startup_current(epoch, map) || !owns_callbacks() ||
+        !round_generation_current(seed.generation, level.eroded_coop_round_generation, seed.round, level.round_number))
         return;
     if (custom_round_controller())
     {
@@ -662,36 +770,30 @@ function track_round(epoch, map)
         diagnostic_event(reason);
         return;
     }
-    if (!isdefined(level.players) || !isarray(level.players) || !isint(level.round_number) || level.round_number < 1)
-        return;
-    count = getplayers().size;
-    if (count < 1 || count > level.eroded_coop_limit || count != level.players.size)
-        return;
-    round = level.round_number;
-    target = zm::get_zombie_count_for_round(round, count);
-    if (!isint(target) || target < 0 || !valid_counters(level.zombie_total, level.zombie_respawns) ||
-        !isint(level.zombie_total_subtract) || level.zombie_total_subtract < 0)
-        return;
-    pending = level.zombie_total - level.zombie_respawns;
-    if (pending > target)
-        return;
-    consumed = target - pending;
+    // Only a captured fresh event starts a worker. Keep its original population
+    // and counters even when current membership has not settled yet.
+    count = seed.count;
+    round = seed.round;
+    target = seed.target;
+    pending = seed.pending;
+    consumed = seed.consumed;
     // Stock timeout/recycle paths add total++ and total_subtract++, separately
     // from the map cleanup total++/respawns++ pair. The subtract counter is
     // cumulative for the entire map, not reset when a new round starts.
-    recycle_total = level.zombie_total_subtract;
+    recycle_total = seed.recycle_total;
     recycle_credits = 0;
     setdvar("zm_coopRoundStatus", "tracking");
     setdvar("zm_coopOwnerStatus", "known_stock_callbacks");
-    diagnostic_round_values(count, target, consumed, pending);
+    diagnostic_round_values(getplayers().size, target, consumed, pending);
     diagnostic_event("normal_round_tracking");
     last_diagnostic = gettime();
-    level.zombie_vars["zombie_spawn_delay"] = spawn_delay(round);
+    delay_applied = false;
+    waiting_roster = false;
     while (true)
     {
         wait 0.1;
-        if (!startup_current(epoch, map) || !owns_callbacks() || level.round_number != round ||
-            !isdefined(level.players) || !isarray(level.players) ||
+        if (!startup_current(epoch, map) || !owns_callbacks() ||
+            !round_generation_current(seed.generation, level.eroded_coop_round_generation, round, level.round_number) ||
             !valid_counters(level.zombie_total, level.zombie_respawns))
             return;
         if (custom_round_controller())
@@ -734,11 +836,38 @@ function track_round(epoch, map)
             diagnostic_round_values(current_count, target, consumed, pending);
             last_diagnostic = gettime();
         }
-        // No empty-server round advancement. Wait for stable authoritative membership.
-        if (current_count < 1 || current_count > level.eroded_coop_limit ||
-            current_count != level.players.size || current_count == count)
+        // Account elapsed spawns/recycles even while the two rosters disagree.
+        // No empty-server advancement or synthetic participants: wait for the
+        // actual and stock authoritative membership lists to settle.
+        listed_count = undefined;
+        if (isdefined(level.players) && isarray(level.players))
+            listed_count = level.players.size;
+        if (!stable_round_membership(current_count, listed_count, level.eroded_coop_limit))
+        {
+            if (!waiting_roster)
+            {
+                waiting_roster = true;
+                setdvar("zm_coopRoundStatus", "tracking_waiting_roster");
+                diagnostic_event("round_roster_unsettled");
+            }
             continue;
-        target = zm::get_zombie_count_for_round(round, current_count);
+        }
+        if (waiting_roster)
+        {
+            waiting_roster = false;
+            setdvar("zm_coopRoundStatus", "tracking");
+            diagnostic_event("round_roster_settled");
+        }
+        if (current_count == count)
+        {
+            if (!delay_applied)
+            {
+                level.zombie_vars["zombie_spawn_delay"] = spawn_delay(round);
+                delay_applied = true;
+            }
+            continue;
+        }
+        target = normal_round_target(round, current_count);
         if (!isint(target) || target < 0)
             return;
         // Both replacement systems survive a reduced target, including when
@@ -758,6 +887,7 @@ function track_round(epoch, map)
         pending = next_total - level.zombie_respawns;
         level.zombie_total = next_total;
         level.zombie_vars["zombie_spawn_delay"] = spawn_delay(round);
+        delay_applied = true;
         count = current_count;
         diagnostic_round_values(count, target, consumed, pending);
         diagnostic_event("normal_round_population_changed");

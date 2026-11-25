@@ -664,9 +664,9 @@ void handle_connect_query_response(const bool success,
     std::string error;
     if (!zombies::coop::schema_descriptor_matches(info.get("coopSchema"),
             info.get("coopContract"), info.get("coopBundle")) ||
-        !zombies::coop::prepare_peer_schema_session(schema_capacity, info.get("mapname"), error)) {
+        !zombies::coop::prepare_peer_schema_session(schema_capacity, info.get("mapname"), error, static_cast<std::uint64_t>(token))) {
       zombies::coop::diagnostic_event("peer_descriptor_rejected", schema_capacity);
-      toast::show("Connect failed", "Expanded Zombies requires the matching verified GSC/CSC/UI schema bundle and experimental opt-in.",
+      toast::show("Connect failed", error.empty() ? "This expanded Zombies game requires the matching build, companion data and experimental opt-in." : error.c_str(),
                   "t7_icon_connect_overlays");
       return;
     }

@@ -2,7 +2,7 @@
 -- Dynamic HUD guards implemented against stock BO3 Lua APIs.
 -- Extra-slot colours were selected independently for this module.
 -- Compatibility references: docs/zombies-coop-more-players-review.md.
--- No lobby limits, dvars, score-list children or revive objectives are changed.
+-- No lobby limits, dvars or revive objectives are changed.
 local previous = rawget(_G, "BoiiiZombiesCoopHud")
 if type(previous) == "table" and previous.version == 1 and type(previous.install) == "function" then
   previous.install()
@@ -11,6 +11,8 @@ end
 
 local hud = { version = 1 }
 BoiiiZombiesCoopHud = hud
+local scoreRows = require("rows")
+local reviveModels = require("revive")
 local unpackValues = unpack
 local palette = {
   [4] = { 1.00, 0.20, 0.20 },
@@ -32,33 +34,20 @@ local function readCapacity()
     return nil
   end
   local map = Engine.GetCurrentMap()
-  if
-    type(map) ~= "string"
-    or map == ""
-    or map == "core_frontend"
-    or Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) ~= true
-  then
+  if type(map) ~= "string" or map == "" or map == "core_frontend"
+    or Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) ~= true then
     return nil
   end
   return Engine.GetLobbyMaxClients(Enum.LobbyType.LOBBY_TYPE_GAME)
 end
 
 local function capacity()
-  if
-    type(Engine) ~= "table"
-    or type(Enum) ~= "table"
-    or type(CoD) ~= "table"
-    or CoD.isZombie ~= true
-    or CoD.isFrontend == true
-    or type(Enum.eModes) ~= "table"
-    or type(Enum.LobbyType) ~= "table"
-    or Enum.eModes.MODE_ZOMBIES == nil
-    or Enum.LobbyType.LOBBY_TYPE_GAME == nil
-    or type(Engine.CurrentSessionMode) ~= "function"
-    or type(Engine.GetCurrentMap) ~= "function"
-    or type(Engine.IsLobbyActive) ~= "function"
-    or type(Engine.GetLobbyMaxClients) ~= "function"
-  then
+  if type(Engine) ~= "table" or type(Enum) ~= "table" or type(CoD) ~= "table"
+    or CoD.isZombie ~= true or CoD.isFrontend == true
+    or type(Enum.eModes) ~= "table" or type(Enum.LobbyType) ~= "table"
+    or Enum.eModes.MODE_ZOMBIES == nil or Enum.LobbyType.LOBBY_TYPE_GAME == nil
+    or type(Engine.CurrentSessionMode) ~= "function" or type(Engine.GetCurrentMap) ~= "function"
+    or type(Engine.IsLobbyActive) ~= "function" or type(Engine.GetLobbyMaxClients) ~= "function" then
     return nil
   end
   local ok, limit = pcall(readCapacity)
@@ -141,6 +130,8 @@ local function installAll()
   wrapColour("ZombieClientScoreboardColor", false)
   wrapColour("ZombieClientScoreboardGlowColor", true)
   wrapScoreboard()
+  if type(scoreRows) == "table" and type(scoreRows.install) == "function" then scoreRows.install(capacity) end
+  if type(reviveModels) == "table" and type(reviveModels.install) == "function" then reviveModels.install(capacity) end
   observeMapQueries()
 end
 
