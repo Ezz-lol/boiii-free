@@ -2,9 +2,14 @@
 
 #include <game/utils.hpp>
 
+#include <component/bots/spawn_policy.hpp>
 #include <component/command.hpp>
+#include <component/game_event.hpp>
 #include <component/getinfo.hpp>
 #include <component/scheduler.hpp>
+#include <component/zombies/companion.hpp>
+#include <component/zombies/coop_runtime.hpp>
+#include <component/zombies/diagnostics.hpp>
 #include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
@@ -24,6 +29,9 @@ constexpr const char BOT_CONNECT_PACKET_INFOSTRING_FMT[] =
     "\\clanAbbrev\\%s\\xuid\\%s\\xnaddr\\%s\\natType\\2\\protocol"
     "\\%d\\netfieldchk\\%d\\sessionmode\\%s\\qport\\%d\"";
 constexpr char DEFAULT_BOT_CLAN_ABBREV[] = "3arc";
+
+static_assert(sizeof(game::playerName_t) == policy::player_name_bytes);
+static_assert(sizeof(game::clanAbbrev_t) == policy::clan_abbrev_bytes);
 
 struct BotName {
   game::playerName_t name;
@@ -100,8 +108,14 @@ std::vector<BotName> load_bots_names() {
         }
 
         BotName name;
-        strscpy(name.name, entry);
-        strscpy(name.clan_abbrev, clan_abbrev);
+        const auto safe_name =
+            policy::userinfo_component(entry, sizeof(name.name));
+        const auto safe_clan =
+            policy::userinfo_component(clan_abbrev, sizeof(name.clan_abbrev));
+        if (safe_name.empty())
+          continue;
+        strscpy(name.name, safe_name);
+        strscpy(name.clan_abbrev, safe_clan);
 
         bot_names.emplace_back(name);
       }
@@ -161,6 +175,145 @@ int format_bot_string(char *buffer, [[maybe_unused]] const char *format,
                    find_clan_name(name), xuid, xnaddr, protocol, net_field_chk,
                    session_mode, qport);
 }
+std::atomic<std::uint64_t> spawn_epoch{1};
+
+void invalidate_spawn_batches() {
+  spawn_epoch.fetch_add(1, std::memory_order_acq_rel);
+}
+
+template <typename Client>
+std::optional<int> occupied_slots(const Client *clients, int capacity) {
+  if (!clients)
+    return std::nullopt;
+  int occupied = 0;
+  for (int slot = 0; slot < capacity; ++slot)
+    if (static_cast<int>(clients[slot].state) != 0)
+      ++occupied;
+  return occupied;
+}
+
+std::optional<policy::session_snapshot>
+read_spawn_session(bool inspect_occupancy) {
+  if (!getinfo::is_host())
+    return std::nullopt;
+  const auto epoch = spawn_epoch.load(std::memory_order_acquire);
+  const int capacity = static_cast<int>(+game::get_com_maxclients());
+  if (capacity < 1 || capacity > policy::maximum_slots)
+    return std::nullopt;
+  policy::session_snapshot current;
+  current.epoch = epoch;
+  current.mode = static_cast<int>(game::com::Com_SessionMode_GetMode());
+  current.capacity = capacity;
+  current.running = true;
+  current.zombies = current.mode == static_cast<int>(game::eModes::ZOMBIES);
+  current.map = std::string(game::get_mapname().value_or(""));
+  if (current.zombies && capacity > 4) {
+    current.schema_capacity = zombies::coop::frozen_schema_capacity();
+    current.schema_ready = zombies::coop::schema_server_ready() &&
+                           zombies::coop::admission_ready() &&
+                           zombies::coop::frozen_schema_map() == current.map;
+  }
+  // Commands capture identity only. Native client arrays are inspected
+  // on the server pipeline immediately before each allocation.
+  if (inspect_occupancy) {
+    const auto occupied =
+        game::is_server() ? occupied_slots(*game::sv::svs_clients, capacity)
+                          : occupied_slots(*game::sv::svs_clients_cl, capacity);
+    if (!occupied)
+      return std::nullopt;
+    current.occupied = *occupied;
+  }
+  if (epoch != spawn_epoch.load(std::memory_order_acquire) ||
+      !policy::valid(current))
+    return std::nullopt;
+  return current;
+}
+
+std::string roster_map_token(std::string_view map) {
+  std::string result;
+  for (std::size_t i = 0; i < map.size() && i < 64; ++i) {
+    const auto c = map[i];
+    result += (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                      (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.'
+                  ? c
+                  : '_';
+  }
+  return result;
+}
+
+template <typename Client>
+bool append_roster_slots(std::string &json, const Client *clients,
+                         int capacity) {
+  if (!clients)
+    return false;
+  bool first = true;
+  for (int slot = 0; slot < capacity; ++slot) {
+    const auto &client = clients[slot];
+    if (static_cast<int>(client.state) == 0)
+      continue;
+    if (!first)
+      json += ',';
+    first = false;
+    json += "{\"slot\":" + std::to_string(slot) + ",\"test\":";
+    json += client.bIsTestClient ? "true" : "false";
+    json +=
+        ",\"state\":" + std::to_string(static_cast<int>(client.state)) + "}";
+  }
+  return true;
+}
+
+void publish_bot_roster(const policy::session_snapshot &requested) {
+  const auto current = read_spawn_session(false);
+  if (!current || !policy::same_session(requested, *current)) {
+    printf("COOP_BOT_ROSTER|{\"version\":1,\"error\":\"stale_session\"}\n");
+    fflush(stdout);
+    return;
+  }
+  std::string json =
+      "{\"version\":1,\"generation\":" + std::to_string(current->epoch);
+  json += ",\"map\":\"" + roster_map_token(current->map) +
+          "\",\"capacity\":" + std::to_string(current->capacity);
+  json += ",\"slots\":[";
+  const bool valid_slots =
+      game::is_server()
+          ? append_roster_slots(json, *game::sv::svs_clients, current->capacity)
+          : append_roster_slots(json, *game::sv::svs_clients_cl,
+                                current->capacity);
+  json += "]}";
+  const auto after = read_spawn_session(false);
+  if (valid_slots && after && policy::same_session(requested, *after))
+    printf("COOP_BOT_ROSTER|%s\n", json.c_str());
+  else
+    printf("COOP_BOT_ROSTER|{\"version\":1,\"error\":\"stale_session\"}\n");
+  fflush(stdout);
+}
+
+bool drop_current_test_client(const policy::session_snapshot &requested,
+                              int slot, std::uint64_t generation) {
+  const auto current = read_spawn_session(false);
+  if (!current || slot < 0 || slot >= current->capacity ||
+      !policy::same_session(requested, *current))
+    return false;
+  game::sv::client_s *target = nullptr;
+  if (game::is_server()) {
+    auto *clients = *game::sv::svs_clients;
+    if (clients)
+      target = &clients[slot];
+  } else {
+    auto *clients = *game::sv::svs_clients_cl;
+    if (clients)
+      target = &clients[slot];
+  }
+  if (!target || !policy::may_drop_test_client(
+                     requested, *current, generation, slot,
+                     static_cast<int>(target->state) >=
+                         static_cast<int>(game::net::clientState_t::CONNECTED),
+                     target->bIsTestClient))
+    return false;
+  game::sv::SV_DropClient(target, "Coop test client removal", true, true);
+  return true;
+}
+
 } // namespace
 
 struct component final : generic_component {
@@ -176,40 +329,80 @@ struct component final : generic_component {
                         get_bot_name); // SV_ZombieNameRandom
     }
 
+    game_event::on_g_init_game(invalidate_spawn_batches);
+    game_event::on_g_shutdown_game(invalidate_spawn_batches);
     command::add("spawnBot", [](const command::params &params) {
-      game::trace("[Bot][spawnBot] called with argc: {}, getinfo::is_host: {}",
-                  params.size(), getinfo::is_host() ? "true" : "false");
-      if (getinfo::is_host()) {
-        game::ClientNum_t count = game::ClientNum_t::CLIENT_INDEX_1;
-        if (params.size() > 1) {
-          if (params[1] == "all"s) {
-            count = game::get_com_maxclients();
-          } else {
-            count = static_cast<game::ClientNum_t>(atoi(params[1]));
-          }
-        }
-
-        count =
-            std::min<game::ClientNum_t>(count, game::available_client_count());
-        game::trace("[Bot] spawnBot command parsed argument count: {}. "
-                    "available_client_count: {}",
-                    game::serialize(count),
-                    game::serialize(game::available_client_count()));
-
-        if (count > game::lobby::MIN_PLAYERS &&
-            count < game::lobby::MAX_PLAYERS) {
-          scheduler::once(
-              [count] {
-                for (game::ClientNum_t i =
-                         game::ClientNum_t::CLIENT_INDEX_FIRST;
-                     i < count && game::sv::SV_AddTestClient(); ++i) {
-                  game::trace("[Bot][spawnBot] Successfully spawned bot {}/{}.",
-                              +i + 1, static_cast<size_t>(count));
-                }
-              },
-              scheduler::pipeline::server);
-        }
+      if (params.size() > 2) {
+        printf("spawnBot: use a count from 1 to 18, or all.\n");
+        return;
       }
+      const auto count = policy::parse_count(
+          params.size() > 1 ? std::optional<std::string_view>{params[1]}
+                            : std::nullopt);
+      if (!count) {
+        printf("spawnBot: use a count from 1 to 18, or all.\n");
+        return;
+      }
+      const auto requested = read_spawn_session(false);
+      if (!requested)
+        return;
+      zombies::coop::diagnostic_event("bot_request", *count,
+                                      requested->capacity);
+      scheduler::once(
+          [requested = *requested, count = *count] {
+            const int spawned = policy::spawn_batch(
+                requested, count, [] { return read_spawn_session(true); },
+                [] {
+                  const bool added = game::sv::SV_AddTestClient() != nullptr;
+                  zombies::coop::diagnostic_event("bot_added", added ? 1 : 0);
+                  return added;
+                });
+            zombies::coop::diagnostic_event("bot_batch", spawned, count);
+            printf("spawnBot: added %d bot(s).\n", spawned);
+          },
+          scheduler::pipeline::server);
+    });
+    command::add("coopBotRoster", [](const command::params &params) {
+      const auto requested =
+          params.size() == 1 ? read_spawn_session(false) : std::nullopt;
+      if (!requested) {
+        printf("COOP_BOT_ROSTER|{\"version\":1,\"error\":\"session_not_ready\"}"
+               "\n");
+        fflush(stdout);
+        return;
+      }
+      scheduler::once(
+          [requested = *requested] { publish_bot_roster(requested); },
+          scheduler::pipeline::server);
+    });
+    command::add("coopKickTestClient", [](const command::params &params) {
+      const auto slot = params.size() == 3
+                            ? policy::parse_unsigned(params[1], 17)
+                            : std::nullopt;
+      const auto generation =
+          params.size() == 3 ? policy::parse_unsigned(params[2], UINT64_MAX)
+                             : std::nullopt;
+      const auto requested = read_spawn_session(false);
+      if (!slot || !generation || !requested || *generation == 0 ||
+          *generation != requested->epoch) {
+        printf("COOP_BOT_KICK|{\"error\":\"invalid_or_stale_request\","
+               "\"dropped\":false}\n");
+        fflush(stdout);
+        return;
+      }
+      scheduler::once(
+          [requested = *requested, slot = static_cast<int>(*slot),
+           generation = *generation] {
+            const bool dropped =
+                drop_current_test_client(requested, slot, generation);
+            zombies::coop::diagnostic_event("bot_kick", slot, dropped ? 1 : 0);
+            printf("COOP_BOT_KICK|{\"slot\":%d,\"generation\":%llu,\"dropped\":"
+                   "%s}\n",
+                   slot, static_cast<unsigned long long>(generation),
+                   dropped ? "true" : "false");
+            fflush(stdout);
+          },
+          scheduler::pipeline::server);
     });
   }
 };

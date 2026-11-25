@@ -16,6 +16,8 @@
 #include "toast.hpp"
 #include "workshop/workshop.hpp"
 #include "zombies/lobby_join_policy.hpp"
+#include "zombies/schema_peer.hpp"
+#include "zombies/diagnostics.hpp"
 #include <utils/flags.hpp>
 
 #include <utils/concurrency.hpp>
@@ -57,8 +59,10 @@ void disconnect_command_stub() {
   // intercept a recognized expanded descriptor while it is still in frontend.
   const auto token =
       cancellable_descriptor_request.load(std::memory_order_acquire);
-  if (connect_requests.current(token) && game::com::Com_IsRunningUILevel())
+  if (connect_requests.current(token) && game::com::Com_IsRunningUILevel()) {
     connect_requests.cancel();
+    zombies::coop::cancel_peer_schema_session();
+  }
   disconnect_command_hook.invoke<void>();
 }
 
@@ -655,6 +659,20 @@ void handle_connect_query_response(const bool success,
                 "t7_icon_connect_overlays");
     return;
   }
+  const auto schema_capacity = zombies::coop::expanded_descriptor_capacity(info.get("sv_maxclients"));
+  if (info.get("playmode") == std::to_string(static_cast<int32_t>(game::eModes::ZOMBIES)) && schema_capacity) {
+    std::string error;
+    if (!zombies::coop::schema_descriptor_matches(info.get("coopSchema"),
+            info.get("coopContract"), info.get("coopBundle")) ||
+        !zombies::coop::prepare_peer_schema_session(schema_capacity, info.get("mapname"), error)) {
+      zombies::coop::diagnostic_event("peer_descriptor_rejected", schema_capacity);
+      toast::show("Connect failed", "Expanded Zombies requires the matching verified GSC/CSC/UI schema bundle and experimental opt-in.",
+                  "t7_icon_connect_overlays");
+      return;
+    }
+    zombies::coop::diagnostic_event("peer_descriptor_prepared", schema_capacity);
+  }
+
   const std::optional<game::lobby::LobbyNetworkMode> desired_network =
       coop_route == zombies::coop::advertised_route::lan
           ? game::lobby::LobbyNetworkMode::LAN
@@ -792,6 +810,7 @@ void connect_finish(const game::net::netadr_t &target,
 void connect_stub(const char *address) {
   // Begin before asynchronous DNS or a friend-route lookup, not after replies.
   const auto token = connect_requests.begin();
+  zombies::coop::cancel_peer_schema_session();
   if (address != nullptr) {
     const std::string address_copy = normalize_connect_address(address);
 
@@ -932,6 +951,7 @@ void cleanup_queried_servers() {
 } // namespace
 
 void connect(const game::net::netadr_t &target) {
+  zombies::coop::cancel_peer_schema_session();
   connect_finish(target, connect_requests.begin());
 }
 
@@ -1048,6 +1068,7 @@ struct component final : client_component {
 
   void pre_destroy() override {
     connect_requests.cancel();
+    zombies::coop::cancel_peer_schema_session();
     get_server_queries().access([](std::vector<server_query> &s) { s = {}; });
   }
 };

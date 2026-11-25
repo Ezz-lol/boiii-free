@@ -1,5 +1,6 @@
 // Isolated canary fixture only. Do not install in production custom_scripts.
 #using custom_scripts/zm/eroded_coop;
+#using scripts/zm/_zm;
 #namespace eroded_coop_selftest;
 
 function autoexec main()
@@ -23,6 +24,88 @@ function run()
     epoch = getdvarint("zm_coopStartupEpoch");
     map = getdvarstring("mapname");
     failures = 0;
+    // Map/roster helpers do not synthesize players: runtime uses real human/bot
+    // entities. These pure cases cover occupancy and extra-slot pack boundaries.
+    maps = array("zm_zod", "zm_factory", "zm_castle", "zm_island", "zm_stalingrad", "zm_genesis",
+        "zm_prototype", "zm_asylum", "zm_sumpf", "zm_theater", "zm_cosmodrome", "zm_temple", "zm_moon", "zm_tomb");
+    for (map_index = 0; map_index < maps.size; map_index++)
+        failures += check(eroded_coop::official_map(maps[map_index]));
+    failures += check(!eroded_coop::official_map("zm_custom"));
+    failures += check(!eroded_coop::official_map("mp_nuketown"));
+    failures += check(eroded_coop::least_used_character(array(0, 0, 0, 0)) == 0);
+    failures += check(eroded_coop::least_used_character(array(1, 0, 0, 0)) == 1);
+    failures += check(eroded_coop::least_used_character(array(1, 1, 0, 0)) == 2);
+    failures += check(eroded_coop::least_used_character(array(1, 1, 1, 0)) == 3);
+    failures += check(eroded_coop::least_used_character(array(1, 1, 1, 1)) == 0);
+    failures += check(eroded_coop::least_used_character(array(2, 1, 1, 1)) == 1);
+    failures += check(eroded_coop::least_used_character(array(2, 2, 1, 1)) == 2);
+    failures += check(eroded_coop::least_used_character(array(2, 2, 2, 1)) == 3);
+    failures += check(eroded_coop::least_used_character(array(2, 0, 2, 2)) == 1);
+    occupancy = array(0, 0, 0, 0);
+    for (member = 0; member < 8; member++)
+    {
+        choice = eroded_coop::least_used_character(occupancy);
+        failures += check(choice >= 0 && choice < 4);
+        occupancy[choice]++;
+    }
+    for (character = 0; character < 4; character++)
+    {
+        failures += check(occupancy[character] == 2);
+        occupancy[character]--; // Four actual departures, not downed players.
+    }
+    for (member = 0; member < 4; member++)
+    {
+        choice = eroded_coop::least_used_character(occupancy);
+        occupancy[choice]++;
+    }
+    for (character = 0; character < 4; character++)
+        failures += check(occupancy[character] == 2);
+    failures += check(!isdefined(eroded_coop::least_used_character(undefined)));
+    failures += check(!isdefined(eroded_coop::least_used_character(array(1, 2, 3))));
+    failures += check(!isdefined(eroded_coop::least_used_character(array(-1, 0, 0, 0))));
+    failures += check(!isdefined(eroded_coop::least_used_character(array(0, 0.5, 0, 0))));
+    null_pack = array("weapon_null", "weapon_null", "weapon_null", "weapon_null", "weapon_null");
+    for (limit = 5; limit <= 8; limit++)
+    {
+        for (slot = 0; slot <= 8; slot++)
+            failures += check(eroded_coop::gum_pack_needs_fallback(null_pack, slot, limit) == (slot >= 4 && slot < limit));
+    }
+    failures += check(eroded_coop::gum_pack_needs_fallback(array(), 7, 8));
+    failures += check(!eroded_coop::gum_pack_needs_fallback(null_pack, 4, 4));
+    failures += check(!eroded_coop::gum_pack_needs_fallback(undefined, 4, 8));
+    failures += check(!eroded_coop::gum_pack_needs_fallback(array("weapon_null"), 4, 8));
+    failures += check(!eroded_coop::gum_pack_needs_fallback(array("real", "weapon_null", "weapon_null", "weapon_null", "weapon_null"), 4, 8));
+    saved_round_spawn = level.round_spawn_func;
+    saved_setup = level.zombie_total_set_func;
+    saved_known_setup = level.eroded_coop_known_total_setup;
+    saved_custom_spawn = level.fn_custom_round_ai_spawn;
+    saved_known_spawn = level.eroded_coop_known_custom_spawn;
+    saved_setup_calls = level.eroded_coop_test_setup_calls;
+    level.eroded_coop_test_setup_calls = 0;
+    level.round_spawn_func = &zm::round_spawning;
+    level.zombie_total_set_func = &custom_total_setup;
+    level.eroded_coop_known_total_setup = &custom_total_setup;
+    level.fn_custom_round_ai_spawn = undefined;
+    failures += check(!eroded_coop::custom_round_controller());
+    failures += check(level.eroded_coop_test_setup_calls == 0);
+    level.zombie_total_set_func = &custom_bgb_callback;
+    failures += check(eroded_coop::custom_round_controller());
+    level.zombie_total_set_func = &custom_total_setup;
+    level.fn_custom_round_ai_spawn = &custom_bgb_callback;
+    level.eroded_coop_known_custom_spawn = undefined;
+    failures += check(eroded_coop::custom_round_controller());
+    level.eroded_coop_known_custom_spawn = &custom_bgb_callback;
+    failures += check(!eroded_coop::custom_round_controller());
+    level.round_spawn_func = &custom_bgb_callback;
+    failures += check(eroded_coop::custom_round_controller());
+    failures += check(level.eroded_coop_test_setup_calls == 0);
+    // No yield or real game-thread callback invocation while test globals differ.
+    level.round_spawn_func = saved_round_spawn;
+    level.zombie_total_set_func = saved_setup;
+    level.eroded_coop_known_total_setup = saved_known_setup;
+    level.fn_custom_round_ai_spawn = saved_custom_spawn;
+    level.eroded_coop_known_custom_spawn = saved_known_spawn;
+    level.eroded_coop_test_setup_calls = saved_setup_calls;
     failures += check(eroded_coop::valid_counters(100, 5));
     failures += check(!eroded_coop::valid_counters(1, 2));
     failures += check(!eroded_coop::valid_counters(-1, 0));
@@ -191,4 +274,9 @@ function run()
 
 function custom_bgb_callback()
 {
+}
+
+function custom_total_setup()
+{
+    level.eroded_coop_test_setup_calls++;
 }

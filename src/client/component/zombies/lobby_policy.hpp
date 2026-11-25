@@ -11,7 +11,7 @@ inline constexpr std::int64_t lan_query_lifetime_ms = 2000;
 
 struct lobby_policy_input {
   bool enabled{}, zombies{}, local_game_host{}, session_ready{}, custom{};
-  bool open{}, stock_content{}, lan{}, live{}, in_match{}, adapter_ready{};
+  bool open{}, stock_content{}, lan{}, live{}, in_match{}, adapter_ready{}, adapter_owned{};
   bool advertise_opt_in{}, lan_discoverable{}, browse_screen{};
   int capacity{}, clients{};
   std::string_view map;
@@ -19,15 +19,32 @@ struct lobby_policy_input {
 struct lobby_policy_result {
   bool active{}, can_advertise{}, advertise{}, lan_respond{};
 };
+constexpr bool listing_map_token(const std::string_view map) noexcept {
+  if (map.size() <= 3 || map.size() > 64 || !map.starts_with("zm_")) return false;
+  for (const char c : map)
+    if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_')) return false;
+  return true;
+}
+constexpr bool listing_official_map(const std::string_view map) noexcept {
+  return map == "zm_zod" || map == "zm_factory" || map == "zm_castle" ||
+      map == "zm_island" || map == "zm_stalingrad" || map == "zm_genesis" ||
+      map == "zm_prototype" || map == "zm_asylum" || map == "zm_sumpf" ||
+      map == "zm_theater" || map == "zm_cosmodrome" || map == "zm_temple" ||
+      map == "zm_moon" || map == "zm_tomb";
+}
 constexpr lobby_policy_result
 lobby_listing_policy(const lobby_policy_input &in) noexcept {
-  const bool safe_map = in.map == "zm_zod" || in.map == "zm_tomb";
+  // Frontend custom content has not executed its callbacks yet. Only stock
+  // official profiles may list there; other maps/mods need a current in-match
+  // owned adapter and paired schema, never just a map-name or saved preference.
+  const bool content = (in.stock_content && listing_official_map(in.map)) ||
+                       (in.in_match && in.adapter_owned);
   const bool active = in.enabled && in.zombies && in.local_game_host &&
                       in.session_ready && in.custom && in.open &&
-                      in.stock_content && safe_map && (in.lan != in.live) &&
+                      content && listing_map_token(in.map) && (in.lan != in.live) &&
                       in.capacity >= 5 && in.capacity <= 8 && in.clients >= 1 &&
                       in.clients <= in.capacity &&
-                      (!in.in_match || in.adapter_ready);
+                      (!in.in_match || (in.adapter_ready && in.adapter_owned));
   const bool browse = in.browse_screen || (in.in_match && in.adapter_ready);
   return {active, active && in.live && browse,
           active && in.live && browse && in.advertise_opt_in,

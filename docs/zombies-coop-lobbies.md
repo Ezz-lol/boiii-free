@@ -1,13 +1,31 @@
+# Lobby paths and validation
+
+Current schema/gameplay scope is described in [dynamic coop](zombies-coop.md)
+and [map profiles](zombies-coop-map-adapters.md). The previous two-map frontend
+listing restriction has been expanded to official profiles; custom/mod matches
+may list only after their actual in-match adapter/schema readiness validates.
+Frontend custom script ownership cannot be established before the map runs.
+Signed schema declarations and native field checks supplement the route policy
+below; descriptors alone do not prove a matching client runtime.
+
+Current schema/gameplay scope is described in [dynamic coop](zombies-coop.md)
+and [map profiles](zombies-coop-map-adapters.md). The previous two-map frontend
+listing restriction has been expanded to official profiles; custom/mod matches
+may list only after their actual in-match adapter/schema readiness validates.
+Frontend custom script ownership cannot be established before the map runs.
+Signed schema declarations and native field checks supplement the route policy
+below; descriptors alone do not prove a matching client runtime.
+
 # Zombies lobby paths, discovery, and validation
 
 ## Status and scope
 
 This document describes the source policy for experimental 1-8-player Zombies lobby
-routing. It is not an end-to-end compatibility certification. The only expanded gameplay
-adapters currently allowed are stock `zm_zod` and `zm_tomb`.
+routing. It is not an end-to-end compatibility certification. The official fourteen-map profiles and compatible owned custom-map callbacks
+are described in the linked map adapter contract.
 
 The implemented routing changes can be reviewed and unit-tested separately from
-unresolved client CSC/schema work. Actual eight-player listen hosting, LAN joins,
+unverified actual client CSC/UI execution. Actual eight-player listen hosting, LAN joins,
 occupied clients, internet master-list visibility, and real joining-client bootstrap
 remain unverified. Exact dedicated canary results belong to the PR description and
 the matching private build report; no result is implied by this document.
@@ -97,8 +115,8 @@ requires all of the following:
 - Existing privacy is Open. The feature never changes privacy, creates an open session,
   or automatically enables listing.
 - Native capacity is 5-8 and the client count is valid for that capacity.
-- Selected content is stock, the selected map is `zm_zod` or `zm_tomb`, and no
-  unsupported gameplay mod/usermap is active.
+- Frontend selected content is an official stock profile, or the in-match
+  custom/mod adapter and paired schema validate current ownership.
 - The native network mode is online/live. If already in a map, the local server and
   current expanded adapter must also be ready.
 - The host has explicitly enabled `zm_coopAdvertise`.
@@ -186,7 +204,7 @@ Once a native engine join has begun, no verified abort API is available. The old
 can still finish after cancellation; stale completion is ignored and no second join FSM
 is started over it. Do not claim atomic cancellation of an already running engine join.
 Persisted Workshop mod/download reconnect state is not globally cancelled. Supported
-custom descriptor hosts are stock-only, avoiding the normal need for that download path.
+custom/mod descriptors retain ordinary content validation and dependency downloads.
 
 ## Bounded LAN discovery
 
@@ -322,7 +340,7 @@ cell Unverified.
 | Special rounds, boss/quest encounters, machine purchases, long play         | Per-map rules and cleanup work beyond an empty startup; no two-per-player machine rule is introduced                                                              |
 
 Dedicated sound-on and `-nosnd` canaries remain a separate prerequisite: fresh isolated
-prefix/runtime, exact artifact hashes, both allowed maps and return rotation,
+prefix/runtime, exact artifact hashes, the selected official maps and return rotation,
 readiness/GSC heartbeat checks, complete clean shutdown, and no live-instance
 deployment. They cannot prove the client-facing rows above.
 

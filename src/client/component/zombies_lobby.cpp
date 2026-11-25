@@ -6,6 +6,7 @@
 #include "loader/component_loader.hpp"
 #include "scheduler.hpp"
 #include "zombies/coop_runtime.hpp"
+#include "zombies/companion.hpp"
 #include "zombies/lobby_policy.hpp"
 #include "zombies/stock_session.hpp"
 #include <array>
@@ -94,6 +95,8 @@ lobby_sample sample_lobby() {
   if (sample.gametype.empty())
     sample.gametype = "zclassic"; // proven ZM above
   p.map = sample.map;
+  p.adapter_owned = p.in_match && p.adapter_ready && schema_server_ready() &&
+      frozen_schema_capacity() == p.capacity && frozen_schema_map() == sample.map;
   p.advertise_opt_in = game::get_dvar_bool("zm_coopAdvertise").value_or(false);
   p.lan_discoverable =
       game::get_dvar_bool("zm_coopLanDiscoverable").value_or(false);

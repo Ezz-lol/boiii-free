@@ -9,6 +9,7 @@
 #include <component/mod_previews.hpp>
 #include <component/scheduler.hpp>
 #include <component/zombies/coop_runtime.hpp>
+#include <component/zombies/schema_assets.hpp>
 #include <loader/component_loader.hpp>
 
 #include <game/utils.hpp>
@@ -1233,6 +1234,10 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
   if (name != nullptr && name[0] != NULL) {
     switch (type) {
     case XAssetType::SCRIPTPARSETREE: {
+      if (zombies::coop::schema_assets::handles_companion(name)) {
+        result.scriptParseTree = zombies::coop::schema_assets::lookup_companion(name);
+        return result;
+      }
       result.scriptParseTree = get_loaded_script(name);
       break;
     }
@@ -1252,6 +1257,10 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
   if (result.data == nullptr) {
     result = db_find_x_asset_header_hook.invoke<XAssetHeader>(
         type, name, error_if_missing, wait_time);
+  }
+
+  if (type == XAssetType::SCRIPTPARSETREE && name) {
+    result.scriptParseTree = zombies::coop::schema_assets::transform(name, result.scriptParseTree);
   }
 
   if (nonnull(result.rawfile)) {

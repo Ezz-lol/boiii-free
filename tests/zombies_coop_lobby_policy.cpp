@@ -35,6 +35,8 @@ int main() {
   input.in_match = true;
   assert(!lobby_listing_policy(input).active);
   input.adapter_ready = true;
+  assert(!lobby_listing_policy(input).active); // Core receipt alone is not owned paired schema.
+  input.adapter_owned = true;
   input.browse_screen = false; // confirmed match may list after its menu has closed
   assert(lobby_listing_policy(input).active && lobby_listing_policy(input).lan_respond);
   for (int capacity = -1; capacity <= 19; ++capacity) {
@@ -53,7 +55,7 @@ int main() {
        {&lobby_policy_input::enabled, &lobby_policy_input::zombies,
         &lobby_policy_input::local_game_host,
         &lobby_policy_input::session_ready, &lobby_policy_input::custom,
-        &lobby_policy_input::open, &lobby_policy_input::stock_content}) {
+        &lobby_policy_input::open, &lobby_policy_input::adapter_owned}) {
     input.*field = false;
     assert(!lobby_listing_policy(input).active);
     input.*field = true;
@@ -64,10 +66,40 @@ int main() {
   input.lan = false;
   assert(!lobby_listing_policy(input).active);
   input.lan = true;
-  input.map = "zm_factory";
+  for (const auto map : {"zm_zod", "zm_factory", "zm_castle", "zm_island", "zm_stalingrad",
+      "zm_genesis", "zm_prototype", "zm_asylum", "zm_sumpf", "zm_theater", "zm_cosmodrome",
+      "zm_temple", "zm_moon", "zm_tomb"}) {
+    input.map = map;
+    assert(listing_official_map(map) && lobby_listing_policy(input).active);
+    input.in_match = false;
+    input.adapter_owned = false;
+    input.browse_screen = true;
+    assert(lobby_listing_policy(input).active); // Stock official frontend profile.
+    input.stock_content = false;
+    assert(!lobby_listing_policy(input).active); // A loaded mod needs actual ownership.
+    input.in_match = input.adapter_owned = true;
+    assert(lobby_listing_policy(input).active);
+    input.stock_content = true;
+  }
+  input.map = "zm_custom_stock_template";
+  input.stock_content = false;
+  assert(!listing_official_map(input.map) && lobby_listing_policy(input).active);
+  input.adapter_owned = false;
   assert(!lobby_listing_policy(input).active);
-  input.map = "zm_tomb";
+  input.adapter_owned = true;
+  input.in_match = false;
+  assert(!lobby_listing_policy(input).active); // No stale or guessed frontend eligibility.
+  input.in_match = true;
+  for (const auto map : {"", "zm_", "mp_nuketown", "cp_zod", "ZM_zod", "zm_../x", "zm_a b", "zm_a\n"}) {
+    input.map = map;
+    assert(!lobby_listing_policy(input).active);
+  }
+  std::string maximum = "zm_" + std::string(61, 'a');
+  input.map = maximum;
   assert(lobby_listing_policy(input).active);
+  maximum.push_back('a');
+  input.map = maximum;
+  assert(!lobby_listing_policy(input).active);
 
   assert(private_lan_ipv4(0x0a000001) && private_lan_ipv4(0xac100001));
   assert(private_lan_ipv4(0xac1f0001) && private_lan_ipv4(0xc0a80101));

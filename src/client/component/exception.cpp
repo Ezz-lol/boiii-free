@@ -17,6 +17,7 @@
 #include <utils/string.hpp>
 #include <utils/thread.hpp>
 
+#include "zombies/diagnostics.hpp"
 #include <exception/minidump.hpp>
 #include <exception/recovery_policy.hpp>
 
@@ -670,19 +671,51 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
     line(registers);
   }
 
+  try {
+    line("");
+    line("Zombies coop cached diagnostics (best effort):");
+    line(zombies::coop::crash_diagnostics());
+  } catch (...) {
+  }
+
   return info;
 }
 
 void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo) {
-  const std::string crash_name =
+  const std::string base_name =
       (game::get_appdata_path() / "minidumps" /
-       utils::string::va("ezz-crash-%s.zip", get_timestamp().data()))
+       utils::string::va("ezz-crash-%s", get_timestamp().data()))
           .string();
-
+  const auto crash_name = base_name + ".zip";
+  const auto info_name = base_name + ".txt";
+  const auto coop_name = base_name + ".coop.json";
+  const auto coop_info = zombies::coop::crash_diagnostics();
+  // Persist cached diagnostics first: DbgHelp or the wider report can fault or
+  // block independently. No engine/script/cache lock is taken by this snapshot.
+  try {
+    utils::io::write_file(coop_name, coop_info);
+  } catch (...) {
+  }
+  const auto info = generate_crash_info(exceptioninfo);
+  try {
+    utils::io::write_file(info_name, info);
+  } catch (...) {
+  }
   utils::compression::zip::archive zip_file{};
-  zip_file.add("crash.dmp", create_minidump(exceptioninfo));
-  zip_file.add("info.txt", generate_crash_info(exceptioninfo));
-  if (!zip_file.write(crash_name, "Ezz Crash Dump")) {
+  zip_file.add("info.txt", info);
+  try {
+    zip_file.add("zombies-coop.json", coop_info);
+  } catch (...) {
+  }
+  try {
+    zip_file.add("crash.dmp", create_minidump(exceptioninfo));
+  } catch (const std::exception &error) {
+    zip_file.add("dump_error.txt", error.what());
+  }
+  if (zip_file.write(crash_name, "Ezz Crash Dump")) {
+    utils::io::remove_file(info_name);
+    utils::io::remove_file(coop_name);
+  } else {
     utils::io::remove_file(crash_name);
   }
 }

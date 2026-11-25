@@ -6,7 +6,8 @@
 #include "zombies/coop_policy.hpp"
 #include "zombies/coop_runtime.hpp"
 #include "zombies/startup_gate.hpp"
-#include "zombies/stock_session.hpp"
+#include "zombies/companion.hpp"
+#include "zombies/diagnostics.hpp"
 #include "zombies_lobby_vm.hpp"
 #include <atomic>
 #include <chrono>
@@ -40,20 +41,9 @@ const char *preflight_error(int configured, int requested) {
     return nullptr;
   if (game::is_client() && !client_lobby_hooks_ready())
     return "Expanded Zombies hosting requires matching lobby scripts loaded in the client Lobby VM. Check zombies_coop_lobby_vm diagnostics and install matching data.";
-  if (!supported_map(
-          std::string(game::get_dvar_string("mapname").value_or(""))))
-    return "Experimental Zombies coop supports zm_zod and zm_tomb only. Rehost "
-           "with four players for other maps.";
-  const auto selected_mod = game::get_fs_game().value_or("");
-  const bool mod_loaded = game::ugc::UGC_ActiveMod_Loaded();
-  const char *mod_publisher =
-      mod_loaded ? game::ugc::UGC_ActiveMod_PublisherId() : "";
-  if (!stock_session_allowed(selected_mod, mod_loaded,
-                             mod_publisher ? mod_publisher : "",
-                             game::ugc::active_usermap->publisherId[0] != 0))
-    return "Experimental Zombies coop requires a stock map without a Workshop "
-           "gameplay mod. "
-           "Unload the mod or usermap and rehost.";
+  // Map/mod ownership is established by the paired early schema and exact
+  // stock callback comparisons in GSC. Official profiles and compatible custom
+  // stock callbacks are accepted; unknown callback/gametype owners decline.
   return nullptr;
 }
 
@@ -78,6 +68,11 @@ const char *poll_startup() {
   if (now < next_poll)
     return nullptr;
   next_poll = now + std::chrono::milliseconds(100);
+  if (schema_assets_failed()) {
+    reported = true;
+    blocked.store(true, std::memory_order_release);
+    return "Paired Zombies GSC/CSC/UI schema failed. Use matching data and rehost; native checksums remain enforced.";
+  }
   const auto fault = gate.observe(
       std::chrono::duration_cast<std::chrono::milliseconds>(
           now.time_since_epoch())
@@ -87,7 +82,7 @@ const char *poll_startup() {
       game::get_dvar_int("zm_coopReadyEpoch").value_or(0),
       (game::get_dvar_string("zm_coopReadyMap").value_or("") == active_map &&
        game::get_dvar_string("mapname").value_or("") == active_map),
-      game::get_dvar_int("zm_coopHeartbeat").value_or(0));
+      game::get_dvar_int("zm_coopHeartbeat").value_or(0), schema_server_ready());
   blocked.store(!gate.ready(), std::memory_order_release);
   if (fault == startup_gate::fault::none)
     return nullptr;
@@ -136,6 +131,17 @@ const char *begin_startup() {
     reported = true;
     return error;
   }
+  if (requested > stock_limit) {
+    std::string schema_error;
+    if (!prepare_schema_session(requested, std::string(game::get_dvar_string("mapname").value_or("")), schema_error)) {
+      schema_asset_failure(schema_error);
+      reported = true;
+      return "Could not prepare the paired Zombies schema before script linking. Install matching companion data and rehost.";
+    }
+    schema_begin_server_vm();
+  } else if (frozen_schema_capacity() >= 5 || schema_assets_failed()) {
+    reset_schema_session();
+  }
   applied_limit = requested;
   blocked.store(requested > stock_limit, std::memory_order_release);
   epoch = epoch == INT_MAX ? 1 : epoch + 1;
@@ -160,6 +166,7 @@ void validate_startup() {
 }
 
 void check_startup() {
+  refresh_schema_session();
   // Called only after scheduler task locks have been released.
   if (const char *error = poll_startup()) {
     game::com::Com_Error(game::errorParm::DROP, "%s", error);

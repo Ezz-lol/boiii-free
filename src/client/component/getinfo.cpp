@@ -10,6 +10,7 @@
 #include "network_password.hpp"
 #include "scheduler.hpp"
 #include "zombies_lobby.hpp"
+#include "zombies/schema_peer.hpp"
 #include "workshop/workshop.hpp"
 
 #include <utils/info_string.hpp>
@@ -157,6 +158,15 @@ struct component final : generic_component {
                  network_password::get_password_hash_string());
       }
 
+
+      const auto schema_capacity = zombies::coop::expanded_descriptor_capacity(info.get("sv_maxclients"));
+      std::string schema_error;
+      if (schema_capacity && info.get("playmode") == std::to_string(static_cast<int32_t>(game::eModes::ZOMBIES)) &&
+          zombies::coop::companion_files_ready(schema_error)) {
+        info.set("coopSchema", "1");
+        info.set("coopContract", std::string(zombies::coop::companion_contract));
+        info.set("coopBundle", zombies::coop::payloads::bundle_sha256);
+      }
       network::send(target, "infoResponse", info.build(), '\n');
     });
   }
