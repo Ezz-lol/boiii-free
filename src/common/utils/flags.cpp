@@ -97,6 +97,10 @@ int32_t parse_flags(int argc, char *argv[]) {
             "matching gameplay scripts and clients")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-coop-debug", "--coop-debug")
+      .help("Log experimental Zombies co-op lifecycle snapshots and events")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-beta", "--beta")
       .help("Launch a dedicated server on the beta update channel")
       .default_value(false)
