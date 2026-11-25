@@ -26,19 +26,10 @@ struct swap_chain_methods {
   resize_buffers_t resize_buffers;
 };
 
-// keep the original methods per vtable
-// swap chains can share a table or use different ones
 utils::concurrency::container<std::map<void **, swap_chain_methods>> methods;
-// draw on the game chain in either mode
-// only apply flip-model rules to the chain we converted
 std::atomic<IDXGISwapChain *> game_swap_chain{nullptr};
 std::atomic<IDXGISwapChain *> converted_swap_chain{nullptr};
 
-/**
- * @brief Retrieve the original methods for the vtable used by this chain.
- * @param swap_chain The object passed into one of our patched vtable entries.
- * @return A copy of the methods saved before that vtable was patched.
- */
 swap_chain_methods get_original_methods(IDXGISwapChain *swap_chain) {
   auto **vtable = *reinterpret_cast<void ***>(swap_chain);
   return methods.access<swap_chain_methods>(
@@ -50,16 +41,13 @@ utils::hook::detour create_swap_chain_hook;
 HRESULT STDMETHODCALLTYPE present_stub(IDXGISwapChain *swap_chain,
                                        const UINT sync_interval, UINT flags) {
   const auto original = get_original_methods(swap_chain);
-  // test presents never draw a frame
   if ((flags & DXGI_PRESENT_TEST) != 0) {
     return original.present(swap_chain, sync_interval, flags);
   }
-  // draw before Present sends the back buffer to the screen
   if (swap_chain == game_swap_chain.load()) {
     imgui_overlay::render_frame(swap_chain);
   }
 
-  // only allow tearing on a converted windowed chain created with that flag
   if (swap_chain == converted_swap_chain.load() && sync_interval == 0) {
     DXGI_SWAP_CHAIN_DESC desc{};
     BOOL fullscreen = FALSE;
@@ -79,7 +67,6 @@ HRESULT STDMETHODCALLTYPE resize_buffers_stub(IDXGISwapChain *swap_chain,
                                               const DXGI_FORMAT format,
                                               UINT flags) {
   DXGI_SWAP_CHAIN_DESC desc{};
-  // leave stock resize args alone
   if (swap_chain == converted_swap_chain.load() &&
       SUCCEEDED(swap_chain->GetDesc(&desc))) {
     // Resizing has to keep the flags the swap chain was created with
@@ -92,19 +79,12 @@ HRESULT STDMETHODCALLTYPE resize_buffers_stub(IDXGISwapChain *swap_chain,
       .resize_buffers(swap_chain, count, width, height, format, flags);
 }
 
-/**
- * @brief Intercept frame presentation on the swap chain the game created.
- * @param swap_chain The chain returned by the game's DXGI factory.
- * @param converted Whether BOIII substituted a flip-model descriptor.
- */
 void hook_swap_chain(IDXGISwapChain *swap_chain, bool converted) {
   auto **vtable = *reinterpret_cast<void ***>(swap_chain);
-  // patch each shared vtable once
   methods.access([vtable](auto &tables) {
     if (tables.contains(vtable)) {
       return;
     }
-    // save the originals before another thread can call our hooks
     tables.emplace(vtable,
                    swap_chain_methods{
                        reinterpret_cast<present_t>(vtable[SWAP_CHAIN_PRESENT]),
@@ -115,7 +95,6 @@ void hook_swap_chain(IDXGISwapChain *swap_chain, bool converted) {
     utils::hook::set(&vtable[SWAP_CHAIN_RESIZE_BUFFERS],
                      reinterpret_cast<void *>(resize_buffers_stub));
   });
-  // track the new chain even if it shares a vtable we already patched
   converted_swap_chain = converted ? swap_chain : nullptr;
   game_swap_chain = swap_chain;
 }
@@ -163,7 +142,6 @@ HRESULT STDMETHODCALLTYPE create_swap_chain_stub(IDXGIFactory *factory,
     }
   }
 
-  // hook stock chains too, including fullscreen, -noflipmodel and failed flip creation
   const HRESULT result =
       create_swap_chain_hook.invoke<HRESULT>(factory, device, desc, swap_chain);
   if (SUCCEEDED(result)) {

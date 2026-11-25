@@ -18,12 +18,6 @@ bool is_any_download_active();
 bool is_xzone_loaded(const char *zone_name);
 bool are_xzones_loading();
 
-/**
- * @brief Route a lobby Workshop map offer, allowing retries in private matches.
- * @details Call on the main pipeline. This reads the guest session to decide
- * whether the offer needs to follow the current map and watch for a retry.
- * @param id The selected map's Workshop ID.
- */
 void offer_lobby_usermap(const std::string &id);
 
 int get_workshop_retry_attempts();

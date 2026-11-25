@@ -470,11 +470,8 @@ luaReturnCount_e offercustommap(lua_State *luaVM) {
                              ? lua_tostring(luaVM, 1)
                              : "";
   const bool numeric = !id.empty() && utils::string::is_numeric(id);
-  // avoid duplicate offers from repeated lobby updates
-  // download retries come from the Workshop queue
   static std::string offered;
   if (numeric && std::exchange(offered, id) != id) {
-    // inspect the live lobby on the main thread
     scheduler::once([id] { workshop::offer_lobby_usermap(id); },
                     scheduler::pipeline::main);
   }

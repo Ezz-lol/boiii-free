@@ -18,12 +18,6 @@ struct download_state {
   std::function<void()> on_cancel{nullptr}; // nullptr = hide Stop button
 };
 
-/**
- * @brief Draw the download UI immediately before the game presents a frame.
- * @details Called by the game swap-chain hook in flip_model.cpp. The caller
- * owns the chain and calls the original DXGI Present after this returns.
- * @param swap_chain The game's Direct3D 11 swap chain.
- */
 void render_frame(IDXGISwapChain *swap_chain);
 
 void update(const download_state &state);

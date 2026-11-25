@@ -534,11 +534,8 @@ void join_lobby(const game::net::netadr_t &host,
 
   if (!same_mod) {
     if (needs_usermaps && !usermap.empty()) {
-      // reload the frontend like the Custom Maps menu does
-      // ask for fresh lobby info once the load finishes
-      game::ugc::UGC_LoadModByPublisherId_Impl(
-          game::LOCAL_CLIENT_0, "usermaps", true);
-      // a slow test laptop took about 30 seconds to return to the menus
+      game::ugc::UGC_LoadModByPublisherId_Impl(game::LOCAL_CLIENT_0, "usermaps",
+                                               true);
       const auto deadline = std::chrono::steady_clock::now() + 60s;
       scheduler::schedule(
           [host, token = parts[0], deadline] {
