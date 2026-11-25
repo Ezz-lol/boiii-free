@@ -1,5 +1,5 @@
-#define BOIII_COOP_EZZ
 #include <std_include.hpp>
+#define BOIII_COOP_EZZ
 
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
