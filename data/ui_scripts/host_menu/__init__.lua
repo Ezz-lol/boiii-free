@@ -86,7 +86,7 @@ DataSources.BoiiiKickPlayers = ListHelper_SetupDataSource("BoiiiKickPlayers", fu
   return options
 end, true)
 
-local function createListMenu(name, title, dataSource)
+local function createListMenu(name, title, dataSource, configureGrid)
   LUI.createMenu[name] = function(controller)
     local self = CoD.Menu.NewForUIEditor(name)
     self.soundSet = "ChooseDecal"
@@ -108,15 +108,21 @@ local function createListMenu(name, title, dataSource)
     list:makeFocusable()
     list:setLeftRight(true, false, 64, 444)
     list:setTopBottom(true, false, 136, 640)
-    list:setWidgetType(CoD.List1ButtonLarge_PH)
-    list:setVerticalCount(14)
+    local detailLeft = 500
+    if configureGrid then
+      configureGrid(self, list, controller)
+      detailLeft = 760
+    else
+      list:setWidgetType(CoD.List1ButtonLarge_PH)
+      list:setVerticalCount(14)
+    end
     list:setVerticalScrollbar(CoD.verticalScrollbar)
     list:setDataSource(dataSource)
     self:addElement(list)
     self.Options = list
 
     local heading = LUI.UIText.new()
-    heading:setLeftRight(true, false, 500, 1180)
+    heading:setLeftRight(true, false, detailLeft, 1180)
     heading:setTopBottom(true, false, 136, 172)
     heading:setTTF("fonts/escom.ttf")
     heading:linkToElementModel(list, "displayText", true, function(model)
@@ -125,7 +131,7 @@ local function createListMenu(name, title, dataSource)
     self:addElement(heading)
 
     local description = LUI.UIText.new()
-    description:setLeftRight(true, false, 500, 1180)
+    description:setLeftRight(true, false, detailLeft, 1200)
     description:setTopBottom(true, false, 188, 210)
     description:setTTF("fonts/default.ttf")
     description:setRGB(0.75, 0.75, 0.75)
@@ -198,3 +204,8 @@ end
 
 createListMenu("BoiiiChangeMapMenu", "CHANGE MAP", "BoiiiChangeMap")
 createListMenu("BoiiiKickPlayersMenu", "KICK PLAYER", "BoiiiKickPlayers")
+
+if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER and not Engine.IsDemoPlaying() then
+  local registerScorestreakMenus = require("pause_scorestreaks")
+  registerScorestreakMenus(createListMenu, option)
+end

@@ -42,6 +42,21 @@ local function addHostOptions(options)
   end
 end
 
+local function addScorestreakOption(options)
+  if
+    Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER
+    and not Engine.IsDemoPlaying()
+    and Engine.DvarBool(nil, "cl_connected_to_dedi")
+    and LUI.createMenu.BoiiiScorestreakSlots
+    and Engine.GetGametypeSetting("loadoutKillstreaksEnabled") == 1
+    and Engine.DvarInt(nil, "custom_killstreak_mode") ~= 2
+  then
+    table.insert(options, {
+      models = { displayText = "MENU_SCORE_STREAKS_CAPS", action = openPopup("BoiiiScorestreakSlots") },
+    })
+  end
+end
+
 local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOptions", function(controller)
   local options = {}
   local currentMode = Engine.CurrentSessionMode()
@@ -127,6 +142,7 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
     then
       table.insert(options, { models = { displayText = "MPUI_CHOOSE_CLASS_BUTTON_CAPS", action = ChooseClass } })
     end
+    addScorestreakOption(options)
     if
       not Engine.IsVisibilityBitSet(controller, Enum.UIVisibilityBit.BIT_ROUND_END_KILLCAM)
       and not Engine.IsVisibilityBitSet(controller, Enum.UIVisibilityBit.BIT_FINAL_KILLCAM)
@@ -152,8 +168,7 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
   return options
 end, true)
 
--- With a mod loaded, keep the mod's pause menu and only add our host options
--- after its own, skipping any it already has
+-- Preserve the mod's pause menu and append any missing BOIII options.
 local function appendHostOptions(dataSource)
   if not dataSource or dataSource.boiiiHostOptions then
     return
@@ -165,7 +180,12 @@ local function appendHostOptions(dataSource)
     if not items then
       return
     end
+    local additions = {}
+    addScorestreakOption(additions)
     if isLocalGameHost() then
+      addHostOptions(additions)
+    end
+    if #additions > 0 then
       local existing = {}
       for _, item in ipairs(items) do
         local displayText = Engine.GetModel(item.model, "displayText")
@@ -176,10 +196,8 @@ local function appendHostOptions(dataSource)
       if existing["MENU_RESTART_LEVEL_CAPS"] or existing["MENU_RESTART_MISSION_CAPS"] then
         existing["^3RESTART"] = true
       end
-      local hostOptions = {}
-      addHostOptions(hostOptions)
       local root = Engine.CreateModel(Engine.GetModelForController(controller), list.customDataSourceHelper)
-      for _, option in ipairs(hostOptions) do
+      for _, option in ipairs(additions) do
         if not existing[option.models.displayText] then
           local index = #items + 1
           local model = Engine.GetModel(root, index)
