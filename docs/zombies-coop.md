@@ -135,7 +135,7 @@ swap primary UI pointers or reuse UI references. The reader uses a 65,537-byte h
 buffer to reject files above 64 KiB; it restores stack/sharing state after the call.
 
 Readiness is false before each client initialization and becomes true only when the
-module reports version 3 and all three installed host-start, launch, and migration
+module reports version 4 and all three installed host-start, launch, and migration
 callbacks still have the expected function identities at installation. Client-image
 expanded startup and host listing require that readiness value. Dedicated processes
 are exempt from this client-only bootstrap requirement.

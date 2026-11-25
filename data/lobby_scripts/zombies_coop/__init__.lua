@@ -14,11 +14,44 @@ local function launched()
     or Engine.GetCurrentMap() ~= "core_frontend"
 end
 
+-- Dedicated startup has no client frontend map. The stock dedicated getters
+-- identify this path; only a new GAME lobby may consume the saved preference.
+local function nextHostLimit(lobbyType, maxClients)
+  local dedicated = (type(Engine.IsDedicatedServer) == "function" and Engine.IsDedicatedServer() == true)
+    or (type(Engine.IsDedicatedServerMods) == "function" and Engine.IsDedicatedServerMods() == true)
+  if dedicated then
+    local game = Enum.LobbyType.LOBBY_TYPE_GAME
+    if
+      lobbyType ~= game
+      or type(Engine.IsLobbyActive) ~= "function"
+      or Engine.IsLobbyActive(game)
+      or (type(Engine.LobbyHostLaunchTaskInProgress) == "function" and Engine.LobbyHostLaunchTaskInProgress())
+      or (type(Engine.IsLobbyInRecovery) == "function" and Engine.IsLobbyInRecovery(game))
+    then
+      return nil
+    end
+    local limit = configuredLimit()
+    if bounded(maxClients, 4) and maxClients >= 2 then
+      return limit
+    end
+    -- Explicit expanded action capacity wins over the saved next-lobby size.
+    -- A default/stock preference does not adopt an unrelated expanded action.
+    if limit > 4 and bounded(maxClients, 8) and maxClients > 4 then
+      return maxClients
+    end
+    return nil
+  end
+  if bounded(maxClients, 4) and maxClients >= 2 and not launched() then
+    return configuredLimit()
+  end
+  return nil
+end
+
 local actions = type(Lobby) == "table" and Lobby.Actions or nil
 if
   type(actions) == "table"
   and type(actions.LobbyHostStart) == "function"
-  and (actions.LobbyHostStart ~= actions.ZombiesCoopHostStart or actions.ZombiesCoopHostVersion ~= 3)
+  and (actions.LobbyHostStart ~= actions.ZombiesCoopHostStart or actions.ZombiesCoopHostVersion ~= 4)
 then
   local original = actions.LobbyHostStart
   local function hostStart(...)
@@ -31,22 +64,21 @@ then
       mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
       and (lobbyType == game or lobbyType == private)
       and ((custom ~= nil and lobbyMode == custom) or (public ~= nil and lobbyMode == public))
-      and bounded(maxClients, 4)
-      and maxClients >= 2
-      and not launched()
     then
-      local limit = configuredLimit()
-      Engine.SetDvar("party_maxplayers", limit)
-      if lobbyType == game then
-        Engine.SetDvar("com_maxclients", limit)
+      local limit = nextHostLimit(lobbyType, maxClients)
+      if limit ~= nil then
+        Engine.SetDvar("party_maxplayers", limit)
+        if lobbyType == game then
+          Engine.SetDvar("com_maxclients", limit)
+        end
+        return original(controller, mainMode, lobbyType, lobbyMode, limit, select(6, ...))
       end
-      return original(controller, mainMode, lobbyType, lobbyMode, limit, select(6, ...))
     end
     -- Explicit Solo, migrated host limits, other modes and foreign >8 caps retain ownership.
     return original(...)
   end
   actions.ZombiesCoopHostStart = hostStart
-  actions.ZombiesCoopHostVersion = 3
+  actions.ZombiesCoopHostVersion = 4
   actions.LobbyHostStart = hostStart
 end
 
@@ -111,12 +143,12 @@ if type(LobbyVM.CanLobbyCanMigrate) == "function" and LobbyVM.CanLobbyCanMigrate
 end
 
 LobbyVM.ZombiesCoopModuleVersion = type(actions) == "table"
-    and actions.ZombiesCoopHostVersion == 3
+    and actions.ZombiesCoopHostVersion == 4
     and type(actions.LobbyHostStart) == "function"
     and actions.LobbyHostStart == actions.ZombiesCoopHostStart
     and type(LobbyVM.LaunchGame) == "function"
     and LobbyVM.LaunchGame == LobbyVM.ZombiesCoopLaunchGame
     and type(LobbyVM.CanLobbyCanMigrate) == "function"
     and LobbyVM.CanLobbyCanMigrate == LobbyVM.ZombiesCoopCanMigrate
-    and 3
+    and 4
   or nil

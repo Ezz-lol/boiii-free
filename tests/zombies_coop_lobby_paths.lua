@@ -348,7 +348,7 @@ assert(
     and LobbyVM.LaunchGame == launchGame
     and LobbyVM.CanLobbyCanMigrate == canMigrate
 )
-assert(LobbyVM.ZombiesCoopModuleVersion == 3)
+assert(LobbyVM.ZombiesCoopModuleVersion == 4)
 -- A stock LobbyVM reload may replace functions while retaining extension fields.
 local freshCalls = 0
 Lobby.Actions.LobbyHostStart = function(...)
@@ -370,10 +370,11 @@ state.inGame, state.capacity = false, 4
 assert(Lobby.Actions.LobbyHostStart(0, 2, 7, 3, 18) == "fresh host")
 assert(LobbyVM.LaunchGame({ lobbyType = 8 }) == "fresh launch")
 assert(LobbyVM.CanLobbyCanMigrate({ lobbyType = 8 }) == "fresh migrate")
-assert(freshCalls == 3 and LobbyVM.ZombiesCoopModuleVersion == 3)
+assert(freshCalls == 3 and LobbyVM.ZombiesCoopModuleVersion == 4)
 dofile(root .. "/data/lobby_scripts/zombies_coop/__init__.lua")
 assert(Lobby.Actions.LobbyHostStart == refreshed)
 print(
   "PASS: stock online/custom/public/LAN contracts, frontend ownership, launch/loading, Solo150, listing eligibility and migration refusal"
 )
+dofile(root .. "/tests/zombies_coop_dedicated_host.lua")
 dofile(root .. "/tests/zombies_coop_settings.lua")

@@ -37,6 +37,13 @@ Solo guard. A frontend local GAME/ZM host on screen 400 with playlist 150 and an
 unchanged. This leaves `zm_coopPlayerLimit` as the next non-Solo preference. The
 engine's eventual native Solo allocation is authoritative.
 
+Dedicated creation does not use the client's frontend predicates. Either stock
+dedicated getter must return true, the GAME lobby must be inactive, and no launch task
+or recovery may be running. A new stock 2-4 action consumes the saved 1-8 preference;
+an explicit 5-8 action keeps its exact capacity and synchronizes the creation dvars
+only with an expanded saved preference. Existing allocated dedicated sessions and
+foreign capacities remain untouched. This guard runs before native host creation.
+
 ## Session capacity and lifecycle
 
 Three inputs are distinct: the saved next-lobby preference, the already allocated native
@@ -85,7 +92,7 @@ requires all of the following:
 
 - The experimental flag, a native ready/active local GAME/ZM host, Custom mode, and a
   valid local game-lobby identity.
-- Successful client LobbyVM addon installation, recorded by its strict version-3
+- Successful client LobbyVM addon installation, recorded by its strict version-4
   function-ownership readiness check.
 - Existing privacy is Open. The feature never changes privacy, creates an open session,
   or automatically enables listing.
@@ -224,7 +231,7 @@ the API stack relative to the current stack base and restores bytecode-sharing m
 It does not swap primary UI state pointers or move UI references into LobbyVM.
 
 Before client initialization, readiness is false. It is set only when the addon returns
-the strict version-3/ownership check: `Lobby.Actions.LobbyHostStart`,
+the strict version-4/ownership check: `Lobby.Actions.LobbyHostStart`,
 `LobbyVM.LaunchGame`, and `LobbyVM.CanLobbyCanMigrate` equal their installed coop
 wrapper functions. Client-image expanded startup and listing both require this boolean.
 A dedicated process has no client LobbyVM and is exempt from that requirement.

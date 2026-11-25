@@ -65,7 +65,7 @@ void load_client_lobby_hooks() {
   // require loader untouched rather than swapping its global VM pointer.
   const std::string code =
       source +
-      "\nreturn type(LobbyVM)=='table' and LobbyVM.ZombiesCoopModuleVersion==3 "
+      "\nreturn type(LobbyVM)=='table' and LobbyVM.ZombiesCoopModuleVersion==4 "
       "and "
       "type(Lobby)=='table' and type(Lobby.Actions)=='table' and "
       "type(Lobby.Actions.LobbyHostStart)=='function' and "

@@ -43,7 +43,7 @@ assert not re.search(r"\b(?:require|dofile|loadfile)\s*\(", companion)
 # than accepting a previous-version HostStart marker as evidence of readiness.
 chunk = re.search(r"const std::string code\s*=\s*source\s*\+([\s\S]*?);", native).group(1)
 suffix = "".join(ast.literal_eval(s) for s in re.findall(r'"(?:\\.|[^"\\])*"', chunk))
-assert "LobbyVM.ZombiesCoopModuleVersion==3" in suffix
+assert "LobbyVM.ZombiesCoopModuleVersion==4" in suffix
 assert "type(Lobby.Actions.LobbyHostStart)=='function'" in suffix
 for callback, marker in (("LobbyHostStart", "ZombiesCoopHostStart"), ("LaunchGame", "ZombiesCoopLaunchGame"), ("CanLobbyCanMigrate", "ZombiesCoopCanMigrate")):
     assert callback + "==" in suffix and marker in suffix
@@ -60,7 +60,7 @@ if "--lua" in sys.argv[2:]:
     fixture = """
 local host, launch, migrate = function() end, function() end, function() end
 Lobby = {Actions={LobbyHostStart=host, ZombiesCoopHostStart=host}}
-LobbyVM = {ZombiesCoopModuleVersion=3, LaunchGame=launch, ZombiesCoopLaunchGame=launch,
+LobbyVM = {ZombiesCoopModuleVersion=4, LaunchGame=launch, ZombiesCoopLaunchGame=launch,
     CanLobbyCanMigrate=migrate, ZombiesCoopCanMigrate=migrate}
 """
     lua = LuaRuntime()
@@ -71,6 +71,7 @@ LobbyVM = {ZombiesCoopModuleVersion=3, LaunchGame=launch, ZombiesCoopLaunchGame=
         "Lobby.Actions=nil;",
         "Lobby=nil;",
         "LobbyVM.ZombiesCoopModuleVersion=2;",
+        "LobbyVM.ZombiesCoopModuleVersion=3;",
         "LobbyVM.LaunchGame=nil; LobbyVM.ZombiesCoopLaunchGame=nil;",
         "LobbyVM.CanLobbyCanMigrate=nil; LobbyVM.ZombiesCoopCanMigrate=nil;",
     ):
