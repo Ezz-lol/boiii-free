@@ -12,18 +12,20 @@
 
 #include "handler.hpp"
 #include <component/zombies/coop_runtime.hpp>
+#include <component/zombies/join_network_policy.hpp>
+#include <component/zombies/listen_admission_policy.hpp>
+#include <utils/flags.hpp>
 
 namespace game {
 namespace lobby {
 namespace msg {
-namespace {
-// Matches the lobby component's patch to the engine's join handler, which this
-// handler replaces
-LobbyNetworkMode get_join_network_mode() {
-  return game::is_client() ? LobbyNetworkMode::LIVE
-                           : base::LobbyBase_GetNetworkMode();
+// Used by both native join-check call sites and this replacement handler.
+// Read the host's selected mode; a packet cannot choose the host's rules.
+LobbyNetworkMode JoinRequestNetworkMode() {
+  return ::zombies::coop::join_network_mode(
+      game::is_client(), base::LobbyBase_GetMainMode() == LobbyMainMode::ZM,
+      base::LobbyBase_GetNetworkMode());
 }
-} // namespace
 
 // Host <- Client
 void HandleAgreementResponse(ControllerIndex_t controllerIndex,
@@ -236,6 +238,16 @@ void HandleServerInfo(ControllerIndex_t controllerIndex, net::netadr_t *fromAdr,
   }
 }
 
+bool active_hosted_member(const LobbyType type, const XUID xuid) {
+  if (!xuid || !LobbyHost_IsHost(type)) return false;
+  auto *session = LobbyHostData_GetSession(type);
+  if (!session || (session->active != session::SessionActive::KEEP_ALIVE &&
+                   session->active != session::SessionActive::ACTIVE)) return false;
+  const auto *member = session::LobbySession_GetClientByXuid(session, xuid);
+  return member && ::zombies::coop::authenticated_member_matches(
+      xuid, member->xuid, member->activeClient != nullptr);
+}
+
 // Host <- client
 void HandleJoinRequest(ControllerIndex_t controllerIndex,
                        net::netadr_t *fromAdr, XUID fromXUID,
@@ -261,7 +273,7 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
         LobbyHostData_GetSession(msgData.targetLobby);
     const LobbyType lobbyType = session->type;
     const LobbyMainMode mainMode = base::LobbyBase_GetMainMode();
-    const LobbyNetworkMode networkMode = get_join_network_mode();
+    const LobbyNetworkMode networkMode = JoinRequestNetworkMode();
 
     Msg_JoinResponse joinResponse{};
     strscpy(joinResponse.name, session->host.info.name);
@@ -298,17 +310,16 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
     bool skipFurtherChecks = false;
 
     if (joinable && privacyAllowsJoin) {
-      if (ugc::UGC_ActiveMod_Loaded() || isXUIDLocalPlayer ||
-          networkMode == LobbyNetworkMode::LIVE) {
+      if (::zombies::coop::network_join_allowed(
+              ugc::UGC_ActiveMod_Loaded(), isXUIDLocalPlayer, networkMode)) {
         if (isPermaBanned) {
           joinResponse.response = join::JoinResult::BANNED;
         } else if (hasBannedMember) {
           joinResponse.response = join::JoinResult::BANNED_MEMBER;
         } else {
           if (networkMode == LobbyNetworkMode::LAN) {
-            if (msgData.networkMode != LobbyNetworkMode::LAN ||
-                (msgData.joinType != join::JoinType::PARTY &&
-                 msgData.joinType != join::JoinType::PLAYLIST)) {
+            if (!::zombies::coop::lan_join_request_allowed(
+                    msgData.networkMode, msgData.joinType)) {
               joinResponse.response = join::JoinResult::NETWORK_MODE_MISMATCH;
               skipFurtherChecks = true;
             }
@@ -372,6 +383,41 @@ void HandleJoinRequest(ControllerIndex_t controllerIndex,
         lobbyType == LobbyType::GAME && mainMode == LobbyMainMode::ZM &&
         !nativeLoopback && !::zombies::coop::admission_ready()) {
       joinResponse.response = join::JoinResult::NOT_JOINABLE_NOT_IDLE;
+    }
+
+    ::zombies::coop::closed_custom_join_policy close_policy{};
+    close_policy.prior_success = joinResponse.response == join::JoinResult::SUCCESS;
+    close_policy.listen_client = game::is_client();
+    close_policy.feature = utils::flags::has_flag("experimental-zombies-coop");
+    close_policy.zombies = mainMode == LobbyMainMode::ZM;
+    close_policy.live = base::LobbyBase_GetNetworkMode() == LobbyNetworkMode::LIVE;
+    close_policy.closed = !game::get_dvar_bool("nat_open").value_or(false);
+    close_policy.known_or_local = nativeLoopback;
+    if (close_policy.prior_success && close_policy.listen_client && close_policy.feature &&
+        close_policy.zombies && close_policy.live && close_policy.closed &&
+        !close_policy.known_or_local) {
+      close_policy.game_host = LobbyHost_IsHost(LobbyType::GAME);
+      const auto *game_session = close_policy.game_host
+          ? LobbyHostData_GetSession(LobbyType::GAME) : nullptr;
+      if (game_session) {
+        close_policy.custom = game_session->mode == LobbyMode::CUSTOM;
+        close_policy.capacity = static_cast<int>(game_session->host.maxClients);
+        if (::zombies::coop::deny_closed_custom_join(close_policy)) {
+          const auto known_member = [](const XUID xuid) {
+            return live::user::LiveUser_IsXUIDLocalPlayer(xuid) ||
+                active_hosted_member(LobbyType::GAME, xuid) ||
+                active_hosted_member(LobbyType::PRIVATE, xuid);
+          };
+          std::array<std::uint64_t, MAX_PLAYERS> requested_members{};
+          for (std::size_t i = 0; i < requested_members.size(); ++i)
+            requested_members[i] = msgData.members[i].xuid;
+          close_policy.known_or_local = known_member(fromXUID) &&
+              ::zombies::coop::closed_join_members_known(requested_members,
+                  static_cast<int>(msgData.memberCount), known_member);
+          if (::zombies::coop::deny_closed_custom_join(close_policy))
+            joinResponse.response = join::JoinResult::NOT_JOINABLE_CLOSED;
+        }
+      }
     }
 
     if (joinResponse.response == join::JoinResult::SUCCESS) {

@@ -7,6 +7,7 @@
 #include "zombies/coop_runtime.hpp"
 #include "zombies/startup_gate.hpp"
 #include "zombies/stock_session.hpp"
+#include "zombies_lobby_vm.hpp"
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -20,6 +21,7 @@ std::atomic_bool blocked{false};
 int epoch = 0;
 int applied_limit = 0;
 bool reported = false;
+bool map_armed = false;
 std::string active_map;
 std::chrono::steady_clock::time_point next_poll{};
 
@@ -28,13 +30,16 @@ const char *preflight_error(int configured, int requested) {
     return "Invalid Zombies coop capacity. Select one through eight before "
            "hosting.";
   if (!requested)
-    return "Zombies coop host capacity does not match the configured limit. "
-           "Rehost with matching lobby settings before loading a map.";
+    return "Invalid native Zombies lobby capacity or missing experimental opt-in. "
+           "Use one through eight players and enable experimental coop before "
+           "hosting an expanded lobby.";
   if (applied_limit && requested != applied_limit)
     return "Zombies coop capacity changed during a hosted session. Return to "
            "the frontend, or restart the dedicated process, to apply it.";
   if (requested <= stock_limit)
     return nullptr;
+  if (game::is_client() && !client_lobby_hooks_ready())
+    return "Expanded Zombies hosting requires matching lobby scripts loaded in the client Lobby VM. Check zombies_coop_lobby_vm diagnostics and install matching data.";
   if (!supported_map(
           std::string(game::get_dvar_string("mapname").value_or(""))))
     return "Experimental Zombies coop supports zm_zod and zm_tomb only. Rehost "
@@ -60,10 +65,15 @@ const char *poll_startup() {
     blocked.store(false, std::memory_order_release);
     applied_limit = 0;
     reported = false;
+    map_armed = false;
     return nullptr;
   }
   if (applied_limit <= stock_limit || reported)
     return nullptr;
+  if (!map_armed) {
+    blocked.store(true, std::memory_order_release);
+    return nullptr;
+  }
   const auto now = std::chrono::steady_clock::now();
   if (now < next_poll)
     return nullptr;
@@ -93,6 +103,22 @@ bool admission_ready() noexcept {
   return !blocked.load(std::memory_order_acquire);
 }
 
+bool expanded_host() noexcept {
+  const std::lock_guard<std::mutex> lock(state_mutex);
+  return applied_limit > stock_limit && map_armed;
+}
+
+void shutdown_map() noexcept {
+  const std::lock_guard<std::mutex> lock(state_mutex);
+  // Revoke before script memory is released. The next VM load must explicitly
+  // arm a fresh map; old same-map readiness cannot reopen admission meanwhile.
+  map_armed = false;
+  blocked.store(applied_limit > stock_limit, std::memory_order_release);
+  gate.reset();
+  active_map.clear();
+  // Capacity remains latched across rotations until returning to the frontend.
+}
+
 const char *begin_startup() {
   const std::lock_guard<std::mutex> lock(state_mutex);
   if (game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES)
@@ -100,8 +126,10 @@ const char *begin_startup() {
   const int configured =
       game::get_dvar_int("zm_coopPlayerLimit").value_or(stock_limit);
   const int requested = resolve_session_limit(
-      configured, game::get_dvar_int("com_maxclients").value_or(0));
+      configured, game::get_dvar_int("com_maxclients").value_or(0),
+      utils::flags::has_flag("experimental-zombies-coop"));
   blocked.store(true, std::memory_order_release);
+  map_armed = false;
   // All temporary strings are destroyed before invoking engine longjmp error
   // paths.
   if (const char *error = preflight_error(configured, requested)) {
@@ -114,6 +142,7 @@ const char *begin_startup() {
   active_map = std::string(game::get_dvar_string("mapname").value_or(""));
   reported = false;
   gate.arm(epoch, requested);
+  map_armed = true;
   next_poll = {};
   game::Dvar_SetFromStringByName("zm_coopStatus", "initializing", true);
   (void)game::set_dvar_int("zm_coopHeartbeat", 0, false);

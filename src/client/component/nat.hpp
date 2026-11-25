@@ -21,8 +21,12 @@ void begin_join(const std::string &token, const std::string &fallback_address,
                 uint64_t friend_id);
 bool set_open_to_friends(bool enabled);
 std::string joinable_lobby();
+// Optional caller lifetime cancels queued work. Strict custom joins use a fresh
+// nonce token and never fall back to a raw match or another host.
 void join_match_lobby(const game::net::netadr_t &host,
-                      std::function<void()> fallback);
+                      std::function<void()> fallback,
+                      std::function<bool()> still_current = {},
+                      bool strict_custom = false);
 bool is_lobby_peer(const game::net::netadr_t &address);
 std::vector<game::net::netadr_t> get_lobby_peers();
 bool has_party_lobby();

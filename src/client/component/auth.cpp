@@ -9,6 +9,7 @@
 #include "profile_infos.hpp"
 #include "scheduler.hpp"
 #include "zombies/coop_runtime.hpp"
+#include "zombies/listen_admission_policy.hpp"
 
 #include <game/utils.hpp>
 
@@ -500,6 +501,15 @@ void evict_stale_challenges() {
   }
 }
 
+bool authenticated_game_lobby_member(const game::XUID xuid) {
+  if (!game::lobby::LobbyHost_IsHost(game::lobby::LobbyType::GAME)) return false;
+  auto *session = game::lobby::LobbyHostData_GetSession(game::lobby::LobbyType::GAME);
+  if (!session) return false;
+  const auto *member = game::lobby::session::LobbySession_GetClientByXuid(session, xuid);
+  return member && zombies::coop::authenticated_member_matches(
+      xuid, member->xuid, member->activeClient != nullptr);
+}
+
 void dispatch_connect_packet(const game::net::netadr_t &target,
                              const std::string &data,
                              game::LocalClientNum_t client_num) {
@@ -534,13 +544,18 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
     return;
   }
 
-  const std::unique_lock<std::recursive_mutex> _ =
-      profile_infos::acquire_profile_lock();
-
   const utils::info_string info_string(params[1]);
   const game::XUID xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
   if (xuid != key.get_hash()) {
     network::send(target, "error", "Bad XUID");
+    return;
+  }
+
+  if (zombies::coop::requires_game_lobby_membership(game::is_client(),
+          zombies::coop::expanded_host(),
+          target.type == game::net::netadrtype_t::LOOPBACK) &&
+      !authenticated_game_lobby_member(xuid)) {
+    network::send(target, "error", "Join this expanded Zombies host through its game lobby first");
     return;
   }
 
@@ -550,6 +565,9 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
     network::send(target, "error", "Bad name");
     return;
   }
+
+  const std::unique_lock<std::recursive_mutex> _ =
+      profile_infos::acquire_profile_lock();
 
   profile_infos::add_and_distribute_profile_info(target, xuid, info);
 

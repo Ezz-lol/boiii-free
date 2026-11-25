@@ -1,5 +1,10 @@
 local coop = require("zombies_coop")
 coop.applyTargets()
+coop.installListingButton()
+coop.installSoloLaunchGuard()
+if Engine.GetCurrentMap() == "core_frontend" then
+  require("zombies_coop_settings").install()
+end
 local modeInfo = LobbyData:UITargetFromId(Engine.GetLobbyUIScreen())
 local maxClients = coop.targetLimit(modeInfo)
 

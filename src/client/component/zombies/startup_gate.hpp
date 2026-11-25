@@ -4,18 +4,19 @@
 #include <string_view>
 
 namespace zombies::coop {
-// The configured value selects the next custom lobby, not Solo/Public.
-// Never raise an already allocated host capacity. Zero rejects an invalid
-// configuration or an opted-in expansion whose native capacity mismatches.
-// With expansion off, foreign capacities remain outside this policy.
-constexpr int resolve_session_limit(int configured, int capacity) {
-  if (configured < 1 || configured > 8 || capacity < 1)
+// The saved value selects the next custom lobby. The already allocated
+// native capacity is authoritative for an opted-in hosted/joined session.
+// Never enlarge a pool here; stock Solo/Public retain their native capacity.
+// Without opt-in, foreign >4 capacities remain outside this policy.
+constexpr int resolve_session_limit(int configured, int capacity,
+                                    bool expanded_enabled) {
+  if (configured < 1 || configured > 8 || capacity < 1 || capacity > 18)
     return 0;
   if (capacity <= 4)
     return capacity;
-  if (configured <= 4)
-    return configured;
-  return capacity == configured ? configured : 0;
+  if (!expanded_enabled)
+    return configured <= 4 ? configured : 0;
+  return capacity <= 8 ? capacity : 0;
 }
 
 // Main-thread state only. Network handlers consume a separately published
@@ -28,7 +29,8 @@ public:
     wrong_epoch,
     wrong_map,
     heartbeat_lost,
-    timeout
+    timeout,
+    stopped
   };
   void arm(int epoch, int limit) {
     epoch_ = epoch;
@@ -45,8 +47,11 @@ public:
     if (!active_ || fault_ != fault::none)
       return fault_;
     if (!running) {
-      ready_ = false;
-      running_since_ = -1;
+      // A cold load can wait indefinitely before the first running
+      // observation. After that, a stop needs an explicit fresh arm;
+      // old same-map dvars must never resurrect a torn-down adapter.
+      if (running_since_ >= 0)
+        return fail(fault::stopped);
       return fault_;
     }
     if (running_since_ < 0)

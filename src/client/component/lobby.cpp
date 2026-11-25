@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include <game/utils.hpp>
+#include <game/impl/lobby/msg/handler.hpp>
 #include <loader/component_loader.hpp>
 
 #include "game_event.hpp"
@@ -149,7 +150,7 @@ public:
     if (game::is_client()) {
       for (const size_t offset : {0xa4, 0x26d}) {
         utils::hook::call(host::LobbyHost_HandleJoinRequest.offset(offset),
-                          return_const<LobbyNetworkMode::LIVE>);
+                          JoinRequestNetworkMode);
       }
       build_route_list_hook.create(
           game::lobby::voice::LobbyVoice_BuildRouteList.get(),

@@ -9,6 +9,7 @@
 #include "network.hpp"
 #include "network_password.hpp"
 #include "scheduler.hpp"
+#include "zombies_lobby.hpp"
 #include "workshop/workshop.hpp"
 
 #include <utils/info_string.hpp>
@@ -129,6 +130,21 @@ struct component final : generic_component {
       info.set("rounds_played",
                std::to_string(*game::level::level_rounds_played));
       info.set("shortversion", SHORTVERSION);
+
+      const auto lobby = zombies::coop::get_lobby_advertisement();
+      if (lobby.enabled) info.set("coopListed", lobby.advertise ? "1" : "0");
+      if (lobby.active) {
+        // Show the selected game rather than the frontend map. Native lobby
+        // routing still performs the normal content/privacy/reservation checks.
+        info.set("coopLobby", "1");
+        info.set("lobbyNetworkMode", lobby.lan ? "lan" : "live");
+        info.set("sv_maxclients", std::to_string(lobby.capacity));
+        info.set("clients", std::to_string(lobby.clients));
+        if (!lobby.in_match) info.set("bots", "0");
+        info.set("mapname", lobby.map);
+        info.set("gametype", lobby.gametype);
+        info.set("lobby", "game");
+      }
 
       info.set("sv_wwwBaseURL", game::fastdl_uri().value_or(""));
       info.set("sv_wwwBaseUrl", game::fastdl_uri().value_or(""));

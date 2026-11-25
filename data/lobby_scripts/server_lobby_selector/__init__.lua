@@ -13,7 +13,14 @@ Lobby.Process.CreateDedicatedModsLobby = function(controller, toTarget)
     if lobby_mode == "zm" then
       -- Actions accept an ordinary target table. Keep the shared UI target
       -- unchanged across solo hosting, retries and subsequent mode changes.
-      local stockTarget = LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME
+      local requestedMode = type(toTarget) == "table" and toTarget.networkMode or nil
+      if requestedMode == nil and type(Engine.GetLobbyNetworkMode) == "function" then
+        requestedMode = Engine.GetLobbyNetworkMode()
+      end
+      local stockTarget = requestedMode ~= nil
+          and requestedMode == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LAN
+          and LobbyData.UITargets.UI_ZMLOBBYLANGAME
+        or LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME
       toTarget = {}
       for key, value in pairs(stockTarget) do
         toTarget[key] = value
@@ -48,7 +55,18 @@ Lobby.Process.CreateDedicatedModsLobby = function(controller, toTarget)
   local lobbyInit = Lobby.Actions.ExecuteScript(function()
     Lobby.ProcessNavigate.SetupLobbyMapAndGameType(controller, toTarget)
   end)
-  local setNetworkMode = Lobby.Actions.SetNetworkMode(controller, Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE)
+  local networkMode = Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE
+  if
+    toTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
+    and toTarget.networkMode ~= nil
+    and (
+      toTarget.networkMode == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE
+      or toTarget.networkMode == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LAN
+    )
+  then
+    networkMode = toTarget.networkMode
+  end
+  local setNetworkMode = Lobby.Actions.SetNetworkMode(controller, networkMode)
   local lobbySettings = Lobby.Actions.LobbySettings(controller, toTarget)
   local updateUI = Lobby.Actions.UpdateUI(controller, toTarget)
   local createGameHost = Lobby.Actions.LobbyHostStart(

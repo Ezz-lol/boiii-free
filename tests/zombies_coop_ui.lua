@@ -1,4 +1,7 @@
 local root = assert(arg[1], "pass the checkout directory")
+package.preload.zombies_coop_settings = function()
+  return dofile(root .. "/data/ui_scripts/party/zombies_coop_settings.lua")
+end
 local function fixture(limit, mode, inGame, serverLimit, isHost)
   BoiiiZombiesCoopPolicy = nil
   Enum = {
@@ -29,9 +32,9 @@ local function fixture(limit, mode, inGame, serverLimit, isHost)
   }
   LobbyData = {
     UITargets = {
-      UI_ZMLOBBYONLINECUSTOMGAME = { maxClients = 4 },
-      UI_ZMLOBBYLANGAME = { maxClients = 4 },
-      UI_ZMLOBBYONLINEPUBLICGAME = { maxClients = 4 },
+      UI_ZMLOBBYONLINECUSTOMGAME = { maxClients = 4, mainMode = 1, lobbyType = 7, lobbyMode = 3 },
+      UI_ZMLOBBYLANGAME = { maxClients = 4, mainMode = 1, lobbyType = 7, lobbyMode = 3 },
+      UI_ZMLOBBYONLINEPUBLICGAME = { maxClients = 4, mainMode = 1, lobbyType = 7, lobbyMode = 4 },
       UI_ZMTHEATER = { maxClients = 4 },
       UI_ZM_UNKNOWN_MOD = { maxClients = 2 },
       UI_ZMSOLO = { maxClients = 1 },
@@ -48,7 +51,7 @@ for limit = 1, 8 do
   policy.applyTargets()
   assert(LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME.maxClients == limit)
   assert(LobbyData.UITargets.UI_ZMLOBBYLANGAME.maxClients == limit)
-  assert(LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.maxClients == 4)
+  assert(LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.maxClients == limit)
   assert(LobbyData.UITargets.UI_ZMTHEATER.maxClients == 4)
   assert(LobbyData.UITargets.UI_ZM_UNKNOWN_MOD.maxClients == 2)
   assert(LobbyData.UITargets.UI_ZMSOLO.maxClients == 1)
@@ -80,7 +83,7 @@ Engine.DvarInt = function()
 end
 assert(frontendPolicy.targetLimit(frontendTarget) == 2)
 assert(LobbyData.UITargets.UI_ZMLOBBYLANGAME.maxClients == 2)
-assert(LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.maxClients == 4)
+assert(LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.maxClients == 2)
 
 -- Joining a dedicated server is not in-game yet: do not reset its cap to four.
 for _, inGame in ipairs({ false, true }) do
@@ -107,7 +110,7 @@ assert(policy.gameLimit({}, 8) == 1) -- live solo remains solo
 policy = fixture(8, 0, true, 18)
 assert(policy.gameLimit({}, 18) == 18)
 policy = fixture(4, 1, true, 18)
-assert(policy.gameLimit({ maxClients = 4 }, 4) == 4)
+assert(policy.gameLimit({ maxClients = 4 }, 4) == 18)
 
 policy = fixture(8, 1, false, nil)
 policy.applyTargets()
@@ -159,12 +162,15 @@ writes = {}
 dofile(root .. "/data/ui_scripts/party/__init__.lua")
 assert(writes.party_maxplayers == nil and writes.com_maxclients == nil)
 
-local createdMax, selectedTarget
-local function selectorFixture(mode, limit, originalCap)
-  Enum.LobbyNetworkMode = { LOBBY_NETWORKMODE_LIVE = 1 }
+local createdMax, selectedTarget, selectedNetwork
+local function selectorFixture(mode, limit, originalCap, networkMode, fallbackMode)
+  Enum.LobbyNetworkMode = { LOBBY_NETWORKMODE_LIVE = 1, LOBBY_NETWORKMODE_LAN = 2 }
   LobbyData.UITargets.UI_CPLOBBYONLINECUSTOMGAME = { maxClients = 4, mainMode = 0 }
-  LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME = { maxClients = originalCap or 4, mainMode = 1, id = 402 }
-  local originalTarget = LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME
+  LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME =
+    { maxClients = originalCap or 4, mainMode = 1, id = 402, networkMode = 1 }
+  LobbyData.UITargets.UI_ZMLOBBYLANGAME = { maxClients = originalCap or 4, mainMode = 1, id = 410, networkMode = 2 }
+  local originalTarget = (networkMode or fallbackMode) == 2 and LobbyData.UITargets.UI_ZMLOBBYLANGAME
+    or LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME
   Dvar = { sv_playlist = {
     get = function()
       return 1
@@ -178,13 +184,19 @@ local function selectorFixture(mode, limit, originalCap)
   end
   Engine.SetPlaylistID = function() end
   Engine.SetDvar = function() end
+  Engine.GetLobbyNetworkMode = function()
+    return fallbackMode or 1
+  end
   local function action()
     return {}
   end
   Lobby = {
     Actions = {
       ExecuteScript = action,
-      SetNetworkMode = action,
+      SetNetworkMode = function(controller, value)
+        selectedNetwork = value
+        return {}
+      end,
       LobbySettings = function(controller, target)
         selectedTarget = target
         return {}
@@ -200,7 +212,7 @@ local function selectorFixture(mode, limit, originalCap)
     Interrupt = { NONE = 0 },
   }
   dofile(root .. "/data/lobby_scripts/server_lobby_selector/__init__.lua")
-  Lobby.Process.CreateDedicatedModsLobby(0, { maxClients = 18, mainMode = 0 })
+  Lobby.Process.CreateDedicatedModsLobby(0, { maxClients = 18, mainMode = 0, networkMode = networkMode })
   assert(originalTarget.maxClients == (originalCap or 4))
   if mode == "zm" then
     assert(selectedTarget ~= originalTarget and selectedTarget.id == originalTarget.id)
@@ -218,4 +230,18 @@ selectorFixture("zm", 8, 1)
 assert(createdMax == 1)
 selectorFixture("zm", 8, 18)
 assert(createdMax == 18)
+for _, networkMode in ipairs({ 1, 2 }) do
+  selectorFixture("zm", 8, 4, networkMode)
+  assert(createdMax == 8 and selectedNetwork == networkMode)
+  selectorFixture("zm", 8, 4, nil, networkMode)
+  assert(createdMax == 8 and selectedNetwork == networkMode)
+end
+selectorFixture("cp", 8, 4, 2)
+assert(selectedNetwork == 1) -- retain the existing non-Zombies dedicated policy
+selectorFixture("zm", 8, 4, 99)
+assert(selectedNetwork == 1 and selectedTarget.id == 402)
 print("PASS: Ezz custom/LAN limits, loading clients, solo/public/MP isolation, target ownership and dedicated selector")
+
+-- Source-backed staging/public/launch and listing paths.
+dofile(root .. "/tests/zombies_coop_lobby_paths.lua")
+dofile(root .. "/tests/zombies_coop_ui_ownership.lua")

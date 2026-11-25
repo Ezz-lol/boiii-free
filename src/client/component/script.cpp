@@ -1262,6 +1262,7 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
 }
 
 void clear_script_memory() {
+  zombies::coop::shutdown_map();
   std::scoped_lock lock(script_load_mutex);
 
   execution_queue.clear();

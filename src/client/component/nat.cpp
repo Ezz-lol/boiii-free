@@ -9,6 +9,10 @@
 #include "friends.hpp"
 #include "getinfo.hpp"
 #include "nat.hpp"
+#include "nat_join_policy.hpp"
+#include <utils/cryptography.hpp>
+#include "zombies_lobby.hpp"
+#include "zombies/lobby_join_policy.hpp"
 #include "network.hpp"
 #include "party.hpp"
 #include "profile_infos.hpp"
@@ -19,6 +23,7 @@
 #include "workshop/workshop.hpp"
 
 #include <utils/hook.hpp>
+#include <utils/flags.hpp>
 #include <utils/string.hpp>
 
 #include <random>
@@ -70,10 +75,18 @@ struct lobby_request {
   game::net::netadr_t host{};
   std::chrono::steady_clock::time_point expires;
   std::function<void()> fallback;
+  join_policy::request_scope scope;
 };
 
 lobby_request lobby_joining;
 std::function<void()> game_join_fallback;
+join_policy::request_scope game_join_scope;
+std::uint64_t lobby_generation{};
+struct native_join_request {
+  join_policy::request_scope scope;
+  std::function<void()> fallback;
+};
+std::optional<native_join_request> native_joining;
 std::optional<game::net::netadr_t> server_lobby;
 std::optional<std::pair<game::net::netadr_t, game::XUID>> game_lobby_host;
 std::mutex peers_mutex;
@@ -349,8 +362,37 @@ void connect_to(const game::net::netadr_t &endpoint) {
   }
 }
 
+join_policy::request_scope begin_lobby_request(std::function<bool()> still_current = {}) {
+  const auto generation = join_policy::advance_generation(lobby_generation);
+  lobby_joining = {};
+  game_join_fallback = {};
+  game_join_scope = {};
+  game_lobby_host.reset();
+  joining.active = false;
+  return {generation, std::move(still_current)};
+}
+void discard_cancelled_request(const join_policy::request_scope &scope) {
+  if (lobby_joining.scope.generation == scope.generation) {
+    lobby_joining.active = false;
+    lobby_joining.fallback = {};
+  }
+  if (game_join_scope.generation == scope.generation) {
+    game_join_fallback = {};
+    game_join_scope = {};
+    game_lobby_host.reset();
+  }
+}
+bool request_current(const join_policy::request_scope &scope) {
+  if (scope.current(lobby_generation)) return true;
+  discard_cancelled_request(scope);
+  return false;
+}
 void request_lobby(const game::net::netadr_t &host, const std::string &token,
-                   std::function<void()> fallback = {}) {
+                   std::function<void()> fallback = {},
+                   join_policy::request_scope scope = {}) {
+  if (!scope.generation) scope = begin_lobby_request();
+  if (!request_current(scope)) return;
+  if (join_policy::strict_match_token(token)) fallback = {};
   const game::net::HostInfo *own = lobby_host_info();
   if (!own) {
     if (fallback) {
@@ -362,7 +404,7 @@ void request_lobby(const game::net::netadr_t &host, const std::string &token,
     return;
   }
   lobby_joining = {true, token, host, std::chrono::steady_clock::now() + 4s,
-                   std::move(fallback)};
+                   std::move(fallback), std::move(scope)};
   network::send(host, "lobbyJoin",
                 token + " " +
                     to_hex(own->serializedAdr.addrBuff,
@@ -388,7 +430,9 @@ void show_join_failure(const uint16_t port) {
 
 void lobby_join_complete(int32_t, const game::lobby::join::JoinResult result) {
   using game::lobby::join::JoinResult;
-  const std::function<void()> fallback = std::exchange(game_join_fallback, {});
+  const auto completed = std::exchange(native_joining, std::nullopt);
+  if (!completed || !request_current(completed->scope)) return;
+  const auto &fallback = completed->fallback;
   if (result != JoinResult::SUCCESS && fallback) {
     fallback();
     return;
@@ -446,7 +490,9 @@ void lobby_join_complete(int32_t, const game::lobby::join::JoinResult result) {
 }
 
 void join_lobby(const game::net::netadr_t &host,
-                const std::vector<std::string> &parts) {
+                const std::vector<std::string> &parts,
+                const join_policy::request_scope &scope) {
+  if (!request_current(scope)) return;
   game::net::HostInfo info{};
   info.xuid = std::strtoull(parts[1].c_str(), nullptr, 16);
   info.serializedAdr.valid = 1;
@@ -461,9 +507,15 @@ void join_lobby(const game::net::netadr_t &host,
                                             ? game::lobby::LobbyType::GAME
                                             : game::lobby::LobbyType::PRIVATE;
   std::vector<std::string> content{"", "", ""};
+  std::vector<std::string> coop_descriptor;
   size_t name_index = 6;
   if (parts[6].starts_with("c:")) {
     content = utils::string::split(parts[6].substr(2), ':');
+    if (content.size() > 3) {
+      coop_descriptor = content.size() == 6 && content[3] == "zcoop1"
+          ? std::vector<std::string>{"zcoop", "1", content[4], content[5]}
+          : std::vector<std::string>{"invalid"};
+    }
     content.resize(3);
     name_index = 7;
   }
@@ -473,7 +525,6 @@ void join_lobby(const game::net::netadr_t &host,
   utils::string::copy(info.name, name.c_str());
 
   if (target == game::lobby::LobbyType::GAME) {
-    game_lobby_host = {host, info.xuid};
     if (!game_join_fallback) {
       game_join_fallback = [host] { connect_to(host); };
     }
@@ -481,7 +532,10 @@ void join_lobby(const game::net::netadr_t &host,
     game_join_fallback = {};
   }
 
-  const auto fail = [](const std::string &message) {
+  if (!coop_descriptor.empty()) game_join_fallback = {};
+
+  const auto fail = [&scope](const std::string &message) {
+    if (!request_current(scope)) return;
     if (const std::function<void()> fallback =
             std::exchange(game_join_fallback, {})) {
       fallback();
@@ -495,6 +549,33 @@ void join_lobby(const game::net::netadr_t &host,
   if ((game::com::Com_IsInGame() && !on_server) || !lobby_host_info()) {
     fail("Leave your current match to join your friend's lobby.");
     return;
+  }
+
+  if (join_policy::strict_match_token(parts[0]) && coop_descriptor.empty()) {
+    game_join_fallback = {};
+    fail("This custom Zombies lobby no longer has a valid expanded-lobby descriptor.");
+    return;
+  }
+  if (!coop_descriptor.empty()) {
+    const auto route = coop_descriptor.size() == 4
+        ? zombies::coop::advertised_lobby_route(
+              target == game::lobby::LobbyType::GAME, false, coop_descriptor[1],
+              coop_descriptor[3], coop_descriptor[2],
+              utils::flags::has_flag("experimental-zombies-coop"),
+              zombies::coop::local_ipv4_scope(host.ipv4.a, host.ipv4.b))
+        : zombies::coop::advertised_route::invalid;
+    if (route == zombies::coop::advertised_route::invalid ||
+        route == zombies::coop::advertised_route::opt_in_required ||
+        game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES) {
+      // A failed capability preflight must not fall back into a raw match join.
+      game_join_fallback = {};
+      show_error("Select Zombies and use the matching experimental Zombies build before joining this custom lobby.");
+      return;
+    }
+    const auto wanted = route == zombies::coop::advertised_route::lan
+        ? game::lobby::LobbyNetworkMode::LAN : game::lobby::LobbyNetworkMode::LIVE;
+    if (game::lobby::base::LobbyBase_GetNetworkMode() != wanted)
+      game::lobby::base::LobbyBase_SetNetworkMode(wanted);
   }
 
   const std::string &mod = content[0];
@@ -527,22 +608,35 @@ void join_lobby(const game::net::netadr_t &host,
   if (!same_mod) {
     workshop::setup_same_mod_as_host(game::LOCAL_CLIENT_0, usermap, host_mod);
     scheduler::once(
-        [friend_id = joining.friend_id] {
-          friends::connect_to_friend(friend_id);
+        [friend_id = joining.friend_id, scope] {
+          if (request_current(scope)) friends::connect_to_friend(friend_id);
         },
         scheduler::pipeline::main, 3s);
     return;
   }
 
+  if (!request_current(scope)) return;
+  // One engine join FSM has one context-free completion callback. Retain its
+  // owner until completion so a cancelled A cannot consume B's fallback.
+  if (native_joining) {
+    fail("Already joining a lobby. Please wait.");
+    return;
+  }
   add_peer(info.serializedAdr.addrBuff, host);
   using game::lobby::LobbyType;
+  native_joining = native_join_request{scope, std::exchange(game_join_fallback, {})};
   if (!game::lobby::join::LobbyJoin_Begin(
           0,
           game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
           LobbyType::PRIVATE, target, lobby_join_complete)) {
+    if (native_joining) {
+      game_join_fallback = std::move(native_joining->fallback);
+      native_joining.reset();
+    }
     fail("Already joining a lobby. Please wait.");
     return;
   }
+  if (target == LobbyType::GAME) game_lobby_host = {host, info.xuid};
   game::lobby::join::LobbyJoin_Add(
       info.xuid, info.name, &info.secId, &info.secKey, &info.serializedAdr,
       target == LobbyType::GAME ? game::lobby::join::JoinType::PLAYLIST
@@ -587,8 +681,13 @@ void update_punching() {
     }
   }
 
+  if (game_join_scope.generation && !game_join_scope.current(lobby_generation))
+    discard_cancelled_request(game_join_scope);
+  if (lobby_joining.active && !request_current(lobby_joining.scope))
+    lobby_joining.active = false;
   if (lobby_joining.active && now >= lobby_joining.expires) {
     lobby_joining.active = false;
+    if (!request_current(lobby_joining.scope)) return;
     if (const std::function<void()> fallback =
             std::exchange(lobby_joining.fallback, {})) {
       fallback();
@@ -656,12 +755,18 @@ void receive_lobby_join(const game::net::netadr_t &sender,
                         const network::data_view &data,
                         game::LocalClientNum_t) {
   const std::vector<std::string> parts = fields(payload_string(data));
-  if (parts.size() != 2 ||
-      (parts[0] == "match"
-           ? joinable_lobby().empty()
-           : hosting_token.empty() || parts[0] != hosting_token) ||
-      !is_lobby_address(sender))
+  if (parts.size() != 2 || !is_lobby_address(sender)) return;
+  const bool strict_custom = join_policy::strict_match_token(parts[0]);
+  if (strict_custom) {
+    // This nonce extension belongs only to our explicitly marked custom hosts;
+    // it never authorizes forwarding to a different match or friend's party.
+    if (!zombies::coop::get_lobby_advertisement().active ||
+        !game::get_dvar_bool("nat_open").value_or(false) ||
+        !lobby_host_info(game::lobby::LobbyType::GAME)) return;
+  } else if (parts[0] == "match" ? joinable_lobby().empty()
+                               : hosting_token.empty() || parts[0] != hosting_token) {
     return;
+  }
 
   if (hosting_match() && !lobby_host_info(game::lobby::LobbyType::GAME)) {
     network::send(sender, "lobbyGame", hosting_token);
@@ -707,8 +812,12 @@ void receive_lobby_join(const game::net::netadr_t &sender,
   if (usermap_item.has_value() && usermap_item->get().internalName[0]) {
     map = usermap_item->get().internalName;
   }
+  const auto coop_lobby = zombies::coop::get_lobby_advertisement();
+  const std::string descriptor = coop_lobby.active
+      ? std::format(":zcoop1:{}:{}", coop_lobby.capacity, coop_lobby.lan ? "lan" : "live")
+      : std::string{};
   network::send(sender, "lobbyHost",
-                std::format("{} {:x} {} {} {} {} c:{}:{}:{} {}", parts[0],
+                std::format("{} {:x} {} {} {} {} c:{}:{}:{}{} {}", parts[0],
                             host->xuid,
                             to_hex(host->serializedAdr.addrBuff,
                                    sizeof(host->serializedAdr.addrBuff)),
@@ -716,26 +825,32 @@ void receive_lobby_join(const game::net::netadr_t &sender,
                             to_hex(&host->secKey, sizeof(host->secKey)),
                             game_lobby ? "game" : "party",
                             mod == "usermaps" ? std::string{} : mod, map,
-                            usermap_id, host->name));
+                            usermap_id, descriptor, host->name));
 }
 
-bool from_lobby_request(const game::net::netadr_t &sender,
-                        const std::string &token) {
-  if (!lobby_joining.active || token != lobby_joining.token ||
-      !is_lobby_address(sender))
-    return false;
+std::optional<join_policy::request_scope> from_lobby_request(
+    const game::net::netadr_t &sender, const std::string &token) {
+  if (!join_policy::reply_matches(lobby_joining.active,
+          network::are_addresses_equal(sender, lobby_joining.host),
+          lobby_joining.token, token) || !is_lobby_address(sender) ||
+      std::chrono::steady_clock::now() >= lobby_joining.expires ||
+      !request_current(lobby_joining.scope)) return std::nullopt;
   lobby_joining.active = false;
+  game_join_scope = lobby_joining.scope;
   game_join_fallback = std::exchange(lobby_joining.fallback, {});
-  return true;
+  return game_join_scope;
 }
 
 void receive_lobby_host(const game::net::netadr_t &sender,
                         const network::data_view &data,
                         game::LocalClientNum_t) {
-  const std::vector<std::string> parts = fields(payload_string(data));
-  if (parts.size() >= 7 && from_lobby_request(sender, parts[0]))
-    scheduler::once([sender, parts] { join_lobby(sender, parts); },
-                    scheduler::pipeline::main);
+  const auto parts = fields(payload_string(data));
+  if (parts.size() < 7) return;
+  scheduler::once([sender, parts] {
+    if (const auto scope = from_lobby_request(sender, parts[0])) {
+      if (request_current(*scope)) join_lobby(sender, parts, *scope);
+    }
+  }, scheduler::pipeline::main);
 }
 
 void receive_lobby_follow(const game::net::netadr_t &sender,
@@ -763,27 +878,31 @@ void receive_lobby_follow(const game::net::netadr_t &sender,
 void receive_lobby_game(const game::net::netadr_t &sender,
                         const network::data_view &data,
                         game::LocalClientNum_t) {
-  const std::vector<std::string> parts = fields(payload_string(data));
-  if (parts.empty() || !from_lobby_request(sender, parts[0]))
-    return;
-
-  const std::function<void()> fallback = std::exchange(game_join_fallback, {});
-  if (parts.size() > 1) {
-    const game::net::netadr_t server = network::address_from_string(parts[1]);
-    if (network::is_connectable_address(server)) {
-      scheduler::once([server] { connect_to(server); },
-                      scheduler::pipeline::main);
+  const auto parts = fields(payload_string(data));
+  if (parts.empty()) return;
+  scheduler::once([sender, parts] {
+    const auto scope = from_lobby_request(sender, parts[0]);
+    if (!scope || !request_current(*scope)) return;
+    const auto fallback = std::exchange(game_join_fallback, {});
+    if (join_policy::strict_match_token(parts[0])) {
+      show_error("The custom Zombies lobby is no longer available. Refresh the browser and try again.");
       return;
     }
-    if (valid_token(parts[1])) {
-      scheduler::once([token = parts[1]] { begin_join(token, {}, 0); },
-                      scheduler::pipeline::main);
-      return;
+    if (parts.size() > 1) {
+      const auto server = network::address_from_string(parts[1]);
+      if (network::is_connectable_address(server)) {
+        if (request_current(*scope)) connect_to(server);
+        return;
+      }
+      if (valid_token(parts[1])) {
+        if (request_current(*scope)) begin_join(parts[1], {}, 0);
+        return;
+      }
     }
-  }
-  scheduler::once(
-      fallback ? fallback : [sender] { connect_to(sender); },
-      scheduler::pipeline::main);
+    if (!request_current(*scope)) return;
+    if (fallback) fallback();
+    else connect_to(sender);
+  }, scheduler::pipeline::main);
 }
 
 void receive_register_ack(const game::net::netadr_t &sender,
@@ -961,6 +1080,7 @@ void begin_join(const std::string &token, const std::string &fallback_address,
   if (joining.active && joining.token == token)
     return;
 
+  (void)begin_lobby_request();
   joining = {};
   joining.active = true;
   joining.friend_id = friend_id;
@@ -983,17 +1103,26 @@ std::string joinable_lobby() {
 }
 
 void join_match_lobby(const game::net::netadr_t &host,
-                      std::function<void()> fallback) {
+                      std::function<void()> fallback,
+                      std::function<bool()> still_current,
+                      const bool strict_custom) {
+  if (still_current && !still_current()) return;
+  const auto scope = begin_lobby_request(std::move(still_current));
   const auto deadline = std::chrono::steady_clock::now() + 20s;
   scheduler::schedule(
       [=] {
-        if (!lobby_host_info() && std::chrono::steady_clock::now() < deadline) {
+        if (!request_current(scope)) return scheduler::COND_END;
+        if (!lobby_host_info() && std::chrono::steady_clock::now() < deadline)
           return scheduler::COND_CONTINUE;
+        std::string token = "match";
+        if (strict_custom) {
+          std::string nonce(16, '\0');
+          utils::cryptography::random::get_data(nonce.data(), nonce.size());
+          token = "match1_" + utils::string::dump_hex(nonce, "");
         }
-        request_lobby(host, "match", fallback);
+        if (request_current(scope)) request_lobby(host, token, fallback, scope);
         return scheduler::COND_END;
-      },
-      scheduler::pipeline::main, 250ms);
+      }, scheduler::pipeline::main, 250ms);
 }
 
 bool has_party_lobby() {

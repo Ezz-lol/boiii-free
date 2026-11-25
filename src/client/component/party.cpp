@@ -15,8 +15,11 @@
 #include "scheduler.hpp"
 #include "toast.hpp"
 #include "workshop/workshop.hpp"
+#include "zombies/lobby_join_policy.hpp"
+#include <utils/flags.hpp>
 
 #include <utils/concurrency.hpp>
+#include <utils/connection_request.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/hook.hpp>
 #include <utils/info_string.hpp>
@@ -34,6 +37,9 @@ namespace {
 constexpr uint16_t DEFAULT_SERVER_PORT = 27017;
 
 std::atomic_bool is_connecting_to_dedi{false};
+utils::connection_request_state connect_requests;
+using connect_token = utils::connection_request_state::token;
+std::atomic<connect_token> cancellable_descriptor_request{};
 game::net::netadr_t connect_host{{}, {}, game::net::netadrtype_t::BAD, {}};
 
 std::mutex hostname_mutex;
@@ -44,6 +50,17 @@ std::optional<float> cached_server_gun_xp_scale;
 
 utils::hook::detour live_get_xp_scale_hook;
 utils::hook::detour live_get_gun_xp_scale_hook;
+utils::hook::detour disconnect_command_hook;
+
+void disconnect_command_stub() {
+  // Legacy mode changes can intentionally issue a disconnect command. Only
+  // intercept a recognized expanded descriptor while it is still in frontend.
+  const auto token =
+      cancellable_descriptor_request.load(std::memory_order_acquire);
+  if (connect_requests.current(token) && game::com::Com_IsRunningUILevel())
+    connect_requests.cancel();
+  disconnect_command_hook.invoke<void>();
+}
 
 std::string normalize_connect_address(std::string address) {
   utils::string::trim(address);
@@ -124,9 +141,11 @@ void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
   direct_connect = false;
 }
 
-void launch_mode(const game::eModes mode) {
+void launch_mode(const game::eModes mode, const connect_token token) {
   scheduler::once(
       [=] {
+        if (!connect_requests.current(token))
+          return;
         game::com::Com_SwitchMode(game::LOCAL_CLIENT_0,
                                   game::com::Com_SessionMode_GetMode(), mode,
                                   6);
@@ -293,9 +312,20 @@ template <utils::hook::detour *Hook> void sv_map_in_mode_stub() {
   launch_from_frontend(*mode, mapname);
 }
 
-bool ensure_networkmode_online() {
+bool ensure_networkmode_online(
+    const std::optional<game::lobby::LobbyNetworkMode> desired = std::nullopt) {
   using namespace game;
   using namespace game::lobby;
+  if (desired) {
+    const auto native = com::Com_SessionMode_GetNetworkMode();
+    const bool native_matches = *desired == LobbyNetworkMode::LAN
+                                    ? native == eNetworkModes::SYSTEMLINK
+                                    : native == eNetworkModes::ONLINE;
+    if (native_matches && base::LobbyBase_GetNetworkMode() == *desired)
+      return true;
+    base::LobbyBase_SetNetworkMode(*desired);
+    return false;
+  }
   switch (com::Com_SessionMode_GetNetworkMode()) {
   case eNetworkModes::ONLINE:
   case eNetworkModes::SYSTEMLINK:
@@ -323,7 +353,10 @@ void call_lobby_vm(const char *function) {
   }
 }
 
-void with_party_lobby(const std::function<void()> &callback) {
+void with_party_lobby(const std::function<void()> &callback,
+                      const connect_token token) {
+  if (!connect_requests.current(token))
+    return;
   if (nat::has_party_lobby()) {
     callback();
     return;
@@ -331,6 +364,8 @@ void with_party_lobby(const std::function<void()> &callback) {
   const auto deadline = std::chrono::steady_clock::now() + 10s;
   scheduler::schedule(
       [=] {
+        if (!connect_requests.current(token))
+          return scheduler::COND_END;
         if (!nat::has_party_lobby() &&
             std::chrono::steady_clock::now() < deadline) {
           call_lobby_vm("StartPartyLobby");
@@ -398,17 +433,26 @@ void update_server_lobby() {
 // The loading screen lists the players in our lobby, so joining the server's
 // lobby before connecting shows who is already in the match
 void join_server_lobby_then_connect(const game::net::netadr_t &addr,
-                                    const std::function<void()> &connect) {
+                                    const std::function<void()> &connect,
+                                    const connect_token token) {
+  if (!connect_requests.current(token))
+    return;
   const auto connected = std::make_shared<bool>(false);
   const auto connect_once = [=] {
+    if (!connect_requests.current(token))
+      return;
     if (!std::exchange(*connected, true)) {
       connect();
     }
   };
-  nat::join_match_lobby(addr, connect_once);
+  nat::join_match_lobby(
+      addr, connect_once, [token] { return connect_requests.current(token); },
+      false);
   const auto deadline = std::chrono::steady_clock::now() + 5s;
   scheduler::schedule(
       [=] {
+        if (!connect_requests.current(token))
+          return scheduler::COND_END;
         if (!*connected && !nat::in_game_lobby_of(addr) &&
             std::chrono::steady_clock::now() < deadline) {
           return scheduler::COND_CONTINUE;
@@ -420,15 +464,20 @@ void join_server_lobby_then_connect(const game::net::netadr_t &addr,
 }
 
 void connect_through_server_lobby(const game::net::netadr_t &addr,
-                                  const std::function<void()> &connect) {
+                                  const std::function<void()> &connect,
+                                  const connect_token token) {
+  if (!connect_requests.current(token))
+    return;
   // Joining with members still in our party would pull them into the server's
   // lobby without connecting them, so they follow on their own and leave first
   nat::send_party_to_server(addr);
   const auto deadline = std::chrono::steady_clock::now() + 5s;
   scheduler::schedule(
       [=] {
+        if (!connect_requests.current(token))
+          return scheduler::COND_END;
         if (!nat::has_party_members()) {
-          join_server_lobby_then_connect(addr, connect);
+          join_server_lobby_then_connect(addr, connect, token);
           return scheduler::COND_END;
         }
         if (std::chrono::steady_clock::now() < deadline) {
@@ -440,12 +489,21 @@ void connect_through_server_lobby(const game::net::netadr_t &addr,
       scheduler::pipeline::main, 100ms);
 }
 
-void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
-                     const std::string_view &mapname,
-                     const std::string_view &gametype,
-                     const std::string_view &usermap_id,
-                     const std::string_view &mod_id,
-                     const std::string_view &lobby_view) {
+void connect_in_mode(
+    const game::net::netadr_t &addr, const game::eModes mode,
+    const std::string_view &mapname, const std::string_view &gametype,
+    const std::string_view &usermap_id, const std::string_view &mod_id,
+    const std::string_view &lobby_view, const connect_token token,
+    const std::optional<game::lobby::LobbyNetworkMode> desired_network =
+        std::nullopt) {
+  if (!connect_requests.current(token))
+    return;
+  if (desired_network && !game::com::Com_IsRunningUILevel()) {
+    toast::show("Connect failed",
+                "Leave your current match before joining the custom lobby.",
+                "t7_icon_connect_overlays");
+    return;
+  }
   // The lambdas below run later, so they need their own copies
   const std::string map{mapname};
   const std::string type{gametype};
@@ -453,41 +511,55 @@ void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
   const std::string mod{mod_id};
   const std::string lobby{lobby_view};
   const auto connect = [=] {
+    if (!connect_requests.current(token))
+      return;
     game::com::Com_SessionMode_SetGameMode(
         game::eGameModes::MATCHMAKING_PLAYLIST);
     const auto connect_direct = [=] {
+      if (!connect_requests.current(token))
+        return;
       connect_to_lobby(
           game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
           addr, map, type, usermap, mod);
     };
     if (lobby.empty()) {
-      with_party_lobby([=] {
-        if (is_connecting_to_dedi) {
-          connect_through_server_lobby(addr, connect_direct);
-        } else {
-          connect_direct();
-        }
-      });
+      with_party_lobby(
+          [=] {
+            if (!connect_requests.current(token))
+              return;
+            if (is_connecting_to_dedi) {
+              connect_through_server_lobby(addr, connect_direct, token);
+            } else {
+              connect_direct();
+            }
+          },
+          token);
       return;
     }
-    nat::join_match_lobby(addr, lobby == "party" ? [] {
+    nat::join_match_lobby(addr, lobby == "party" ? [=] {
+      if (!connect_requests.current(token)) return;
       printf("Connect failed: Could not join their party.\n");
       toast::show("Connect failed", "Could not join their party",
                   "t7_icon_connect_overlays");
-    } : std::function<void()>(connect_direct));
+    } : std::function<void()>(connect_direct),
+        [token] { return connect_requests.current(token); }, desired_network.has_value());
   };
 
-  if (ensure_networkmode_online() && game::com::Com_SessionMode_IsMode(mode)) {
+  if (ensure_networkmode_online(desired_network) &&
+      game::com::Com_SessionMode_IsMode(mode)) {
     connect();
     return;
   }
 
-  launch_mode(mode);
+  launch_mode(mode, token);
   const std::chrono::steady_clock::time_point deadline =
       std::chrono::steady_clock::now() + 15s;
   scheduler::schedule(
       [=] {
-        if (ensure_networkmode_online() &&
+        if (!connect_requests.current(token))
+          return scheduler::COND_END;
+        if ((!desired_network || game::com::Com_IsRunningUILevel()) &&
+            ensure_networkmode_online(desired_network) &&
             game::com::Com_SessionMode_IsMode(mode)) {
           connect();
           return scheduler::COND_END;
@@ -506,7 +578,9 @@ void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
 void handle_connect_query_response(const bool success,
                                    const game::net::netadr_t &target,
                                    const utils::info_string &info,
-                                   uint32_t ping) {
+                                   uint32_t ping, const connect_token token) {
+  if (!connect_requests.current(token))
+    return;
   if (!success) {
     const std::string msg = utils::string::va(
         "No response from server %u.%u.%u.%u:%hu", target.ipv4.a, target.ipv4.b,
@@ -520,6 +594,13 @@ void handle_connect_query_response(const bool success,
     return;
   }
 
+  // Do not change the active match's role/cache when refusing a custom-lobby
+  // selection from inside a game or while its frontend is unavailable.
+  if (!info.get("coopLobby").empty() && !game::com::Com_IsRunningUILevel()) {
+    toast::show("Connect failed", "Leave your current match before joining a custom Zombies lobby.",
+                "t7_icon_connect_overlays");
+    return;
+  }
   is_connecting_to_dedi = info.get("dedicated") == "1";
   update_dedi_dvar(is_connecting_to_dedi.load());
 
@@ -555,6 +636,33 @@ void handle_connect_query_response(const bool success,
     toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
+
+  const auto coop_route = zombies::coop::advertised_lobby_route(
+      info.get("playmode") ==
+          std::to_string(static_cast<int32_t>(game::eModes::ZOMBIES)),
+      is_connecting_to_dedi.load(), info.get("coopLobby"),
+      info.get("lobbyNetworkMode"), info.get("sv_maxclients"),
+      utils::flags::has_flag("experimental-zombies-coop"),
+      zombies::coop::local_ipv4_scope(target.ipv4.a, target.ipv4.b));
+  if (coop_route == zombies::coop::advertised_route::invalid ||
+      coop_route == zombies::coop::advertised_route::opt_in_required) {
+    toast::show("Connect failed",
+                coop_route == zombies::coop::advertised_route::opt_in_required
+                    ? "This custom lobby requires the matching experimental "
+                      "Zombies build and -experimental-zombies-coop."
+                    : "The custom lobby advertised invalid capacity or network "
+                      "settings.",
+                "t7_icon_connect_overlays");
+    return;
+  }
+  const std::optional<game::lobby::LobbyNetworkMode> desired_network =
+      coop_route == zombies::coop::advertised_route::lan
+          ? game::lobby::LobbyNetworkMode::LAN
+      : coop_route == zombies::coop::advertised_route::online
+          ? std::optional{game::lobby::LobbyNetworkMode::LIVE}
+          : std::nullopt;
+  if (desired_network)
+    cancellable_descriptor_request.store(token, std::memory_order_release);
 
   // Verify network password
   const std::string server_net_hash = info.get("net_password_hash");
@@ -630,6 +738,8 @@ void handle_connect_query_response(const bool success,
   const std::string addr_str = target.toString();
   scheduler::once(
       [=] {
+        if (!connect_requests.current(token))
+          return;
         // Always save latest address for mod reconnect (mod unload/reload)
         workshop::set_pending_mod_reconnect(addr_str);
 
@@ -638,7 +748,7 @@ void handle_connect_query_response(const bool success,
                                               base_uri) &&
              workshop::check_valid_mod_id(mod_id, {}, base_uri))) {
           connect_in_mode(target, mode, mapname, gametype, usermap_id, mod_id,
-                          lobby);
+                          lobby, token, desired_network);
         } else {
           const char *msg = utils::string::va(
               "Missing or invalid workshop/map dependencies for server %s.",
@@ -653,15 +763,35 @@ void handle_connect_query_response(const bool success,
       scheduler::pipeline::main);
 }
 
-void connect_finish(const game::net::netadr_t &target) {
-  connect_host = target;
-
-  profile_infos::clear_profile_infos();
-
-  query_server(connect_host, handle_connect_query_response);
+void connect_finish(const game::net::netadr_t &target,
+                    const connect_token token) {
+  scheduler::once(
+      [=] {
+        if (!connect_requests.current(token))
+          return;
+        connect_host = target;
+        profile_infos::clear_profile_infos();
+        query_server(target, [token](const bool success,
+                                     const game::net::netadr_t &host,
+                                     const utils::info_string &info,
+                                     const uint32_t ping) {
+          if (!connect_requests.current(token))
+            return;
+          scheduler::once(
+              [=] {
+                if (!connect_requests.current(token))
+                  return;
+                handle_connect_query_response(success, host, info, ping, token);
+              },
+              scheduler::pipeline::main);
+        });
+      },
+      scheduler::pipeline::main);
 }
 
 void connect_stub(const char *address) {
+  // Begin before asynchronous DNS or a friend-route lookup, not after replies.
+  const auto token = connect_requests.begin();
   if (address != nullptr) {
     const std::string address_copy = normalize_connect_address(address);
 
@@ -687,9 +817,13 @@ void connect_stub(const char *address) {
     toast::show("Connecting", address_copy, "t7_icon_connect_overlays");
 
     const network::resolvedAddrCallback_t resolve_cb =
-        [address_copy](game::net::netadr_t target) -> void {
+        [address_copy, token](game::net::netadr_t target) -> void {
+      if (!connect_requests.current(token))
+        return;
       scheduler::once(
-          [address_copy, target] {
+          [address_copy, target, token] {
+            if (!connect_requests.current(token))
+              return;
             if (target.type == game::net::netadrtype_t::BAD) {
               printf("Connect failed: invalid address \"%s\"\n",
                      address_copy.c_str());
@@ -708,14 +842,14 @@ void connect_stub(const char *address) {
               return;
             }
 
-            connect_finish(target);
+            connect_finish(target, token);
           },
           scheduler::pipeline::main);
     };
     // Resolve the address on a background thread.
     network::address_from_string_async(address_copy, resolve_cb);
   } else {
-    connect_finish(connect_host);
+    connect_finish(connect_host, token);
   }
 }
 
@@ -797,7 +931,9 @@ void cleanup_queried_servers() {
 }
 } // namespace
 
-void connect(const game::net::netadr_t &target) { connect_finish(target); }
+void connect(const game::net::netadr_t &target) {
+  connect_finish(target, connect_requests.begin());
+}
 
 void query_server(const game::net::netadr_t &host, query_callback callback) {
   server_query query{};
@@ -894,6 +1030,10 @@ struct component final : client_component {
                                       live_get_gun_xp_scale_stub);
 
     utils::hook::jump(game::select(0x141ED9670, 0x0), &connect_stub);
+    // User disconnect command only: internal CL_Disconnect calls during a
+    // deliberate mode transition must not cancel that transition's request.
+    disconnect_command_hook.create(game::cl::CL_Disconnect_f.get(),
+                                   disconnect_command_stub);
 
     network::on("infoResponse", handle_info_response);
 
@@ -907,6 +1047,7 @@ struct component final : client_component {
   }
 
   void pre_destroy() override {
+    connect_requests.cancel();
     get_server_queries().access([](std::vector<server_query> &s) { s = {}; });
   }
 };
