@@ -131,8 +131,8 @@ snapshot capture(Reader& reader, std::uintptr_t base) noexcept {
   result.connected = entries[1];
   result.entry_address = base + table_offset + sizeof(builtin_entry);
   if (result.expected.canonical != expected_hash || result.connected.canonical != connected_hash
-      || result.expected.minimum || result.expected.maximum || result.expected.type
-      || result.connected.minimum || result.connected.maximum || result.connected.type
+      || result.expected.minimum || result.expected.maximum > 1 || result.expected.type
+      || result.connected.minimum || result.connected.maximum > 1 || result.connected.type
       || result.expected.action != base + (expected_action - preferred_base)) {
     result.reason = "table_identity_mismatch";
     return result;
@@ -192,13 +192,14 @@ inline int format(const snapshot& value, const char* family, char* destination,
       "{\"version\":1,\"family\":\"%s\",\"role\":\"dedicated\",\"captured\":%s,\"reason\":\"%s\","
       "\"image_base\":\"0x%llx\",\"image_size\":%llu,\"checksum\":%u,"
       "\"entry_address\":\"0x%llx\",\"canonical_hash\":%u,\"min_args\":%u,\"max_args\":%u,\"type\":%u,"
-      "\"expected_canonical_hash\":%u,\"expected_action\":\"0x%llx\","
+      "\"expected_canonical_hash\":%u,\"expected_min_args\":%u,\"expected_max_args\":%u,\"expected_type\":%u,\"expected_action\":\"0x%llx\","
       "\"action_address\":\"0x%llx\",\"action_rva\":\"0x%llx\",\"section_index\":%u,"
       "\"code_bytes\":%u,\"code_hex\":\"%s\",\"scope\":\"read_only_no_invocation\"}\n",
       family, value.valid ? "true" : "false", value.reason,
       static_cast<unsigned long long>(value.image_base), static_cast<unsigned long long>(value.image_size), value.checksum,
       static_cast<unsigned long long>(value.entry_address), value.connected.canonical,
       value.connected.minimum, value.connected.maximum, value.connected.type, value.expected.canonical,
+      value.expected.minimum, value.expected.maximum, value.expected.type,
       static_cast<unsigned long long>(value.expected.action), static_cast<unsigned long long>(value.action_address),
       static_cast<unsigned long long>(relative), value.section_index, value.code_size, hex.data());
   return written >= 0 && static_cast<std::size_t>(written) < capacity ? written : -1;

@@ -98,6 +98,15 @@ int main(){
   std::array<char,8> fixture_small{};fixture_small.fill('x');expect(b::format(s,"ezz",fixture_small.data()+1,4)==-1);expect(fixture_small[0]=='x'&&fixture_small[5]=='x'&&fixture_small[4]=='\0');
   s.code_size=257;expect(b::format(s,"ezz",text.data(),text.size())==-1);
  }
+ // A zero-argument call remains valid with max1 in either registration. These
+ // fixtures capture metadata only and never invoke either argument variant.
+ for(unsigned variant=1;variant<4;++variant){auto m=image();
+  if(variant&1)m.put<std::uint32_t>(table+8,1);
+  if(variant&2)m.put<std::uint32_t>(table+32+8,1);
+  auto s=b::capture(m,m.base);expect(s.valid&&s.expected.minimum==0&&s.connected.minimum==0);
+  expect(s.expected.maximum==((variant&1)?1u:0u)&&s.connected.maximum==((variant&2)?1u:0u));
+  std::array<char,b::json_limit> text{};expect(b::format(s,"ezz",text.data(),text.size())>0);std::fputs(text.data(),stdout);
+ }
  {auto m=image(b::preferred_base+0x10000000);auto s=b::capture(m,m.base);expect(s.valid&&s.action_address==m.base+action);}
  {auto m=image();expect(!b::capture(m,0).valid);expect(m.queries==0&&m.copies==0);}
  for(unsigned variant=0;variant<3;++variant){auto m=image();if(variant==0)m.put<std::uint16_t>(0,0);else m.put<std::uint32_t>(60,variant==1?63:4096);failed(m,"invalid_dos_header");}
@@ -110,11 +119,12 @@ int main(){
  {auto m=image();m.put<std::uint32_t>(fixture_nt+88,0);failed(m,"unsupported_checksum");}
  {auto m=image();m.put<std::uint32_t>(fixture_nt+80,0x10000);failed(m,"table_outside_image");}
  {auto m=image();m.query_failure=m.base+table;failed(m,"table_unreadable");expect(m.copies==2);}
- for(unsigned variant=0;variant<7;++variant){auto m=image();switch(variant){
+ for(unsigned variant=0;variant<9;++variant){auto m=image();switch(variant){
   case 0:m.put<std::uint32_t>(table,0);break;case 1:m.put<std::uint32_t>(table+32,0);break;
-  case 2:m.put<std::uint32_t>(table+4,1);break;case 3:m.put<std::uint32_t>(table+32+8,1);break;
+  case 2:m.put<std::uint32_t>(table+4,1);break;case 3:m.put<std::uint32_t>(table+32+8,2);break;
   case 4:m.put<std::uint32_t>(table+24,1);break;case 5:m.put<std::uint32_t>(table+32+24,1);break;
-  case 6:m.put<std::uint64_t>(table+16,m.base+action);break;}
+  case 6:m.put<std::uint64_t>(table+16,m.base+action);break;case 7:m.put<std::uint32_t>(table+32+4,1);break;
+  case 8:m.put<std::uint32_t>(table+8,2);break;}
   failed(m,"table_identity_mismatch");}
  {auto m=image();m.put<std::uint64_t>(table+32+16,m.base+m.bytes.size()-255);failed(m,"action_outside_image");}
  {auto m=image();m.put<std::uint32_t>(fixture_section+36,0);failed(m,"action_not_executable_section");}
@@ -157,11 +167,18 @@ def main():
   log.write(json.dumps({"compile":command})+"\n");log.flush();subprocess.run(command,cwd=out,stdout=log,stderr=log,check=True)
   run=subprocess.run([str(executable)],cwd=out,stdout=subprocess.PIPE,stderr=log,text=True,check=True)
  (out/"run.log").write_text(run.stdout,encoding="utf-8")
- lines=run.stdout.splitlines();assert len(lines)==2 and lines[1].startswith("actual builtin_snapshot header PASS")
- receipt=json.loads(lines[0]);assert receipt["captured"] is True and receipt["family"]==FAMILY and receipt["role"]=="dedicated"
- assert receipt["code_bytes"]==256 and len(receipt["code_hex"])==512 and bytes.fromhex(receipt["code_hex"])==bytes(range(256))
- assert len(lines[0].encode())<2048 and receipt["scope"]=="read_only_no_invocation"
- report={"passed":True,"family":FAMILY,"scope":"Actual header with synthetic memory/query/copy fixtures; no game/engine/builtin invocation.","header_sha256":hashlib.sha256(header.read_bytes()).hexdigest(),"receipt_bytes":len(lines[0].encode()),"unit_result":lines[1],"log":str(out/"checks.log"),"run_log":str(out/"run.log")}
+ lines=run.stdout.splitlines();assert len(lines)==5 and lines[-1].startswith("actual builtin_snapshot header PASS")
+ keys=set("version family role captured reason image_base image_size checksum entry_address canonical_hash min_args max_args type expected_canonical_hash expected_min_args expected_max_args expected_type expected_action action_address action_rva section_index code_bytes code_hex scope".split())
+ for line,(expected_maximum,connected_maximum) in zip(lines[:-1],((0,0),(1,0),(0,1),(1,1))):
+  pairs=json.loads(line,object_pairs_hook=list);assert len(pairs)==len(keys) and {k for k,v in pairs}==keys
+  receipt=dict(pairs);assert receipt["captured"] is True and receipt["family"]==FAMILY and receipt["role"]=="dedicated"
+  assert all(type(receipt[key]) is int for key in ("min_args","max_args","type","expected_min_args","expected_max_args","expected_type"))
+  assert receipt["canonical_hash"]==0x6c6e7b10 and receipt["expected_canonical_hash"]==0x4441ff8d and receipt["expected_action"]=="0x1402cb900"
+  assert receipt["expected_min_args"]==0 and receipt["expected_max_args"]==expected_maximum and receipt["expected_type"]==0
+  assert receipt["min_args"]==0 and receipt["max_args"]==connected_maximum and receipt["type"]==0
+  assert receipt["code_bytes"]==256 and len(receipt["code_hex"])==512 and bytes.fromhex(receipt["code_hex"])==bytes(range(256))
+  assert len(line.encode())<2048 and receipt["scope"]=="read_only_no_invocation"
+ report={"passed":True,"family":FAMILY,"scope":"Actual header with synthetic memory/query/copy fixtures; no game/engine/builtin invocation.","header_sha256":hashlib.sha256(header.read_bytes()).hexdigest(),"receipt_bytes":[len(line.encode()) for line in lines[:-1]],"unit_result":lines[-1],"log":str(out/"checks.log"),"run_log":str(out/"run.log")}
  (out/"RESULTS.json").write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8");print(json.dumps(report,indent=2))
 
 if __name__=="__main__":main()

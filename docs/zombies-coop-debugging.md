@@ -180,3 +180,10 @@ This diagnostic does not invoke the builtin, change its return value, hook a
 function, read the VM stack, produce a process dump or fix the startup/teardown
 failure. It records no player names, XUIDs, credentials or other player secrets.
 The captured game-code bytes and resulting analysis must remain private.
+
+The table guard accepts zero required arguments and at most one optional argument
+for each of the expected-player and connected-player entries. Their actual
+minimum, maximum and type metadata are recorded separately. This only permits a
+read-only code capture; neither zero-argument nor one-argument calls are made.
+The optional argument's behavior must be established from the captured body
+before considering any readiness-count change.
