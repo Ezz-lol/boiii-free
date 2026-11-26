@@ -13,6 +13,8 @@ inline constexpr std::string_view companion_contract =
 // dvars.
 int frozen_schema_capacity() noexcept;
 std::string frozen_schema_map();
+bool latch_schema_asset_failure() noexcept;
+void report_schema_asset_failure(std::string_view reason);
 void schema_asset_failure(std::string_view reason);
 bool schema_assets_failed() noexcept;
 bool prepare_schema_session(int capacity, std::string_view map,

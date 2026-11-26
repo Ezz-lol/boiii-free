@@ -241,6 +241,13 @@ std::string normalize_path(std::string path) {
 static std::mutex db_mutex;
 const GSC_OBJ *get_linked_obj(const std::string &name) {
   const std::string normalized_name = normalize_script_name(name);
+  if (auto *mapped = zombies::coop::schema_assets::current_map_backing(
+          normalized_name.c_str()))
+    return mapped->buffer;
+  if (auto *mapped = zombies::coop::schema_assets::current_map_backing(
+          (normalized_name + ".gsc").c_str()))
+    return mapped->buffer;
+
   if (auto *power = zombies::coop::schema_assets::powerup_backing(
           normalized_name.c_str()))
     return power->buffer;
@@ -1316,12 +1323,17 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
   if (name != nullptr && name[0] != NULL) {
     switch (type) {
     case XAssetType::SCRIPTPARSETREE: {
+      if (zombies::coop::schema_assets::handles_map_helper(name)) {
+        result.scriptParseTree = zombies::coop::schema_assets::lookup_map_helper(name);
+        return result;
+      }
       if (zombies::coop::schema_assets::handles_companion(name)) {
         result.scriptParseTree = zombies::coop::schema_assets::lookup_companion(name);
         return result;
       }
-      result.scriptParseTree =
-          zombies::coop::schema_assets::common_backing(name);
+      result.scriptParseTree = zombies::coop::schema_assets::current_map_backing(name);
+      if (!result.scriptParseTree)
+        result.scriptParseTree = zombies::coop::schema_assets::common_backing(name);
       if (!result.scriptParseTree)
         result.scriptParseTree = get_loaded_script(name);
       break;

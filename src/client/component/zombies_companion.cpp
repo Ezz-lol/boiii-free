@@ -164,13 +164,17 @@ std::string frozen_schema_map() {
   return selected_map;
 }
 
-void schema_asset_failure(std::string_view reason) {
-  if (assets_failed.exchange(true, std::memory_order_acq_rel))
-    return;
+bool latch_schema_asset_failure() noexcept {
+  return !assets_failed.exchange(true, std::memory_order_acq_rel);
+}
+void report_schema_asset_failure(std::string_view reason) {
   diagnostic_event("schema_asset_failed");
   fprintf(stderr, "[zombies_coop_schema] phase=asset_failed reason=%.*s\n",
           static_cast<int>(std::min<std::size_t>(reason.size(), 256)),
           reason.data());
+}
+void schema_asset_failure(std::string_view reason) {
+  if (latch_schema_asset_failure()) report_schema_asset_failure(reason);
 }
 
 bool companion_files_ready(std::string &error) {
@@ -516,7 +520,8 @@ bool schema_server_ready() noexcept {
     return false;
   if (frozen_schema_capacity() < 5 || schema_assets_failed() ||
       !schema_assets::score_producer_ready() ||
-      !schema_assets::common_source_pair_ready())
+      !schema_assets::common_source_pair_ready() ||
+      !schema_assets::map_mechanics_ready())
     return false;
   try {
     return read_string("zm_coopStatus") == "experimental_callbacks_installed" &&

@@ -30,6 +30,15 @@ bool map_armed = false;
 std::string active_map;
 std::chrono::steady_clock::time_point next_poll{};
 
+bool reset_temple_pap_receipt() {
+  auto found = game::get_dvar("zm_coopTemplePapEpoch");
+  if (!found) return false;
+  auto value = found.resolve();
+  if (!value || value.type() != game::dvarType_t::INT) return false;
+  (void)game::set_dvar_int("zm_coopTemplePapEpoch", 0, false);
+  return value.get_int() == 0;
+}
+
 const char *preflight_error(int configured, int requested) {
   if (configured < 1 || configured > player_limit)
     return "Invalid Zombies coop capacity. Select one through eight before "
@@ -185,6 +194,7 @@ void shutdown_map() noexcept {
 const char *begin_startup() {
   const std::lock_guard<std::mutex> lock(state_mutex);
   common_native_context.invalidate();
+  const bool temple_receipt_reset = reset_temple_pap_receipt();
   if (game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES)
     return nullptr;
   const int configured =
@@ -195,6 +205,10 @@ const char *begin_startup() {
   blocked.store(true, std::memory_order_release);
   map_armed = false;
   admission_state.reset();
+  if (requested > stock_limit && !temple_receipt_reset) {
+    reported = true;
+    return "Could not reset the typed Temple PAP entry receipt before server script loading.";
+  }
   // All temporary strings are destroyed before invoking engine longjmp error
   // paths.
   if (const char *error = preflight_error(configured, requested)) {
@@ -278,6 +292,8 @@ struct component final : generic_component {
                                   "Applied coop session capacity.");
     (void)game::register_dvar_int("zm_coopReadyEpoch", 0, 0, INT_MAX, 0u,
                                   "Coop lifecycle generation.");
+    (void)game::register_dvar_int("zm_coopTemplePapEpoch", 0, 0, INT_MAX, 0u,
+        "Current server-VM Temple PAP entry epoch.");
     (void)game::register_dvar_int("zm_coopEndingRevision", 0, 0,
                                   ending_policy::receipt_revision, 0u,
                                   "Local coop ending revision.");

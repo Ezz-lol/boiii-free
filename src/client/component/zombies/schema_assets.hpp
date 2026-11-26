@@ -38,6 +38,18 @@ void observe_common_replacement(const char *name,
                                 std::span<const std::uint8_t> cleaned = {},
                                 bool readable_success = false) noexcept;
 
+// Retained map module/helper code dependencies in the current server VM.
+bool handles_map_stock(const char *name) noexcept;
+bool handles_map_helper(const char *name) noexcept;
+script_asset *transform_map_stock(const char *name, script_asset *original) noexcept;
+script_asset *lookup_map_helper(const char *name) noexcept;
+bool pin_all_map_helpers(std::string &error) noexcept;
+script_asset *current_map_backing(const char *name) noexcept;
+bool map_mechanics_ready() noexcept;
+std::string map_source_diagnostic();
+// Optional Ezz replacefunc rejection for targets inside current owned helpers.
+bool reject_map_helper_detour(std::uintptr_t target) noexcept;
+
 // Pin the exact bytes whose SHA-256 was checked by the session manifest owner.
 // Once pinned, an in-process payload replacement is refused.
 bool pin_payloads(std::string_view server, std::string_view client,

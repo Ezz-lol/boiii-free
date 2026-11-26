@@ -1,0 +1,103 @@
+{
+  "vm": "bo3-pc-1c",
+  "stock_objects": [
+    {
+      "profile": "temple",
+      "map": "zm_temple",
+      "path": "scripts/zm/zm_temple_pack_a_punch.gsc",
+      "raw_sha256": "17cd9578fffdca9ee15522a9469b71a2787f4776113ef99a3ce7fbe77575f21d",
+      "raw_bytes": 22672,
+      "selected_references": 1,
+      "factory": "fixed_temple::captured_contract",
+      "helpers": 3,
+      "add_core_fields_include": false,
+      "required_for_map": true
+    },
+    {
+      "profile": "castle",
+      "map": "zm_castle",
+      "path": "scripts/zm/zm_castle_ee_bossfight.gsc",
+      "raw_sha256": "f239b865a4c48f6f0e07da0d760f971be46bf7f0e38dfa1c34996e61fd58047c",
+      "raw_bytes": 62582,
+      "selected_references": 1,
+      "factory": "fixed_castle::captured_contract",
+      "helpers": 5,
+      "add_core_fields_include": false,
+      "required_for_map": true
+    },
+    {
+      "profile": "factory",
+      "map": "zm_factory",
+      "path": "scripts/zm/zm_factory_teleporter.gsc",
+      "raw_sha256": "c9a458b4fb2bb360b2d9b08f22644a84de60113ffe663b41669be59ae813a278",
+      "raw_bytes": 19164,
+      "selected_references": 1,
+      "factory": "fixed_factory::captured_contract",
+      "helpers": 8,
+      "add_core_fields_include": false,
+      "required_for_map": true
+    },
+    {
+      "profile": "theater",
+      "map": "zm_theater",
+      "path": "scripts/zm/zm_theater_teleporter.gsc",
+      "raw_sha256": "d506525fa04b30a08ce16a353a29e88c24ddd3739b705c9a8f328faa73460efb",
+      "raw_bytes": 23308,
+      "selected_references": 8,
+      "factory": "fixed_theater::captured_contract",
+      "helpers": 16,
+      "add_core_fields_include": false,
+      "required_for_map": true
+    },
+    {
+      "profile": "dragon",
+      "map": "zm_stalingrad",
+      "path": "scripts/zm/zm_stalingrad_dragon.gsc",
+      "raw_sha256": "862b86589f8e13552f4e800a83701dfac8e6848f84e03da5ff696ad049b8a6f3",
+      "raw_bytes": 92270,
+      "selected_references": 3,
+      "factory": "fixed_dragon::captured_contract",
+      "helpers": 96,
+      "add_core_fields_include": false,
+      "required_for_map": true
+    },
+    {
+      "profile": "stalingrad_wearables",
+      "map": "zm_stalingrad",
+      "path": "scripts/zm/zm_stalingrad_wearables.gsc",
+      "raw_sha256": "fb098f588e4d83a17da5fc74d07ac4a14b19059faf22af18cdcbe2a770635e0c",
+      "raw_bytes": 20696,
+      "selected_references": 1,
+      "factory": "fixed_stalingrad_wearables::captured_contract",
+      "helpers": 96,
+      "add_core_fields_include": false,
+      "required_for_map": true
+    },
+    {
+      "profile": "stalingrad_main",
+      "map": "zm_stalingrad",
+      "path": "scripts/zm/zm_stalingrad.gsc",
+      "raw_sha256": "85958008a24ba7e442c962672fba6c0e92ad7c1eabf4ca53067aa9f8bc204705",
+      "raw_bytes": 46588,
+      "selected_references": 1,
+      "factory": "fixed_stalingrad_main::captured_contract",
+      "helpers": 96,
+      "add_core_fields_include": true,
+      "required_for_map": true
+    },
+    {
+      "profile": "bgb_global",
+      "map": "",
+      "path": "scripts/zm/bgbs/_zm_bgb_anywhere_but_here.gsc",
+      "raw_sha256": "504f98bf6794bf481b184007907697c6fdd8d49db8e44483d52c35c74ea9f0a7",
+      "raw_bytes": 4180,
+      "selected_references": 3,
+      "factory": "fixed_bgb_global::captured_contract",
+      "helpers": 64,
+      "add_core_fields_include": false,
+      "required_for_map": false
+    }
+  ],
+  "wire_schema_changed": false,
+  "linked_body_authenticated": false
+}

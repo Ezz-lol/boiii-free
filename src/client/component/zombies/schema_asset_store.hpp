@@ -1,6 +1,7 @@
 #pragma once
 
 #include "compiled_includes.hpp"
+#include "map_companion_names.hpp"
 #include <cstring>
 #include <memory>
 #include <mutex>
@@ -131,6 +132,12 @@ template <class Asset> class schema_asset_store {
   std::uint64_t generation_[2]{1, 1};
   std::unique_ptr<entry> emergency_[companion_count];
   std::uint64_t emergency_generation_[companion_count]{};
+  // Map code uses the same VM generations, process lifetime and byte budget.
+  // Reserve all emergency backing before any corresponding import can link.
+  std::array<std::string, map_companion_names.size()> map_payloads_;
+  std::array<std::unique_ptr<entry>, map_companion_names.size()> map_emergency_;
+  std::array<std::uint64_t, map_companion_names.size()> map_emergency_generation_{};
+
   std::uint64_t island_server_generation_{};
   bool exhausted_ = false;
   std::array<std::unique_ptr<entry>, 4096> exposed_{};
@@ -148,6 +155,26 @@ template <class Asset> class schema_asset_store {
       return false;
     const auto filename = bounded_name(object, read32(object, 0x34));
     return filename && *filename == expected;
+  }
+  static bool map_bytes_match(const std::vector<std::uint8_t>& bytes,
+      std::string_view pinned) noexcept {
+    return bytes.size() == pinned.size() &&
+        (bytes.empty() || std::memcmp(bytes.data(), pinned.data(), bytes.size()) == 0);
+  }
+  // All callers hold mutex_. Compare immutable pre-link bytes, not the mutable
+  // engine-visible return. Never allocate or call another store operation here.
+  bool map_template_current_locked(unsigned index, const Asset* asset) const noexcept {
+    if (index >= map_payloads_.size() || !asset || map_payloads_[index].empty()) return false;
+    for (std::size_t i = 0; i < count_; ++i)
+      if (&exposed_[i]->asset == asset)
+        return map_bytes_match(exposed_[i]->immutable, map_payloads_[index]);
+    return map_emergency_[index] && &map_emergency_[index]->asset == asset &&
+        map_bytes_match(map_emergency_[index]->immutable, map_payloads_[index]);
+  }
+  Asset* map_cached_locked(unsigned index) const noexcept {
+    for (const auto& [path, asset] : current_[0])
+      if (map_companion_identity(path) == index) return asset;
+    return nullptr;
   }
 public:
   struct generation_lease {
@@ -222,6 +249,119 @@ public:
       emergency_[index] = std::move(emergencies[index]);
     retained_ += charge;
     return true;
+  }
+
+  bool pin_map_companion(unsigned index, std::string_view source, std::string& error) {
+    if (index >= map_companion_names.size() || !valid_payload(source, map_companion_names[index])) {
+      error = "Invalid fixed map companion payload.";
+      return false;
+    }
+    std::scoped_lock lock(mutex_);
+    if (exhausted_) {
+      error = "Schema asset store is permanently exhausted; restart required.";
+      return false;
+    }
+    if (!map_payloads_[index].empty()) {
+      if (map_payloads_[index] == source) return true;
+      error = "Map companion payload changed after native pinning; restart required.";
+      return false;
+    }
+    if (retained_ > limit_ || source.size() > limit_ - retained_) {
+      error = "Map companions exceed the retention budget.";
+      return false;
+    }
+    // Allocate and validate everything locally, then publish without allocation.
+    std::string copy(source);
+    auto reserved = std::make_unique<entry>(map_companion_names[index],
+        std::vector<std::uint8_t>(source.begin(), source.end()));
+    const auto charge = copy.capacity() + 1 + sizeof(entry) + reserved->name.capacity() + 1 +
+        reserved->bytes.capacity() + reserved->immutable.capacity();
+    if (retained_ > limit_ || charge > limit_ - retained_) {
+      error = "Map companions exceed the retention budget.";
+      return false;
+    }
+    map_payloads_[index].swap(copy);
+    map_emergency_[index] = std::move(reserved);
+    retained_ += charge;
+    return true;
+  }
+
+  Asset* map_companion(std::string_view name, std::string& error,
+      generation_lease lease) {
+    const auto chosen = map_companion_identity(name);
+    if (!chosen) { error = "Unknown fixed map companion identity."; return nullptr; }
+    const auto index = *chosen;
+    std::vector<std::uint8_t> bytes;
+    {
+      std::scoped_lock lock(mutex_);
+      if (lease.role != 0u || lease.generation != generation_[0]) {
+        error = "Map companion server VM changed during lookup.";
+        return nullptr;
+      }
+      const auto& source = map_payloads_[index];
+      if (source.empty()) { error = "Map companion has not been pinned."; return nullptr; }
+      if (auto* existing = map_cached_locked(index)) {
+        if (map_template_current_locked(index, existing)) return existing;
+        if (!exhausted_) {
+          error = "Map companion cache producer differs from pinned immutable payload.";
+          return nullptr;
+        }
+      }
+      if (exhausted_) {
+        const auto* reserved = map_emergency_[index].get();
+        if (reserved && map_emergency_generation_[index] == lease.generation &&
+            map_template_current_locked(index, &reserved->asset))
+          return &map_emergency_[index]->asset;
+        error = "Schema asset store is permanently exhausted; restart required.";
+        return nullptr;
+      }
+      bytes.assign(source.begin(), source.end());
+    }
+    // retain_if samples this guard under its publication mutex, including
+    // before a cache hit and after any cache-node allocation. No nested locks.
+    return retain_if(name, std::move(bytes), error, lease, {}, [this, index, lease] {
+      if (lease.role != 0u || lease.generation != generation_[0] || map_payloads_[index].empty()) return false;
+      const auto* existing = map_cached_locked(index);
+      return !existing || map_template_current_locked(index, existing);
+    });
+  }
+
+  Asset* emergency_map_companion(std::string_view name) {
+    // No allocation/canonicalization: foreign producer backing is never a
+    // valid emergency. Retain it alive, but unwind with the owned reservation.
+    const auto chosen = map_companion_identity(name);
+    if (!chosen) return nullptr;
+    std::scoped_lock lock(mutex_);
+    exhausted_ = true;
+    const auto index = *chosen;
+    if (auto* existing = map_cached_locked(index))
+      if (map_template_current_locked(index, existing)) return existing;
+    if (!map_emergency_[index] ||
+        !map_template_current_locked(index, &map_emergency_[index]->asset)) return nullptr;
+    if (map_emergency_generation_[index] && map_emergency_generation_[index] != generation_[0]) return nullptr;
+    map_emergency_generation_[index] = generation_[0];
+    return &map_emergency_[index]->asset;
+  }
+
+  // Native-only guard runs under mutex_; it must not call this store or engine.
+  // Reject stale/foreign work BEFORE poisoning or exposing any reservation.
+  template <class Guard> Asset* emergency_map_companion(std::string_view name,
+      generation_lease lease, Guard current) {
+    // No allocation/canonicalization: foreign producer backing is never a
+    // valid emergency. Retain it alive, but unwind with the owned reservation.
+    const auto chosen = map_companion_identity(name);
+    if (!chosen) return nullptr;
+    std::scoped_lock lock(mutex_);
+    if (lease.role != 0u || lease.generation != generation_[0] || !current()) return nullptr;
+    exhausted_ = true;
+    const auto index = *chosen;
+    if (auto* existing = map_cached_locked(index))
+      if (map_template_current_locked(index, existing)) return existing;
+    if (!map_emergency_[index] ||
+        !map_template_current_locked(index, &map_emergency_[index]->asset)) return nullptr;
+    if (map_emergency_generation_[index] && map_emergency_generation_[index] != generation_[0]) return nullptr;
+    map_emergency_generation_[index] = generation_[0];
+    return &map_emergency_[index]->asset;
   }
 
   static unsigned role(std::string_view name) noexcept {
@@ -321,6 +461,20 @@ public:
     if (!current()) {
       error = "Native schema context changed during lookup.";
       return nullptr;
+    }
+    if (const auto map_index = map_companion_identity(key)) {
+      const auto& pinned = map_payloads_[*map_index];
+      if (pinned.empty() || !map_bytes_match(bytes, pinned) ||
+          (pristine && !map_bytes_match(*pristine, pinned))) {
+        error = "Fixed map companion producer does not match its pinned immutable payload.";
+        return nullptr;
+      }
+      if (const auto* existing = map_cached_locked(*map_index)) {
+        if (!map_template_current_locked(*map_index, existing)) {
+          error = "Fixed map companion cache does not match its pinned immutable payload.";
+          return nullptr;
+        }
+      }
     }
     auto &cache = current_[index];
     if (const auto found = cache.find(key); found != cache.end())

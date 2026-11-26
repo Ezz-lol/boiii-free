@@ -9,6 +9,12 @@
 #include "zombies/castle_selector.hpp"
 #include "zombies/score_events.hpp"
 #include "zombies/powerup_events.hpp"
+#include "zombies/coop_runtime.hpp"
+#include "zombies/lobby_policy.hpp"
+#include "zombies/map_runtime_bridge.hpp"
+#include "zombies/map_mechanics_payloads.hpp"
+#include "zombies/map_mechanics_contracts.hpp"
+#include <type_traits>
 #include "game/utils.hpp"
 #include <utils/cryptography.hpp>
 
@@ -149,6 +155,364 @@ castle_selector::digest castle_digest(std::span<const std::uint8_t> bytes) {
   std::memcpy(result.data(), raw.data(), result.size());
   return result;
 }
+
+// Map mechanic imports use process-lived, current-VM backing.
+namespace map_bridge = zombies::coop::map_runtime_bridge;
+using map_store_lease = t7::schema_asset_store<script_asset>::generation_lease;
+using map_bridge_request = map_bridge::request<map_store_lease>;
+using map_bridge_proofs = map_bridge::receipts<script_asset, 8>;
+std::mutex map_operation_mutex; // component -> store; never acquired by a store callback
+map_bridge_proofs map_proofs;
+
+struct map_owned_request {
+  int capacity{};
+  std::string map;
+  common_helper::native_ticket ticket;
+  map_store_lease lease{};
+};
+bool map_identity_owned(const map_owned_request &r) noexcept {
+  // Identity only. Revocation/failure cannot disable owned emergency backing.
+  // All called APIs are atomic-only; no engine/dvar/context/runtime mutex here.
+  return r.ticket && r.capacity >= 5 && r.capacity <= 8 && r.lease.role == 0 &&
+         r.ticket->epoch > 0 && r.ticket->capacity == r.capacity &&
+         frozen_schema_capacity() == r.capacity &&
+         common_helper::native_session_owned(r.ticket);
+}
+map_bridge_request map_bridge_view(const map_owned_request &r) noexcept {
+  // Construct only after the owned std::string is at its final address. Never
+  // save this view in a struct which is subsequently moved (including SSO).
+  return {r.map, r.capacity, r.lease};
+}
+std::span<const map_bridge::descriptor> map_descriptors() noexcept {
+  return map_mechanics::descriptors;
+}
+std::optional<map_owned_request> capture_map_request(std::string_view path,
+                                                    bool allow_failed = false) {
+  // Every engine/frozen-map read occurs before map_operation_mutex/store locks.
+  if (!castle_zombies_mode()) return {};
+#ifdef BOIII_COOP_EZZ
+  if (game::com::Com_IsRunningUILevel()) return {};
+#else
+  if (game::Com_IsRunningUILevel()) return {};
+#endif
+  const auto capacity = frozen_schema_capacity();
+  if (capacity < 5 || capacity > 8 || (!allow_failed && schema_assets_failed())) return {};
+  const std::string actual(castle_current_map());
+  const auto frozen = frozen_schema_map();
+  const auto ticket = common_helper::capture_native_session();
+  if (!ticket || !t7::supported_map_name(actual) || actual == "core_frontend" ||
+      actual != frozen || ticket->map != actual || ticket->capacity != capacity ||
+      ticket->epoch != active_startup_epoch() || !common_helper::native_session_owned(ticket))
+    return {};
+  const auto lease = assets.capture_generation(path);
+  if (lease.role != 0 || !lease.generation) return {};
+  map_owned_request r{capacity, actual, ticket, lease};
+  return map_identity_owned(r) ? std::optional<map_owned_request>(std::move(r)) : std::nullopt;
+}
+std::optional<map_owned_request> capture_map_backing_identity(std::string_view path) {
+  // Read-only loader/replacefunc paths use already-published native identity.
+  // They authorize no new stock transformation and perform no engine calls.
+  const auto ticket = common_helper::capture_native_session();
+  if (!ticket || !t7::supported_map_name(ticket->map) || ticket->map == "core_frontend" ||
+      ticket->capacity < 5 || ticket->capacity > 8 ||
+      !common_helper::native_session_owned(ticket)) return {};
+  map_owned_request r{ticket->capacity, ticket->map, ticket, assets.capture_generation(path)};
+  return map_identity_owned(r) ? std::optional<map_owned_request>(std::move(r)) : std::nullopt;
+}
+
+struct map_failure_publication { bool current{}, first{}; };
+map_failure_publication map_latch_failure_locked(const map_owned_request &r) noexcept {
+  // Call ONLY from assets.if_current. No logging/engine/other locks here.
+  if (!map_identity_owned(r)) return {};
+  const bool first = latch_schema_asset_failure();
+  (void)common_helper::revoke_native_session(r.ticket);
+  return {true, first};
+}
+void map_report_failure(map_failure_publication publication, std::string_view reason) noexcept {
+  // Caller has released map_operation_mutex and the retained-store lock.
+  if (!publication.first) return;
+  try { report_schema_asset_failure(reason); } catch (...) {}
+}
+void map_publish_failure(const map_owned_request &r, std::string_view reason) noexcept {
+  map_failure_publication publication;
+  try {
+    (void)assets.if_current(r.lease, [&] { publication = map_latch_failure_locked(r); });
+  } catch (...) {}
+  map_report_failure(publication, reason);
+}
+std::string map_operation_reason(const map_bridge::operation<script_asset> &result) {
+  std::string reason(result.reason);
+  if (!result.detail.empty()) { reason += ": "; reason += result.detail; }
+  return reason;
+}
+bool map_known_stock(const char *name) noexcept {
+  try {
+    const auto path = t7::canonical_asset(bounded_path(name));
+    if (!path.ends_with(".gsc")) return false;
+    for (const auto &row : map_descriptors()) if (row.path == path) return true;
+    return false;
+  } catch (...) { return false; }
+}
+bool map_known_helper(const char *name) noexcept {
+  return t7::map_companion_identity(bounded_path(name)).has_value();
+}
+bool map_handles_stock(const char *name) noexcept {
+  try {
+    if (!map_known_stock(name)) return false;
+    const auto ticket = common_helper::capture_native_session();
+    if (!ticket || !common_helper::native_session_owned(ticket) ||
+        ticket->capacity < 5 || ticket->capacity > 8) return false;
+    const auto path = t7::canonical_asset(bounded_path(name));
+    for (const auto &row : map_descriptors())
+      if (row.path == path && map_bridge::detail::applies(row, ticket->map)) return true;
+    return false;
+  } catch (...) { return false; }
+}
+bool map_handles_helper(const char *name) noexcept {
+  try {
+    const auto index = t7::map_companion_identity(bounded_path(name));
+    if (!index) return false;
+    const auto ticket = common_helper::capture_native_session();
+    return ticket && ticket->capacity >= 5 && ticket->capacity <= 8 &&
+        common_helper::native_session_owned(ticket) &&
+        (map_bridge::detail::dependencies(map_descriptors(), ticket->map) &
+         (map_bridge::helper_mask{1} << *index));
+  } catch (...) { return false; }
+}
+bool map_pin_all_helpers(std::string &error) noexcept {
+  try {
+    static_assert(std::tuple_size_v<std::remove_cvref_t<decltype(map_mechanics::compiled_payloads)>> == 7);
+    static_assert(t7::map_companion_names.size() == 7);
+    static_assert(std::tuple_size_v<std::remove_cvref_t<decltype(map_mechanics::descriptors)>> == 8);
+    std::array<std::string_view, 7> views{};
+    for (unsigned i = 0; i < views.size(); ++i) {
+      const auto &payload = map_mechanics::compiled_payloads[i];
+      if (payload.name != t7::map_companion_names[i] || payload.bytes.empty()) {
+        error = "Fixed map helper payload identity differs from its reserved code name.";
+        return false;
+      }
+      views[i] = {reinterpret_cast<const char *>(payload.bytes.data()), payload.bytes.size()};
+    }
+    bool pinned = false;
+    {
+      const std::lock_guard lock(map_operation_mutex);
+      pinned = map_bridge::pin_helpers(assets, std::span<const std::string_view, 7>(views), error);
+    }
+    return pinned;
+  } catch (...) {
+    try { error = "Could not pin immutable map helper code objects."; } catch (...) {}
+    return false;
+  }
+}
+script_asset *map_transform_stock(const char *name, script_asset *original) noexcept {
+  std::optional<map_owned_request> r;
+  try {
+    if (!map_known_stock(name)) return original;
+    const auto path = bounded_path(name);
+    r = capture_map_request(path);
+    if (!r) return original; // rejected identities cannot publish a successor failure
+    map_bridge::operation<script_asset> result;
+    {
+      const std::lock_guard lock(map_operation_mutex);
+      const auto view = map_bridge_view(*r);
+      result = map_bridge::route_stock(assets, map_proofs, map_descriptors(), view, path,
+          original, castle_digest, [&]() noexcept { return map_identity_owned(*r); });
+    }
+    if (result.state == map_bridge::outcome::untouched) return original;
+    if (result.okay()) return result.asset;
+    // Return stock only for native unwinding AFTER expansion is atomically
+    // withdrawn. The outer startup/admission gate must observe the failure.
+    const auto reason = map_operation_reason(result); // allocation/log text outside both locks
+    map_publish_failure(*r, reason);
+    return original;
+  } catch (...) {
+    if (r) map_publish_failure(*r, "map_stock_native_glue_exception");
+    return original;
+  }
+}
+script_asset *map_lookup_helper(const char *name) noexcept {
+  std::optional<map_owned_request> r;
+  try {
+    if (!map_known_helper(name)) return nullptr;
+    const auto path = bounded_path(name);
+    r = capture_map_request(path, true);
+    if (!r) return nullptr;
+    map_bridge::operation<script_asset> result;
+    {
+      const std::lock_guard lock(map_operation_mutex);
+      const auto view = map_bridge_view(*r);
+      result = map_bridge::lookup_helper(assets, map_proofs, map_descriptors(), view, path,
+          static_cast<script_asset *>(nullptr), [&]() noexcept { return map_identity_owned(*r); });
+    }
+    if (result.okay() || result.state == map_bridge::outcome::untouched) return result.asset;
+    // lookup_helper obtains guarded emergency backing before this publication.
+    const auto reason = map_operation_reason(result);
+    map_publish_failure(*r, reason);
+    return result.state == map_bridge::outcome::emergency ? result.asset : nullptr;
+  } catch (...) {
+    // Capture can throw before a usable identity exists. Never use an unscoped
+    // emergency or publish a failure against an uncaptured successor.
+    script_asset *emergency = nullptr;
+    if (r) {
+      try {
+        emergency = assets.emergency_map_companion(bounded_path(name), r->lease,
+            [&]() noexcept { return map_identity_owned(*r); });
+      } catch (...) {}
+      map_publish_failure(*r, "map_helper_native_glue_exception");
+    }
+    return emergency;
+  }
+}
+script_asset *map_owned_stock_backing(const map_owned_request &r, std::string_view path) {
+  auto *cached = assets.cached(path, r.lease);
+  if (!cached) return nullptr;
+  script_asset *result = nullptr;
+  const auto descriptor_view = map_descriptors();
+  (void)assets.if_current(r.lease, [&] {
+    if (!map_identity_owned(r)) return;
+    for (std::size_t i = 0; i < descriptor_view.size(); ++i) {
+      const auto &row = descriptor_view[i];
+      if (row.path != path || !map_bridge::detail::applies(row, r.map)) continue;
+      const auto &proof = map_proofs.stock[i];
+      if (proof.generation == r.lease.generation && proof.identity == &row && proof.requested &&
+          proof.state == map_bridge_proofs::stage::ready && proof.asset == cached) result = cached;
+    }
+  });
+  return result;
+}
+script_asset *map_current_backing(const char *name) noexcept {
+  try {
+    const auto path = t7::canonical_asset(bounded_path(name));
+    if (!map_known_stock(name) && !map_known_helper(name)) return nullptr;
+    auto r = capture_map_backing_identity(path);
+    if (!r) return nullptr;
+    if (const auto index = t7::map_companion_identity(path)) {
+      auto *cached = assets.cached(path, r->lease);
+      script_asset *result = nullptr;
+      (void)assets.if_current(r->lease, [&] {
+        if (!map_identity_owned(*r)) return;
+        const auto &proof = map_proofs.helpers[*index];
+        if (cached && proof.generation == r->lease.generation && proof.asset == cached) result = cached;
+      });
+      return result;
+    }
+    return map_owned_stock_backing(*r, path);
+  } catch (...) { return nullptr; }
+}
+int map_temple_pap_epoch() {
+  // Native dvar read on the normal server readiness/diagnostic path only.
+  // Never execute this inside map_operation_mutex or a store callback.
+#ifdef BOIII_COOP_EZZ
+  auto found = game::get_dvar("zm_coopTemplePapEpoch");
+  auto value = found ? found.resolve() : found;
+  return value && value.type() == game::dvarType_t::INT ? value.get_int() : 0;
+#else
+  const auto *value = game::Dvar_FindVar("zm_coopTemplePapEpoch");
+  if (value && value->type == game::DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
+    const auto mode = game::Com_SessionMode_GetMode();
+    if (mode < 0 || mode >= game::MODE_COUNT) return 0;
+    value = value->current.value.indirect[mode];
+  }
+  return value && value->type == game::DVAR_TYPE_INT ? value->current.value.integer : 0;
+#endif
+}
+struct map_readiness_sample {
+  std::optional<map_owned_request> identity;
+  bool required{}, ready{};
+  const char *reason{"no_current_context"};
+};
+map_readiness_sample map_readiness_snapshot() {
+  map_readiness_sample sample;
+  const auto capacity = frozen_schema_capacity();
+  if (capacity < 5) {
+    sample.ready = !schema_assets_failed();
+    sample.reason = sample.ready ? "stock_capacity" : "schema_asset_failed";
+    return sample;
+  }
+  sample.required = true;
+  sample.identity = capture_map_request("scripts/zm/__map_mechanics_ready.gsc", true);
+  if (!sample.identity) return sample;
+  const auto &r = *sample.identity;
+  if (schema_assets_failed()) { sample.reason = "schema_asset_failed"; return sample; }
+  const auto view = map_bridge_view(r);
+  const auto result = map_bridge::ready(assets, map_proofs, map_descriptors(), view,
+      [&]() noexcept { return map_identity_owned(r); });
+  sample.required = result.required;
+  sample.ready = result.ready;
+  sample.reason = result.reason;
+  if (listing_official_map(r.map)) {
+    sample.required = true;
+    // All official maps load stock Gums before readiness. Optional global BGB
+    // remains optional only for custom maps which never encounter that module.
+    if (!map_owned_stock_backing(r, "scripts/zm/bgbs/_zm_bgb_anywhere_but_here.gsc")) {
+      sample.ready = false; sample.reason = "official_bgb_not_retained";
+    }
+  }
+  if (sample.ready && r.map == "zm_temple" && map_temple_pap_epoch() != r.ticket->epoch) {
+    sample.ready = false; sample.reason = "temple_pap_not_armed";
+  }
+  if (!map_identity_owned(r) || schema_assets_failed()) {
+    sample.ready = false; sample.reason = "readiness_identity_changed";
+  }
+  return sample;
+}
+bool map_ready() noexcept {
+  try { return map_readiness_snapshot().ready; } catch (...) { return false; }
+}
+std::string map_diagnostic() {
+  try {
+    const auto sample = map_readiness_snapshot();
+    const auto *r = sample.identity ? &*sample.identity : nullptr;
+    // Exactly ten fields. Map strings passed the strict native map predicate;
+    // reasons are fixed source labels. No addresses or user/network data.
+    return "{\"version\":1,\"map\":\"" + (r ? r->map : std::string{}) +
+      "\",\"capacity\":" + std::to_string(r ? r->capacity : frozen_schema_capacity()) +
+      ",\"epoch\":" + std::to_string(r ? r->ticket->epoch : active_startup_epoch()) +
+      ",\"realm\":0,\"generation\":" + std::to_string(r ? r->lease.generation : 0) +
+      ",\"required\":" + (sample.required ? "true" : "false") +
+      ",\"ready\":" + (sample.ready ? "true" : "false") +
+      ",\"reason\":\"" + sample.reason + "\",\"linked_body_authenticated\":false}";
+  } catch (...) {
+    return "{\"version\":1,\"map\":\"\",\"capacity\":0,\"epoch\":0,\"realm\":0,\"generation\":0,\"required\":true,\"ready\":false,\"reason\":\"diagnostic_exception\",\"linked_body_authenticated\":false}";
+  }
+}
+bool map_observe_helper_detour(std::uintptr_t target) noexcept {
+  try {
+    auto r = capture_map_backing_identity(t7::map_companion_names[0]);
+    if (!r) return false;
+    struct protected_range { script_asset *asset{}; std::uintptr_t begin{}, end{}; };
+    std::array<protected_range, 7> ranges{};
+    for (unsigned i = 0; i < ranges.size(); ++i) {
+      const auto bytes = map_mechanics::compiled_payloads[i].bytes;
+      if (bytes.size() < t7::object_header_size) continue;
+      const auto code = t7::read32(bytes, 0x14), size = t7::read32(bytes, 0x30);
+      if (code < t7::object_header_size || !size || code > bytes.size() || size > bytes.size() - code) continue;
+      auto *cached = assets.cached(t7::map_companion_names[i], r->lease);
+      if (!cached || !cached->buffer) continue;
+      const auto base = reinterpret_cast<std::uintptr_t>(cached->buffer);
+      if (base > (std::numeric_limits<std::uintptr_t>::max)() - code) continue;
+      const auto begin = base + code;
+      if (begin > (std::numeric_limits<std::uintptr_t>::max)() - size) continue;
+      ranges[i] = {cached, begin, begin + size};
+    }
+    map_failure_publication publication;
+    bool rejected = false;
+    (void)assets.if_current(r->lease, [&] {
+      if (!map_identity_owned(*r)) return;
+      for (unsigned i = 0; i < ranges.size(); ++i) {
+        const auto &range = ranges[i]; const auto &proof = map_proofs.helpers[i];
+        if (range.asset && proof.generation == r->lease.generation && proof.asset == range.asset &&
+            target >= range.begin && target < range.end) {
+          rejected = true;
+          publication = map_latch_failure_locked(*r); break;
+        }
+      }
+    });
+    map_report_failure(publication, "replacefunc_target_inside_owned_map_helper");
+    return rejected;
+  } catch (...) { return false; }
+}
+
 script_asset *transform_castle(std::string_view path,
                                script_asset *original) noexcept {
   std::optional<castle_request> request;
@@ -382,6 +746,20 @@ score_source_sample capture_score_source() noexcept {
 
 } // namespace
 
+bool handles_map_stock(const char *name) noexcept { return map_handles_stock(name); }
+bool handles_map_helper(const char *name) noexcept { return map_handles_helper(name); }
+script_asset *transform_map_stock(const char *name, script_asset *original) noexcept {
+  return map_transform_stock(name, original);
+}
+script_asset *lookup_map_helper(const char *name) noexcept { return map_lookup_helper(name); }
+bool pin_all_map_helpers(std::string &error) noexcept { return map_pin_all_helpers(error); }
+script_asset *current_map_backing(const char *name) noexcept { return map_current_backing(name); }
+bool map_mechanics_ready() noexcept { return map_ready(); }
+std::string map_source_diagnostic() { return map_diagnostic(); }
+bool reject_map_helper_detour(std::uintptr_t target) noexcept {
+  return map_observe_helper_detour(target);
+}
+
 bool common_required() noexcept {
   try {
     return castle_zombies_mode() && frozen_schema_capacity() >= 5;
@@ -542,6 +920,7 @@ void observe_common_replacement(const char *name,
   }
 }
 void observe_common_detour(std::uintptr_t target) noexcept {
+  (void)map_observe_helper_detour(target);
   try {
     auto request = capture_common_request(false);
     if (!request)
@@ -655,7 +1034,8 @@ bool retention_exhausted() noexcept {
 bool pin_payloads(std::string_view server, std::string_view client,
                   std::string_view island, std::string &error) {
   try {
-    const bool result = assets.pin(server, client, island, error);
+    const bool result = assets.pin(server, client, island, error) &&
+        pin_all_map_helpers(error);
     if (result)
       diagnostic_event("schema-payloads-pinned",
                        static_cast<std::int64_t>(server.size()),
@@ -717,6 +1097,8 @@ script_asset *transform(const char *name, script_asset *original) noexcept {
   if (!active())
     return original;
   try {
+    // Sole producer for mapped stock modules, including the Stalingrad root anchor.
+    if (map_known_stock(name)) return map_transform_stock(name, original);
     const auto path = bounded_path(name);
     if (t7::canonical_asset(path) == powerup_events::asset_name)
       return transform_powerup(original);

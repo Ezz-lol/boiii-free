@@ -37,6 +37,7 @@ void gscr_replacefunc(scriptInstance_t inst) {
   const uintptr_t replacement_addr = game::scr::Scr_GetFunc(inst, 1);
 
   if (target_addr && replacement_addr) {
+    if (zombies::coop::schema_assets::reject_map_helper_detour(target_addr)) return;
     zombies::coop::schema_assets::observe_common_detour(target_addr);
     function_replacements[target_addr] = replacement_addr;
     detours_enabled.store(true, std::memory_order_release);

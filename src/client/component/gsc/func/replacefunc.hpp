@@ -13,6 +13,7 @@ extern std::atomic_bool detours_enabled;
 
 inline void add_detour(const uintptr_t target_addr,
                        const uintptr_t replacement_addr) {
+  if (zombies::coop::schema_assets::reject_map_helper_detour(target_addr)) return;
   zombies::coop::schema_assets::observe_common_detour(target_addr);
   function_replacements[target_addr] = replacement_addr;
   detours_enabled.store(true, std::memory_order_release);

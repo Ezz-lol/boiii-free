@@ -52,6 +52,11 @@ prelude=r'''
 #include "HEADER_ROOT/zombies/companion.hpp"
 #include "HEADER_ROOT/zombies/common_helper_source_pair.hpp"
 #include "HEADER_ROOT/zombies/powerup_events.hpp"
+#include "HEADER_ROOT/zombies/coop_runtime.hpp"
+#include "HEADER_ROOT/zombies/lobby_policy.hpp"
+#include "HEADER_ROOT/zombies/map_runtime_bridge.hpp"
+#include "HEADER_ROOT/zombies/map_mechanics_contracts.hpp"
+#include "HEADER_ROOT/zombies/map_mechanics_payloads.hpp"
 namespace mock {
 std::atomic_bool failed{};
 std::atomic_int failures{},capacity{8},frozen_calls{};
@@ -72,20 +77,23 @@ enum class dvarType_t{INT,STRING,SESSIONMODE_BASE_DVAR};
 // Match Ezz's important overload shape: bool is non-const, both pointer
 // conversions are const, and operator! is const. A const ternary is ambiguous.
 struct EngineDependentDvarMut {
-  bool present{},resolved{};
+  bool present{},resolved{},integer{};
   operator bool() noexcept{return present;}
   operator dvar_t*() const noexcept{return present?&server_dvar:nullptr;}
   operator encryptedDvar_t*() const noexcept{return present?&client_dvar:nullptr;}
   bool operator!() const noexcept{return !present;}
-  EngineDependentDvarMut resolve() const{++mock::dvar_resolutions;return {present,true};}
-  dvarType_t type() const{return !resolved&&mock::dvar_session_specific?dvarType_t::SESSIONMODE_BASE_DVAR:
+  EngineDependentDvarMut resolve() const{++mock::dvar_resolutions;return {present,true,integer};}
+  dvarType_t type() const{return integer?dvarType_t::INT:!resolved&&mock::dvar_session_specific?dvarType_t::SESSIONMODE_BASE_DVAR:
       mock::dvar_string?dvarType_t::STRING:dvarType_t::INT;}
+  int get_int() const{return 0;}
   const char* get_cstring() const{assert(present && resolved);if(read_hook)read_hook();return mock::actual_map.c_str();}
 };
 template<class T>concept const_ternary=requires(const T& value){value?true:false;};
 template<class T>concept mutable_ternary=requires(T& value){value?true:false;};
 static_assert(!const_ternary<EngineDependentDvarMut> && mutable_ternary<EngineDependentDvarMut>);
-EngineDependentDvarMut Dvar_FindVar(const char*){return {mock::dvar_present,false};}
+EngineDependentDvarMut Dvar_FindVar(const char* name){
+  return {mock::dvar_present,false,std::strcmp(name,"zm_coopTemplePapEpoch")==0};
+}
 EngineDependentDvarMut get_dvar(const char* name){return Dvar_FindVar(name);}
 namespace scr {
 struct GSC_OBJ{std::uint8_t header[0x48];};
@@ -120,12 +128,16 @@ bool revoke_native_session(const native_ticket&) noexcept {return false;}
 int frozen_schema_capacity() noexcept{return mock::capacity.load();}
 std::string frozen_schema_map(){std::lock_guard lock(mock::context_mutex);++mock::frozen_calls;return mock::frozen_map;}
 bool schema_assets_failed() noexcept{return mock::failed.load();}
+bool latch_schema_asset_failure() noexcept{return !mock::failed.exchange(true);}
+void report_schema_asset_failure(std::string_view){++mock::failures;}
 void schema_asset_failure(std::string_view){mock::failed=true;++mock::failures;}
+int active_startup_epoch() noexcept{return 1;}
 void diagnostic_event(std::string_view,std::int64_t=0,std::int64_t=0) noexcept{}
 void refresh_schema_session() noexcept{}
 namespace schema_assets {
 using script_asset=game::scr::ScriptParseTree;
 COMMON_ALIASES
+MAP_DECLARATIONS
 bool prepare_client_generation(std::string_view,bool,bool&) noexcept;
 }
 }
@@ -136,6 +148,9 @@ common_start=public_text.index('using common_lifecycle')
 common_end=public_text.index('bool common_required()',common_start)
 common_aliases=public_text[common_start:common_end]
 prelude=prelude.replace('COMMON_ALIASES',common_aliases)
+map_start=public_text.index('// Retained map module/helper code dependencies')
+map_end=public_text.index('// Pin the exact bytes',map_start)
+prelude=prelude.replace('MAP_DECLARATIONS',public_text[map_start:map_end])
 prelude=prelude.replace('HEADER_ROOT',(root/'src/client/component').as_posix())
 assert '#define BOIII_COOP_EZZ' in original
 tests=r'''
