@@ -165,15 +165,17 @@ bool companion_files_ready(std::string& error) {
       const auto folder = root / "coop_scripts";
       if (!std::filesystem::exists(folder / "eroded_coop_fields.gsc") &&
           !std::filesystem::exists(folder / "eroded_coop_fields.csc") &&
-          !std::filesystem::exists(folder / "score_models.lua")) continue;
+          !std::filesystem::exists(folder / "score_models.lua") &&
+          !std::filesystem::exists(folder / "eroded_coop_island_trials.gsc")) continue;
       // A partial/stale first bundle is an error; never mix installation roots.
       auto server = read_bounded(folder / "eroded_coop_fields.gsc");
       auto client = read_bounded(folder / "eroded_coop_fields.csc");
       auto wrapper = canonical_text(read_bounded(folder / "score_models.lua"));
+      auto island = read_bounded(folder / "eroded_coop_island_trials.gsc");
       if (digest(server) != payloads::server_sha256 || digest(client) != payloads::client_sha256 ||
-          digest(wrapper) != payloads::ui_sha256)
+          digest(wrapper) != payloads::ui_sha256 || digest(island) != payloads::island_trials_sha256)
         throw std::runtime_error("Paired Zombies companion files do not match this executable. Install its matching data.");
-      if (!schema_assets::pin_payloads(server, client, error)) return false;
+      if (!schema_assets::pin_payloads(server, client, island, error)) return false;
       score_wrapper = std::move(wrapper);
       bundle_pinned = true;
       diagnostic_event("schema_bundle_pinned");

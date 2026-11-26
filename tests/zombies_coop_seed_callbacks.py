@@ -23,7 +23,7 @@ HELPERS=('total_setup_original_owned','total_setup_owner_owned','round_setup_con
     'round_setup_owner_owned','install_round_seed_hook','run_original_total_setup','round_total_setup',
     'next_round_generation','round_generation_current','make_round_seed','valid_counters',
     'count_callback_owned','normal_round_target','custom_round_controller','round_thinker_owned',
-    'moon_round_budget_owned','round_controller_reason','owns_callbacks')
+    'moon_round_budget_owned','round_controller_reason','island_trials_current','owns_callbacks')
 
 
 def mask(source):
@@ -61,6 +61,8 @@ function isint(value){return Number.isInteger(value)&&value>=-2147483648&&value<
 function isarray(value){return Array.isArray(value);}
 function spawnstruct(){return {};}
 function startup_current(epoch,map){return epoch===currentEpoch&&map===currentMap;}
+function getdvarint(name){return name==='zm_coopStartupEpoch'?currentEpoch:(dvars[name]??0);}
+function getdvarstring(name){return name==='mapname'?currentMap:(dvars[name]??'');}
 // Independently exercised by zombies_coop_disconnect_guards.py; this suite
 // isolates round-seed ownership and supplies an already-owned guard context.
 function disconnect_guards_owned(){return true;}

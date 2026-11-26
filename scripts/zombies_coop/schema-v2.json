@@ -1,0 +1,169 @@
+{
+  "revision": 2,
+  "stock_slots": 4,
+  "schema_slots": 8,
+  "slot_range": [
+    4,
+    7
+  ],
+  "activation": "native-owned read-only zm_coopSchemaSlots frozen5..8 before this VM loads; 0 leaves stock untouched",
+  "server_preinit_dependency": "zm_laststand",
+  "client_preinit_dependency": "zm_laststand",
+  "groups": [
+    {
+      "id": 1,
+      "name": "revive",
+      "maps": [
+        "*"
+      ],
+      "pool": "world",
+      "prefix": "laststand_update",
+      "suffix": "",
+      "version": 1,
+      "bits": 5,
+      "type": "counter",
+      "callback": "zm_laststand::update_bleedout_timer"
+    },
+    {
+      "id": 2,
+      "name": "score",
+      "maps": [
+        "*"
+      ],
+      "pool": "clientuimodel",
+      "prefix": "PlayerList.client",
+      "suffixes": {
+        ".score_cf_damage": 3,
+        ".score_cf_death_normal": 2,
+        ".score_cf_death_torso": 2,
+        ".score_cf_death_neck": 2,
+        ".score_cf_death_head": 2,
+        ".score_cf_death_melee": 2
+      },
+      "version": 1,
+      "type": "counter",
+      "client_registration": "Engine.RegisterClientUIModelField"
+    },
+    {
+      "id": 4,
+      "name": "castle_inventory",
+      "maps": [
+        "zm_castle"
+      ],
+      "pool": "world",
+      "prefix": "player",
+      "suffix": "hasItem",
+      "version": 1,
+      "bits": 1,
+      "type": "int",
+      "callback": "zm_utility::setsharedinventoryuimodels"
+    },
+    {
+      "id": 8,
+      "name": "stalingrad_wearable",
+      "maps": [
+        "zm_stalingrad"
+      ],
+      "pool": "world",
+      "prefix": "player",
+      "suffix": "wearableItem",
+      "version": 12000,
+      "bits": 2,
+      "type": "int",
+      "callback": "zm_utility::setsharedinventoryuimodels"
+    },
+    {
+      "id": 16,
+      "name": "genesis_wearable",
+      "maps": [
+        "zm_genesis"
+      ],
+      "pool": "world",
+      "prefix": "player",
+      "suffix": "wearableItem",
+      "version": 15000,
+      "bits": 4,
+      "type": "int",
+      "callback": "zm_utility::setsharedinventoryuimodels"
+    },
+    {
+      "id": 32,
+      "name": "moon_wearable",
+      "maps": [
+        "zm_moon"
+      ],
+      "pool": "world",
+      "prefix": "player",
+      "suffix": "wearableItem",
+      "version": 21000,
+      "bits": 1,
+      "type": "int",
+      "callback": "zm_utility::setsharedinventoryuimodels"
+    },
+    {
+      "id": 64,
+      "name": "island_slot_state",
+      "maps": [
+        "zm_island"
+      ],
+      "pool": "world",
+      "prefix": "pillar_challenge_",
+      "suffixes": {
+        "_1": 3,
+        "_2": 3,
+        "_3": 3
+      },
+      "version": 9000,
+      "type": "int",
+      "callback": null,
+      "additional": {
+        "prefix": "portal_state_ending_",
+        "suffix": "",
+        "bits": 1
+      },
+      "replicated_pillar": {
+        "pool": "scriptmover",
+        "name": "eroded_island_pillar",
+        "version": 9000,
+        "bits": 11,
+        "type": "int",
+        "callback": "eroded_coop_fields::island_pillar_clientfield",
+        "owner_low_bits": 2,
+        "slot_base": 4,
+        "state_bits": 3,
+        "state_shifts": [
+          2,
+          5,
+          8
+        ],
+        "states": {
+          "idle": 1,
+          "started": 2,
+          "completed": 3,
+          "claimed": 4
+        },
+        "inactive": 0
+      }
+    }
+  ],
+  "provenance": {
+    "retail_scripts": {
+      "repository": "ate47/bo3-source",
+      "commit": "fe040b1187b4850fe8da3c78b703c986c87d1028",
+      "runtime_byte_parity": "not verified"
+    },
+    "client_ui": {
+      "repository": "KingslayerKyle/T7LuaRepo",
+      "commit": "5f45af23887a1d850fba748c45a16ab746da3600",
+      "path": "Dumps/PC_Ship_2025-05-31/ui/uieditor/clientfieldmodels.lua"
+    }
+  },
+  "limitations": [
+    "Source-only: no automatic installation or proven early joining-client bootstrap.",
+    "Extra Island trial ownership, models, replicated pillar rendering and placement require runtime and real-client validation; field registration is not that proof.",
+    "Custom maps receive only the common inherited contracts until their actual additional families and callback ownership are verified.",
+    "Receipt reports attempted registration after successful script calls, not independent native schema enumeration."
+  ],
+  "contract_sha256": "5e18c32294a479c8188f5625dfc9204300f228332e2e925d326dfb53c12b460b",
+  "diagnostics": "zm_coopSchema{Server,Client}{Revision,Mask,Contract}; not authentication; native clears before each VM load"
+}

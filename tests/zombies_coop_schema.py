@@ -5,14 +5,15 @@ system fixtures supply runtime initialization evidence; this is not a game VM.
 """
 import hashlib
 import json
+import re
 from pathlib import Path
 import struct
 import sys
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 base = root / "scripts/zombies_coop"
-manifest = json.loads((base / "schema-v1.json").read_text(encoding="utf-8"))
-assert (manifest["revision"], manifest["stock_slots"], manifest["schema_slots"], manifest["slot_range"]) == (1, 4, 8, [4, 7])
+manifest = json.loads((base / "schema-v2.json").read_text(encoding="utf-8"))
+assert (manifest["revision"], manifest["stock_slots"], manifest["schema_slots"], manifest["slot_range"]) == (2, 4, 8, [4, 7])
 canonical = json.dumps(manifest["groups"], sort_keys=True, separators=(",", ":")).encode()
 contract = hashlib.sha256(canonical).hexdigest()
 assert manifest["contract_sha256"] == contract
@@ -30,6 +31,11 @@ for name, version, bits in (("castle_inventory", 1, 1), ("stalingrad_wearable", 
     assert (row["version"], row["bits"], row["callback"]) == (version, bits, "zm_utility::setsharedinventoryuimodels")
 assert by_name["island_slot_state"]["suffixes"] == {"_1": 3, "_2": 3, "_3": 3}
 assert by_name["island_slot_state"]["additional"]["bits"] == 1
+replicated = by_name["island_slot_state"]["replicated_pillar"]
+assert (replicated["pool"], replicated["name"], replicated["version"], replicated["bits"], replicated["type"]) == ("scriptmover", "eroded_island_pillar", 9000, 11, "int")
+assert replicated["callback"] == "eroded_coop_fields::island_pillar_clientfield"
+assert replicated["state_shifts"] == [2, 5, 8] and replicated["owner_low_bits"] == 2 and replicated["slot_base"] == 4
+
 
 
 def fnv(value):
@@ -39,7 +45,7 @@ def fnv(value):
     return result
 
 
-def inspect(path, extension):
+def inspect(path, extension, logical_base="scripts/zm/eroded_coop_fields"):
     data = path.read_bytes()
     assert len(data) >= 0x48 and data[:8] == bytes.fromhex("804753430d0a001c")
     u16 = lambda offset: struct.unpack_from("<H", data, offset)[0]
@@ -49,7 +55,7 @@ def inspect(path, extension):
     name_offset = u32(0x34)
     assert 0x48 <= name_offset < len(data)
     name = data[name_offset:data.index(b"\0", name_offset)].decode()
-    assert name == "scripts/zm/eroded_coop_fields." + extension, name
+    assert name == logical_base + "." + extension, name
     includes = []
     for index in range(data[0x44]):
         offset = u32(u32(0x0C) + 4 * index)
@@ -57,9 +63,12 @@ def inspect(path, extension):
         includes.append(data[offset:data.index(b"\0", offset)].decode().replace("\\", "/"))
     assert "scripts/shared/system_shared" in includes
     assert "scripts/shared/clientfield_shared" in includes
-    assert "scripts/zm/_zm_laststand" in includes
-    assert not any("zm_zod" in name or "zm_tomb" in name for name in includes)
-    assert ("scripts/zm/_zm_utility" in includes) == (extension == "csc")
+    if logical_base.endswith("eroded_coop_fields"):
+        assert "scripts/zm/_zm_laststand" in includes
+        assert not any("zm_zod" in name or "zm_tomb" in name for name in includes)
+        assert ("scripts/zm/_zm_utility" in includes) == (extension == "csc")
+    else:
+        assert extension == "gsc" and "scripts/zm/zm_island_challenges" in includes
     imports = set()
     offset = u32(0x24)
     for _ in range(u16(0x3C)):
@@ -68,7 +77,10 @@ def inspect(path, extension):
         offset += 12 + 4 * refs
         assert offset <= len(data)
     assert (fnv("register"), fnv("system"), 4) in imports
-    assert (fnv("register"), fnv("clientfield"), 8 if extension == "csc" else 5) in imports
+    if logical_base.endswith("eroded_coop_fields"):
+        assert (fnv("register"), fnv("clientfield"), 8 if extension == "csc" else 5) in imports
+    else:
+        assert (fnv("set"), fnv("clientfield"), 2) in imports
     if extension == "csc":
         assert any(n == fnv("update_bleedout_timer") and ns == fnv("zm_laststand") for n, ns, _ in imports)
         assert any(n == fnv("setsharedinventoryuimodels") and ns == fnv("zm_utility") for n, ns, _ in imports)
@@ -77,7 +89,7 @@ def inspect(path, extension):
         _, address, name, namespace, params, flags = struct.unpack_from("<IIIIBB", data, u32(0x20) + 20 * index)
         assert code <= address < code + size
         exports.append((name, namespace, params, flags))
-    assert any(n == fnv("__init__system__") and ns == fnv("eroded_coop_fields") and flags & 2 for n, ns, _, flags in exports)
+    assert any(n == fnv("__init__system__") and ns == fnv(logical_base.rsplit("/", 1)[1]) and flags & 2 for n, ns, _, flags in exports)
     return data
 
 
@@ -90,6 +102,12 @@ for extension, side in (("gsc", "Server"), ("csc", "Client")):
     assert 'zm_coopSchema' + side + 'Mask' in source and 'zm_coopSchema' + side + 'Contract' in source
     assert 'zm_coopPlayerLimit' not in source and 'getplayers' not in source.lower()
     assert 'coop_schema_capacity(' not in source and 'coop_schema_report(' not in source
+    assert 'clientfield::register("scriptmover", "eroded_island_pillar", 9000, 11, "int"' in source
+    if extension == "csc":
+        assert '&island_pillar_clientfield' in source and 'record.model hasdobj(localclientnum)' in source
+        assert 'util::spawn_model(localclientnum, template.model, template.pose.origin, template.pose.angles)' in source
+        assert 'for (attempt = 0; attempt < 120; attempt++)' in source
+
     assert not (root / "data/custom_scripts/zm" / ("eroded_coop_fields." + extension)).exists()
     inspect(root / "data/coop_scripts" / ("eroded_coop_fields." + extension), extension)
     fixture = (root / "tests/gsc" / ("eroded_coop_schema_selftest." + extension)).read_text(encoding="utf-8")
@@ -98,3 +116,24 @@ for extension, side in (("gsc", "Server"), ("csc", "Client")):
                          "zm_asylum", "zm_sumpf", "zm_theater", "zm_cosmodrome", "zm_temple", "zm_moon", "zm_tomb"):
         assert 'schema_family_mask("' + official_map + '")' in fixture
 print("PASS: paired BO3 1C asset names/imports/autoexec, fixed schema manifest and stock-session isolation")
+
+# All shipped companions and the UI are one frozen schema-v2 bundle. A stale or
+# cross-fork payload must fail here before building an incompatible executable.
+island = root / "data/coop_scripts/eroded_coop_island_trials.gsc"
+inspect(island, "gsc", "scripts/zm/eroded_coop_island_trials")
+assert not (root / "data/custom_scripts/zm/eroded_coop_island_trials.gsc").exists()
+header = (root / "src/client/component/zombies/companion_payloads.hpp").read_text()
+read_pin = lambda role: re.search(r"\b" + role + r'_sha256\s*=\s*"([0-9a-f]{64})"', header).group(1)
+payloads = {
+    "server": hashlib.sha256((root / "data/coop_scripts/eroded_coop_fields.gsc").read_bytes()).hexdigest(),
+    "client": hashlib.sha256((root / "data/coop_scripts/eroded_coop_fields.csc").read_bytes()).hexdigest(),
+    "island_trials": hashlib.sha256(island.read_bytes()).hexdigest(),
+    "ui": hashlib.sha256((root / "data/coop_scripts/score_models.lua").read_bytes().replace(b"\r\n", b"\n")).hexdigest(),
+}
+for role, digest in payloads.items():
+    assert read_pin(role) == digest, role
+bundle = {"revision": 2, "contract_sha256": contract, "payloads": payloads}
+assert read_pin("bundle") == hashlib.sha256(json.dumps(bundle, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+native = (root / "src/client/component/zombies/companion.hpp").read_text()
+assert re.search(r"companion_revision\s*=\s*2\b", native) and contract in native
+print("PASS: exact three raw companions, canonical UI and schema-v2 bundle pins")

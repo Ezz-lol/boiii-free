@@ -42,7 +42,7 @@ for limit = 5, 8 do
     local values = {n = select("#", wrapped("arg", false, nil))}
     assert(values.n == 4 and calls() == 1)
     local count = 0; for _ in pairs(records) do count = count + 1 end
-    assert(count == 48 and diagnostics.zm_coopSchemaUIRevision == 1)
+    assert(count == 48 and diagnostics.zm_coopSchemaUIRevision == 2)
     assert(Engine.RegisterClientUIModelField == register)
     assert(records["PlayerList.client0.score_cf_damage"].n == 2)
     assert(records["PlayerList.client7.score_cf_death_melee"][2] == 2)

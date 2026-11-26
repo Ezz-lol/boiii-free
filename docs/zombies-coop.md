@@ -14,12 +14,16 @@ and native LAN/system-link targets. Native already allocated capacity wins over
 saved preferences. Solo retains its stock ceiling. Rehost to change allocation.
 Browsing means explicitly selecting a custom host, not an automatic queue.
 
-The early companion bundle consists of paired precompiled BO3 PC 1C GSC/CSC
-fields and a primary-UI score-model constructor. Each executable pins their hashes
-and common revision/contract. It rejects partial or stale installation roots.
-The existing script asset lookup seam appends one include to a fresh retained
-copy of known stock anchors and the selected map root; it preserves the original
-bytecode and opaque source CRC. No new client offset or checksum bypass is added.
+The early companion bundle contains three precompiled BO3 PC 1C payloads: the
+paired `eroded_coop_fields.gsc` and `.csc`, and the Island-only server companion
+`eroded_coop_island_trials.gsc`. They ship under `data/coop_scripts`, alongside
+the separately pinned primary-UI score-model constructor. Each executable pins
+the complete bundle and schema revision/contract, rejecting partial or stale
+installation roots. The existing script asset lookup seam appends reviewed
+companion dependencies to a fresh retained copy of known stock anchors and the
+selected map root. The Island server companion loads only from its verified
+Island anchor. Original bytecode and opaque source CRC remain intact; no new
+client offset or checksum bypass is added.
 Recursive native linking receives a stable object for each canonical name
 within an observed VM generation. A later generation copies the immutable
 pre-link template; prior backing stays retained under the same bounded budget.
@@ -53,6 +57,19 @@ custom maps can inherit the shared stock APIs without rebuilding the map. Unknow
 custom callback owners/gametypes decline adaptation rather than being overwritten.
 Hard-coded four-player quest arrays, custom HUDs and arbitrary map-owned scripting
 cannot be made universally safe by changing the native capacity alone.
+
+The Island trials adapter expands the stock five/six/five task pools on demand
+with independent five-field assignment records, bounded to eight per tier. It
+keeps original selections while records remain and tracks exact player/slot/map
+ownership through disconnect and rejoin. It reuses the retail task workers,
+prompts, rewards, and shared altar. Its global unlock checks the completed current
+roster and preserves a legitimately earned latch. Unknown callback owners or
+foreign challenge state close readiness instead of being overwritten. Original
+four-player world references remain unchanged; four extra non-solid replicated
+locators use validated measured frames for the paired client pillar renderer.
+See [Island trials and validation boundaries](zombies-coop-island-trials.md).
+These new bindings require fresh isolated canaries and actual client interaction
+checks; pool expansion and local helper tests do not certify the full quest.
 
 Two additional lifecycle guards require the exact stock zclassic endgame and
 board-melee callback owners before expanded readiness. On an effectively empty

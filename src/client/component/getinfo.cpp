@@ -163,7 +163,7 @@ struct component final : generic_component {
       std::string schema_error;
       if (schema_capacity && info.get("playmode") == std::to_string(static_cast<int32_t>(game::eModes::ZOMBIES)) &&
           zombies::coop::companion_files_ready(schema_error)) {
-        info.set("coopSchema", "1");
+        info.set("coopSchema", std::to_string(zombies::coop::companion_revision));
         info.set("coopContract", std::string(zombies::coop::companion_contract));
         info.set("coopBundle", zombies::coop::payloads::bundle_sha256);
       }

@@ -17,7 +17,7 @@ arrays = source[source.index("constexpr const char *integers") if "constexpr con
 allowed = set(re.findall(r'"([A-Za-z0-9_]+)"', arrays))
 required = {"mapname", "g_gametype", "sv_running", "com_maxclients", "zm_coopPlayers", "zm_coopStartupEpoch",
             "zm_coopSchemaServerRevision", "zm_coopSchemaClientRevision", "zm_coopRoundStatus",
-            "zm_coopRoundTarget", "zm_coopRoundConsumed", "zm_coopRoundPending", "zm_coopLastEvent"}
+            "zm_coopRoundTarget", "zm_coopRoundConsumed", "zm_coopRoundPending", "zm_coopLastEvent", "zm_coopIslandTrialsStatus"}
 assert required <= allowed
 assert all(name in {"mapname", "g_gametype", "sv_running", "com_maxclients"} or name.startswith("zm_coop") for name in allowed)
 assert not any(re.search(r"password|^rcon|secret|token|xuid|userinfo|commandline|endpoint", name, re.I) for name in allowed)

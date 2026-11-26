@@ -13,11 +13,13 @@ sys.path.insert(0,str(ROOT/'tests'))
 from zombies_coop_disconnect_guards import function,mask,translate,STANDINS
 
 HELPERS=('bot_threat_guard_owned','bot_threat_guard_compatible','install_bot_threat_guard',
+         'bot_grenade_alias_action','bridge_bot_grenade_aliases',
          'guarded_bot_threat_engage','fake_death_guard_owned','fake_death_guard_compatible',
          'install_fake_death_guard','guarded_player_fake_death','install_actor_lifecycle_guards',
          'actor_lifecycle_on_connect')
 
 def actor_translate(body):
+    body=body.replace('self bridge_bot_grenade_aliases()', 'bridge_bot_grenade_aliases.call(self)')
     for a,b in (('&bot_combat::engage_threat','stock_engage'),('&zm::player_fake_death','stock_fake'),
         ('&guarded_bot_threat_engage','guarded_bot_threat_engage'),('&guarded_player_fake_death','guarded_player_fake_death'),
         ('&actor_lifecycle_on_connect','actor_lifecycle_on_connect'),('callback::on_connect','callback_on_connect'),
@@ -29,6 +31,7 @@ ACTOR_STANDINS=r'''
 let thread,connectCallbacks=[],observerLaunches=[],resumes=[],receipts=[];
 function println(message){receipts.push(message);}
 function isalive(value){return isentity(value)&&value.alive!==false;}
+function isweapon(value){return Boolean(value&&value.weapon===true);}
 function register_endon(receiver,event){thread.endons.push({receiver,event});}
 function invoke(fn,self,...args){thread={endons:[],cancelled:false};fn.apply(self,args);return thread;}
 function emit(t,receiver,event){if(t.endons.some(s=>s.receiver===receiver&&s.event===event))t.cancelled=true;}
@@ -48,7 +51,7 @@ function stock_fake(){
 function callback_on_connect(fn){connectCallbacks.push(fn);}
 function launch_observer(epoch,map){observerLaunches.push({epoch,map});}
 function actor(id,extra={}){return {entity:true,player:true,id,bot:{threat:{entity:{entity:true,id:'enemy'}}},...extra};}
-function resetActor(){level={botthreatengage:stock_engage,eroded_coop_started_epoch:1,eroded_coop_started_map:'zm_zod'};currentEpoch=1;currentMap='zm_zod';calls=[];events=[];connectCallbacks=[];observerLaunches=[];resumes=[];receipts=[];}
+function resetActor(){level={weaponnone:{weapon:true,id:'none'},botthreatengage:stock_engage,eroded_coop_started_epoch:1,eroded_coop_started_map:'zm_zod'};currentEpoch=1;currentMap='zm_zod';calls=[];events=[];connectCallbacks=[];observerLaunches=[];resumes=[];receipts=[];}
 function installBoth(){check(install_bot_threat_guard(1,'zm_zod')===true,'install exact stock engage');check(install_fake_death_guard(1,'zm_zod')===true,'install absent-default fake death');}
 '''
 

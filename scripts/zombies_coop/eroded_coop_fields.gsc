@@ -12,12 +12,12 @@
 
 function schema_revision()
 {
-    return 1;
+    return 2;
 }
 
 function schema_contract()
 {
-    return "0d3c7d274e5f3753abe90c252e1b003942c9e9596a995166cd3d3043d4784019";
+    return "5e18c32294a479c8188f5625dfc9204300f228332e2e925d326dfb53c12b460b";
 }
 
 function schema_family_mask(map)
@@ -107,6 +107,7 @@ function register_map_slot_fields(map)
                 clientfield::register("world", "pillar_challenge_" + slot + "_" + challenge, 9000, 3, "int");
             clientfield::register("world", "portal_state_ending_" + slot, 9000, 1, "int");
         }
+        clientfield::register("scriptmover", "eroded_island_pillar", 9000, 11, "int");
     }
 }
 

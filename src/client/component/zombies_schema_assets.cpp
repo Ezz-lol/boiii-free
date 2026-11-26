@@ -85,9 +85,10 @@ bool retention_exhausted() noexcept {
   try { return assets.exhausted(); } catch (...) { return true; }
 }
 
-bool pin_payloads(std::string_view server, std::string_view client, std::string& error) {
+bool pin_payloads(std::string_view server, std::string_view client,
+    std::string_view island, std::string& error) {
   try {
-    const bool result = assets.pin(server, client, error);
+    const bool result = assets.pin(server, client, island, error);
     if (result) diagnostic_event("schema-payloads-pinned",
         static_cast<std::int64_t>(server.size()), static_cast<std::int64_t>(client.size()));
     return result;
@@ -98,7 +99,9 @@ bool pin_payloads(std::string_view server, std::string_view client, std::string&
 
 bool handles_companion(const char* name) noexcept {
   if (!active()) return false;
-  return t7::fixed_companion_role(bounded_path(name)).has_value();
+  const auto identity = t7::fixed_companion_identity(bounded_path(name));
+  if (!identity) return false;
+  return *identity != t7::companion_id::island_trials || assets.island_server_authorized();
 }
 
 script_asset* lookup_companion(const char* name) noexcept {
@@ -113,6 +116,8 @@ script_asset* lookup_companion(const char* name) noexcept {
       fail(error);
       result = assets.emergency_companion(bounded_path(name));
     }
+    else if (t7::fixed_companion_identity(bounded_path(name)) == t7::companion_id::island_trials)
+      retained_event("schema-companion-island", static_cast<std::size_t>(result->len));
     else retained_event(bounded_path(name) == t7::server_companion ?
         "schema-companion-gsc" : "schema-companion-csc", static_cast<std::size_t>(result->len));
     return result;
@@ -126,7 +131,9 @@ script_asset* transform(const char* name, script_asset* original) noexcept {
   if (!active()) return original;
   try {
     const auto path = bounded_path(name);
-    if (!t7::is_schema_anchor(path, frozen_schema_map())) return original;
+    const auto map = frozen_schema_map();
+    if (!t7::is_schema_anchor(path, map)) return original;
+    const bool island_anchor = t7::is_island_server_anchor(path, map);
     sync_client_map(path);
     const auto lease = assets.capture_generation(path);
     if (auto* cached = assets.cached(path, lease)) return cached;
@@ -147,9 +154,22 @@ script_asset* transform(const char* name, script_asset* original) noexcept {
       fail("Schema bootstrap anchor is not a validated raw T7 include object.");
       return original;
     }
+    if (island_anchor) {
+      auto island_clone = t7::clone_with_include(cloned.bytes, t7::island_include);
+      if (island_clone.result == t7::include_result::inserted)
+        cloned.bytes = std::move(island_clone.bytes);
+      else if (island_clone.result != t7::include_result::already_present) {
+        fail("Island bootstrap anchor could not retain its scoped companion include.");
+        return original;
+      }
+    }
     const auto embedded = t7::bounded_name(object, t7::read32(object, 0x34));
     if (!embedded || t7::canonical_script(*embedded) != t7::canonical_script(path)) {
       fail("Schema bootstrap anchor logical name differs from its object.");
+      return original;
+    }
+    if (island_anchor && !assets.authorize_island_server(lease)) {
+      fail("Island bootstrap generation changed before authorization.");
       return original;
     }
     std::string error;

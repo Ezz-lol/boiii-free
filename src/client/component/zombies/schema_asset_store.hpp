@@ -12,8 +12,19 @@ namespace zombies::coop::t7 {
 inline constexpr std::string_view server_companion = "scripts/zm/eroded_coop_fields.gsc";
 inline constexpr std::string_view client_companion = "scripts/zm/eroded_coop_fields.csc";
 inline constexpr std::string_view companion_include = "scripts/zm/eroded_coop_fields";
+inline constexpr std::string_view island_companion = "scripts/zm/eroded_coop_island_trials.gsc";
+inline constexpr std::string_view island_include = "scripts/zm/eroded_coop_island_trials";
 inline constexpr std::size_t retention_limit = 32 * 1024 * 1024;
-inline std::optional<unsigned> fixed_companion_role(std::string_view name) noexcept {
+// Payload identity is distinct from VM realm: both server objects share realm0
+// generations, while each owns its own canonical emergency asset.
+enum class companion_id : unsigned { server_fields, client_fields, island_trials };
+inline constexpr std::size_t companion_count = 3;
+inline constexpr std::array<std::string_view, companion_count> companion_names{
+    server_companion, client_companion, island_companion};
+constexpr unsigned companion_realm(companion_id id) noexcept {
+  return id == companion_id::client_fields ? 1u : 0u;
+}
+inline std::optional<companion_id> fixed_companion_identity(std::string_view name) noexcept {
   const auto same_path = [name](std::string_view expected) noexcept {
     if (name.size() != expected.size()) return false;
     for (std::size_t i = 0; i < name.size(); ++i) {
@@ -24,9 +35,13 @@ inline std::optional<unsigned> fixed_companion_role(std::string_view name) noexc
     }
     return true;
   };
-  if (same_path(server_companion)) return 0;
-  if (same_path(client_companion)) return 1;
+  for (unsigned index = 0; index < companion_names.size(); ++index)
+    if (same_path(companion_names[index])) return static_cast<companion_id>(index);
   return std::nullopt;
+}
+inline std::optional<unsigned> fixed_companion_role(std::string_view name) noexcept {
+  const auto id = fixed_companion_identity(name);
+  return id ? std::optional<unsigned>{companion_realm(*id)} : std::nullopt;
 }
 inline std::string canonical_asset(std::string_view name) {
   auto path = canonical_script(name);
@@ -53,6 +68,9 @@ inline bool is_schema_anchor(std::string_view asset, std::string_view map) {
   return supported_map_name(map) && canonical_script("scripts/zm/" + std::string(map)) == name &&
       (full.ends_with(".gsc") || full.ends_with(".csc"));
 }
+inline bool is_island_server_anchor(std::string_view asset, std::string_view map) {
+  return map == "zm_island" && canonical_asset(asset) == "scripts/zm/zm_island.gsc";
+}
 
 // Native recursive linking needs stable identity within one VM load. Each name
 // receives one mutable object per observed generation; new generations receive
@@ -77,11 +95,12 @@ template <class Asset> class schema_asset_store {
     }
   };
   std::mutex mutex_;
-  std::string server_, client_;
+  std::array<std::string, companion_count> payloads_;
   std::unordered_map<std::string, Asset*> current_[2];
   std::uint64_t generation_[2]{1, 1};
-  std::unique_ptr<entry> emergency_[2];
-  std::uint64_t emergency_generation_[2]{};
+  std::unique_ptr<entry> emergency_[companion_count];
+  std::uint64_t emergency_generation_[companion_count]{};
+  std::uint64_t island_server_generation_{};
   bool exhausted_ = false;
   std::array<std::unique_ptr<entry>, 4096> exposed_{};
   std::size_t count_ = 0;
@@ -99,42 +118,61 @@ public:
   struct generation_lease { unsigned role{}; std::uint64_t generation{}; };
   explicit schema_asset_store(std::size_t limit = retention_limit) : limit_(limit) {}
 
-  bool pin(std::string_view server, std::string_view client, std::string& error) {
-    if (!valid_payload(server, server_companion) || !valid_payload(client, client_companion)) {
-      error = "Companion is not a raw T7 PC object with its fixed logical name.";
-      return false;
+  bool pin(std::string_view server, std::string_view client,
+      std::string_view island, std::string& error) {
+    const std::array<std::string_view, companion_count> incoming{server, client, island};
+    for (std::size_t index = 0; index < companion_count; ++index) {
+      if (!valid_payload(incoming[index], companion_names[index])) {
+        error = "Companion is not a raw T7 PC object with its fixed logical name.";
+        return false;
+      }
     }
     std::scoped_lock lock(mutex_);
     if (exhausted_) {
       error = "Schema asset store is permanently exhausted; restart required.";
       return false;
     }
-    if (!server_.empty() || !client_.empty()) {
-      if (server_ == server && client_ == client) return true;
-      error = "Companion payloads changed after native pinning; restart required.";
-      return false;
+    if (std::any_of(payloads_.begin(), payloads_.end(), [](const auto& value) { return !value.empty(); })) {
+      for (std::size_t index = 0; index < companion_count; ++index) {
+        if (payloads_[index] != incoming[index]) {
+          error = "Companion payloads changed after native pinning; restart required.";
+          return false;
+        }
+      }
+      return true;
     }
-    if (retained_ > limit_ || server.size() > limit_ - retained_ ||
-        client.size() > limit_ - retained_ - server.size()) {
+    if (retained_ > limit_) {
       error = "Companion payloads exceed the retention budget.";
       return false;
     }
-    std::string server_copy(server), client_copy(client);
-    auto emergency_server = std::make_unique<entry>(server_companion,
-        std::vector<std::uint8_t>(server.begin(), server.end()));
-    auto emergency_client = std::make_unique<entry>(client_companion,
-        std::vector<std::uint8_t>(client.begin(), client.end()));
-    const auto entry_charge = [](const entry& e) {
-      return sizeof(entry) + e.name.capacity() + 1 + e.bytes.capacity() + e.immutable.capacity();
-    };
-    const auto charge = server_copy.capacity() + client_copy.capacity() + 2 +
-        entry_charge(*emergency_server) + entry_charge(*emergency_client);
-    if (charge > limit_ - retained_) {
-      error = "Companion payloads exceed the retention budget.";
-      return false;
+    auto remaining = limit_ - retained_;
+    for (const auto bytes : incoming) {
+      if (bytes.size() > remaining) {
+        error = "Companion payloads exceed the retention budget.";
+        return false;
+      }
+      remaining -= bytes.size();
     }
-    server_.swap(server_copy); client_.swap(client_copy);
-    emergency_[0] = std::move(emergency_server); emergency_[1] = std::move(emergency_client);
+    std::array<std::string, companion_count> copies;
+    std::array<std::unique_ptr<entry>, companion_count> emergencies;
+    std::size_t charge = 0;
+    for (std::size_t index = 0; index < companion_count; ++index) {
+      copies[index] = incoming[index];
+      emergencies[index] = std::make_unique<entry>(companion_names[index],
+          std::vector<std::uint8_t>(incoming[index].begin(), incoming[index].end()));
+      const auto& reserved = *emergencies[index];
+      const auto next = copies[index].capacity() + 1 + sizeof(entry) +
+          reserved.name.capacity() + 1 + reserved.bytes.capacity() + reserved.immutable.capacity();
+      if (next > limit_ - retained_ - charge) {
+        error = "Companion payloads exceed the retention budget.";
+        return false;
+      }
+      charge += next;
+    }
+    // Publish only after every identity, allocation and budget check succeeds.
+    payloads_.swap(copies);
+    for (std::size_t index = 0; index < companion_count; ++index)
+      emergency_[index] = std::move(emergencies[index]);
     retained_ += charge;
     return true;
   }
@@ -146,12 +184,25 @@ public:
     const unsigned index = client ? 1u : 0u;
     current_[index].clear();
     ++generation_[index];
+    if (!client) island_server_generation_ = 0;
     return true;
   }
   generation_lease capture_generation(std::string_view name) {
     const auto index = role(canonical_asset(name));
     std::scoped_lock lock(mutex_);
     return {index, generation_[index]};
+  }
+  // Only the native transform of a validated Island server anchor may arm this
+  // identity. A new SERVER VM revokes it; a CSC generation cannot grant it.
+  bool authorize_island_server(generation_lease lease) {
+    std::scoped_lock lock(mutex_);
+    if (exhausted_ || lease.role != 0u || lease.generation != generation_[0]) return false;
+    island_server_generation_ = generation_[0];
+    return true;
+  }
+  bool island_server_authorized() {
+    std::scoped_lock lock(mutex_);
+    return island_server_generation_ != 0 && island_server_generation_ == generation_[0];
   }
   Asset* cached(std::string_view name, std::optional<generation_lease> lease = {}) {
     std::scoped_lock lock(mutex_);
@@ -210,23 +261,30 @@ public:
 
   Asset* companion(std::string_view name, std::string& error,
       std::optional<generation_lease> captured = {}) {
+    const auto identity = fixed_companion_identity(name);
+    if (!identity) { error = "Unknown fixed companion identity."; return nullptr; }
+    const auto index = static_cast<unsigned>(*identity);
+    const auto realm = companion_realm(*identity);
     const auto lease = captured ? *captured : capture_generation(name);
     if (auto* existing = cached(name, lease)) return existing;
     const auto key = canonical_asset(name);
     std::vector<std::uint8_t> bytes;
     {
       std::scoped_lock lock(mutex_);
-      if (lease.role > 1 || lease.role != role(key) || lease.generation != generation_[role(key)]) {
+      if (lease.role != realm || lease.generation != generation_[realm]) {
         error = "Script companion generation changed during lookup; stale work was rejected.";
         return nullptr;
       }
-      const auto& payload = key == server_companion ? server_ : client_;
-      if ((key != server_companion && key != client_companion) || payload.empty()) {
+      if (*identity == companion_id::island_trials && island_server_generation_ != generation_[0]) {
+        error = "Island companion was not authorized by this server VM's map anchor.";
+        return nullptr;
+      }
+      const auto& payload = payloads_[index];
+      if (payload.empty()) {
         error = "Validated companion payload has not been pinned.";
         return nullptr;
       }
-      const auto index = role(key);
-      if (exhausted_ && emergency_generation_[index] == generation_[index])
+      if (exhausted_ && emergency_generation_[index] == generation_[realm])
         return &emergency_[index]->asset;
       bytes.assign(payload.begin(), payload.end());
     }
@@ -237,16 +295,17 @@ public:
   // Admission stays revoked; this permits safe unwinding to the deferred drop.
   Asset* emergency_companion(std::string_view name) {
     // No string/map/vector allocation on the allocation-failure path.
-    const auto chosen = fixed_companion_role(name);
+    const auto chosen = fixed_companion_identity(name);
     if (!chosen) return nullptr;
-    const auto index = *chosen;
+    const auto index = static_cast<unsigned>(*chosen);
+    const auto realm = companion_realm(*chosen);
     std::scoped_lock lock(mutex_);
     exhausted_ = true; // no later expanded generation may reuse this fallback
-    for (const auto& [path, existing] : current_[index])
-      if (fixed_companion_role(path) == chosen) return existing; // preserve identity if normalization ran out of memory
+    for (const auto& [path, existing] : current_[realm])
+      if (fixed_companion_identity(path) == chosen) return existing;
     if (!emergency_[index]) return nullptr;
-    if (emergency_generation_[index] && emergency_generation_[index] != generation_[index]) return nullptr;
-    emergency_generation_[index] = generation_[index];
+    if (emergency_generation_[index] && emergency_generation_[index] != generation_[realm]) return nullptr;
+    emergency_generation_[index] = generation_[realm];
     return &emergency_[index]->asset;
   }
 };

@@ -6,8 +6,9 @@
 #include <string_view>
 
 namespace zombies::coop {
+static_assert(companion_revision >= 1 && companion_revision <= 9, "Update bounded peer token framing for multi-digit revisions.");
 inline std::string schema_token() {
-  return "1:" + std::string(companion_contract) + ":" + payloads::bundle_sha256;
+  return std::to_string(companion_revision) + ":" + std::string(companion_contract) + ":" + payloads::bundle_sha256;
 }
 // Domain separated, length framed and bound to the existing challenge AND the
 // complete native connect command. This declares compatible code; it is not
@@ -15,7 +16,7 @@ inline std::string schema_token() {
 inline std::string schema_proof_message(std::string_view challenge,
                                         std::string_view connect,
                                         std::string_view token) {
-  std::string out("BOIII coop schema v1\n");
+  std::string out("BOIII coop schema v" + std::to_string(companion_revision) + "\n");
   const auto append = [&out](std::string_view value) {
     const auto length = static_cast<std::uint32_t>(value.size());
     for (int shift = 0; shift != 32; shift += 8)
@@ -32,7 +33,7 @@ constexpr int expanded_descriptor_capacity(std::string_view value) noexcept {
 inline bool schema_descriptor_matches(std::string_view revision,
                                       std::string_view contract,
                                       std::string_view bundle) noexcept {
-  return revision == "1" && contract == companion_contract &&
+  return revision.size() == 1 && revision[0] == '0' + companion_revision && contract == companion_contract &&
          bundle == payloads::bundle_sha256;
 }
 // The optional connect tail is bounded before its two length-prefixed strings

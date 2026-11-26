@@ -9,7 +9,7 @@ using script_asset = game::scr::ScriptParseTree;
 
 // Pin the exact bytes whose SHA-256 was checked by the session manifest owner.
 // Once pinned, an in-process payload replacement is refused.
-bool pin_payloads(std::string_view server, std::string_view client, std::string& error);
+bool pin_payloads(std::string_view server, std::string_view client, std::string_view island, std::string& error);
 void begin_vm_generation(bool client) noexcept;
 bool prepare_client_generation(std::string_view map, bool fresh_request, bool& changed) noexcept;
 void reset_client_session_generation() noexcept;

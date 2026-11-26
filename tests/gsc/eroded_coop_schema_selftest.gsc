@@ -7,7 +7,7 @@ function autoexec main()
 {
     capacity = getdvarint("zm_coopSchemaSlots");
     if (!isint(capacity) || capacity < 5 || capacity > 8) return;
-    system::register("eroded_coop_schema_selftest", &run, undefined, "eroded_coop_fields");
+    system::register("eroded_coop_schema_selftest", &run, undefined, array("zm_laststand", "eroded_coop_fields"));
 }
 
 function check(value)
@@ -19,8 +19,8 @@ function check(value)
 function run()
 {
     failures = 0;
-    failures += check(eroded_coop_fields::schema_revision() == 1);
-    failures += check(eroded_coop_fields::schema_contract() == "0d3c7d274e5f3753abe90c252e1b003942c9e9596a995166cd3d3043d4784019");
+    failures += check(eroded_coop_fields::schema_revision() == 2);
+    failures += check(eroded_coop_fields::schema_contract() == "5e18c32294a479c8188f5625dfc9204300f228332e2e925d326dfb53c12b460b");
     failures += check(eroded_coop_fields::schema_family_mask("zm_zod") == 3);
     failures += check(eroded_coop_fields::schema_family_mask("zm_factory") == 3);
     failures += check(eroded_coop_fields::schema_family_mask("zm_castle") == 7);
@@ -36,7 +36,7 @@ function run()
     failures += check(eroded_coop_fields::schema_family_mask("zm_moon") == 35);
     failures += check(eroded_coop_fields::schema_family_mask("zm_tomb") == 3);
     failures += check(eroded_coop_fields::schema_family_mask("zm_user_inherited") == 3);
-    failures += check(getdvarint("zm_coopSchemaServerRevision") == 1);
+    failures += check(getdvarint("zm_coopSchemaServerRevision") == 2);
     failures += check(getdvarstring("zm_coopSchemaServerContract") == eroded_coop_fields::schema_contract());
     for (slot = 4; slot < 8; slot++)
     {

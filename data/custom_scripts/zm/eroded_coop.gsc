@@ -64,6 +64,23 @@ function official_map(map)
         map == "zm_moon" || map == "zm_tomb";
 }
 
+// Island has a separate early trials adapter: its callback and world bindings
+// must be installed before admitting expanded players. Do not wait for stock
+// task-pool initialization here; that happens only after players start the map.
+function island_trials_current(epoch, map, limit)
+{
+    if (map != "zm_island") return true;
+    if (!isint(epoch) || epoch < 1 || !isint(limit) || limit < 5 || limit > 8) return false;
+    return isdefined(level.eroded_island_trials_revision) && isint(level.eroded_island_trials_revision) &&
+        level.eroded_island_trials_revision == 2 &&
+        isdefined(level.eroded_island_trials_epoch) && isint(level.eroded_island_trials_epoch) &&
+        level.eroded_island_trials_epoch == epoch &&
+        isdefined(level.eroded_island_trials_capacity) && isint(level.eroded_island_trials_capacity) &&
+        level.eroded_island_trials_capacity == limit &&
+        isdefined(level.eroded_island_trials_ready) && isint(level.eroded_island_trials_ready) &&
+        level.eroded_island_trials_ready == true;
+}
+
 function map_profile_current(epoch, map)
 {
     return isdefined(level.eroded_coop_profile_map) && level.eroded_coop_profile_map == map &&
@@ -99,6 +116,7 @@ function install(limit, epoch, map)
     started = gettime();
     while (!isdefined(level.player_too_many_players_check_func) || !isdefined(level.func_get_zombie_spawn_delay) ||
         (official_map(map) && !map_profile_current(epoch, map)) ||
+        !island_trials_current(epoch, map, limit) ||
         disconnect_endgame_pending(level.onendgame) || !isdefined(level._notetrack_handler) ||
         (isarray(level._notetrack_handler) && !isdefined(level._notetrack_handler["zombie_window_melee"])) ||
         (map_profile_current(epoch, map) && isdefined(level.eroded_coop_known_total_setup) &&
@@ -267,6 +285,7 @@ function owns_callbacks()
         isdefined(level.eroded_coop_stock_spawn_delay) &&
         level.player_too_many_players_check_func == &player_count_check &&
         level.func_get_zombie_spawn_delay == &spawn_delay &&
+        island_trials_current(getdvarint("zm_coopStartupEpoch"), getdvarstring("mapname"), level.eroded_coop_limit) &&
         round_setup_context_current() && round_setup_owner_owned() && disconnect_guards_owned() &&
         bot_threat_guard_compatible() && fake_death_guard_compatible();
 }
@@ -522,6 +541,78 @@ function install_bot_threat_guard(epoch, map)
     return true;
 }
 
+// The shared retail bot controller reads MP/CP grenade aliases. Zombies instead
+// maintains current_lethal_grenade/current_tactical_grenade. Bridge only aliases
+// we introduced; a defined custom alias or later takeover remains its owner's.
+function bot_grenade_alias_action(state, alias, previous, candidate)
+{
+    if (!isdefined(state))
+    {
+        if (isdefined(alias))
+        {
+            if (isweapon(alias))
+                return 2;
+            return -2;
+        }
+        if (isweapon(candidate))
+            return 1;
+        return -1;
+    }
+    if (!isint(state) || state != 1 || !isdefined(alias) ||
+        !isdefined(previous) || alias != previous)
+    {
+        if (isweapon(alias))
+            return 2;
+        return -2;
+    }
+    if (isweapon(candidate))
+        return 1;
+    return -1;
+}
+
+function bridge_bot_grenade_aliases()
+{
+    // These are the same fields/fallback used by the stock Zombies getters.
+    // Do not give/equip/remove inventory or substitute a fixed grenade asset.
+    primary = self.current_lethal_grenade;
+    secondary = self.current_tactical_grenade;
+    if (!isdefined(primary))
+        primary = level.weaponnone;
+    if (!isdefined(secondary))
+        secondary = level.weaponnone;
+    primary_action = bot_grenade_alias_action(self.eroded_coop_primary_alias_state,
+        self.grenadetypeprimary, self.eroded_coop_primary_alias_value, primary);
+    secondary_action = bot_grenade_alias_action(self.eroded_coop_secondary_alias_state,
+        self.grenadetypesecondary, self.eroded_coop_secondary_alias_value, secondary);
+    // Latch a foreign owner even when its current value is invalid/missing. A
+    // later retry can use a repaired custom value but must never overwrite it.
+    if (primary_action == 2 || primary_action == -2)
+        self.eroded_coop_primary_alias_state = 2;
+    if (secondary_action == 2 || secondary_action == -2)
+        self.eroded_coop_secondary_alias_state = 2;
+    if (primary_action < 0 || secondary_action < 0)
+        return false;
+    if (primary_action == 1)
+    {
+        self.grenadetypeprimary = primary;
+        self.eroded_coop_primary_alias_value = primary;
+        self.eroded_coop_primary_alias_state = 1;
+    }
+    if (secondary_action == 1)
+    {
+        self.grenadetypesecondary = secondary;
+        self.eroded_coop_secondary_alias_value = secondary;
+        self.eroded_coop_secondary_alias_state = 1;
+    }
+    if ((primary_action == 1 || secondary_action == 1) &&
+        !isdefined(self.eroded_coop_grenade_alias_announced))
+    {
+        self.eroded_coop_grenade_alias_announced = true;
+        println("[Zombies coop] bot_grenade_alias=zm_loadout ready=1");
+    }
+    return true;
+}
+
 function guarded_bot_threat_engage()
 {
     if (!bot_threat_guard_owned() || !isdefined(self) || !isentity(self) || !isplayer(self) || !isalive(self))
@@ -544,6 +635,11 @@ function guarded_bot_threat_engage()
     threat = self.bot.threat.entity;
     if (isplayer(threat) && isdefined(threat.player_disconnected) && threat.player_disconnected == 1)
         return;
+    if (!self bridge_bot_grenade_aliases())
+    {
+        diagnostic_event("bot_grenade_alias_unavailable");
+        return;
+    }
     self [[level.eroded_coop_bot_threat_original]]();
 }
 
