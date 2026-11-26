@@ -3,6 +3,9 @@
 #include <game/utils.hpp>
 
 #include <component/bots/spawn_policy.hpp>
+#include <component/bots/observation_policy.hpp>
+#include <component/bots/cleanup_policy.hpp>
+#include <component/zombies/schema_assets.hpp>
 #include <component/command.hpp>
 #include <component/game_event.hpp>
 #include <component/getinfo.hpp>
@@ -177,8 +180,18 @@ int format_bot_string(char *buffer, [[maybe_unused]] const char *format,
 }
 std::atomic<std::uint64_t> spawn_epoch{1};
 
+std::atomic<std::uint64_t> roster_initialized_epoch{0};
+
 void invalidate_spawn_batches() {
+  roster_initialized_epoch.store(0, std::memory_order_release);
   spawn_epoch.fetch_add(1, std::memory_order_acq_rel);
+}
+
+void mark_roster_initialized() noexcept {
+  // Registered after existing G_InitGame invalidation. No native arrays are
+  // read here; only server-pipeline publication can inspect those arrays.
+  roster_initialized_epoch.store(spawn_epoch.load(std::memory_order_acquire),
+                                 std::memory_order_release);
 }
 
 template <typename Client>
@@ -229,6 +242,56 @@ read_spawn_session(bool inspect_occupancy) {
   return current;
 }
 
+std::optional<observation::snapshot> read_roster_session() {
+  if (!getinfo::is_host())
+    return std::nullopt;
+  const auto epoch = spawn_epoch.load(std::memory_order_acquire);
+  if (!epoch ||
+      roster_initialized_epoch.load(std::memory_order_acquire) != epoch)
+    return std::nullopt;
+  observation::snapshot current;
+  current.epoch = epoch;
+  current.host = true;
+  current.initialized = true;
+  current.mode = static_cast<int>(game::com::Com_SessionMode_GetMode());
+  current.capacity = static_cast<int>(+game::get_com_maxclients());
+  current.map = std::string(game::get_mapname().value_or(""));
+  if (current.mode == 0) {
+    current.schema_failed = zombies::coop::schema_assets_failed();
+    current.frozen_capacity = zombies::coop::frozen_schema_capacity();
+    if (current.capacity > 4 || current.frozen_capacity > 4) {
+      current.native_epoch = zombies::coop::active_startup_epoch();
+      current.frozen_map = zombies::coop::frozen_schema_map();
+      // Native source identity is distinct from positive admission/readiness.
+      // This remains valid during current ending until native VM shutdown.
+      current.source_current =
+          zombies::coop::schema_assets::score_producer_ready();
+    }
+  }
+  // Identity only: never inspect svs_clients on a command/main thread.
+  if (epoch != spawn_epoch.load(std::memory_order_acquire) ||
+      roster_initialized_epoch.load(std::memory_order_acquire) != epoch ||
+      (current.native_epoch > 0 &&
+       current.native_epoch != zombies::coop::active_startup_epoch()) ||
+      !observation::valid(current))
+    return std::nullopt;
+  return current;
+}
+
+std::optional<cleanup::snapshot> read_ending_cleanup_session() {
+  const auto before = read_roster_session();
+  if (!before || before->mode != 0 || before->capacity < 5 ||
+      !zombies::coop::ending_session_current())
+    return std::nullopt;
+  const auto after = read_roster_session();
+  if (!after || !observation::same_session(*before, *after) ||
+      !zombies::coop::session_ending())
+    return std::nullopt;
+  cleanup::snapshot current{*after, true};
+  return cleanup::valid(current) ? std::optional<cleanup::snapshot>{current}
+                                 : std::nullopt;
+}
+
 std::string roster_map_token(std::string_view map) {
   std::string result;
   for (std::size_t i = 0; i < map.size() && i < 64; ++i) {
@@ -262,9 +325,9 @@ bool append_roster_slots(std::string &json, const Client *clients,
   return true;
 }
 
-void publish_bot_roster(const policy::session_snapshot &requested) {
-  const auto current = read_spawn_session(false);
-  if (!current || !policy::same_session(requested, *current)) {
+void publish_bot_roster(const observation::snapshot &requested) {
+  const auto current = read_roster_session();
+  if (!current || !observation::same_session(requested, *current)) {
     printf("COOP_BOT_ROSTER|{\"version\":1,\"error\":\"stale_session\"}\n");
     fflush(stdout);
     return;
@@ -280,12 +343,64 @@ void publish_bot_roster(const policy::session_snapshot &requested) {
           : append_roster_slots(json, *game::sv::svs_clients_cl,
                                 current->capacity);
   json += "]}";
-  const auto after = read_spawn_session(false);
-  if (valid_slots && after && policy::same_session(requested, *after))
+  const auto after = read_roster_session();
+  if (valid_slots && after && observation::same_session(requested, *after))
     printf("COOP_BOT_ROSTER|%s\n", json.c_str());
   else
     printf("COOP_BOT_ROSTER|{\"version\":1,\"error\":\"stale_session\"}\n");
   fflush(stdout);
+}
+
+bool drop_ending_test_client(const cleanup::snapshot &requested, int slot,
+                             std::uint64_t generation) {
+  const auto current = read_ending_cleanup_session();
+  if (!current || !cleanup::same_session(requested, *current) || slot < 0 ||
+      slot >= current->identity.capacity)
+    return false;
+  game::sv::client_s *target = nullptr;
+  if (game::is_server()) {
+    auto *clients = *game::sv::svs_clients;
+    if (clients)
+      target = &clients[slot];
+  } else {
+    auto *clients = *game::sv::svs_clients_cl;
+    if (clients)
+      target = &clients[slot];
+  }
+  if (!target || !cleanup::may_cleanup_test_client(
+                     requested, *current, generation, slot,
+                     static_cast<int>(target->state) >=
+                         static_cast<int>(game::net::clientState_t::CONNECTED),
+                     target->bIsTestClient))
+    return false;
+  // Native source/lifecycle sampling can revoke identity; check it before the
+  // final array, state and native test-client bit reads on the server pipeline.
+  const auto after = read_ending_cleanup_session();
+  if (!after || !cleanup::same_session(requested, *after))
+    return false;
+  game::sv::client_s *final_target = nullptr;
+  if (game::is_server()) {
+    auto *clients = *game::sv::svs_clients;
+    if (clients)
+      final_target = &clients[slot];
+  } else {
+    auto *clients = *game::sv::svs_clients_cl;
+    if (clients)
+      final_target = &clients[slot];
+  }
+  if (!final_target || target != final_target ||
+      static_cast<int>(target->state) <
+          static_cast<int>(game::net::clientState_t::CONNECTED) ||
+      !target->bIsTestClient ||
+      spawn_epoch.load(std::memory_order_acquire) != requested.identity.epoch ||
+      roster_initialized_epoch.load(std::memory_order_acquire) !=
+          requested.identity.epoch ||
+      zombies::coop::active_startup_epoch() !=
+          requested.identity.native_epoch ||
+      zombies::coop::schema_assets_failed() || !zombies::coop::session_ending())
+    return false;
+  game::sv::SV_DropClient(target, "Coop test client removal", true, true);
+  return true;
 }
 
 bool drop_current_test_client(const policy::session_snapshot &requested,
@@ -330,6 +445,7 @@ struct component final : generic_component {
     }
 
     game_event::on_g_init_game(invalidate_spawn_batches);
+    game_event::on_g_init_game(mark_roster_initialized);
     game_event::on_g_shutdown_game(invalidate_spawn_batches);
     command::add("spawnBot", [](const command::params &params) {
       if (params.size() > 2) {
@@ -364,7 +480,7 @@ struct component final : generic_component {
     });
     command::add("coopBotRoster", [](const command::params &params) {
       const auto requested =
-          params.size() == 1 ? read_spawn_session(false) : std::nullopt;
+          params.size() == 1 ? read_roster_session() : std::nullopt;
       if (!requested) {
         printf("COOP_BOT_ROSTER|{\"version\":1,\"error\":\"session_not_ready\"}"
                "\n");
@@ -383,18 +499,23 @@ struct component final : generic_component {
           params.size() == 3 ? policy::parse_unsigned(params[2], UINT64_MAX)
                              : std::nullopt;
       const auto requested = read_spawn_session(false);
-      if (!slot || !generation || !requested || *generation == 0 ||
-          *generation != requested->epoch) {
+      const auto ending_requested = requested ? std::optional<cleanup::snapshot>{}
+          : read_ending_cleanup_session();
+      const auto requested_epoch = requested ? requested->epoch
+          : ending_requested ? ending_requested->identity.epoch : 0;
+      if (!slot || !generation || (!requested && !ending_requested) || *generation == 0 ||
+          *generation != requested_epoch) {
         printf("COOP_BOT_KICK|{\"error\":\"invalid_or_stale_request\","
                "\"dropped\":false}\n");
         fflush(stdout);
         return;
       }
       scheduler::once(
-          [requested = *requested, slot = static_cast<int>(*slot),
-           generation = *generation] {
-            const bool dropped =
-                drop_current_test_client(requested, slot, generation);
+          [requested, ending_requested, slot = static_cast<int>(*slot),
+          generation = *generation] {
+            const bool dropped = requested
+              ? drop_current_test_client(*requested, slot, generation)
+              : drop_ending_test_client(*ending_requested, slot, generation);
             zombies::coop::diagnostic_event("bot_kick", slot, dropped ? 1 : 0);
             printf("COOP_BOT_KICK|{\"slot\":%d,\"generation\":%llu,\"dropped\":"
                    "%s}\n",

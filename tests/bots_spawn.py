@@ -18,7 +18,10 @@ assert "CONNECTED" in drop and "SV_DropClient(target" in drop
 assert drop.index("policy::may_drop_test_client") < drop.index("SV_DropClient(target")
 assert not re.search(r'execute[^\n]*kick|clientkick|kickclient', drop, re.I)
 assert 'command::add("coopKickTestClient"' in source and 'command::add("coopBotRoster"' in source
-assert "*generation != requested->epoch" in source
+assert "*generation != requested_epoch" in source
+assert re.search(r"requested\s*\?\s*requested->epoch\s*:\s*ending_requested\s*\?\s*ending_requested->identity.epoch\s*:\s*0", source)
+assert "read_roster_session()" in source and "read_ending_cleanup_session()" in source
+assert "cleanup::may_cleanup_test_client" in source
 assert "policy::parse_unsigned(params[1], 17)" in source
 assert "policy::parse_unsigned(params[2], UINT64_MAX)" in source
 print("PASS bounded native bot roster, generation checks, exact test-client-only native drop and no human kick route")

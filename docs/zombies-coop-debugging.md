@@ -247,3 +247,20 @@ stock Gorod Krovi registration to run out of space. Registry entry count,
 physical player-state arrays and the usable per-set packing budget are different
 limits; this adapter does not widen engine structures or native network fields.
 Controlled test-only dispatch fixtures are never installed in production data.
+
+## Bot observations and terminal cleanup
+
+`coopBotRoster` can observe a current expanded Zombies session after its normal
+ending has withdrawn admission. It requires the initialized native session,
+matching frozen map/capacity, and current score-source ownership. The command
+queues native array reads on the server pipeline; observation never grants new
+allocations or reopens joins.
+
+`coopKickTestClient <slot> <roster-generation>` retains its normal readiness
+checks. During a verified current ending it can also remove a connected native
+test client, with typed dedicated/listen array indexing and final identity,
+state and test-client checks. Human clients and stale generations are rejected.
+A request captured before ending may reject when executed after ending; a fresh
+request must use a fresh current roster. Initialization receipts identify the
+existing G_InitGame hook stage, rather than independently proving engine memory
+quiescence. Live client and gameplay verification are still required.
