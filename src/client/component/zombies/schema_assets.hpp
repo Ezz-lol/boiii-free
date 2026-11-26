@@ -2,6 +2,7 @@
 
 #include "game/game.hpp"
 #include "common_helper_source_pair.hpp"
+#include "map_failure_diagnostic.hpp"
 #include <string>
 #include <string_view>
 
@@ -47,6 +48,8 @@ bool pin_all_map_helpers(std::string &error) noexcept;
 script_asset *current_map_backing(const char *name) noexcept;
 bool map_mechanics_ready() noexcept;
 std::string map_source_diagnostic();
+// Current-lease diagnostic POD; unavailable for failures outside mapped routes.
+map_diagnostics::failure_snapshot current_map_failure() noexcept;
 // Optional Ezz replacefunc rejection for targets inside current owned helpers.
 bool reject_map_helper_detour(std::uintptr_t target) noexcept;
 

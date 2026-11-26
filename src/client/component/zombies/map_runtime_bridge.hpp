@@ -3,6 +3,7 @@
 // routes these stock paths here BEFORE any generic anchor producer.
 #include "map_import_binding.hpp"
 #include "map_companion_names.hpp"
+#include "map_failure_diagnostic.hpp"
 #include <limits>
 
 namespace zombies::coop::map_runtime_bridge {
@@ -29,6 +30,7 @@ template <class Asset> struct operation {
   Asset *asset{}; // declined has no asset; emergency is for failure unwinding only
   const char *reason{"bridge_declined"};
   std::string detail;
+  map_diagnostics::source_observation source{}; // metadata from the existing hash callback only
   bool okay() const noexcept {
     return state == outcome::cached || state == outcome::transformed || state == outcome::helper;
   }
@@ -117,9 +119,10 @@ bool pin_helpers(Store &store,
 }
 
 template <class Store, class Asset, std::size_t N, class Request, class Guard>
-operation<Asset> route_stock(Store &store, receipts<Asset, N> &proofs,
+operation<Asset> route_stock_worker(Store &store, receipts<Asset, N> &proofs,
     std::span<const descriptor> rows, const Request &r, std::string_view path,
-    Asset *original, binding::hash_function hash, Guard guard) noexcept {
+    Asset *original, binding::hash_function hash, Guard guard,
+    map_diagnostics::source_observation *observation) noexcept {
   std::optional<std::size_t> chosen;
   std::uint64_t ticket = 0;
   const auto release = [&]() noexcept {
@@ -198,7 +201,7 @@ operation<Asset> route_stock(Store &store, receipts<Asset, N> &proofs,
       const auto *begin = reinterpret_cast<const std::uint8_t *>(original->buffer);
       pristine = std::vector<std::uint8_t>(begin, begin + original->len);
     }
-    auto changed = binding::transform(*pristine, contract, hash);
+    auto changed = binding::transform(*pristine, contract, hash, observation);
     if (!changed.changed) { release(); return detail::declined<Asset>("raw_contract_declined", std::move(changed.reason)); }
     if (row.add_core_fields_include) {
       auto included = t7::clone_with_include(changed.bytes, "scripts/zm/eroded_coop_fields");
@@ -225,6 +228,26 @@ operation<Asset> route_stock(Store &store, receipts<Asset, N> &proofs,
     if (!published) { release(); return detail::declined<Asset>("context_changed_before_receipt"); }
     return {outcome::transformed, retained, "retained_from_pristine", {}};
   } catch (...) { release(); return {outcome::declined, nullptr, "bridge_exception", {}}; }
+}
+
+// Observe the exact pristine bytes passed to the existing digest gate. No extra
+// hashing/engine call is introduced, and no diagnostic work occurs under store
+// callbacks. Failed hashing explicitly leaves the digest unavailable.
+template <class Store, class Asset, std::size_t N, class Request, class Guard>
+operation<Asset> route_stock(Store &store, receipts<Asset, N> &proofs,
+    std::span<const descriptor> rows, const Request &r, std::string_view path,
+    Asset *original, binding::hash_function hash, Guard guard) noexcept {
+  map_diagnostics::source_observation observed{};
+  if (original && original->len > 0)
+    observed.bytes = static_cast<std::uint64_t>(original->len);
+  try {
+    auto result = route_stock_worker(store, proofs, rows, r, path, original,
+                                     hash, std::move(guard), &observed);
+    result.source = observed;
+    return result;
+  } catch (...) {
+    return {outcome::declined, nullptr, "bridge_exception", {}, observed};
+  }
 }
 
 template <class Store, class Asset, std::size_t N, class Request, class Guard>

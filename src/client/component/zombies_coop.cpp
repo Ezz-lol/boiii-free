@@ -7,6 +7,7 @@
 #include "zombies/coop_runtime.hpp"
 #include "zombies/startup_gate.hpp"
 #include "zombies/companion.hpp"
+#include "zombies/schema_assets.hpp"
 #include "zombies/common_helper_native_context.hpp"
 #include "zombies/diagnostics.hpp"
 #include "zombies_lobby_vm.hpp"
@@ -270,7 +271,12 @@ void check_startup() {
   refresh_schema_session();
   // Called only after scheduler task locks have been released.
   if (const char *error = poll_startup()) {
-    game::com::Com_Error(game::errorParm::DROP, "%s", error);
+    // Capture destroys ticket/string/lock temporaries before the engine error
+    // may longjmp. Only trivially destructible POD and fixed buffers remain.
+    const auto failure = schema_assets::current_map_failure();
+    std::array<char, 1024> message{};
+    map_diagnostics::format_failure_error(error, failure, message);
+    game::com::Com_Error(game::errorParm::DROP, "%s", message.data());
   }
 }
 

@@ -220,11 +220,45 @@ std::optional<map_owned_request> capture_map_backing_identity(std::string_view p
   return map_identity_owned(r) ? std::optional<map_owned_request>(std::move(r)) : std::nullopt;
 }
 
+// Only the retained-store mutex accesses this receipt/owner. Keeping the
+// immutable owner alive prevents pointer reuse from making an old receipt current.
+map_diagnostics::failure_snapshot map_first_failure;
+common_helper::native_ticket map_first_failure_owner;
+int map_stock_row(std::string_view path, std::string_view map) {
+  const auto canonical = t7::canonical_asset(path);
+  const auto rows = map_descriptors();
+  for (std::size_t i = 0; i < rows.size(); ++i)
+    if (rows[i].path == canonical && map_bridge::detail::applies(rows[i], map)) return static_cast<int>(i);
+  return -1;
+}
+int map_helper_row(std::string_view path) {
+  const auto index = t7::map_companion_identity(path);
+  return index ? static_cast<int>(*index) : -1;
+}
+map_diagnostics::source_observation map_helper_source(int index) noexcept {
+  map_diagnostics::source_observation result{};
+  if (index >= 0 && static_cast<std::size_t>(index) < map_mechanics::compiled_payloads.size())
+    result.bytes = map_mechanics::compiled_payloads[static_cast<std::size_t>(index)].bytes.size();
+  return result; // No extra digest is computed for diagnostics.
+}
+map_diagnostics::failure_snapshot map_failure_candidate(const map_owned_request &r,
+    map_diagnostics::failure_stage stage, int row, int helper, std::string_view reason,
+    std::string_view detail, map_diagnostics::source_observation source) noexcept {
+  map_diagnostics::failure_snapshot result{};
+  result.available = true; result.stage = stage; result.row = row; result.helper = helper;
+  result.epoch = r.ticket->epoch; result.capacity = r.capacity; result.generation = r.lease.generation;
+  result.source = source;
+  map_diagnostics::bounded_text(result.reason, reason);
+  map_diagnostics::bounded_text(result.detail, detail);
+  return result;
+}
 struct map_failure_publication { bool current{}, first{}; };
-map_failure_publication map_latch_failure_locked(const map_owned_request &r) noexcept {
+map_failure_publication map_latch_failure_locked(const map_owned_request &r,
+    const map_diagnostics::failure_snapshot &candidate) noexcept {
   // Call ONLY from assets.if_current. No logging/engine/other locks here.
   if (!map_identity_owned(r)) return {};
   const bool first = latch_schema_asset_failure();
+  if (first) { map_first_failure = candidate; map_first_failure_owner = r.ticket; }
   (void)common_helper::revoke_native_session(r.ticket);
   return {true, first};
 }
@@ -233,12 +267,29 @@ void map_report_failure(map_failure_publication publication, std::string_view re
   if (!publication.first) return;
   try { report_schema_asset_failure(reason); } catch (...) {}
 }
-void map_publish_failure(const map_owned_request &r, std::string_view reason) noexcept {
+void map_publish_failure(const map_owned_request &r, std::string_view report_reason,
+    map_diagnostics::failure_stage stage, int row, int helper, std::string_view reason,
+    std::string_view detail = {}, map_diagnostics::source_observation source = {}) noexcept {
+  const auto candidate = map_failure_candidate(r, stage, row, helper, reason, detail, source);
   map_failure_publication publication;
   try {
-    (void)assets.if_current(r.lease, [&] { publication = map_latch_failure_locked(r); });
+    (void)assets.if_current(r.lease, [&] { publication = map_latch_failure_locked(r, candidate); });
   } catch (...) {}
-  map_report_failure(publication, reason);
+  map_report_failure(publication, report_reason);
+}
+map_diagnostics::failure_snapshot map_failure_snapshot() noexcept {
+  try {
+    auto r = capture_map_backing_identity("scripts/zm/__map_failure_diagnostic.gsc");
+    if (!r) return {};
+    map_diagnostics::failure_snapshot result{};
+    (void)assets.if_current(r->lease, [&] {
+      if (map_identity_owned(*r) && schema_assets_failed() && map_first_failure_owner == r->ticket &&
+          map_first_failure.available && map_first_failure.generation == r->lease.generation &&
+          map_first_failure.epoch == r->ticket->epoch && map_first_failure.capacity == r->capacity)
+        result = map_first_failure;
+    });
+    return result;
+  } catch (...) { return {}; }
 }
 std::string map_operation_reason(const map_bridge::operation<script_asset> &result) {
   std::string reason(result.reason);
@@ -306,11 +357,15 @@ bool map_pin_all_helpers(std::string &error) noexcept {
 }
 script_asset *map_transform_stock(const char *name, script_asset *original) noexcept {
   std::optional<map_owned_request> r;
+  map_diagnostics::source_observation observed{};
+  int row = -1;
   try {
     if (!map_known_stock(name)) return original;
     const auto path = bounded_path(name);
     r = capture_map_request(path);
     if (!r) return original; // rejected identities cannot publish a successor failure
+    row = map_stock_row(path, r->map);
+    if (original && original->len > 0) observed.bytes = static_cast<std::uint64_t>(original->len);
     map_bridge::operation<script_asset> result;
     {
       const std::lock_guard lock(map_operation_mutex);
@@ -318,25 +373,30 @@ script_asset *map_transform_stock(const char *name, script_asset *original) noex
       result = map_bridge::route_stock(assets, map_proofs, map_descriptors(), view, path,
           original, castle_digest, [&]() noexcept { return map_identity_owned(*r); });
     }
+    observed = result.source;
     if (result.state == map_bridge::outcome::untouched) return original;
     if (result.okay()) return result.asset;
     // Return stock only for native unwinding AFTER expansion is atomically
     // withdrawn. The outer startup/admission gate must observe the failure.
     const auto reason = map_operation_reason(result); // allocation/log text outside both locks
-    map_publish_failure(*r, reason);
+    map_publish_failure(*r, reason, map_diagnostics::failure_stage::stock_transform, row, -1,
+                        result.reason, result.detail, observed);
     return original;
   } catch (...) {
-    if (r) map_publish_failure(*r, "map_stock_native_glue_exception");
+    if (r) map_publish_failure(*r, "map_stock_native_glue_exception",
+        map_diagnostics::failure_stage::stock_exception, row, -1, "map_stock_native_glue_exception", {}, observed);
     return original;
   }
 }
 script_asset *map_lookup_helper(const char *name) noexcept {
   std::optional<map_owned_request> r;
+  int helper = -1;
   try {
     if (!map_known_helper(name)) return nullptr;
     const auto path = bounded_path(name);
     r = capture_map_request(path, true);
     if (!r) return nullptr;
+    helper = map_helper_row(path);
     map_bridge::operation<script_asset> result;
     {
       const std::lock_guard lock(map_operation_mutex);
@@ -347,7 +407,8 @@ script_asset *map_lookup_helper(const char *name) noexcept {
     if (result.okay() || result.state == map_bridge::outcome::untouched) return result.asset;
     // lookup_helper obtains guarded emergency backing before this publication.
     const auto reason = map_operation_reason(result);
-    map_publish_failure(*r, reason);
+    map_publish_failure(*r, reason, map_diagnostics::failure_stage::helper_lookup, -1, helper,
+                        result.reason, result.detail, map_helper_source(helper));
     return result.state == map_bridge::outcome::emergency ? result.asset : nullptr;
   } catch (...) {
     // Capture can throw before a usable identity exists. Never use an unscoped
@@ -358,7 +419,9 @@ script_asset *map_lookup_helper(const char *name) noexcept {
         emergency = assets.emergency_map_companion(bounded_path(name), r->lease,
             [&]() noexcept { return map_identity_owned(*r); });
       } catch (...) {}
-      map_publish_failure(*r, "map_helper_native_glue_exception");
+      map_publish_failure(*r, "map_helper_native_glue_exception",
+          map_diagnostics::failure_stage::helper_exception, -1, helper, "map_helper_native_glue_exception",
+          {}, map_helper_source(helper));
     }
     return emergency;
   }
@@ -504,7 +567,10 @@ bool map_observe_helper_detour(std::uintptr_t target) noexcept {
         if (range.asset && proof.generation == r->lease.generation && proof.asset == range.asset &&
             target >= range.begin && target < range.end) {
           rejected = true;
-          publication = map_latch_failure_locked(*r); break;
+          const auto candidate = map_failure_candidate(*r, map_diagnostics::failure_stage::helper_detour,
+              -1, static_cast<int>(i), "replacefunc_target_inside_owned_map_helper", {},
+              map_helper_source(static_cast<int>(i)));
+          publication = map_latch_failure_locked(*r, candidate); break;
         }
       }
     });
@@ -756,6 +822,7 @@ bool pin_all_map_helpers(std::string &error) noexcept { return map_pin_all_helpe
 script_asset *current_map_backing(const char *name) noexcept { return map_current_backing(name); }
 bool map_mechanics_ready() noexcept { return map_ready(); }
 std::string map_source_diagnostic() { return map_diagnostic(); }
+map_diagnostics::failure_snapshot current_map_failure() noexcept { return map_failure_snapshot(); }
 bool reject_map_helper_detour(std::uintptr_t target) noexcept {
   return map_observe_helper_detour(target);
 }

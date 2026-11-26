@@ -3,6 +3,7 @@
 // Exact, pre-link game-script metadata bindings.
 // This changes import metadata only; every byte of executable code is retained.
 #include "compiled_includes.hpp"
+#include "map_failure_diagnostic.hpp"
 #include <map>
 #include <set>
 #include <tuple>
@@ -109,7 +110,8 @@ inline std::optional<std::size_t> instruction_end(std::uint32_t reference,
 } // namespace detail
 
 inline result transform(std::span<const std::uint8_t> input, const contract &c,
-                        hash_function hash) {
+                        hash_function hash, map_diagnostics::source_observation *observation = nullptr) {
+  if (observation) { *observation = {}; observation->bytes = input.size(); }
   using namespace detail;
   const auto fail = [](const char *reason) { return result{false, reason, {}}; };
   const auto canonical = canonical_script(c.logical_name);
@@ -124,7 +126,9 @@ inline result transform(std::span<const std::uint8_t> input, const contract &c,
       input.size() != c.object_size ||
       !std::equal(object_magic.begin(), object_magic.end(), input.begin()))
     return fail("raw_header_or_size");
-  if (hash(input) != c.sha256) return fail("unknown_asset_sha256");
+  const auto source_digest = hash(input);
+  if (observation) { observation->sha256 = source_digest; observation->sha256_computed = true; }
+  if (source_digest != c.sha256) return fail("unknown_asset_sha256");
   const auto code = read32(input, 0x14), size = read32(input, 0x30);
   if (read32(input, 8) != c.source_crc || code != c.code || size != c.code_size ||
       code < object_header_size || !size || !bounded(input, code, size))
