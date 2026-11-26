@@ -16,6 +16,10 @@ def translate(body):
     parameters=set(filter(None,(v.strip() for v in re.search(r'function\s+(?:autoexec\s+)?\w+\(([^)]*)\)',body)[1].split(','))))
     variables=set(re.findall(r'(?<![\w.])([A-Za-z_]\w*)\s*=(?!=)',masked))-parameters
     body=body.replace('function autoexec main','function main').replace('level thread install','install')
+    # Observer registration belongs to the separate ending actual-body suite.
+    # Keep registration visible here while isolating round observations.
+    body=body.replace('level thread watch_pre_end_game', 'register_pre_end_game')
+    body=body.replace('level thread watch_direct_end_game', 'register_direct_end_game')
     body=body.replace('getplayers().size','getplayers().length')
     body=re.sub(r'\s*level endon\(#"(?:intermission|end_game)"\);','',body)
     if 'wait 1;' in body:
@@ -29,6 +33,7 @@ const assert=require('node:assert/strict');let checks=0,level={},dvars={},writes
 function check(value,message){checks++;assert.ok(value,message);}
 function isdefined(value){return value!==undefined;}
 function isint(value){return Number.isInteger(value)&&value>=-2147483648&&value<=2147483647;}
+function isstring(value){return typeof value==='string';}
 function getdvarint(name){return dvars[name]??0;}
 function getdvarstring(name){return dvars[name]??'';}
 function setdvar(name,value){writes.push([name,value]);dvars[name]=value;}
@@ -36,6 +41,7 @@ function clear_readiness(){setdvar('zm_coopReadyEpoch',0);setdvar('zm_coopReadyM
 function owns_callbacks(){return owned;}
 function getplayers(){return [{},{}];}
 function install(...args){installs.push(args);}
+function register_pre_end_game(){}function register_direct_end_game(){}
 function reset(){level={};dvars={zm_coopStartupEpoch:17,mapname:'zm_castle',zm_coopAppliedLimit:8,zm_coopRoundNumber:91};writes=[];installs=[];owned=true;}
 '''
 
@@ -73,6 +79,13 @@ for(const change of[()=>dvars.zm_coopStartupEpoch=18,()=>dvars.mapname='zm_tomb'
 reset();level.round_number=11;owned=false;let it=diagnostic_heartbeat(17,'zm_castle');check(it.next().done&&!writes.some(w=>w[0]==='zm_coopRoundNumber'),'unknown ownership exits before publication');
 reset();level.round_number=2;it=diagnostic_heartbeat(17,'zm_castle');it.next();level.round_number=3;it.next();check(dvars.zm_coopRoundNumber===3,'successive owned observations progress');
 delete level.round_number;it.next();check(dvars.zm_coopRoundNumber===0,'missing round in later special/teardown observation becomes unknown');it.return();
+reset();level.round_number=11;it=diagnostic_heartbeat(17,'zm_castle');it.next();
+level.eroded_coop_ending_epoch=17;level.eroded_coop_ending_map='zm_castle';writes=[];dvars.zm_coopRoundNumber=11;level.round_number=12;
+check(it.next().done&&writes.length===0&&dvars.zm_coopRoundNumber===11,'same-epoch terminal latch stops round publication after a yield');
+for(const [epoch,map]of[[16,'zm_castle'],[17,'zm_tomb'],['17','zm_castle'],[17,42]]){
+ reset();level.eroded_coop_ending_epoch=epoch;level.eroded_coop_ending_map=map;level.round_number=8;
+ it=diagnostic_heartbeat(17,'zm_castle');check(!it.next().done&&dvars.zm_coopRoundNumber===8,'stale or malformed terminal identity cannot stop current round observations');it.return();
+}
 console.log(JSON.stringify({passed:true,checks,scope:'Actual production main/startup_current/heartbeat bodies with explicit dvar/ownership/array/scheduler stand-ins. No GSC VM, engine scheduling or runtime diagnosis claim.'}));
 '''
 
@@ -84,7 +97,7 @@ def main():
     source=ROOT/'scripts/zombies_coop/eroded_coop.gsc';family='cb'
     if not source.is_file():source=ROOT/'data/custom_scripts/zm/eroded_coop.gsc';family='ezz'
     text=source.read_text(encoding='utf-8')
-    actual={name:function(text,signature) for name,signature in [('main','function autoexec main('),('startup','function startup_current('),('heartbeat','function diagnostic_heartbeat(')]}
+    actual={name:function(text,signature) for name,signature in [('main','function autoexec main('),('identity','function startup_identity_current('),('ending','function ending_latched('),('startup','function startup_current('),('heartbeat','function diagnostic_heartbeat(')]}
     assert actual['main'].index('return;')<actual['main'].index('setdvar("zm_coopRoundNumber", 0)')
     assert actual['heartbeat'].index('!startup_current')<actual['heartbeat'].index('!owns_callbacks')<actual['heartbeat'].index('setdvar("zm_coopRoundNumber"')<actual['heartbeat'].index('wait 1;')
     assert not re.search(r'level\.round_number\s*=',actual['main']+actual['heartbeat'])

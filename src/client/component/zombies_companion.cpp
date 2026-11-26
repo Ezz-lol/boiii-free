@@ -6,6 +6,8 @@
 #include "game/utils.hpp"
 #include "scheduler.hpp"
 #include "zombies/companion.hpp"
+#include "zombies/coop_runtime.hpp"
+#include "zombies/ending_policy.hpp"
 #include "zombies/companion_payloads.hpp"
 #include "zombies/schema_assets.hpp"
 #include "zombies/diagnostics.hpp"
@@ -485,12 +487,39 @@ void reset_schema_session() noexcept {
       });
 }
 
+bool ending_session_current() noexcept {
+  // Engine-thread observer; the network path reads only the native atomic.
+  if (frozen_schema_capacity() < 5 || schema_assets_failed())
+    return false;
+  if (session_ending())
+    return true;
+  const int current_epoch = active_startup_epoch();
+  if (current_epoch < 1)
+    return false;
+  try {
+    const int revision = read_int("zm_coopEndingRevision");
+    const bool matches = ending_policy::matches(
+        zombies_mode(), frozen_schema_capacity(), current_epoch,
+        read_string("mapname"), frozen_schema_map(),
+        read_string("zm_coopStatus"), revision, read_int("zm_coopEndingEpoch"),
+        read_string("zm_coopEndingMap"));
+    if (!matches || revision != read_int("zm_coopEndingRevision"))
+      return false;
+    return mark_session_ending(current_epoch);
+  } catch (...) {
+    return false;
+  }
+}
+
 bool schema_server_ready() noexcept {
+  if (ending_session_current())
+    return false;
   if (frozen_schema_capacity() < 5 || schema_assets_failed() ||
       !schema_assets::score_producer_ready())
     return false;
   try {
-    return read_int("zm_coopSchemaServerRevision") == companion_revision &&
+    return read_string("zm_coopStatus") == "experimental_callbacks_installed" &&
+           read_int("zm_coopSchemaServerRevision") == companion_revision &&
            read_int("zm_coopSchemaServerMask") ==
                expected_mask(frozen_schema_map()) &&
            read_string("zm_coopSchemaServerContract") == companion_contract;

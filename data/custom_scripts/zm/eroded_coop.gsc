@@ -42,6 +42,15 @@ function autoexec main()
     level.eroded_coop_started_epoch = epoch;
     level.eroded_coop_started_map = map;
     setdvar("zm_coopStatus", "initializing");
+    // A previous VM's diagnostic receipt cannot describe this new startup.
+    // Duplicate autoexec already returned above; never reset a current ending.
+    setdvar("zm_coopEndingRevision", 0);
+    setdvar("zm_coopEndingMap", "");
+    setdvar("zm_coopEndingEpoch", 0);
+    // Register both observers before the installer can yield. Direct end_game
+    // must be observed independently of maps that publish pre_end_game first.
+    level thread watch_pre_end_game(epoch, map);
+    level thread watch_direct_end_game(epoch, map);
     level thread install(limit, epoch, map);
 }
 
@@ -52,9 +61,63 @@ function clear_readiness()
     setdvar("zm_coopHeartbeat", 0);
 }
 
+// Identity only: terminal observers must not reject their own ending latch.
+// This is a lifecycle predicate, not native session/source authentication.
+function startup_identity_current(epoch, map)
+{
+    return isint(epoch) && epoch > 0 && isstring(map) && map != "" &&
+        getdvarint("zm_coopStartupEpoch") == epoch && getdvarstring("mapname") == map;
+}
+
+function ending_latched(epoch, map)
+{
+    return isdefined(level.eroded_coop_ending_epoch) && isint(level.eroded_coop_ending_epoch) &&
+        level.eroded_coop_ending_epoch == epoch &&
+        isdefined(level.eroded_coop_ending_map) && isstring(level.eroded_coop_ending_map) &&
+        level.eroded_coop_ending_map == map;
+}
+
 function startup_current(epoch, map)
 {
-    return getdvarint("zm_coopStartupEpoch") == epoch && getdvarstring("mapname") == map;
+    return startup_identity_current(epoch, map) && !ending_latched(epoch, map);
+}
+
+function mark_ending(epoch, map)
+{
+    // A still-running old observer must not mutate another map/VM's receipts.
+    if (!startup_identity_current(epoch, map) || ending_latched(epoch, map)) return;
+    if (!isdefined(level.eroded_coop_started_epoch) || !isint(level.eroded_coop_started_epoch) ||
+        level.eroded_coop_started_epoch != epoch || !isdefined(level.eroded_coop_started_map) ||
+        !isstring(level.eroded_coop_started_map) || level.eroded_coop_started_map != map)
+        return;
+    status = getdvarstring("zm_coopStatus");
+    // Preserve an unknown/declined callback owner rather than reclassifying it
+    // as a benign shutdown. No game-ending flags or notifications are written.
+    if (status != "initializing" && status != "experimental_callbacks_installed" && status != "ending")
+        return;
+    level.eroded_coop_ending_epoch = epoch;
+    level.eroded_coop_ending_map = map;
+    // Publish the complete terminal tuple before withdrawing positive readiness.
+    // There is no yield in this function or clear_readiness().
+    setdvar("zm_coopEndingRevision", 0);
+    setdvar("zm_coopEndingMap", map);
+    setdvar("zm_coopEndingEpoch", epoch);
+    setdvar("zm_coopEndingRevision", 1);
+    setdvar("zm_coopStatus", "ending");
+    clear_readiness();
+}
+
+function watch_pre_end_game(epoch, map)
+{
+    level waittill(#"pre_end_game");
+    mark_ending(epoch, map);
+}
+
+function watch_direct_end_game(epoch, map)
+{
+    // No endon(end_game): that would terminate this observer before its mark.
+    level waittill(#"end_game");
+    mark_ending(epoch, map);
 }
 
 function official_map(map)
@@ -197,6 +260,9 @@ function install(limit, epoch, map)
         setdvar("zm_coopMapAdapter", "official_profile");
     else
         setdvar("zm_coopMapAdapter", "inherited_stock_callbacks_custom_logic_preserved");
+    // A terminal event observed while startup helpers yielded must never be
+    // followed by a fresh heartbeat or positive readiness publication.
+    if (!startup_current(epoch, map)) return;
     diagnostic_event("callbacks_installed");
     level thread diagnostic_heartbeat(epoch, map);
     setdvar("zm_coopReadyMap", map);

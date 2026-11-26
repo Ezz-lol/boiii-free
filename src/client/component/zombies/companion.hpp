@@ -25,6 +25,7 @@ void refresh_schema_session() noexcept;
 void schema_begin_server_vm();
 void reset_schema_session() noexcept;
 bool companion_files_ready(std::string &error);
+bool ending_session_current() noexcept;
 bool schema_server_ready() noexcept;
 std::string score_schema_wrapper();
 } // namespace zombies::coop

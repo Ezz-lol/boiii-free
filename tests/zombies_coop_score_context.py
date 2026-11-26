@@ -149,7 +149,7 @@ ready_support=r'''
 namespace mock {
 int script_revision=zombies::coop::companion_revision,script_mask=3,mask_expected=3;
 std::string script_contract(zombies::coop::companion_contract);
-bool script_read_throws{};
+bool script_read_throws{},ending{};std::string script_status="experimental_callbacks_installed";
 }
 namespace command {
 struct params{int count{};int size()const{return count;}};
@@ -163,6 +163,7 @@ std::vector<std::function<void()>> pending;
 void once(std::function<void()> callback,pipeline selected){assert(selected==server);pending.push_back(std::move(callback));}
 }
 namespace zombies::coop {
+bool ending_session_current() noexcept{return mock::ending;}
 namespace {
 int read_int(const char* name){
  if(mock::script_read_throws)throw std::runtime_error("script marker reader");
@@ -172,6 +173,7 @@ int read_int(const char* name){
 }
 std::string read_string(const char* name){
  if(mock::script_read_throws)throw std::runtime_error("script marker reader");
+ if(std::string_view(name)=="zm_coopStatus")return mock::script_status;
  assert(std::string_view(name)=="zm_coopSchemaServerContract");return mock::script_contract;
 }
 int expected_mask(std::string_view){return mock::mask_expected;}
@@ -192,7 +194,7 @@ int main(int argc,char** argv){
  auto invalid=asset(score_events::asset_name.data(),raw);
  const auto reset=[&]{game::read_hook={};mock::after_hash={};mock::failed=false;mock::failures=0;mock::capacity=8;game::mode=game::eModes::ZOMBIES;mock::actual_map="custom_map";mock::frozen_map="custom_map";
  mock::dvar_present=true;mock::dvar_string=true;mock::dvar_session_specific=true;mock::dvar_resolutions=0;
- mock::script_revision=companion_revision;mock::script_mask=3;mock::mask_expected=3;mock::script_contract=std::string(companion_contract);mock::script_read_throws=false;scheduler::pending.clear();begin_vm_generation(false);};
+ mock::ending=false;mock::script_status="experimental_callbacks_installed";mock::script_revision=companion_revision;mock::script_mask=3;mock::mask_expected=3;mock::script_contract=std::string(companion_contract);mock::script_read_throws=false;scheduler::pending.clear();begin_vm_generation(false);};
  const auto receipt=[&](const char* label,bool expected){const auto failures=mock::failures.load();const auto retained=assets.retained();const auto text=score_source_diagnostic();check(mock::failures==failures && assets.retained()==retained);check(text.size()<600);std::cout<<"RECEIPT|"<<label<<"|"<<(expected?"true":"false")<<"|"<<text<<"\n";};
  reset();check(!score_producer_ready());check(!schema_server_ready());receipt("missing_cache",false);
  for(auto mode:{game::eModes::MP,game::eModes::CP}){reset();game::mode=mode;check(transform(invalid.name,&invalid)==&invalid);check(mock::failures==0&&!score_producer_ready()&&!schema_server_ready());receipt("pending_peer_wrong_mode",false);}
@@ -229,6 +231,7 @@ int main(int argc,char** argv){
   begin_vm_generation(true);check(score_producer_ready()&&schema_server_ready());receipt("client_vm_does_not_grant_or_revoke_server",true);
   begin_vm_generation(false);check(!score_producer_ready()&&!schema_server_ready());receipt("new_server_vm_revokes",false);
   auto* second=transform(original.name,first);check(second!=first && second!=&original && mock::failures==0);check(std::vector<char>(byte_buffer(second),byte_buffer(second)+second->len)==expected);check(static_cast<std::size_t>(second->len)==expected.size());check(score_producer_ready()&&schema_server_ready());receipt("new_vm_pristine_rebound",true);
+  mock::ending=true;check(score_producer_ready()&&!schema_server_ready());mock::ending=false;mock::script_status="callback_ownership_lost";check(!schema_server_ready());mock::script_status="experimental_callbacks_installed";
   mock::script_revision=0;check(score_producer_ready()&&!schema_server_ready());mock::script_revision=companion_revision;mock::script_mask=0;check(!schema_server_ready());mock::script_mask=3;mock::script_contract="other";check(!schema_server_ready());mock::script_contract=std::string(companion_contract);mock::script_read_throws=true;check(!schema_server_ready());mock::script_read_throws=false;check(schema_server_ready());
   mock::failed=true;check(!score_producer_ready()&&!schema_server_ready());receipt("failure_latch_revokes",false);mock::failed=false;
   game::mode=game::eModes::MP;check(!score_producer_ready()&&!schema_server_ready());game::mode=game::eModes::ZOMBIES;mock::frozen_map="other_map";check(!score_producer_ready());mock::frozen_map=mock::actual_map;
@@ -275,7 +278,7 @@ assert command_expected is None and command_receipts and receipts
 if args.retail_path:assert any(value['verified']for value in command_receipts)
 assert inputs=={str(p):sha(p)for p in(source,companion,diagnostics)},'actual source changed during scoped proof'
 proof=dict(passed=True,scope='Actual component/readiness/readonly command C++ bodies under native state/lock/hash stand-ins; no engine execution.',
-    source_inputs=inputs,generated_sha256=sha(generated),test_sha256=sha(Path(__file__)),command=command,run_command=run_command,
+    source_inputs=inputs,ending_observer_mocked_for_score_scope=True,generated_sha256=sha(generated),test_sha256=sha(Path(__file__)),command=command,run_command=run_command,
     stdout=run.stdout,retail_private_supplied=bool(args.retail_path),native_json_receipts=receipts,actual_command_receipts=command_receipts,
     viewer_or_script_markers_cannot_grant_native_cache=True,guard_has_no_frozen_context_getter=True,abi_family='ezz')
 (out/'RESULTS.private.json').write_text(json.dumps(proof,indent=2)+'\n');print(json.dumps(proof))
