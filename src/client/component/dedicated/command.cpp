@@ -13,6 +13,8 @@
 
 #include <utils/hook.hpp>
 
+#include <sstream>
+
 namespace dedicated {
 game::EngineDependentDvar sv_lan_only;
 
@@ -35,6 +37,50 @@ namespace {
 constexpr const char *compatibility_commands[] = {
     "ffotdversion",     "bbdisable", "bbenable",
     "bitfieldBBPrints", "bbstart",   "setliveevent"};
+
+game::EngineDependentDvar sv_auto_gametype_settings;
+utils::hook::detour map_rotate_hook;
+
+// Inspect only the entry the engine is about to consume. Leave the cursor and
+// the map change itself to SV_MapRotate_f.
+std::string next_rotation_gametype(std::string_view rotation) {
+  std::istringstream tokens{std::string(rotation)};
+  std::string mode;
+  std::string key;
+  std::string value;
+  while (tokens >> key >> value) {
+    if (key == "map") {
+      return mode;
+    }
+    if (key != "gametype" ||
+        value.find_first_not_of("abcdefghijklmnopqrstuvwxyz"
+                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") !=
+            std::string::npos) {
+      // An explicit exec or an unfamiliar entry owns its own settings.
+      return {};
+    }
+    mode = value;
+  }
+  return {};
+}
+
+void map_rotate_stub() {
+  if (sv_auto_gametype_settings.get_bool() &&
+      game::com::Com_SessionMode_IsMode(game::eModes::MULTIPLAYER)) {
+    auto rotation = game::maprotationcurrent().value_or("");
+    if (rotation.find_first_not_of(" \t\r\n") == std::string_view::npos) {
+      rotation = game::maprotation().value_or("");
+    }
+    const auto mode = next_rotation_gametype(rotation);
+    if (!mode.empty()) {
+      const auto cmd = std::format(
+          "exec gamedata/gamesettings/mp/gamesettings_{}.cfg", mode);
+      game::cmd::Cmd_ExecuteSingleCommand(0, game::CONTROLLER_INDEX_FIRST,
+                                          cmd.c_str(), false);
+    }
+  }
+  map_rotate_hook.invoke<void>();
+}
 
 void sv_con_tell_f_stub(game::sv::client_s *cl, game::net::svscmd_type type,
                         [[maybe_unused]] const char *fmt,
@@ -77,6 +123,11 @@ struct component final : server_component {
     scheduler::loop(send_heartbeat, scheduler::pipeline::main, 5min);
     ::command::add("heartbeat", send_heartbeat);
     register_server_compatibility_commands();
+
+    sv_auto_gametype_settings = game::register_dvar_bool(
+        "sv_autoGametypeSettings", true, game::dvarFlags_e::NONE,
+        "Load the MP gametype config for each gametype entry in map rotation");
+    map_rotate_hook.create(game::sv::SV_MapRotate_f.get(), map_rotate_stub);
 
     // Hook GScr_ExitLevel
     utils::hook::jump(0x1402D1AA0_g, trigger_map_rotation);
