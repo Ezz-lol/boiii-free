@@ -1457,23 +1457,69 @@ std::string get_source_line(const std::string &file, int32_t line_num) {
 }
 
 namespace {
+bool supported_frame_instance(const scriptInstance_t inst) noexcept {
+  return inst == SCRIPTINSTANCE_SERVER || inst == SCRIPTINSTANCE_CLIENT;
+}
+
+const objFileInfo_t *frame_object(const scriptInstance_t inst,
+                                 const uint8_t *pos) {
+  if (!supported_frame_instance(inst) || pos == nullptr ||
+      pos == reinterpret_cast<uint8_t *>(vm::g_endPos.get())) {
+    return nullptr;
+  }
+  const uint32_t count = gObjFileInfoCount->instance[inst];
+  if (count > 500) return nullptr;
+  // The same known object pool used by Scr_FindObjFileInfo_Impl, with a hard
+  // pool/header/range bound before any offset arithmetic. No DB/asset loading.
+  const auto fault = reinterpret_cast<uintptr_t>(pos) - 1;
+  for (uint32_t i = 0; i < count; ++i) {
+    const auto *info = &gObjFileInfo->instance[inst][i];
+    const auto *obj = info->activeVersion;
+    if (!obj || !obj->hasMagic(GSC_OBJ::T7_MAGIC)) continue;
+    const uint32_t code = obj->cseg_offset, code_size = obj->cseg_size;
+    if (code < sizeof(GSC_OBJ) || code > 64 * 1024 * 1024 || !code_size ||
+        code_size > 64 * 1024 * 1024 - code) continue;
+    const auto base = reinterpret_cast<uintptr_t>(obj);
+    if (base > UINTPTR_MAX - code - code_size) continue;
+    if (fault >= base + code && fault < base + code + code_size) return info;
+  }
+  return nullptr;
+}
+
 const GSC_EXPORT_ITEM *containing_export(const scriptInstance_t inst,
                                          const uint8_t *pos) {
   if (pos != nullptr) {
-    const objFileInfo_t *info =
-        Scr_FindObjFileInfo_Impl(inst, const_cast<uint8_t *>(pos - 1));
+    const objFileInfo_t *info = frame_object(inst, pos);
     if (info != nullptr) {
       const GSC_OBJ *obj = info->activeVersion;
-      const uint8_t *base = reinterpret_cast<const uint8_t *>(obj);
-      const uint32_t offset = static_cast<uint32_t>(pos - 1 - base);
+      if (!obj || !obj->hasMagic(GSC_OBJ::T7_MAGIC)) return nullptr;
+      const uint32_t code = obj->cseg_offset, code_size = obj->cseg_size;
+      const uint32_t count = obj->exports_count, table_offset = obj->exports_offset;
+      if (code < sizeof(GSC_OBJ) || code > 64 * 1024 * 1024 || !code_size ||
+          code_size > 64 * 1024 * 1024 - code || count > 4096 ||
+          table_offset < sizeof(GSC_OBJ) || table_offset > 64 * 1024 * 1024 ||
+          count > (64 * 1024 * 1024 - table_offset) / sizeof(GSC_EXPORT_ITEM)) return nullptr;
+      const auto base = reinterpret_cast<uintptr_t>(obj);
+      const auto fault = reinterpret_cast<uintptr_t>(pos) - 1;
+      if (base > UINTPTR_MAX - code - code_size || base > UINTPTR_MAX - table_offset - count * sizeof(GSC_EXPORT_ITEM) ||
+          fault < base + code || fault >= base + code + code_size) return nullptr;
+      const uint32_t offset = static_cast<uint32_t>(fault - base);
       const GSC_EXPORT_ITEM *found = nullptr;
-      for (const GSC_EXPORT_ITEM &item : obj->exports()) {
+      bool ambiguous = false;
+      const auto *table = reinterpret_cast<const GSC_EXPORT_ITEM *>(base + table_offset);
+      for (uint32_t i = 0; i < count; ++i) {
+        const auto &item = table[i];
+        if (item.address < code || item.address >= code + code_size) return nullptr;
         if (item.address <= offset &&
             (found == nullptr || item.address > found->address)) {
           found = &item;
+          ambiguous = false;
+        } else if (found && item.address == found->address &&
+                   (item.name != found->name || item.name_space != found->name_space)) {
+          ambiguous = true;
         }
       }
-      return found;
+      return ambiguous ? nullptr : found;
     }
   }
 
@@ -1486,21 +1532,25 @@ const uint8_t *containing_function(const scriptInstance_t inst,
   if (item == nullptr) {
     return nullptr;
   }
-  const objFileInfo_t *info =
-      Scr_FindObjFileInfo_Impl(inst, const_cast<uint8_t *>(pos - 1));
+  const objFileInfo_t *info = frame_object(inst, pos);
+  if (!info) return nullptr;
   return reinterpret_cast<const uint8_t *>(info->activeVersion) + item->address;
 }
 
 std::string function_name(const scriptInstance_t inst, const uint8_t *pos) {
   const GSC_EXPORT_ITEM *item = containing_export(inst, pos);
-  return item == nullptr ? std::string{}
-                         : std::format("{}::{}", resolve_hash(item->name_space),
-                                       resolve_hash(item->name));
+  if (!item) return {};
+  const auto name_space = resolve_hash(item->name_space);
+  const auto name = resolve_hash(item->name);
+  return std::format("{}::{}",
+      name_space.empty() ? std::format("namespace_0x{:08X}", item->name_space) : name_space.substr(0, 96),
+      name.empty() ? std::format("function_0x{:08X}", item->name) : name.substr(0, 96));
 }
 } // namespace
 
 std::vector<script_frame> get_script_frames(scriptInstance_t inst,
                                             const uint8_t *pos) {
+  if (!supported_frame_instance(inst)) return {};
   if (is_server()) {
     sv_detailedScriptErrors->set(true);
   }
@@ -1508,13 +1558,15 @@ std::vector<script_frame> get_script_frames(scriptInstance_t inst,
   std::vector<uint8_t *> positions;
   positions.emplace_back(pos ? const_cast<uint8_t *>(pos)
                              : vm::gFs->instance[inst].pos);
-  for (int32_t stack_idx = vm::gScrVmPub->instance[inst].function_count - 1;
-       stack_idx > -1; --stack_idx) {
+  const auto count = vm::gScrVmPub->instance[inst].function_count;
+  const bool invalid_stack = count < 0 || count > 64;
+  for (int32_t stack_idx = invalid_stack ? -1 : count - 1;
+       stack_idx > -1 && positions.size() <= 16; --stack_idx) {
     positions.emplace_back(
         vm::gScrVmPub->instance[inst].function_frame_start[stack_idx].fs.pos);
   }
 
-  if (positions.size() > 1) {
+  if (!invalid_stack && count <= 16 && positions.size() > 1) {
     const uint8_t *root = containing_function(inst, positions.back());
     if (root != nullptr &&
         root == containing_function(inst, positions[positions.size() - 2])) {
@@ -1525,20 +1577,40 @@ std::vector<script_frame> get_script_frames(scriptInstance_t inst,
   std::vector<script_frame> frames;
   for (uint8_t *position : positions) {
     script_frame &frame = frames.emplace_back();
+    frame.next_pc = reinterpret_cast<uintptr_t>(position);
+    frame.invalid_stack = invalid_stack;
+    frame.frames_truncated = !invalid_stack && count > 16;
     if (position != nullptr &&
         position != reinterpret_cast<uint8_t *>(vm::g_endPos.get())) {
       const char *file = nullptr;
       const char *source = nullptr;
-      Scr_GetFileAndLineNum_Impl(inst, position - 1, &file, &frame.line,
-                                 &source);
-      frame.file = file == nullptr ? "" : file;
+      frame.bytecode_position = true;
+      frame.fault_pc = frame.next_pc - 1;
+      const auto *info = frame_object(inst, position);
+      if (info && info->activeVersion) {
+        const auto base = reinterpret_cast<uintptr_t>(info->activeVersion);
+        if (frame.fault_pc >= base && frame.fault_pc - base <= UINT32_MAX) {
+          frame.script_offset_available = true;
+          frame.script_offset = static_cast<uint32_t>(frame.fault_pc - base);
+          frame.code_offset = frame.script_offset - info->activeVersion->cseg_offset;
+        }
+        if (const auto *item = containing_export(inst, position); item && frame.script_offset_available) {
+          frame.function_offset_available = true;
+          frame.function_offset = frame.script_offset - item->address;
+        }
+      }
+      // This preserves the existing optional GDB lookup only for a verified
+      // live object. New offset/function diagnostics never load an asset.
+      if (info) Scr_GetFileAndLineNum_Impl(inst, reinterpret_cast<uint8_t *>(frame.fault_pc), &file, &frame.line,
+                                         &source);
+      frame.file = file == nullptr ? "" : std::string(file, strnlen(file, 192));
       frame.function = function_name(inst, position);
-      if (frame.line >= 0) {
+      if (frame.line >= 0 && frame.line < INT32_MAX) {
         ++frame.line;
         for (; source != nullptr && (source[0] == ' ' || source[0] == '\t');
              ++source) {
         }
-        frame.source = source == nullptr ? "" : source;
+        frame.source = source == nullptr ? "" : std::string(source, strnlen(source, 256));
       }
     }
   }
@@ -1548,18 +1620,26 @@ std::vector<script_frame> get_script_frames(scriptInstance_t inst,
 std::vector<std::string> get_script_callstack(scriptInstance_t inst,
                                               const uint8_t *pos) {
   std::vector<std::string> callstack;
+  if (!supported_frame_instance(inst)) {
+    callstack.push_back(std::format("invalid script instance {}; supplied next_pc=0x{:X}; VM metadata not accessed", static_cast<int>(inst), reinterpret_cast<uintptr_t>(pos)));
+    return callstack;
+  }
   for (const script_frame &frame : get_script_frames(inst, pos)) {
+    std::string entry = std::format("next_pc=0x{:X}", frame.next_pc);
+    entry += frame.bytecode_position ? std::format(" fault_pc=0x{:X}", frame.fault_pc) : " fault_pc=unavailable";
+    if (frame.script_offset_available) entry += std::format(" script_offset=0x{:X} code_offset=0x{:X}", frame.script_offset, frame.code_offset);
+    if (!frame.function.empty()) entry += std::format(" function={}", frame.function);
+    if (frame.function_offset_available) entry += std::format(" function_offset=0x{:X}", frame.function_offset);
+    if (frame.invalid_stack) entry += " stack_frames=unavailable_invalid_count";
+    else if (frame.frames_truncated) entry += " stack_frames=bounded_to_16";
     if (frame.file.empty()) {
-      callstack.emplace_back(
-          "Missing file and line information - not currently executing "
-          "script bytecode or reached end of executed script bytecode.");
+      entry += " file/line=unavailable";
     } else if (frame.line < 0) {
-      callstack.push_back(
-          std::format("\tfile '{}' - missing line information\n", frame.file));
+      entry += std::format(" file='{}' line=unavailable", frame.file);
     } else {
-      callstack.push_back(std::format("\tfile '{}', line {} :: {}\n",
-                                      frame.file, frame.line, frame.source));
+      entry += std::format(" file='{}' line={} :: {}", frame.file, frame.line, frame.source);
     }
+    callstack.push_back(entry + "\n");
   }
   return callstack;
 }
@@ -1567,7 +1647,7 @@ std::vector<std::string> get_script_callstack(scriptInstance_t inst,
 utils::hook::detour Scr_Error_hook;
 
 void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
-  if (game::log_script_errors()) {
+  if (supported_frame_instance(inst) && game::log_script_errors()) {
     void *caller_addr = _ReturnAddress();
     if (is_server()) {
       sv_detailedScriptErrors->set(true);
@@ -1581,7 +1661,7 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
     std::string prev_code_positions_string{};
     if (!callstack.empty()) {
       prev_code_positions_string = std::format("[0] {}", callstack[0]);
-      for (size_t i = 0; i < callstack.size(); ++i) {
+      for (size_t i = 1; i < callstack.size(); ++i) {
         prev_code_positions_string += std::format("\n[{}] {}", i, callstack[i]);
       }
     }

@@ -5,6 +5,27 @@ Add `-coop-debug` to the normal client or dedicated launch command to print
 `-experimental-zombies-coop` and matching data. Debug output does not change
 capacity, authentication, clientfield checksums or gameplay rules.
 
+## Script frame positions
+
+`-coop-debug` does not enable script-error frames. Also add `-log-script-errors`
+to enable Ezz's existing script-error logger. Each frame retains its raw
+`next_pc`, explicit `fault_pc = next_pc - 1`, asset-relative `script_offset`,
+bytecode-relative `code_offset`, function name/hash and `function_offset` when
+available, including when line information is absent. Null/end positions and
+missing metadata are labelled. Invalid script instances never index VM pools;
+frame counts are validated against the 64-frame engine array and output is
+limited to the current position plus 16 callers.
+`fault_pc` is the VM source-lookup byte address and can lie inside an operand;
+it is neither a native exception RIP nor a guaranteed opcode start.
+
+Object/function metadata uses the existing per-instance object pool and validated
+code/export bounds, with no new database lookup or script-asset load. Existing
+optional GDB/source-line resolution remains. File, function and source text are
+bounded in each output frame. Both known script-instance layouts are supported
+by source; actual client runtime validation is still absent. Keep logs private
+and match positions to the exact binary/source/PDB. These additional diagnostics
+do not repair teardown or establish gameplay compatibility.
+
 The bounded recorder runs without this flag. It retains up to 64 events with a
 31-character source-defined phase, monotonic tick time and two integers. A
 contended writer drops its event rather than waiting. `events_dropped` records
