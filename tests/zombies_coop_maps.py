@@ -2,6 +2,7 @@
 
 These structural checks do not execute GSC, clients, navigation or real bots.
 The separately compiled actual-VM fixture exercises the pure GSC helpers.
+Normal-round population cases do not establish live special dog quota/pacing resizing.
 """
 from pathlib import Path
 import argparse
@@ -14,6 +15,11 @@ parser.add_argument("root", type=Path, nargs="?", default=Path(__file__).resolve
 args = parser.parse_args()
 root = args.root.resolve()
 manifest = json.loads((root / "tests/zombies_coop_maps.json").read_text())
+assert manifest["special_round_scope"] == {
+    "dog_total": "stock_intro_roster_snapshot",
+    "dog_pacing": "stock_local_count_and_max",
+    "live_dog_quota_resize_implemented": False,
+}
 maps = manifest["maps"]
 assert len(maps) == 14 and len({entry["map"] for entry in maps}) == 14
 source_root = root / "scripts/zombies_coop"

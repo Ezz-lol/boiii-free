@@ -61,6 +61,12 @@ special controller. Temple's initializer resets monkey counters and derives
 napalm/screecher/monkey thresholds, so calling it on a membership change would be
 incorrect and is explicitly avoided.
 
+Dog-round totals and pacing still use the stock intro roster snapshot and local
+`count`/`max` values. A departure during the seven-second intro or the dog round
+does not currently resize its total quota. The stock concurrent-AI pressure check
+does read current valid players. The normal-round 8 to 4 to 8 tests do not prove
+live resizing of special-round totals or pacing.
+
 Moon's thinker restores `prev_round_zombies` after starting the normal spawner,
 and clears `teleporter_used` before that assignment. A restored decrease must not
 be counted as actual spawning, and an equal restored value does not prove a fresh

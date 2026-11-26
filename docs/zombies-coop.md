@@ -72,6 +72,10 @@ including restored decreases or equal values. Ordinary adaptation may resume on
 a later fresh normal round above the saved round. A worker also stops before
 accounting when Moon enters a teleport/No Man's Land transition.
 
+Special dog-round totals and pacing remain stock snapshots; live join/leave
+resizing is currently implemented for captured normal rounds, not dog-round
+quotas. Their existing current-player concurrent-AI checks remain in effect.
+
 The controller balances the stock four character archetypes and preserves known
 connected singleton quest/radio owners. Extra-slot empty stock GobbleGum packs
 get a fallback without replacing valid/custom packs. Spawn separation uses bounded

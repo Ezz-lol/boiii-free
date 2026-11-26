@@ -3,6 +3,11 @@
   "stock_repository": "ate47/bo3-source",
   "stock_commit": "fe040b1187b4850fe8da3c78b703c986c87d1028",
   "runtime_verification": "pending; static source identities only",
+  "special_round_scope": {
+    "dog_total": "stock_intro_roster_snapshot",
+    "dog_pacing": "stock_local_count_and_max",
+    "live_dog_quota_resize_implemented": false
+  },
   "maps": [
     {
       "map": "zm_zod",
