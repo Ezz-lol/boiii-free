@@ -54,6 +54,20 @@ custom callback owners/gametypes decline adaptation rather than being overwritte
 Hard-coded four-player quest arrays, custom HUDs and arbitrary map-owned scripting
 cannot be made universally safe by changing the native capacity alone.
 
+Two additional lifecycle guards require the exact stock zclassic endgame and
+board-melee callback owners before expanded readiness. On an effectively empty
+native and listed roster, the endgame guard prunes only undefined or explicitly
+disconnected placement entries; dead, downed and spectating players remain
+present. The melee guard similarly removes stale player targets from its cached
+array before chaining stock behavior. Both validate sparse slot keys and every
+entry before assignment, preserve order and duplicates, and keep the original
+callback context and argument. Each guard retains independent ownership, so a
+custom takeover of the other callback cannot disable still-owned stock behavior.
+Unknown owners remain untouched and close expanded admission. These guards do
+not validate or replace map-owned barricade nodes, weapons or challenge rules.
+The callback tests and compiled fixture are offline checks; fresh disconnect
+canaries and occupied client gameplay remain necessary runtime validation.
+
 The owned `zombie_total_set_func` setup callback captures the pristine stock
 population/target/counters before starting a worker. A notification waiter can
 resume after the first spawn and cannot establish that initial budget. The hook

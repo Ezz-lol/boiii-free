@@ -61,6 +61,9 @@ function isint(value){return Number.isInteger(value)&&value>=-2147483648&&value<
 function isarray(value){return Array.isArray(value);}
 function spawnstruct(){return {};}
 function startup_current(epoch,map){return epoch===currentEpoch&&map===currentMap;}
+// Independently exercised by zombies_coop_disconnect_guards.py; this suite
+// isolates round-seed ownership and supplies an already-owned guard context.
+function disconnect_guards_owned(){return true;}
 function setdvar(key,value){dvars[key]=value;}
 function diagnostic_event(value){events.push('event:'+value);}
 function flag_exists(name){return Object.hasOwn(flags,name);}

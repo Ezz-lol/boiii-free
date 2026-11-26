@@ -3,6 +3,8 @@
 #using scripts/zm/_zm;
 #using scripts/zm/_zm_game_module;
 #using scripts/zm/_zm_utility;
+#using scripts/zm/_zm_behavior;
+#using scripts/zm/gametypes/_zm_gametype;
 #using scripts/shared/callbacks_shared;
 #using scripts/shared/ai/zombie_utility;
 #using scripts/shared/flag_shared;
@@ -95,6 +97,8 @@ function install(limit, epoch, map)
     started = gettime();
     while (!isdefined(level.player_too_many_players_check_func) || !isdefined(level.func_get_zombie_spawn_delay) ||
         (official_map(map) && !map_profile_current(epoch, map)) ||
+        !isdefined(level.onendgame) || !isdefined(level._notetrack_handler) ||
+        (isarray(level._notetrack_handler) && !isdefined(level._notetrack_handler["zombie_window_melee"])) ||
         (map_profile_current(epoch, map) && isdefined(level.eroded_coop_known_total_setup) &&
         !isdefined(level.zombie_total_set_func)))
     {
@@ -137,9 +141,23 @@ function install(limit, epoch, map)
     // Seed ownership is part of expanded startup readiness. Fail before
     // installing primary callbacks or publishing ready fields on an unknown
     // initial owner. Later takeover also revokes heartbeat/native admission.
+    if (!disconnect_guard_installable(epoch, map))
+    {
+        setdvar("zm_coopStatus", "custom_disconnect_callbacks_preserved");
+        setdvar("zm_coopOwnerStatus", "custom_disconnect_callbacks_preserved");
+        diagnostic_event("custom_disconnect_callbacks_preserved");
+        return;
+    }
     if (!install_round_seed_hook(epoch, map))
     {
         setdvar("zm_coopStatus", "custom_total_setup_preserved");
+        return;
+    }
+    // All preflights and installs are synchronous. No primary callback or
+    // readiness value is published before both lifecycle guards are owned.
+    if (!install_disconnect_guards(epoch, map))
+    {
+        setdvar("zm_coopStatus", "disconnect_guard_install_failed");
         return;
     }
     level.player_too_many_players_check_func = &player_count_check;
@@ -243,9 +261,166 @@ function owns_callbacks()
         isdefined(level.eroded_coop_stock_spawn_delay) &&
         level.player_too_many_players_check_func == &player_count_check &&
         level.func_get_zombie_spawn_delay == &spawn_delay &&
-        round_setup_context_current() && round_setup_owner_owned();
+        round_setup_context_current() && round_setup_owner_owned() && disconnect_guards_owned();
 }
 
+
+
+// Stock zclassic endgame rebuilds placement only while listed players remain;
+// its later challenge worker nevertheless visits the old placement entries.
+// Stock board-melee caches player entities across disconnects. These narrow
+// callback guards preserve their original owners and do not replace scripts.
+function disconnect_player_list(players)
+{
+    if (!isarray(players))
+        return undefined;
+    keys = getarraykeys(players);
+    if (keys.size > 8)
+        return undefined;
+    for (key_index = 0; key_index < keys.size; key_index++)
+    {
+        key = keys[key_index];
+        if (!isint(key) || key < 0 || key >= 8)
+            return undefined;
+    }
+    retained = array();
+    // GSC .size counts entries, not the greatest numeric key plus one.
+    // Validate first, then retain every valid sparse slot in original order.
+    for (slot = 0; slot < 8; slot++)
+    {
+        player = players[slot];
+        if (!isdefined(player))
+            continue;
+        if (!isentity(player) || !isplayer(player))
+            return undefined;
+        if (isdefined(player.player_disconnected) && player.player_disconnected == 1)
+            continue;
+        retained[retained.size] = player;
+    }
+    return retained;
+}
+
+function disconnect_rosters_empty(actual, listed)
+{
+    actual_retained = disconnect_player_list(actual);
+    listed_retained = disconnect_player_list(listed);
+    return isdefined(actual_retained) && isdefined(listed_retained) &&
+        actual_retained.size == 0 && listed_retained.size == 0;
+}
+
+function disconnect_context_current()
+{
+    return isdefined(level.eroded_coop_disconnect_saved) && level.eroded_coop_disconnect_saved &&
+        isint(level.eroded_coop_disconnect_epoch) && level.eroded_coop_disconnect_epoch > 0 &&
+        isdefined(level.eroded_coop_disconnect_map) &&
+        startup_current(level.eroded_coop_disconnect_epoch, level.eroded_coop_disconnect_map);
+}
+
+function disconnect_originals_stock(endgame, melee)
+{
+    return isdefined(endgame) && endgame == &zm_gametype::onendgame &&
+        isdefined(melee) && melee == &zm_behavior::notetrackboardmelee;
+}
+
+function disconnect_guards_owned()
+{
+    return endgame_guard_owned() && melee_guard_owned();
+}
+
+function endgame_guard_owned()
+{
+    return disconnect_context_current() && isdefined(level.eroded_coop_endgame_original) &&
+        level.eroded_coop_endgame_original == &zm_gametype::onendgame &&
+        isdefined(level.onendgame) && level.onendgame == &guarded_endgame;
+}
+
+function melee_guard_owned()
+{
+    return disconnect_context_current() && isdefined(level.eroded_coop_melee_original) &&
+        level.eroded_coop_melee_original == &zm_behavior::notetrackboardmelee &&
+        isarray(level._notetrack_handler) &&
+        isdefined(level._notetrack_handler["zombie_window_melee"]) &&
+        level._notetrack_handler["zombie_window_melee"] == &guarded_window_melee;
+}
+
+function disconnect_guard_installable(epoch, map)
+{
+    if (!startup_current(epoch, map))
+        return false;
+    if (isdefined(level.eroded_coop_disconnect_saved) && level.eroded_coop_disconnect_saved)
+        return disconnect_guards_owned() && level.eroded_coop_disconnect_epoch == epoch &&
+            level.eroded_coop_disconnect_map == map;
+    return isarray(level._notetrack_handler) &&
+        disconnect_originals_stock(level.onendgame, level._notetrack_handler["zombie_window_melee"]);
+}
+
+function install_disconnect_guards(epoch, map)
+{
+    if (!disconnect_guard_installable(epoch, map))
+        return false;
+    if (isdefined(level.eroded_coop_disconnect_saved) && level.eroded_coop_disconnect_saved)
+        return true;
+    level.eroded_coop_endgame_original = level.onendgame;
+    level.eroded_coop_melee_original = level._notetrack_handler["zombie_window_melee"];
+    level.eroded_coop_disconnect_epoch = epoch;
+    level.eroded_coop_disconnect_map = map;
+    level.eroded_coop_disconnect_saved = true;
+    level.onendgame = &guarded_endgame;
+    // Calling the stock registration API again would assert duplicate owner.
+    level._notetrack_handler["zombie_window_melee"] = &guarded_window_melee;
+    return true;
+}
+
+function guarded_endgame(winner)
+{
+    if (!endgame_guard_owned())
+        return;
+    // Dead/downed/spectating, unflagged players remain present. Disconnect's
+    // explicitly tagged self may still be in getplayers() during this callback.
+    if (disconnect_rosters_empty(getplayers(), level.players))
+    {
+        if (isarray(level.placement))
+        {
+            retained = disconnect_player_list(level.placement["all"]);
+            if (isdefined(retained))
+            {
+                level.placement["all"] = retained;
+                diagnostic_event("empty_endgame_placement_pruned");
+            }
+            else
+                diagnostic_event("empty_endgame_placement_unknown");
+        }
+        else
+            diagnostic_event("empty_endgame_placement_unknown");
+    }
+    // The verified zclassic owner is a no-op; preserve its context/argument and
+    // chain once even if malformed/unknown cleanup data was deliberately left.
+    self [[level.eroded_coop_endgame_original]](winner);
+}
+
+function guarded_window_melee(animationentity)
+{
+    if (!melee_guard_owned())
+        return;
+    if (!isdefined(animationentity) || !isentity(animationentity))
+    {
+        diagnostic_event("window_melee_entity_unknown");
+        return;
+    }
+    // Without first_node stock uses animationentity melee(), with no target
+    // array. Node, trigger, weapon and damage semantics remain retail-owned.
+    if (isdefined(animationentity.first_node))
+    {
+        retained = disconnect_player_list(animationentity.player_targets);
+        if (!isdefined(retained))
+        {
+            diagnostic_event("window_melee_targets_unknown");
+            return;
+        }
+        animationentity.player_targets = retained;
+    }
+    self [[level.eroded_coop_melee_original]](animationentity);
+}
 
 // GobbleGum move-frequency fallback reviewed from ShawnDuPreez/cb-mods
 // 0b2eafd75aacc451d458e781caf3dec18b228b22 (GPL-3.0). The stock 1-4 table

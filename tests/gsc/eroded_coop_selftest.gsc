@@ -2,6 +2,8 @@
 #using custom_scripts/zm/eroded_coop;
 #using scripts/shared/ai/zombie_utility;
 #using scripts/zm/_zm;
+#using scripts/zm/_zm_behavior;
+#using scripts/zm/gametypes/_zm_gametype;
 #namespace eroded_coop_selftest;
 
 function autoexec main()
@@ -217,6 +219,8 @@ function run()
     failures += check(!isdefined(eroded_coop::bgb_movement_limits_for_players(1.5)));
     failures += check(!isdefined(eroded_coop::bgb_movement_limits_for_players(level)));
     failures += check(!isdefined(eroded_coop::bgb_movement_limits_for_players("players")));
+
+    failures += test_disconnect_guards(epoch, map);
 
     started = gettime();
     while (getdvarstring("zm_coopStatus") != "experimental_callbacks_installed" ||
@@ -515,4 +519,94 @@ function seed_callback_known()
 function seed_callback_foreign()
 {
     level.eroded_coop_seed_test_calls += 100;
+}
+
+
+// Tests only: no yield, no stock endgame/melee invocation and no gameplay entity
+// mutation. Restore all callback/context references before stock init can run.
+function test_disconnect_guards(epoch, map)
+{
+    failures = 0;
+    failures += check(isdefined(eroded_coop::disconnect_player_list(array())));
+    failures += check(eroded_coop::disconnect_player_list(array()).size == 0);
+    failures += check(!isdefined(eroded_coop::disconnect_player_list(undefined)));
+    failures += check(!isdefined(eroded_coop::disconnect_player_list(1)));
+    failures += check(!isdefined(eroded_coop::disconnect_player_list(spawnstruct())));
+    failures += check(!isdefined(eroded_coop::disconnect_player_list(array(spawnstruct()))));
+    sparse = array();
+    sparse[7] = level; // Must not be lost by a loop bounded by .size == 1.
+    sparse_keys = getarraykeys(sparse);
+    failures += check(sparse_keys.size == 1 && isint(sparse_keys[0]) && sparse_keys[0] == 7);
+    failures += check(!isdefined(eroded_coop::disconnect_player_list(sparse)));
+    sparse = array();
+    sparse[8] = level;
+    failures += check(!isdefined(eroded_coop::disconnect_player_list(sparse)));
+    sparse = array();
+    sparse["foreign"] = level;
+    failures += check(!isdefined(eroded_coop::disconnect_player_list(sparse)));
+    failures += check(eroded_coop::disconnect_rosters_empty(array(), array()));
+    failures += check(!eroded_coop::disconnect_rosters_empty(array(), undefined));
+    failures += check(!eroded_coop::disconnect_rosters_empty(array(level), array()));
+    failures += check(eroded_coop::disconnect_originals_stock(&zm_gametype::onendgame, &zm_behavior::notetrackboardmelee));
+    failures += check(!eroded_coop::disconnect_originals_stock(undefined, &zm_behavior::notetrackboardmelee));
+    failures += check(!eroded_coop::disconnect_originals_stock(&custom_total_setup, &zm_behavior::notetrackboardmelee));
+    failures += check(!eroded_coop::disconnect_originals_stock(&zm_gametype::onendgame, &custom_total_setup));
+
+    // If real player entities are already present, exercise sparse valid slots
+    // and duplicate preservation without changing those entities or their flags.
+    actual = getplayers();
+    if (isarray(actual) && actual.size > 0 && isdefined(actual[0]) &&
+        isentity(actual[0]) && isplayer(actual[0]) &&
+        (!isdefined(actual[0].player_disconnected) || actual[0].player_disconnected != 1))
+    {
+        sparse = array();
+        sparse[0] = actual[0];
+        sparse[7] = actual[0];
+        retained = eroded_coop::disconnect_player_list(sparse);
+        failures += check(isdefined(retained) && retained.size == 2 &&
+            retained[0] == actual[0] && retained[1] == actual[0]);
+        failures += check(!eroded_coop::disconnect_rosters_empty(sparse, array()));
+    }
+
+    saved_endgame = level.onendgame;
+    saved_notetracks = level._notetrack_handler;
+    saved_installed = level.eroded_coop_disconnect_saved;
+    saved_epoch = level.eroded_coop_disconnect_epoch;
+    saved_map = level.eroded_coop_disconnect_map;
+    saved_original_endgame = level.eroded_coop_endgame_original;
+    saved_original_melee = level.eroded_coop_melee_original;
+    level.onendgame = &zm_gametype::onendgame;
+    level._notetrack_handler = array();
+    level._notetrack_handler["zombie_window_melee"] = &zm_behavior::notetrackboardmelee;
+    level.eroded_coop_disconnect_saved = undefined;
+    failures += check(eroded_coop::install_disconnect_guards(epoch, map));
+    failures += check(eroded_coop::disconnect_guards_owned());
+    failures += check(eroded_coop::install_disconnect_guards(epoch, map));
+    failures += check(level.eroded_coop_endgame_original == &zm_gametype::onendgame &&
+        level.eroded_coop_melee_original == &zm_behavior::notetrackboardmelee);
+    level.onendgame = &custom_total_setup;
+    failures += check(!eroded_coop::disconnect_guards_owned());
+    failures += check(!eroded_coop::endgame_guard_owned() && eroded_coop::melee_guard_owned());
+    failures += check(!eroded_coop::install_disconnect_guards(epoch, map));
+    failures += check(level.onendgame == &custom_total_setup);
+    level.onendgame = &eroded_coop::guarded_endgame;
+    level._notetrack_handler["zombie_window_melee"] = &custom_total_setup;
+    failures += check(!eroded_coop::disconnect_guards_owned());
+    failures += check(eroded_coop::endgame_guard_owned() && !eroded_coop::melee_guard_owned());
+    failures += check(!eroded_coop::install_disconnect_guards(epoch, map));
+    failures += check(level._notetrack_handler["zombie_window_melee"] == &custom_total_setup);
+    level._notetrack_handler["zombie_window_melee"] = &eroded_coop::guarded_window_melee;
+    level.eroded_coop_disconnect_epoch = epoch + 1;
+    failures += check(!eroded_coop::disconnect_guards_owned());
+    level.eroded_coop_disconnect_epoch = epoch;
+    level.eroded_coop_disconnect_map = "foreign_map";
+    failures += check(!eroded_coop::disconnect_guards_owned());
+    level.onendgame = saved_endgame;
+    level._notetrack_handler = saved_notetracks;
+    level.eroded_coop_disconnect_saved = saved_installed;
+    level.eroded_coop_disconnect_epoch = saved_epoch;
+    level.eroded_coop_disconnect_map = saved_map;
+    level.eroded_coop_endgame_original = saved_original_endgame;
+    level.eroded_coop_melee_original = saved_original_melee;
+    return failures;
 }
