@@ -83,6 +83,21 @@ DataSources.GameSettingsFlyoutButtonsCustom = DataSourceHelpers.ListSetup(
         action = OpenEditGameRules,
       },
     }
+    if Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
+      buttonDefinitions = {
+        { optionDisplay = "MPUI_CHANGE_MAP_CAPS", customId = "btnChangeMap", action = OpenChangeMap },
+        { optionDisplay = "MENU_SETUP_BOTS_CAPS", customId = "btnSetupBots", action = OpenBotSettings },
+      }
+      if CoD.ZMMapHasCharacterSelect and CoD.ZMMapHasCharacterSelect() then
+        table.insert(buttonDefinitions, 2, {
+          optionDisplay = "CHOOSE CHARACTER",
+          customId = "btnZMCharacterSelect",
+          action = function(menu, element, controller)
+            CoD.ZMOpenCharacterSelect(menu, controller)
+          end,
+        })
+      end
+    end
     -- if CoD.isPC and IsServerBrowserEnabled() then
     -- table.insert( buttonDefinitions, {
     -- optionDisplay = "PLATFORM_SERVER_SETTINGS_CAPS",

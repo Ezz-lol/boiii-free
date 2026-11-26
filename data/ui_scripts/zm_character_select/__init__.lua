@@ -32,6 +32,13 @@ local MAP_HEROES = {
 -- Shadows of Evil's heroes are listed by their archetype instead of their name
 local HERO_NAMES = { [5] = "Floyd Campbell", [6] = "Jack Vincent", [7] = "Jessica Rose", [8] = "Nero Blackstone" }
 
+local RANDOM_HERO = 4
+
+if not Engine.DvarBool(nil, "zm_character_chosen") then
+  Engine.SetHero(Engine.GetPrimaryController(), Enum.eModes.MODE_ZOMBIES, RANDOM_HERO)
+  Engine.SetDvar("zm_character_chosen", 1)
+end
+
 local pending = {}
 
 local function mapHeroes()
@@ -59,6 +66,7 @@ local function heroesTakenByOthers(controller)
     end
   end
   if not Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) then
+    taken[RANDOM_HERO] = nil
     return taken
   end
   -- Each member's equipped hero is part of the client info the lobby syncs to everyone. Split screen players are read
@@ -77,6 +85,7 @@ local function heroesTakenByOthers(controller)
       end
     end
   end
+  taken[RANDOM_HERO] = nil
   return taken
 end
 
@@ -99,8 +108,14 @@ CoD.OverlayUtility.AddSystemOverlay("ZMCharacterSelect", {
       local equipped = Engine.GetEquippedHero(controller, Enum.eModes.MODE_ZOMBIES)
       local taken = heroesTakenByOthers(controller)
       local items = {}
+      local heroes = { RANDOM_HERO }
       for _, hero in ipairs(mapHeroes() or {}) do
-        local name = HERO_NAMES[hero] or Engine.Localize(heroList[hero + 1].displayName)
+        table.insert(heroes, hero)
+      end
+      for _, hero in ipairs(heroes) do
+        local name = hero == RANDOM_HERO and "RANDOM"
+          or HERO_NAMES[hero]
+          or Engine.Localize(heroList[hero + 1].displayName)
         if taken[hero] ~= nil then
           name = name .. " (" .. shortName(taken[hero]) .. ")"
         elseif hero == equipped then
@@ -174,58 +189,10 @@ CoD.LobbyBase.LaunchGame = function(menu, controller, lobbyType)
   return launchGame(menu, controller, lobbyType)
 end
 
-local characterSelectButton = {
-  stringRef = "CHOOSE CHARACTER",
-  action = function(_, _, controller, _, menu)
-    openCharacterSelect(menu, controller, nil)
-  end,
-  customId = "btnZMCharacterSelect",
-}
-
-local addButtonsForTarget = CoD.LobbyMenus.AddButtonsForTarget
-CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
-  local result = addButtonsForTarget(controller, id)
-  local targets = LobbyData.UITargets
-  if
-    not result
-    or not mapHeroes()
-    or (id ~= targets.UI_ZMLOBBYONLINECUSTOMGAME.id and id ~= targets.UI_ZMLOBBYLANGAME.id)
-  then
-    return result
-  end
-  local index = #result + 1
-  for buttonIndex, button in ipairs(result) do
-    if button.optionDisplay == CoD.LobbyButtons.ZM_CHANGE_MAP.stringRef then
-      index = buttonIndex + 1
-      break
-    end
-  end
-  table.insert(result, index, {
-    optionDisplay = characterSelectButton.stringRef,
-    action = characterSelectButton.action,
-    customId = characterSelectButton.customId,
-    isLargeButton = false,
-    isLastButtonInGroup = false,
-    disabled = false,
-    selected = false,
-  })
-  return result
+CoD.ZMOpenCharacterSelect = function(menu, controller)
+  openCharacterSelect(menu, controller, nil)
 end
 
--- The lobby only rebuilds its buttons on a map change in campaign, so the button wouldn't update when switching maps
-local prepareLobbyButtons = DataSources.LobbyButtons.prepare
-DataSources.LobbyButtons.prepare = function(controller, list, filter)
-  prepareLobbyButtons(controller, list, filter)
-  if list.characterSelectMapSub then
-    list:removeSubscription(list.characterSelectMapSub)
-  end
-  list.characterSelectSupported = mapHeroes() ~= nil
-  local mapModel = Engine.CreateModel(Engine.GetGlobalModel(), "MapVote.mapVoteMapNext")
-  list.characterSelectMapSub = list:subscribeToModel(mapModel, function()
-    local supported = mapHeroes() ~= nil
-    if supported ~= list.characterSelectSupported then
-      list.characterSelectSupported = supported
-      list:updateDataSource()
-    end
-  end, false)
+CoD.ZMMapHasCharacterSelect = function()
+  return mapHeroes() ~= nil
 end

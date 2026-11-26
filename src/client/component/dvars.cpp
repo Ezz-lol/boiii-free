@@ -208,6 +208,9 @@ public:
             game::register_dvar_string("more_players_chars", "",
                                        game::dvarFlags_e::NONE,
                                        "Zombies character of each player");
+            game::register_dvar_bool("zm_character_chosen", false,
+                                     game::dvarFlags_e::ARCHIVE,
+                                     "Zombies character was set once");
           },
           scheduler::pipeline::main);
 

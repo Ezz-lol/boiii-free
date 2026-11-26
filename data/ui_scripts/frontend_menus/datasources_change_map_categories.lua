@@ -93,12 +93,11 @@ DataSources.ChangeMapCategories = DataSourceHelpers.ListSetup("ChangeMapCategori
         0,
         Engine.Mods_Lists_GetInfoEntriesCount(LuaEnums.USERMAP_BASE_PATH)
       )
-      if modEntries then
-        for i = 0, #modEntries, 1 do
-          local modEntry = modEntries[i]
-          if LUI.startswith(modEntry.internalName, "mp_") then
-            table.insert(categories, CreateCategoryEntry("mods", CoD.CONTENT_MODS_INDEX))
-          end
+      local prefix = CoD.gameModeEnum == Enum.eModes.MODE_ZOMBIES and "zm_" or "mp_"
+      for i = 0, modEntries and #modEntries or -1 do
+        if modEntries[i] and LUI.startswith(modEntries[i].internalName, prefix) then
+          table.insert(categories, CreateCategoryEntry("mods", CoD.CONTENT_MODS_INDEX))
+          break
         end
       end
     end

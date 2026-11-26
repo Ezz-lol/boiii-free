@@ -167,6 +167,17 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("bots");
 
   void post_unpack() override {
+    scheduler::once(
+        [] {
+          game::register_dvar_int("zm_bots", 0, 0, 17,
+                                  game::dvarFlags_e::ARCHIVE,
+                                  "Bots added to zombies games you host");
+          game::register_dvar_int(
+              "zm_bot_mode", 0, 0, 2, game::dvarFlags_e::ARCHIVE,
+              "Zombies bot behaviour: 0 follow, 1 wander, 2 camp");
+        },
+        scheduler::pipeline::main);
+
     utils::hook::jump(game::select(0x141653B90, 0x1402732E0), get_bot_name);
     utils::hook::call(game::select(0x1421EC547, 0x14052E53A),
                       format_bot_string);
