@@ -64,6 +64,9 @@ function startup_current(epoch,map){return epoch===currentEpoch&&map===currentMa
 // Independently exercised by zombies_coop_disconnect_guards.py; this suite
 // isolates round-seed ownership and supplies an already-owned guard context.
 function disconnect_guards_owned(){return true;}
+// Optional actor callbacks have an independent actual-body suite.
+function bot_threat_guard_compatible(){return true;}
+function fake_death_guard_compatible(){return true;}
 function setdvar(key,value){dvars[key]=value;}
 function diagnostic_event(value){events.push('event:'+value);}
 function flag_exists(name){return Object.hasOwn(flags,name);}

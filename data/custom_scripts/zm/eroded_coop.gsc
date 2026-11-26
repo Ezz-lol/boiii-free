@@ -8,6 +8,7 @@
 #using scripts/zm/gametypes/_globallogic;
 #using scripts/shared/callbacks_shared;
 #using scripts/shared/ai/zombie_utility;
+#using scripts/shared/bots/_bot_combat;
 #using scripts/shared/flag_shared;
 
 #namespace eroded_coop;
@@ -161,6 +162,10 @@ function install(limit, epoch, map)
         setdvar("zm_coopStatus", "disconnect_guard_install_failed");
         return;
     }
+    // Stock bot defaults are registered by its pre-system, not by the first
+    // native test client. Missing/custom optional actor callbacks never block
+    // human/no-bot startup; a late stock registration is retried independently.
+    install_actor_lifecycle_guards(epoch, map);
     level.player_too_many_players_check_func = &player_count_check;
     level.func_get_zombie_spawn_delay = &spawn_delay;
     diagnostic_round_values(getplayers().size, 0, 0, 0);
@@ -262,7 +267,8 @@ function owns_callbacks()
         isdefined(level.eroded_coop_stock_spawn_delay) &&
         level.player_too_many_players_check_func == &player_count_check &&
         level.func_get_zombie_spawn_delay == &spawn_delay &&
-        round_setup_context_current() && round_setup_owner_owned() && disconnect_guards_owned();
+        round_setup_context_current() && round_setup_owner_owned() && disconnect_guards_owned() &&
+        bot_threat_guard_compatible() && fake_death_guard_compatible();
 }
 
 
@@ -428,6 +434,171 @@ function guarded_window_melee(animationentity)
         animationentity.player_targets = retained;
     }
     self [[level.eroded_coop_melee_original]](animationentity);
+}
+
+function install_actor_lifecycle_guards(epoch, map)
+{
+    if (!startup_current(epoch, map))
+        return;
+    install_bot_threat_guard(epoch, map);
+    install_fake_death_guard(epoch, map);
+    if (!isdefined(level.eroded_coop_actor_connect_registered))
+    {
+        level.eroded_coop_actor_connect_registered = true;
+        callback::on_connect(&actor_lifecycle_on_connect);
+        level thread actor_lifecycle_observer(epoch, map);
+    }
+}
+
+function actor_lifecycle_on_connect()
+{
+    if (!isdefined(level.eroded_coop_started_epoch) || !isdefined(level.eroded_coop_started_map))
+        return;
+    install_bot_threat_guard(level.eroded_coop_started_epoch, level.eroded_coop_started_map);
+    install_fake_death_guard(level.eroded_coop_started_epoch, level.eroded_coop_started_map);
+}
+
+function actor_lifecycle_observer(epoch, map)
+{
+    level endon(#"intermission");
+    level endon(#"end_game");
+    started = gettime();
+    while (startup_current(epoch, map) && gettime() - started < 30000)
+    {
+        install_bot_threat_guard(epoch, map);
+        install_fake_death_guard(epoch, map);
+        if ((isdefined(level.eroded_coop_bot_threat_saved) || isdefined(level.eroded_coop_bot_threat_declined)) &&
+            (isdefined(level.eroded_coop_fake_death_saved) || isdefined(level.eroded_coop_fake_death_declined)))
+            return;
+        wait 0.05;
+    }
+}
+
+function bot_threat_guard_owned()
+{
+    return isdefined(level.eroded_coop_bot_threat_saved) && level.eroded_coop_bot_threat_saved &&
+        isint(level.eroded_coop_bot_threat_epoch) && level.eroded_coop_bot_threat_epoch > 0 &&
+        isdefined(level.eroded_coop_bot_threat_map) &&
+        startup_current(level.eroded_coop_bot_threat_epoch, level.eroded_coop_bot_threat_map) &&
+        isdefined(level.eroded_coop_bot_threat_original) &&
+        level.eroded_coop_bot_threat_original == &bot_combat::engage_threat &&
+        isdefined(level.botthreatengage) && level.botthreatengage == &guarded_bot_threat_engage;
+}
+
+function bot_threat_guard_compatible()
+{
+    if (!isdefined(level.eroded_coop_bot_threat_saved))
+        return true;
+    return bot_threat_guard_owned();
+}
+
+function install_bot_threat_guard(epoch, map)
+{
+    if (!startup_current(epoch, map))
+        return false;
+    if (isdefined(level.eroded_coop_bot_threat_saved))
+        return bot_threat_guard_owned();
+    if (isdefined(level.eroded_coop_bot_threat_declined))
+        return false;
+    if (!isdefined(level.botthreatengage))
+    {
+        setdvar("zm_coopBotThreatStatus", "awaiting_stock_callback");
+        return false;
+    }
+    if (level.botthreatengage != &bot_combat::engage_threat)
+    {
+        level.eroded_coop_bot_threat_declined = true;
+        setdvar("zm_coopBotThreatStatus", "custom_callback_preserved");
+        return false;
+    }
+    level.eroded_coop_bot_threat_original = level.botthreatengage;
+    level.eroded_coop_bot_threat_epoch = epoch;
+    level.eroded_coop_bot_threat_map = map;
+    level.eroded_coop_bot_threat_saved = true;
+    level.botthreatengage = &guarded_bot_threat_engage;
+    setdvar("zm_coopBotThreatStatus", "stock_guard_installed");
+    println("[Zombies coop] actor_guard=bot_threat installed=1");
+    diagnostic_event("bot_threat_guard_installed");
+    return true;
+}
+
+function guarded_bot_threat_engage()
+{
+    if (!bot_threat_guard_owned() || !isdefined(self) || !isentity(self) || !isplayer(self) || !isalive(self))
+        return;
+    self endon(#"death");
+    self endon(#"disconnect");
+    level endon(#"game_ended");
+    level endon(#"end_game");
+    if (isdefined(self.player_disconnected) && self.player_disconnected == 1)
+        return;
+    // These two structs are created by the verified stock bot on-connect path.
+    // Do not manufacture a threat, alter AI settings or bind cancellation to a
+    // cached target: stock can replace its threat while processing combat.
+    if (!isdefined(self.bot) || !isdefined(self.bot.threat) ||
+        !isdefined(self.bot.threat.entity) || !isentity(self.bot.threat.entity))
+    {
+        diagnostic_event("bot_threat_entity_unavailable");
+        return;
+    }
+    threat = self.bot.threat.entity;
+    if (isplayer(threat) && isdefined(threat.player_disconnected) && threat.player_disconnected == 1)
+        return;
+    self [[level.eroded_coop_bot_threat_original]]();
+}
+
+function fake_death_guard_owned()
+{
+    return isdefined(level.eroded_coop_fake_death_saved) && level.eroded_coop_fake_death_saved &&
+        isint(level.eroded_coop_fake_death_epoch) && level.eroded_coop_fake_death_epoch > 0 &&
+        isdefined(level.eroded_coop_fake_death_map) &&
+        startup_current(level.eroded_coop_fake_death_epoch, level.eroded_coop_fake_death_map) &&
+        level.eroded_coop_fake_death_original == &zm::player_fake_death &&
+        isdefined(level.custom_player_fake_death) && level.custom_player_fake_death == &guarded_player_fake_death;
+}
+
+function fake_death_guard_compatible()
+{
+    if (!isdefined(level.eroded_coop_fake_death_saved))
+        return true;
+    return fake_death_guard_owned();
+}
+
+function install_fake_death_guard(epoch, map)
+{
+    if (!startup_current(epoch, map))
+        return false;
+    if (isdefined(level.eroded_coop_fake_death_saved))
+        return fake_death_guard_owned();
+    if (isdefined(level.eroded_coop_fake_death_declined))
+        return false;
+    if (isdefined(level.custom_player_fake_death))
+    {
+        level.eroded_coop_fake_death_declined = true;
+        setdvar("zm_coopFakeDeathStatus", "custom_callback_preserved");
+        return false;
+    }
+    level.eroded_coop_fake_death_original = &zm::player_fake_death;
+    level.eroded_coop_fake_death_epoch = epoch;
+    level.eroded_coop_fake_death_map = map;
+    level.eroded_coop_fake_death_saved = true;
+    level.custom_player_fake_death = &guarded_player_fake_death;
+    setdvar("zm_coopFakeDeathStatus", "stock_guard_installed");
+    println("[Zombies coop] actor_guard=fake_death installed=1");
+    diagnostic_event("fake_death_guard_installed");
+    return true;
+}
+
+function guarded_player_fake_death(vdir, smeansofdeath)
+{
+    if (!fake_death_guard_owned() || !isdefined(self) || !isentity(self) || !isplayer(self))
+        return;
+    // Stock deliberately waits one second before freezing controls. Preserve
+    // that complete path unless its owning player disconnects during the wait.
+    self endon(#"disconnect");
+    if (isdefined(self.player_disconnected) && self.player_disconnected == 1)
+        return;
+    self [[level.eroded_coop_fake_death_original]]();
 }
 
 // GobbleGum move-frequency fallback reviewed from ShawnDuPreez/cb-mods
