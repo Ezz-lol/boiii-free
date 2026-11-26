@@ -41,8 +41,9 @@ def main():
     includes, imports, exports = inspect(args.compiled)
     assert "scripts/zm/_zm_behavior" in includes or "scripts/zm/_zm_behavior.gsc" in includes
     assert "scripts/zm/gametypes/_zm_gametype" in includes or "scripts/zm/gametypes/_zm_gametype.gsc" in includes
+    assert "scripts/zm/gametypes/_globallogic" in includes or "scripts/zm/gametypes/_globallogic.gsc" in includes
     assert not any("zm_zod" in item for item in includes), includes
-    for name, namespace in (("onendgame", "zm_gametype"), ("notetrackboardmelee", "zm_behavior")):
+    for name, namespace in (("onendgame", "zm_gametype"), ("notetrackboardmelee", "zm_behavior"), ("blank", "globallogic")):
         assert (retail_hash(name), retail_hash(namespace), 0, 1) in imports, (name, namespace)
     # New global calls are stock APIs: native BG builtin table lists GetArrayKeys,
     # IsEntity and IsPlayer. No struct/vector type helper is assumed or imported.
@@ -50,7 +51,7 @@ def main():
         assert (retail_hash(name), retail_hash("eroded_coop"), 1, 2) in imports, name
     for name in ("isstruct", "isvector", "gettype"):
         assert not any(item[0] == retail_hash(name) for item in imports), name
-    for name in ("disconnect_player_list", "disconnect_rosters_empty", "endgame_guard_owned", "melee_guard_owned",
+    for name in ("disconnect_endgame_pending", "disconnect_player_list", "disconnect_rosters_empty", "endgame_guard_owned", "melee_guard_owned",
                  "disconnect_guards_owned", "install_disconnect_guards", "guarded_endgame", "guarded_window_melee"):
         assert retail_hash(name) in exports, name
     fixture_includes, fixture_imports, fixture_exports = inspect(args.fixture)

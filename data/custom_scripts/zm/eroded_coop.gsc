@@ -5,6 +5,7 @@
 #using scripts/zm/_zm_utility;
 #using scripts/zm/_zm_behavior;
 #using scripts/zm/gametypes/_zm_gametype;
+#using scripts/zm/gametypes/_globallogic;
 #using scripts/shared/callbacks_shared;
 #using scripts/shared/ai/zombie_utility;
 #using scripts/shared/flag_shared;
@@ -97,7 +98,7 @@ function install(limit, epoch, map)
     started = gettime();
     while (!isdefined(level.player_too_many_players_check_func) || !isdefined(level.func_get_zombie_spawn_delay) ||
         (official_map(map) && !map_profile_current(epoch, map)) ||
-        !isdefined(level.onendgame) || !isdefined(level._notetrack_handler) ||
+        disconnect_endgame_pending(level.onendgame) || !isdefined(level._notetrack_handler) ||
         (isarray(level._notetrack_handler) && !isdefined(level._notetrack_handler["zombie_window_melee"])) ||
         (map_profile_current(epoch, map) && isdefined(level.eroded_coop_known_total_setup) &&
         !isdefined(level.zombie_total_set_func)))
@@ -306,6 +307,13 @@ function disconnect_rosters_empty(actual, listed)
     listed_retained = disconnect_player_list(listed);
     return isdefined(actual_retained) && isdefined(listed_retained) &&
         actual_retained.size == 0 && listed_retained.size == 0;
+}
+
+// Generic gametype setup first installs this exact stock placeholder. Waiting
+// belongs only to initial startup; unknown owners are never treated as pending.
+function disconnect_endgame_pending(owner)
+{
+    return !isdefined(owner) || owner == &globallogic::blank;
 }
 
 function disconnect_context_current()

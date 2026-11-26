@@ -4,6 +4,7 @@
 #using scripts/zm/_zm;
 #using scripts/zm/_zm_behavior;
 #using scripts/zm/gametypes/_zm_gametype;
+#using scripts/zm/gametypes/_globallogic;
 #namespace eroded_coop_selftest;
 
 function autoexec main()
@@ -527,6 +528,11 @@ function seed_callback_foreign()
 function test_disconnect_guards(epoch, map)
 {
     failures = 0;
+    failures += check(eroded_coop::disconnect_endgame_pending(undefined));
+    failures += check(eroded_coop::disconnect_endgame_pending(&globallogic::blank));
+    failures += check(!eroded_coop::disconnect_endgame_pending(&zm_gametype::onendgame));
+    failures += check(!eroded_coop::disconnect_endgame_pending(&custom_total_setup));
+    failures += check(!eroded_coop::disconnect_endgame_pending(&eroded_coop::guarded_endgame));
     failures += check(isdefined(eroded_coop::disconnect_player_list(array())));
     failures += check(eroded_coop::disconnect_player_list(array()).size == 0);
     failures += check(!isdefined(eroded_coop::disconnect_player_list(undefined)));

@@ -20,7 +20,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tests'))
 from script_frame_diagnostics import function
 
-HELPERS=('disconnect_player_list','disconnect_rosters_empty','disconnect_context_current',
+HELPERS=('disconnect_endgame_pending','disconnect_player_list','disconnect_rosters_empty','disconnect_context_current',
     'disconnect_originals_stock','disconnect_guards_owned','endgame_guard_owned','melee_guard_owned','disconnect_guard_installable',
     'install_disconnect_guards','guarded_endgame','guarded_window_melee')
 
@@ -34,6 +34,7 @@ def translate(body):
     locals_=set(re.findall(r'(?<![\w.])([A-Za-z_]\w*)\s*=(?!=)',mask(body)))-parameters
     result=body
     for original,replacement in (('&zm_gametype::onendgame','stock_endgame'),
+        ('&globallogic::blank','stock_blank'),
         ('&zm_behavior::notetrackboardmelee','stock_melee'),
         ('&guarded_endgame','guarded_endgame'),('&guarded_window_melee','guarded_window_melee')):
         result=result.replace(original,replacement)
@@ -82,12 +83,16 @@ function setdvar(){}
 function stock_endgame(winner){calls.push({kind:'endgame',self:this,winner,players:level.players});}
 function stock_melee(entity){calls.push({kind:'melee',self:this,entity,targets:entity.first_node===undefined?undefined:entity.player_targets,first_node:entity.first_node});}
 function foreign(){throw new Error('Unknown/custom callback must not be invoked');}
+function stock_blank(){throw new Error('Pending callback must never be invoked by readiness probe');}
 '''
 
 CASES=r'''
 function player(id,fields={}){return {entity:true,player:true,id,...fields};}
 function sameValues(actual,expected,message){check(isarray(actual),message+' array');check(arrayValues(actual).length===expected.length&&arrayValues(actual).every((value,index)=>value===expected[index]),message+' identities/order');}
 const p0=player(0),p1=player(1),p3=player(3),p7=player(7);
+for(const [owner,pending] of [[undefined,true],[stock_blank,true],[stock_endgame,false],
+ [foreign,false],[guarded_endgame,false],[stock_melee,false]])
+ check(disconnect_endgame_pending(owner)===pending,'only missing/temporary stock blank waits; unknown owners decline immediately');
 function reset(){
  level={onendgame:stock_endgame,_notetrack_handler:garray([['zombie_window_melee',stock_melee]]),players:garray(),placement:garray([['all',garray()]])};
  currentEpoch=1;currentMap='zm_zod';actualPlayers=garray();calls=[];events=[];
@@ -210,6 +215,11 @@ def main():
     if re.search(r'\b(?:isalive|isplaying|isstruct|isvector|gettype)\s*\(',mask(bodies['disconnect_player_list'])):
         raise ValueError('List filtering substitutes playing/liveness or invented type APIs')
     install_body=function(source,'function install(')
+    waiting=install_body[install_body.index('while ('):install_body.index('expected_delay =')]
+    if ('disconnect_endgame_pending(level.onendgame)' not in waiting or
+            'if (!startup_current(epoch, map))' not in waiting or
+            'if (gettime() - started >= 30000)' not in waiting or 'wait 0.05;' not in waiting):
+        raise ValueError('Temporary stock-owner wait must retain epoch, 30s timeout and bounded polling')
     if not (install_body.index('disconnect_guard_installable(epoch, map)')<install_body.index('install_round_seed_hook(epoch, map)')
             <install_body.index('install_disconnect_guards(epoch, map)')<install_body.index('level.player_too_many_players_check_func = &player_count_check;')
             <install_body.index('setdvar("zm_coopReadyMap", map)')):
