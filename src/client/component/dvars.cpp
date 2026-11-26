@@ -4,6 +4,7 @@
 
 #include "dvars.hpp"
 #include "scheduler.hpp"
+#include <game/utils.hpp>
 
 #include <atomic>
 #include <utils/hook.hpp>
@@ -129,8 +130,38 @@ void schedule_dvar_write() {
       scheduler::pipeline::main, 10s);
 }
 
+int32_t hosted_zombies_lobby_limit() {
+  using namespace game::lobby;
+  if (game::is_server() ||
+      game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES ||
+      !client::LobbyClient_IsActive(LobbyType::GAME) ||
+      !client::LobbyClient_IsHost(LobbyType::GAME)) {
+    return 0;
+  }
+  const session::LobbySession *session =
+      client::LobbyClientData_GetSession(LobbyType::GAME);
+  if (!session || session->mode != LobbyMode::CUSTOM) {
+    return 0;
+  }
+  return std::min(static_cast<int32_t>(session->host.maxClients), 18);
+}
+
 void dvar_set_variant_stub(game::EngineDependentDvar dvar,
                            game::DvarValue *value, game::DvarSetSource source) {
+  if (dvar.type() == game::dvarType_t::INT && dvar.debugName() &&
+      (std::string_view(dvar.debugName()) == "com_maxclients" ||
+       std::string_view(dvar.debugName()) == "party_maxplayers")) {
+    const int32_t limit = hosted_zombies_lobby_limit();
+    if (value->integer() < limit) {
+      scheduler::once(
+          [name = std::string(dvar.debugName()), limit] {
+            game::Dvar_SetFromStringByName(
+                name.c_str(), std::to_string(limit).c_str(), false);
+          },
+          scheduler::pipeline::main);
+    }
+  }
+
   if (dvar.type() == game::dvarType_t::INT && dvar.debugName() &&
       !dvar.domain().contains(value->integer()) &&
       (std::string_view(dvar.debugName()) == "sv_maxclients" ||
@@ -172,6 +203,13 @@ public:
                       scheduler::pipeline::dvars_flags_patched);
       dvar_set_variant_hook.create(game::Dvar_SetVariant.get(),
                                    dvar_set_variant_stub);
+      scheduler::once(
+          [] {
+            game::register_dvar_string("more_players_chars", "",
+                                       game::dvarFlags_e::NONE,
+                                       "Zombies character of each player");
+          },
+          scheduler::pipeline::main);
 
       // Show all known dvars in console
       utils::hook::jump(game::Dvar_ForEachName.get(), dvar_for_each_name_stub);

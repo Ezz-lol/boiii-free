@@ -12,6 +12,10 @@ Lobby.Process.CreateDedicatedModsLobby = function(controller, toTarget)
   if lobby_mode ~= "" then
     if lobby_mode == "zm" then
       toTarget = LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME
+      if Engine.DvarInt(nil, "com_maxclients") > 18 then
+        Engine.SetDvar("com_maxclients", 18)
+      end
+      toTarget.maxClients = Engine.DvarInt(nil, "com_maxclients")
     elseif lobby_mode == "cp" then
       toTarget = LobbyData.UITargets.UI_CPLOBBYONLINECUSTOMGAME
     elseif lobby_mode == "cpzm" then
