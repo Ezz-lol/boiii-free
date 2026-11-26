@@ -41,8 +41,6 @@ constexpr const char *compatibility_commands[] = {
 game::EngineDependentDvar sv_auto_gametype_settings;
 utils::hook::detour map_rotate_hook;
 
-// Inspect only the entry the engine is about to consume. Leave the cursor and
-// the map change itself to SV_MapRotate_f.
 std::string next_rotation_gametype(std::string_view rotation) {
   std::istringstream tokens{std::string(rotation)};
   std::string mode;
@@ -56,7 +54,6 @@ std::string next_rotation_gametype(std::string_view rotation) {
         value.find_first_not_of("abcdefghijklmnopqrstuvwxyz"
                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") !=
             std::string::npos) {
-      // An explicit exec or an unfamiliar entry owns its own settings.
       return {};
     }
     mode = value;
@@ -72,7 +69,7 @@ void map_rotate_stub() {
       rotation = game::maprotation().value_or("");
     }
     const auto mode = next_rotation_gametype(rotation);
-    if (!mode.empty()) {
+    if (!mode.empty() && mode != game::get_g_gametype().value_or("")) {
       const auto cmd = std::format(
           "exec gamedata/gamesettings/mp/gamesettings_{}.cfg", mode);
       game::cmd::Cmd_ExecuteSingleCommand(0, game::CONTROLLER_INDEX_FIRST,

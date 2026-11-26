@@ -71,6 +71,7 @@ Lobby.Process.CreateDedicatedModsLobby = function(controller, toTarget)
               toTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_MP
               and Engine.DvarBool(nil, "sv_autoGametypeSettings")
               and mode:match("^[a-zA-Z0-9_]+$")
+              and mode ~= Engine.DvarString(nil, "g_gametype")
             then
               Engine.Exec(0, "exec gamedata/gamesettings/mp/gamesettings_" .. mode .. ".cfg")
             end
