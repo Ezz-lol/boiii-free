@@ -187,3 +187,28 @@ minimum, maximum and type metadata are recorded separately. This only permits a
 read-only code capture; neither zero-argument nor one-argument calls are made.
 The optional argument's behavior must be established from the captured body
 before considering any readiness-count change.
+
+
+## Dedicated test-client readiness
+
+The supported dedicated image's stock connected-player builtin counts ACTIVE
+humans by default and includes ACTIVE native test clients only when its optional
+boolean is true. With experimental coop enabled, an armed five-through-eight
+Zombies session changes only that boolean's default to include test clients.
+Explicit `getnumconnectedplayers(false)` and `(true)` keep their stock meanings.
+The native ACTIVE filter, pool iteration, return-value writer and human readiness
+rules remain in the engine. No client-image hook is installed.
+
+Installation requires the supported image/table identities, exact captured
+93-byte executed-function fingerprint and verified optional-getter CALL target; any
+mismatch declines the change and records `connected_bots_declined` plus a
+`COOP_CONNECTED_BOTS` receipt. The hook affects only that dedicated CALL and
+releases all coop state locks before the original optional getter runs. Saved
+capacity alone does not enable it: the current native allocation, map lifecycle,
+mode and experimental flag must all agree. Ezz also floors its existing expected
+player result to native clients at CONNECTED or later within that same session
+scope, preserving its existing four-player/MP/CP/minimum-player behavior.
+
+This source-backed correction still requires isolated startup, phase and
+teardown verification with the exact resulting build. It does not itself prove
+real-client gameplay, texture acknowledgements, HUD behavior or all-map quests.
