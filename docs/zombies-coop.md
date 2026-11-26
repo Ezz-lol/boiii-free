@@ -54,8 +54,15 @@ custom callback owners/gametypes decline adaptation rather than being overwritte
 Hard-coded four-player quest arrays, custom HUDs and arbitrary map-owned scripting
 cannot be made universally safe by changing the native capacity alone.
 
-At a captured normal-round quota event, the controller freezes the stock
-population/target/counters before starting a worker. That immutable seed survives
+The owned `zombie_total_set_func` setup callback captures the pristine stock
+population/target/counters before starting a worker. A notification waiter can
+resume after the first spawn and cannot establish that initial budget. The hook
+accepts an absent stock owner or the exact known Temple initializer, which it
+chains once per stock setup and never replays for a membership change. Hook
+identity, saved original and map epoch are part of readiness; an unknown initial
+owner or later takeover closes expanded admission.
+
+That immutable seed survives
 transient native-versus-script roster differences; event generation revokes old
 workers even on a same-round restart. A missed or partial seed cannot establish
 consumed quota, so it logs an explicit status and waits for the next owned event.
@@ -70,7 +77,9 @@ Unknown round thinkers retain quota ownership. Moon's known thinker can restore
 a saved budget after No Man's Land; that entire resumed round remains map-owned,
 including restored decreases or equal values. Ordinary adaptation may resume on
 a later fresh normal round above the saved round. A worker also stops before
-accounting when Moon enters a teleport/No Man's Land transition.
+accounting when Moon enters a teleport/No Man's Land transition. A defined
+`kill_counter_hud` also preserves the map's budget at capture and before every
+worker accounting step, including when it appears during an existing round.
 
 Special dog-round totals and pacing remain stock snapshots; live join/leave
 resizing is currently implemented for captured normal rounds, not dog-round

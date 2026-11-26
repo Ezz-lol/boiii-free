@@ -55,11 +55,17 @@ recycled quota after a shrink. Concurrent AI/actor limits are not raised.
 A temporary nonstock `round_spawn_func` stops normal quota adaptation. Known
 mixed-AI callbacks remain called by stock; the addon observes their quota
 consumption rather than spawning replacements itself. Unknown round thinkers,
-total-set or mixed-AI callbacks retain ownership. Special rounds keep their stock calculations
+total-set or mixed-AI callbacks retain ownership. An unknown total-set owner
+prevents expanded readiness; later hook/context loss revokes readiness. Special
+rounds keep their stock calculations
 and schedules; this does not promise a new live-resize implementation for every
 special controller. Temple's initializer resets monkey counters and derives
 napalm/screecher/monkey thresholds, so calling it on a membership change would be
-incorrect and is explicitly avoided.
+incorrect and is explicitly avoided. Its known original runs once through the
+owned setup wrapper for each stock setup invocation, including a declined seed.
+The wrapper keeps exact pristine-counter checks and does not reconstruct an
+initial quota from pending zombies. Defined `kill_counter_hud` budgets and Moon's
+restored rounds are preserved before both capture and in-flight accounting.
 
 Dog-round totals and pacing still use the stock intro roster snapshot and local
 `count`/`max` values. A departure during the seven-second intro or the dog round

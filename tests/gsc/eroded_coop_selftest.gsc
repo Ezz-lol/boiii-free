@@ -128,6 +128,7 @@ function run()
     level.round_think_func = saved_round_think;
     failures += test_round_thinker_ownership();
     failures += test_captured_round_event();
+    failures += test_seed_callback_owners();
     failures += check(eroded_coop::valid_counters(100, 5));
     failures += check(!eroded_coop::valid_counters(1, 2));
     failures += check(!eroded_coop::valid_counters(-1, 0));
@@ -452,4 +453,46 @@ function custom_count_callback(maximum, round)
 {
     level.eroded_coop_test_count_calls++;
     return maximum + round;
+}
+
+
+// Actual production predicates: no map-only imports, no real owner changes.
+function test_seed_callback_owners()
+{
+    failures = 0;
+    known = &seed_callback_known;
+    foreign = &seed_callback_foreign;
+    wrapper = &eroded_coop::round_total_setup;
+    failures += check(eroded_coop::total_setup_original_owned(undefined, undefined));
+    failures += check(eroded_coop::total_setup_original_owned(undefined, known));
+    failures += check(eroded_coop::total_setup_original_owned(known, known));
+    failures += check(!eroded_coop::total_setup_original_owned(foreign, known));
+    failures += check(!eroded_coop::total_setup_original_owned(foreign, undefined));
+    failures += check(eroded_coop::total_setup_owner_owned(undefined, undefined, undefined, false, false));
+    failures += check(eroded_coop::total_setup_owner_owned(known, known, undefined, false, false));
+    failures += check(eroded_coop::total_setup_owner_owned(wrapper, undefined, undefined, true, true));
+    failures += check(eroded_coop::total_setup_owner_owned(wrapper, known, known, true, true));
+    failures += check(!eroded_coop::total_setup_owner_owned(wrapper, known, foreign, true, true));
+    failures += check(!eroded_coop::total_setup_owner_owned(wrapper, known, known, true, false));
+    failures += check(!eroded_coop::total_setup_owner_owned(known, known, known, true, true));
+    failures += check(!eroded_coop::total_setup_owner_owned(foreign, known, known, true, true));
+    saved = level.eroded_coop_seed_test_calls;
+    level.eroded_coop_seed_test_calls = 0;
+    eroded_coop::run_original_total_setup(undefined, known);
+    eroded_coop::run_original_total_setup(foreign, known);
+    failures += check(level.eroded_coop_seed_test_calls == 0);
+    eroded_coop::run_original_total_setup(known, known);
+    failures += check(level.eroded_coop_seed_test_calls == 1);
+    level.eroded_coop_seed_test_calls = saved;
+    return failures;
+}
+
+function seed_callback_known()
+{
+    level.eroded_coop_seed_test_calls++;
+}
+
+function seed_callback_foreign()
+{
+    level.eroded_coop_seed_test_calls += 100;
 }

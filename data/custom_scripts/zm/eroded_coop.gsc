@@ -94,7 +94,9 @@ function install(limit, epoch, map)
     level endon(#"end_game");
     started = gettime();
     while (!isdefined(level.player_too_many_players_check_func) || !isdefined(level.func_get_zombie_spawn_delay) ||
-        (official_map(map) && !map_profile_current(epoch, map)))
+        (official_map(map) && !map_profile_current(epoch, map)) ||
+        (map_profile_current(epoch, map) && isdefined(level.eroded_coop_known_total_setup) &&
+        !isdefined(level.zombie_total_set_func)))
     {
         // An old VM/thread must not clear a newer map's readiness values.
         if (!startup_current(epoch, map))
@@ -132,6 +134,14 @@ function install(limit, epoch, map)
     }
     level.eroded_coop_stock_spawn_delay = expected_delay;
     level.eroded_coop_limit = limit;
+    // Seed ownership is part of expanded startup readiness. Fail before
+    // installing primary callbacks or publishing ready fields on an unknown
+    // initial owner. Later takeover also revokes heartbeat/native admission.
+    if (!install_round_seed_hook(epoch, map))
+    {
+        setdvar("zm_coopStatus", "custom_total_setup_preserved");
+        return;
+    }
     level.player_too_many_players_check_func = &player_count_check;
     level.func_get_zombie_spawn_delay = &spawn_delay;
     diagnostic_round_values(getplayers().size, 0, 0, 0);
@@ -144,7 +154,6 @@ function install(limit, epoch, map)
     else
         setdvar("zm_coopMapAdapter", "inherited_stock_callbacks_custom_logic_preserved");
     diagnostic_event("callbacks_installed");
-    level thread round_listener(epoch, map);
     level thread diagnostic_heartbeat(epoch, map);
     setdvar("zm_coopReadyMap", map);
     setdvar("zm_coopReadyEpoch", epoch);
@@ -233,7 +242,8 @@ function owns_callbacks()
     return isint(level.eroded_coop_limit) && level.eroded_coop_limit >= 5 && level.eroded_coop_limit <= 8 &&
         isdefined(level.eroded_coop_stock_spawn_delay) &&
         level.player_too_many_players_check_func == &player_count_check &&
-        level.func_get_zombie_spawn_delay == &spawn_delay;
+        level.func_get_zombie_spawn_delay == &spawn_delay &&
+        round_setup_context_current() && round_setup_owner_owned();
 }
 
 
@@ -558,64 +568,125 @@ function separate_spawn(generation, epoch, map)
     }
 }
 
-function round_listener(epoch, map)
+// Only the actual stock setup call may create a seed. A notified waiter can
+// resume after the caller's first spawn; no amount of listener-local no-yield
+// code makes that later observation a pristine quota capture.
+function total_setup_original_owned(owner, known)
 {
-    level endon(#"intermission");
-    level endon(#"end_game");
-    setdvar("zm_coopRoundStatus", "awaiting_round_event");
-    // A late installer cannot recover a consumed budget from pending alone.
-    if (isdefined(level.round_start_time) && level.round_start_time > 0)
+    return !isdefined(owner) || (isdefined(known) && owner == known);
+}
+
+function total_setup_owner_owned(owner, known, original, installed, current)
+{
+    if (installed)
+        return current && owner == &round_total_setup && total_setup_original_owned(original, known);
+    return total_setup_original_owned(owner, known);
+}
+
+function round_setup_context_current()
+{
+    return isdefined(level.eroded_coop_total_setup_saved) && level.eroded_coop_total_setup_saved &&
+        isdefined(level.eroded_coop_total_setup_epoch) && isdefined(level.eroded_coop_total_setup_map) &&
+        startup_current(level.eroded_coop_total_setup_epoch, level.eroded_coop_total_setup_map);
+}
+
+function round_setup_owner_owned()
+{
+    installed = isdefined(level.eroded_coop_total_setup_saved) && level.eroded_coop_total_setup_saved;
+    return total_setup_owner_owned(level.zombie_total_set_func, level.eroded_coop_known_total_setup,
+        level.eroded_coop_total_setup_original, installed, round_setup_context_current());
+}
+
+function install_round_seed_hook(epoch, map)
+{
+    // Duplicate install attempts must never save our wrapper as its own original
+    // or overwrite a map/mod that has taken ownership after our first install.
+    if (isdefined(level.eroded_coop_total_setup_saved) && level.eroded_coop_total_setup_saved)
+        return round_setup_owner_owned();
+    original = level.zombie_total_set_func;
+    if (!startup_current(epoch, map) ||
+        !total_setup_original_owned(original, level.eroded_coop_known_total_setup))
     {
-        setdvar("zm_coopRoundStatus", "late_round_seed_unavailable");
-        diagnostic_event("late_round_seed_unavailable");
+        setdvar("zm_coopRoundStatus", "custom_total_setup_preserved");
+        diagnostic_event("custom_total_setup_preserved");
+        return false;
     }
-    while (true)
+    level.eroded_coop_total_setup_original = original;
+    level.eroded_coop_total_setup_epoch = epoch;
+    level.eroded_coop_total_setup_map = map;
+    level.eroded_coop_total_setup_saved = true;
+    level.zombie_total_set_func = &round_total_setup;
+    setdvar("zm_coopRoundStatus", "awaiting_round_event");
+    diagnostic_event("round_seed_hook_installed");
+    return true;
+}
+
+function run_original_total_setup(original, known)
+{
+    // The only currently recognized defined stock owner is Temple's verified
+    // zero-yield threshold initializer. Do not replay an unknown mod callback.
+    if (isdefined(original) && isdefined(known) && original == known)
+        [[ original ]]();
+}
+
+function round_total_setup()
+{
+    if (!round_setup_context_current() || !round_setup_owner_owned())
+        return;
+    epoch = level.eroded_coop_total_setup_epoch;
+    map = level.eroded_coop_total_setup_map;
+    original = level.eroded_coop_total_setup_original;
+    known = level.eroded_coop_known_total_setup;
+    seed = undefined;
+    reason = "round_seed_unavailable";
+    generation = next_round_generation(level.eroded_coop_round_generation);
+    if (!isdefined(generation))
+        reason = "round_generation_range_preserved";
+    else
     {
-        level waittill(#"zombie_total_set");
-        if (!startup_current(epoch, map))
-            return;
-        generation = next_round_generation(level.eroded_coop_round_generation);
-        if (!isdefined(generation))
-        {
-            setdvar("zm_coopRoundStatus", "round_generation_range_preserved");
-            diagnostic_event("round_generation_range_preserved");
-            return;
-        }
+        // This is the sole generation producer, including preserved setup calls
+        // that stock invokes without a fresh zombie_total_set notification.
         level.eroded_coop_round_generation = generation;
         if (!owns_callbacks())
-        {
-            setdvar("zm_coopRoundStatus", "callback_ownership_lost");
-            diagnostic_event("callback_ownership_lost");
-            continue;
-        }
-        if (custom_round_controller())
+            reason = "callback_ownership_lost";
+        else
         {
             reason = round_controller_reason();
-            setdvar("zm_coopRoundStatus", reason);
-            setdvar("zm_coopOwnerStatus", reason);
-            diagnostic_event(reason);
-            continue;
+            if (reason == "normal")
+            {
+                count = undefined;
+                if (isdefined(level.players) && isarray(level.players))
+                    count = level.players.size;
+                round = level.round_number;
+                total = level.zombie_total;
+                respawns = level.zombie_respawns;
+                recycle_total = level.zombie_total_subtract;
+                target = normal_round_target(round, count);
+                seed = make_round_seed(round, count, total, respawns, recycle_total, target, generation);
+                if (!isdefined(seed) || count > level.eroded_coop_limit)
+                {
+                    seed = undefined;
+                    reason = "round_seed_unavailable";
+                }
+            }
         }
-        // Freeze the stock setter's inputs and counters before any yield or
-        // child thread. Do not substitute getplayers() for level.players.size:
-        // the two lists may temporarily differ during a join or departure.
-        count = undefined;
-        if (isdefined(level.players) && isarray(level.players))
-            count = level.players.size;
-        round = level.round_number;
-        total = level.zombie_total;
-        respawns = level.zombie_respawns;
-        recycle_total = level.zombie_total_subtract;
-        target = normal_round_target(round, count);
-        seed = make_round_seed(round, count, total, respawns, recycle_total, target, generation);
-        if (!isdefined(seed) || count > level.eroded_coop_limit)
-        {
-            setdvar("zm_coopRoundStatus", "round_seed_unavailable");
-            diagnostic_event("round_seed_unavailable");
-            continue;
-        }
-        level thread track_round(epoch, map, seed);
     }
+    // Preserve the stock initializer once per actual setup call, even when
+    // Moon, killHUD, unknown counters or a transient seed decline adaptation.
+    // This is never invoked by a membership change or target getter.
+    run_original_total_setup(original, known);
+    if (!isdefined(seed))
+    {
+        setdvar("zm_coopRoundStatus", reason);
+        setdvar("zm_coopOwnerStatus", reason);
+        diagnostic_event(reason);
+        return;
+    }
+    if (!round_setup_context_current() || !round_setup_owner_owned() || !owns_callbacks() ||
+        !round_generation_current(seed.generation, level.eroded_coop_round_generation, seed.round, level.round_number) ||
+        custom_round_controller())
+        return;
+    level thread track_round(epoch, map, seed);
 }
 
 function next_round_generation(current)
@@ -647,8 +718,9 @@ function make_round_seed(round, count, total, respawns, recycle_total, target, g
         !valid_counters(total, respawns) || !isint(recycle_total) || recycle_total < 0 ||
         total != target || respawns != 0)
         return undefined;
-    // Stock assigns the complete target, zeroes respawns, then notifies without
-    // yielding. Anything else is a late/custom seed, not recoverable evidence.
+    // The owned setup callback must observe stock's complete target and zero
+    // respawns before any spawn. A late/custom/partial seed is not reconstructed.
+    // Callback scheduling still requires separately retained actual-VM proof.
     seed = spawnstruct();
     seed.round = round;
     seed.count = count;
@@ -767,13 +839,16 @@ function round_controller_reason()
             level.round_number, level.nml_last_round))
             return "moon_restored_budget_preserved";
     }
+    // Stock can call setup without resetting a killHUD-preserved quota. The
+    // field may also appear during an existing worker: decline before accounting
+    // or writes, not only when capturing its first seed.
+    if (isdefined(level.kill_counter_hud))
+        return "kill_counter_budget_preserved";
     // Dog/spider/chaos rounds temporarily replace the normal spawner. Their
     // counters and special-actor budgets are not normal zombie quotas.
     if (isdefined(level.round_spawn_func) && level.round_spawn_func != &zm::round_spawning)
         return "special_round_spawner_preserved";
-    if (isdefined(level.zombie_total_set_func) &&
-        (!isdefined(level.eroded_coop_known_total_setup) ||
-        level.zombie_total_set_func != level.eroded_coop_known_total_setup))
+    if (!round_setup_owner_owned())
         return "custom_total_setup_preserved";
     if (!isdefined(level.fn_custom_round_ai_spawn))
         return "normal";

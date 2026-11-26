@@ -23,8 +23,10 @@ assert "moon_round_budget_owned(level.on_the_moon, teleporter_used, level._from_
 assert "level.round_number, level.nml_last_round)" in reason
 assert '"moon_restored_budget_preserved"' in reason
 assert "[[" not in reason  # Recognition must never replay a map thinker.
-listener = source[source.index("function round_listener("):source.index("function next_round_generation(")]
-assert listener.index("if (custom_round_controller())") < listener.index("target = normal_round_target(round, count)")
+listener = source[source.index("function round_total_setup()"):source.index("function next_round_generation(")]
+assert listener.index("reason = round_controller_reason()") < listener.index("target = normal_round_target(round, count)")
+assert '"kill_counter_budget_preserved"' in reason and "isdefined(level.kill_counter_hud)" in reason
+assert "!round_setup_owner_owned()" in reason
 worker = source[source.index("function track_round("):]
 assert worker.index("if (custom_round_controller())", worker.index("while (true)")) < worker.index("spawns = accounted_spawn_delta(")
 assert worker.index("if (custom_round_controller())", worker.index("while (true)")) < worker.index("level.zombie_total = next_total")

@@ -64,7 +64,7 @@ for entry in maps:
 
 round_owner = function("round_controller_reason")
 assert "level.round_spawn_func != &zm::round_spawning" in round_owner
-assert "level.zombie_total_set_func != level.eroded_coop_known_total_setup" in round_owner
+assert "!round_setup_owner_owned()" in round_owner
 assert "[[" not in round_owner  # Recognition never reruns a map initializer.
 assert not re.search(r"level\.players\s*=", common)  # Real human/bot entities own population.
 tracking = function("track_round")
@@ -78,8 +78,8 @@ membership = function("stable_round_membership")
 for requirement in ("isint(limit)", "limit >= 1 && limit <= 8", "isint(actual)",
                     "actual >= 1 && actual <= limit", "isint(listed)", "actual == listed"):
     assert requirement in membership, requirement
-assert "count = level.players.size" in function("round_listener")
-assert "seed = make_round_seed(round, count, total, respawns, recycle_total, target, generation)" in function("round_listener")
+assert "count = level.players.size" in function("round_total_setup")
+assert "seed = make_round_seed(round, count, total, respawns, recycle_total, target, generation)" in function("round_total_setup")
 assert "total != target || respawns != 0" in function("make_round_seed")
 assert "seed.count" in tracking and "seed.pending" in tracking
 assert "level.givecustomcharacters != level.eroded_coop_profile_characters" in function("install_character_hook")
