@@ -478,9 +478,44 @@ function install_disconnect_guards(epoch, map)
     return true;
 }
 
+// This terminal cleanup identity cannot make normal guard ownership or
+// admission current again. It only lets the already installed stock no-op
+// endgame wrapper perform its existing no-yield, effective-empty pruning.
+function endgame_cleanup_context_current()
+{
+    if (getdvarstring("zm_coopStatus") != "ending")
+        return disconnect_context_current();
+    if (!isdefined(level.eroded_coop_disconnect_saved) || !level.eroded_coop_disconnect_saved ||
+        !isdefined(level.eroded_coop_disconnect_epoch) || !isint(level.eroded_coop_disconnect_epoch) ||
+        !isdefined(level.eroded_coop_disconnect_map) || !isstring(level.eroded_coop_disconnect_map))
+        return false;
+    epoch = level.eroded_coop_disconnect_epoch;
+    map = level.eroded_coop_disconnect_map;
+    if (!startup_identity_current(epoch, map) || !ending_latched(epoch, map) ||
+        !isdefined(level.eroded_coop_started_epoch) || !isint(level.eroded_coop_started_epoch) ||
+        level.eroded_coop_started_epoch != epoch || !isdefined(level.eroded_coop_started_map) ||
+        !isstring(level.eroded_coop_started_map) || level.eroded_coop_started_map != map)
+        return false;
+    limit = getdvarint("zm_coopAppliedLimit");
+    return isdefined(level.eroded_coop_limit) && isint(level.eroded_coop_limit) &&
+        level.eroded_coop_limit >= 5 && level.eroded_coop_limit <= 8 &&
+        level.eroded_coop_limit == limit && getdvarint("zm_coopSchemaSlots") == level.eroded_coop_limit &&
+        getdvarint("zm_coopEndingRevision") == 1 && getdvarint("zm_coopEndingEpoch") == epoch &&
+        getdvarstring("zm_coopEndingMap") == map && getdvarstring("zm_coopStatus") == "ending" &&
+        getdvarint("zm_coopReadyEpoch") == 0 && getdvarstring("zm_coopReadyMap") == "" &&
+        getdvarint("zm_coopHeartbeat") == 0;
+}
+
+function endgame_cleanup_owned()
+{
+    return endgame_cleanup_context_current() && isdefined(level.eroded_coop_endgame_original) &&
+        level.eroded_coop_endgame_original == &zm_gametype::onendgame &&
+        isdefined(level.onendgame) && level.onendgame == &guarded_endgame;
+}
+
 function guarded_endgame(winner)
 {
-    if (!endgame_guard_owned())
+    if (!endgame_cleanup_owned())
         return;
     // Dead/downed/spectating, unflagged players remain present. Disconnect's
     // explicitly tagged self may still be in getplayers() during this callback.

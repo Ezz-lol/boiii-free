@@ -2,6 +2,7 @@
 .vscode
 /build/
 __pycache__/
+/test-output/
 node_modules/
 usergenerate.bat
 nul

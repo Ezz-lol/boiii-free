@@ -264,3 +264,13 @@ A request captured before ending may reject when executed after ending; a fresh
 request must use a fresh current roster. Initialization receipts identify the
 existing G_InitGame hook stage, rather than independently proving engine memory
 quiescence. Live client and gameplay verification are still required.
+
+The existing endgame callback also has a separate terminal cleanup identity.
+It requires the known original and installed callback, matching saved/started
+map and epoch, the matching installed five-through-eight player limit, and the
+complete current ending receipt with readiness withdrawn. Normal ownership and
+admission remain closed. When both effective rosters are empty, its existing
+bounded placement filter records `empty_endgame_placement_pruned`; nonempty or
+unknown data is left alone. This marker identifies cleanup execution, and a
+fresh error-free runtime test must establish its effect on stock challenge
+teardown. It is not a gameplay or quest-completion receipt.

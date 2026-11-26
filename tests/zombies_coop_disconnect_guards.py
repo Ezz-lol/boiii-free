@@ -22,7 +22,7 @@ from script_frame_diagnostics import function
 
 HELPERS=('disconnect_endgame_pending','disconnect_player_list','disconnect_rosters_empty','disconnect_context_current',
     'disconnect_originals_stock','disconnect_guards_owned','endgame_guard_owned','melee_guard_owned','disconnect_guard_installable',
-    'install_disconnect_guards','guarded_endgame','guarded_window_melee')
+    'install_disconnect_guards','endgame_cleanup_context_current','endgame_cleanup_owned','guarded_endgame','guarded_window_melee')
 
 
 def mask(source):
@@ -77,6 +77,9 @@ function isentity(value){return value!==undefined&&value!==null&&value.entity===
 function isplayer(value){return isentity(value)&&value.player===true;}
 let level={},currentEpoch=1,currentMap='zm_zod',actualPlayers=garray(),calls=[],events=[];
 function startup_current(epoch,map){return epoch===currentEpoch&&map===currentMap;}
+// Normal ownership fixtures never manufacture a terminal receipt.
+function getdvarint(name){return 0;}
+function getdvarstring(name){return "";}
 function getplayers(){return actualPlayers;}
 function diagnostic_event(value){events.push(value);}
 function setdvar(){}
