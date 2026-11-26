@@ -38,6 +38,7 @@ prelude=r'''
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <type_traits>
 #include <vector>
 #include "HEADER_ROOT/zombies/schema_asset_store.hpp"
 #include "HEADER_ROOT/zombies/schema_context_policy.hpp"
@@ -48,15 +49,41 @@ std::atomic_int failures{},capacity{8},frozen_calls{};
 std::string actual_map="custom_map",frozen_map="custom_map";
 std::mutex context_mutex;
 std::function<void()> after_hash;
+bool dvar_present=true,dvar_string=true,dvar_session_specific=true;
+unsigned dvar_resolutions{};
 }
 namespace game {
 enum class eModes{MP,CP,ZOMBIES};
 inline constexpr auto MODE_ZOMBIES=eModes::ZOMBIES;
 eModes mode=eModes::ZOMBIES;
-struct dvar{};dvar map_dvar;
 std::function<void()> read_hook;
-const dvar* Dvar_FindVar(const char*){return &map_dvar;}
-const char* Dvar_GetString(const dvar*){if(read_hook)read_hook();return mock::actual_map.c_str();}
+struct dvar_t{};struct encryptedDvar_t{};
+dvar_t server_dvar;encryptedDvar_t client_dvar;
+enum class dvarType_t{INT,STRING,SESSIONMODE_BASE_DVAR};
+// Match Ezz's important overload shape: bool is non-const, both pointer
+// conversions are const, and operator! is const. A const ternary is ambiguous.
+struct EngineDependentDvarMut {
+  bool present{},resolved{};
+  operator bool() noexcept{return present;}
+  operator dvar_t*() const noexcept{return present?&server_dvar:nullptr;}
+  operator encryptedDvar_t*() const noexcept{return present?&client_dvar:nullptr;}
+  bool operator!() const noexcept{return !present;}
+  EngineDependentDvarMut resolve() const{++mock::dvar_resolutions;return {present,true};}
+  dvarType_t type() const{return !resolved&&mock::dvar_session_specific?dvarType_t::SESSIONMODE_BASE_DVAR:
+      mock::dvar_string?dvarType_t::STRING:dvarType_t::INT;}
+  const char* get_cstring() const{assert(present && resolved);if(read_hook)read_hook();return mock::actual_map.c_str();}
+};
+template<class T>concept const_ternary=requires(const T& value){value?true:false;};
+template<class T>concept mutable_ternary=requires(T& value){value?true:false;};
+static_assert(!const_ternary<EngineDependentDvarMut> && mutable_ternary<EngineDependentDvarMut>);
+EngineDependentDvarMut Dvar_FindVar(const char*){return {mock::dvar_present,false};}
+EngineDependentDvarMut get_dvar(const char* name){return Dvar_FindVar(name);}
+namespace scr {
+struct GSC_OBJ{std::uint8_t header[0x48];};
+static_assert(sizeof(GSC_OBJ)==0x48 && !std::is_convertible_v<GSC_OBJ,std::uint8_t>);
+struct ScriptParseTree{const char* name;std::size_t len;GSC_OBJ* buffer;};
+static_assert(sizeof(ScriptParseTree)==0x18);
+}
 eModes Com_SessionMode_GetMode(){return mode;}
 namespace com{eModes Com_SessionMode_GetMode(){return mode;}}
 }
@@ -77,22 +104,32 @@ void schema_asset_failure(std::string_view){mock::failed=true;++mock::failures;}
 void diagnostic_event(std::string_view,std::int64_t=0,std::int64_t=0) noexcept{}
 void refresh_schema_session() noexcept{}
 namespace schema_assets {
-struct script_asset {const char* name; LENGTH_TYPE len; const char* buffer;};
+using script_asset=game::scr::ScriptParseTree;
 bool prepare_client_generation(std::string_view,bool,bool&) noexcept;
 }
 }
 '''
 prelude=prelude.replace('HEADER_ROOT',(root/'src/client/component').as_posix())
-prelude=prelude.replace('LENGTH_TYPE','std::size_t' if '#define BOIII_COOP_EZZ' in original else 'int')
+assert '#define BOIII_COOP_EZZ' in original
 tests=r'''
 unsigned checks{};void check(bool ok){++checks;assert(ok);}
 int main(int argc,char** argv){
   using namespace zombies::coop;using namespace zombies::coop::schema_assets;
   std::vector<char> raw(castle_selector::captured_size,0);
   std::copy(t7::object_magic.begin(),t7::object_magic.end(),raw.begin());
-  script_asset invalid{castle_selector::asset_name.data(),static_cast<decltype(script_asset::len)>(raw.size()),raw.data()};
+  script_asset invalid{castle_selector::asset_name.data(),raw.size(),reinterpret_cast<game::scr::GSC_OBJ*>(raw.data())};
+  const auto byte_buffer=[](const script_asset* asset){return reinterpret_cast<const char*>(asset->buffer);};
+  check(reinterpret_cast<std::uintptr_t>(invalid.buffer+1)-reinterpret_cast<std::uintptr_t>(invalid.buffer)==0x48);
+  check(reinterpret_cast<std::uintptr_t>(reinterpret_cast<const std::uint8_t*>(invalid.buffer)+invalid.len)-
+      reinterpret_cast<std::uintptr_t>(invalid.buffer)==raw.size());
   const auto reset=[&]{game::read_hook={};mock::after_hash={};mock::failed=false;mock::failures=0;mock::capacity=8;
-    game::mode=game::eModes::ZOMBIES;mock::actual_map="custom_map";mock::frozen_map="custom_map";begin_vm_generation(false);};
+    game::mode=game::eModes::ZOMBIES;mock::actual_map="custom_map";mock::frozen_map="custom_map";
+    mock::dvar_present=true;mock::dvar_string=true;mock::dvar_session_specific=true;mock::dvar_resolutions=0;
+    begin_vm_generation(false);};
+  reset();mock::dvar_present=false;check(transform(invalid.name,&invalid)==&invalid && mock::failures==0);
+  check(mock::dvar_resolutions==0);
+  reset();mock::dvar_string=false;check(transform(invalid.name,&invalid)==&invalid && mock::failures==0);
+  check(mock::dvar_resolutions>0);
   for(const auto mode:{game::eModes::MP,game::eModes::CP}){reset();game::mode=mode;
     check(transform(invalid.name,&invalid)==&invalid);check(mock::failures==0);}
   for(int cap=0;cap<=4;++cap){reset();mock::capacity=cap;check(transform(invalid.name,&invalid)==&invalid);check(mock::failures==0);}
@@ -134,13 +171,15 @@ int main(int argc,char** argv){
   if(argc==2){
     reset();std::ifstream file(argv[1],std::ios::binary);check(file.good());
     std::vector<char> object{std::istreambuf_iterator<char>(file),std::istreambuf_iterator<char>()};
-    script_asset original{invalid.name,static_cast<decltype(script_asset::len)>(object.size()),object.data()};
+    script_asset original{invalid.name,object.size(),reinterpret_cast<game::scr::GSC_OBJ*>(object.data())};
     auto* first=transform(original.name,&original);check(first!=&original && mock::failures==0);
     check(transform("SCRIPTS\\ZM\\ZM_CASTLE_VO.GSC",&original)==first);
-    const auto expected=std::vector<char>(first->buffer,first->buffer+first->len);
-    const_cast<char*>(first->buffer)[0x61d8]=static_cast<char>(0xcc);begin_vm_generation(false);
+    check(mock::dvar_resolutions>0);
+    const auto expected=std::vector<char>(byte_buffer(first),byte_buffer(first)+first->len);
+    reinterpret_cast<char*>(first->buffer)[0x61d8]=static_cast<char>(0xcc);begin_vm_generation(false);
     auto* second=transform(original.name,first);check(second!=first && second!=&original && mock::failures==0);
-    check(std::vector<char>(second->buffer,second->buffer+second->len)==expected);
+    check(std::vector<char>(byte_buffer(second),byte_buffer(second)+second->len)==expected);
+    check(expected.size()==static_cast<std::size_t>(second->len));
     reset();mock::after_hash=[&]{mock::actual_map="travel_pending";};
     check(transform(original.name,&original)==&original && mock::failures==0);
     reset();mock::after_hash=[&]{begin_vm_generation(false);};
@@ -162,6 +201,7 @@ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 proof=dict(passed=True,scope='Actual component C++ bodies with native state/lock/hash stand-ins. No engine execution.',
     source=str(source),source_sha256=sha(source),generated_sha256=sha(generated),test_sha256=sha(Path(__file__)),
     command=command,run_command=run_command,stdout=run.stdout,retail_private_supplied=bool(args.retail_path),
-    lock_order_adversary=True,guard_has_no_frozen_context_getter=True)
+    lock_order_adversary=True,guard_has_no_frozen_context_getter=True,
+    ezz_dvar_const_ambiguity_mirrored=True,ezz_gsc_object_size=72,ezz_buffer_type='GSC_OBJ*',byte_stride_verified=True)
 (out/'RESULTS.private.json').write_text(json.dumps(proof,indent=2)+'\n')
 print(json.dumps(proof))

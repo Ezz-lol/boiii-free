@@ -64,8 +64,11 @@ bool castle_zombies_mode() {
 std::string_view castle_current_map() {
   // Bound the native string without allocating. Use existing CB/Ezz dvar APIs;
   // a peer's frozen allocation alone does not establish the active game mode.
-  const auto dvar = game::Dvar_FindVar("mapname");
-  const auto* value = dvar ? game::Dvar_GetString(dvar) : nullptr;
+  auto dvar = game::get_dvar("mapname");
+  if (!dvar) return {};
+  auto resolved = dvar.resolve();
+  if (!resolved || resolved.type() != game::dvarType_t::STRING) return {};
+  const auto* value = resolved.get_cstring();
   if (!value) return {};
   for (std::size_t i = 0; i <= 64; ++i)
     if (!value[i]) return {value, i};
@@ -128,7 +131,10 @@ script_asset* transform_castle(std::string_view path, script_asset* original) no
     // Older VMs can offer their linked/post-transform object. Always recover
     // the pristine PRE-transform template before the fixed raw digest gate.
     auto pristine = assets.template_for(original);
-    if (!pristine) pristine = std::vector<std::uint8_t>(original->buffer, original->buffer + original->len);
+    if (!pristine) {
+      const auto* raw = reinterpret_cast<const std::uint8_t*>(original->buffer);
+      pristine = std::vector<std::uint8_t>(raw, raw + original->len);
+    }
     auto cloned = castle_selector::rewrite(*pristine, castle_digest);
     if (!cloned.changed) {
       castle_failure(*request, "Castle VO script differs from the verified pre-link import contract.");
