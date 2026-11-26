@@ -38,6 +38,8 @@ def translate(body):
         ('&zombie_utility::default_max_zombie_func','stock_count'),('&zm::round_think','stock_think'),
         ('&zm::round_spawning','stock_spawn'),('&round_total_setup','round_total_setup'),
         ('&player_count_check','player_count_check'),('&spawn_delay','spawn_delay'),
+        ('&custom_total_setup','custom_total_setup'),('&custom_bgb_callback','custom_bgb_callback'),
+        ('&custom_count_callback','custom_count_callback'),('eroded_coop::',''),
         ('zm::get_zombie_count_for_round','stock_target'),('flag::exists','flag_exists'),
         ('level flag::get','flag_get'),('level thread track_round','track_round')):
         result=result.replace(original,replacement)
@@ -166,7 +168,57 @@ level.round_number=3;level.nml_last_round=2;level.zombie_total=240;flags.telepor
 round_total_setup();check(workers.length===1,'Moon fresh n+1 resumes');
 level.on_the_moon=false;
 check(round_controller_reason()==='moon_restored_budget_preserved','in-flight NML ownership recognized');
-console.log(JSON.stringify({passed:true,checks,scope:'Actual translated GSC bodies with explicit stand-ins; not VM scheduling or gameplay proof.'}));
+'''
+
+LEGACY_CASES=r'''
+let fixture_regression_checks=0,fixture_vm_checks=0;
+function fixture_require(value,message){++fixture_regression_checks;assert.ok(value,message);}
+function fixture_check(value){++fixture_vm_checks;return value?0:1;}
+function custom_total_setup(){level.eroded_coop_test_setup_calls++;}
+function custom_bgb_callback(){++foreign_calls;}
+function custom_count_callback(maximum,round){level.eroded_coop_test_count_calls++;return maximum+round;}
+function fixture_state(){return {...level};}
+function same_fixture_state(before){
+ for(const key of new Set([...Object.keys(before),...Object.keys(level)]))
+  assert.equal(level[key],before[key],'Legacy fixture failed to restore '+key);
+}
+function fixture_context(installed,known,killhud){
+ reset(known);
+ if(!installed){
+  level.eroded_coop_total_setup_saved=undefined;
+  level.eroded_coop_total_setup_original=undefined;
+  level.eroded_coop_total_setup_epoch=undefined;
+  level.eroded_coop_total_setup_map=undefined;
+  level.zombie_total_set_func=known;
+ }
+ if(killhud!==undefined)level.kill_counter_hud=killhud;
+}
+// The same old block can pass before installation and fail after installation.
+// This is a deterministic control-flow regression, not attribution of a canary.
+for(const known of [undefined,temple]){
+ fixture_context(false,known);let before=fixture_state();
+ fixture_require(legacy_fixture_without_isolation()===0,'Old block should pass before install');same_fixture_state(before);
+ fixture_context(true,known);before=fixture_state();
+ fixture_require(legacy_fixture_without_isolation()===2,'Old block must expose two installed-context failures');same_fixture_state(before);
+ for(const installed of [false,true]){
+  fixture_context(installed,known);before=fixture_state();const owned=owns_callbacks();
+  fixture_require(legacy_fixture_with_isolation()===0,'Fixed legacy block must pass in both lifecycle contexts');
+  same_fixture_state(before);
+  fixture_require(owns_callbacks()===owned,'Fixed fixture changed live ownership');
+  fixture_require(original_calls===0&&foreign_calls===0&&workers.length===0,'Fixture must not invoke game callbacks or launch a worker');
+ }
+}
+for(const killhud of [false,0,{},1]){
+ fixture_context(true,temple,killhud);const before=fixture_state();
+ fixture_require(legacy_fixture_with_isolation()===0,'Known killHUD state must be isolated for legacy recognition tests');
+ same_fixture_state(before);
+ fixture_require(level.kill_counter_hud===killhud,'KillHUD state must be restored exactly');
+ fixture_require(owns_callbacks(),'Installed setup context must remain live after fixture');
+}
+console.log(JSON.stringify({passed:true,checks,fixture_regression_checks,fixture_vm_checks,
+ legacy_mutant_failures_before_install:0,legacy_mutant_failures_after_install:2,
+ fixed_legacy_failures_before_and_after_install:0,
+ scope:'Actual translated GSC bodies and exact legacy fixture block with explicit stand-ins; not VM scheduling, canary attribution or gameplay proof.'}));
 '''
 
 
@@ -206,11 +258,33 @@ def main():
         raise ValueError('Any defined killHUD budget must retain ownership')
     if 'total != target || respawns != 0' not in bodies['make_round_seed']:
         raise ValueError('Never infer a consumed quota from a partial snapshot')
+    fixture_path=ROOT/'tests/gsc/eroded_coop_selftest.gsc'
+    fixture=fixture_path.read_text(encoding='utf-8')
+    start=fixture.index('    saved_round_spawn = level.round_spawn_func;')
+    end=fixture.index('    failures += test_round_thinker_ownership();',start)
+    legacy=fixture[start:end]
+    if re.search(r'\b(?:wait|waittill|thread|notify)\b',mask(legacy)):
+        raise ValueError('Legacy fixture must restore state before any yield or callback thread')
+    fields=('eroded_coop_total_setup_saved','eroded_coop_total_setup_original',
+            'eroded_coop_total_setup_epoch','eroded_coop_total_setup_map','kill_counter_hud')
+    for field in fields:
+        if not re.search(r'\bsaved_\w+\s*=\s*level\.'+field+r'\s*;',legacy):
+            raise ValueError('Legacy fixture does not save live '+field)
+        if not re.search(r'level\.'+field+r'\s*=\s*undefined\s*;',legacy):
+            raise ValueError('Legacy fixture does not isolate live '+field)
+        if not re.search(r'level\.'+field+r'\s*=\s*saved_\w+\s*;',legacy):
+            raise ValueError('Legacy fixture does not restore live '+field)
+    old_legacy='\n'.join(line for line in legacy.splitlines() if not any('level.'+field in line for field in fields))
+    legacy_functions=[]
+    for name,body in [('legacy_fixture_with_isolation',legacy),('legacy_fixture_without_isolation',old_legacy)]:
+        actual='function '+name+'() {\nfailures = 0;\n'+re.sub(r'\bcheck\(', 'fixture_check(',body)+'\nreturn failures;\n}'
+        legacy_functions.append(translate(actual))
     stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     out=args.output_dir.resolve()/('seed-callbacks-'+family+'-'+stamp)
     out.mkdir(parents=True,exist_ok=False)
     js=out/'actual-functions.js'
-    js.write_text(STANDINS+'\n'+'\n'.join(translate(body) for body in bodies.values())+'\n'+CASES,encoding='utf-8')
+    js.write_text(STANDINS+'\n'+'\n'.join(translate(body) for body in bodies.values())+'\n'+CASES+
+                  '\n'+'\n'.join(legacy_functions)+'\n'+LEGACY_CASES,encoding='utf-8')
     result=subprocess.run([args.node,str(js)],capture_output=True,text=True,check=False)
     (out/'stdout.log').write_text(result.stdout,encoding='utf-8')
     (out/'stderr.log').write_text(result.stderr,encoding='utf-8')
@@ -218,7 +292,9 @@ def main():
     verdict=json.loads(result.stdout)
     report={**verdict,'family':family,'source':str(source_path),'source_sha256':hashlib.sha256(source_path.read_bytes()).hexdigest(),
         'test_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'generated_js_sha256':hashlib.sha256(js.read_bytes()).hexdigest(),
-        'extracted_functions':list(bodies),'proof':str(out/'RESULTS.private.json')}
+        'extracted_functions':list(bodies),'fixture_source_sha256':hashlib.sha256(fixture_path.read_bytes()).hexdigest(),
+        'fixture_block_scope':'Exact selected legacy block, plus mutant removing only five state-isolation save/clear/restore fields',
+        'proof':str(out/'RESULTS.private.json')}
     (out/'RESULTS.private.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(report,indent=2))
 

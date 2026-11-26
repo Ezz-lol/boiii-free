@@ -95,6 +95,19 @@ function run()
     failures += check(!isdefined(eroded_coop::normal_round_target(0, 8)));
     level.max_zombie_func = saved_count_callback;
     level.eroded_coop_test_count_calls = saved_count_calls;
+    // BEGIN isolated legacy setup context. These checks exercise original
+    // callback recognition before installation, not a live installed hook.
+    saved_seed_installed = level.eroded_coop_total_setup_saved;
+    saved_seed_original = level.eroded_coop_total_setup_original;
+    saved_seed_epoch = level.eroded_coop_total_setup_epoch;
+    saved_seed_map = level.eroded_coop_total_setup_map;
+    saved_seed_killhud = level.kill_counter_hud;
+    level.eroded_coop_total_setup_saved = undefined;
+    level.eroded_coop_total_setup_original = undefined;
+    level.eroded_coop_total_setup_epoch = undefined;
+    level.eroded_coop_total_setup_map = undefined;
+    level.kill_counter_hud = undefined;
+    // END isolated legacy setup context.
     saved_setup = level.zombie_total_set_func;
     saved_known_setup = level.eroded_coop_known_total_setup;
     saved_custom_spawn = level.fn_custom_round_ai_spawn;
@@ -126,6 +139,13 @@ function run()
     level.eroded_coop_known_custom_spawn = saved_known_spawn;
     level.eroded_coop_test_setup_calls = saved_setup_calls;
     level.round_think_func = saved_round_think;
+    // Restore the live hook's complete context before any helper/yield.
+    level.eroded_coop_total_setup_saved = saved_seed_installed;
+    level.eroded_coop_total_setup_original = saved_seed_original;
+    level.eroded_coop_total_setup_epoch = saved_seed_epoch;
+    level.eroded_coop_total_setup_map = saved_seed_map;
+    level.kill_counter_hud = saved_seed_killhud;
+
     failures += test_round_thinker_ownership();
     failures += test_captured_round_event();
     failures += test_seed_callback_owners();
