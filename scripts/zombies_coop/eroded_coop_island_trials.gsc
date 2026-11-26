@@ -16,7 +16,7 @@ function schema_current()
     capacity = getdvarint("zm_coopSchemaSlots");
     return isint(capacity) && capacity >= 5 && capacity <= 8 &&
         getdvarstring("mapname") == "zm_island" &&
-        getdvarint("zm_coopSchemaServerRevision") == 2;
+        getdvarint("zm_coopSchemaServerRevision") == 3;
 }
 
 function autoexec __init__system__()
@@ -149,14 +149,6 @@ function return_task(state, slot, owner)
     return true;
 }
 
-function packed_pillar(slot, state1, state2, state3)
-{
-    if (!isint(slot) || slot < 4 || slot > 7) return undefined;
-    if (!isint(state1) || state1 < 1 || state1 > 4 ||
-        !isint(state2) || state2 < 1 || state2 > 4 ||
-        !isint(state3) || state3 < 1 || state3 > 4) return undefined;
-    return (slot - 4) | (state1 << 2) | (state2 << 5) | (state3 << 8);
-}
 
 function registry_count(entries, func)
 {
@@ -181,30 +173,123 @@ function early_install()
         if (!registry_owned()) decline("early_ownership_lost");
         return;
     }
-    setdvar("zm_coopIslandTrialsStatus", "early_preflight");
-    if (!isdefined(level._callbacks)) return;
-    connects = level._callbacks[#"hash_eaffea17"];
-    disconnects = level._callbacks[#"hash_aebdd257"];
-    if (registry_count(connects, &zm_island_challenges::on_player_connect) != 1 ||
-        registry_count(disconnects, &zm_island_challenges::on_player_disconnect) != 1)
-    {
-        setdvar("zm_coopIslandTrialsStatus", "stock_registry_unavailable");
-        return;
-    }
-    // A previously dispatched original may be waiting invisibly in the VM.
-    // Do not retrofit a map which already has player entities at this early seam.
-    players = getplayers();
-    if (!isarray(players) || players.size != 0)
-    {
-        setdvar("zm_coopIslandTrialsStatus", "early_roster_not_pristine");
-        return;
-    }
+    if (isdefined(level.eroded_island_trials_pending)) return;
     epoch = getdvarint("zm_coopStartupEpoch");
-    if (!isint(epoch) || epoch < 1) return;
-    level.eroded_island_trials_epoch = epoch;
-    level.eroded_island_trials_capacity = getdvarint("zm_coopSchemaSlots");
-    level.eroded_island_trials_revision = 2;
+    capacity = getdvarint("zm_coopSchemaSlots");
+    if (!isint(epoch) || epoch < 1 || !valid_capacity(capacity)) return;
+    pending = spawnstruct();
+    pending.epoch = epoch;
+    pending.capacity = capacity;
+    pending.map = "zm_island";
     level.eroded_island_trials_ready = false;
+    level.eroded_island_trials_pool_api = undefined;
+    level.eroded_island_trials_pending = pending;
+    setdvar("zm_coopIslandTrialsStatus", "registry_wait");
+    level thread deferred_install(pending);
+}
+
+function pending_context_current(pending)
+{
+    return schema_current() && isdefined(pending) &&
+        isdefined(level.eroded_island_trials_pending) && level.eroded_island_trials_pending == pending &&
+        isint(pending.epoch) && pending.epoch > 0 && pending.epoch == getdvarint("zm_coopStartupEpoch") &&
+        isint(pending.capacity) && pending.capacity >= 5 && pending.capacity <= 8 &&
+        pending.capacity == getdvarint("zm_coopSchemaSlots") && pending.map == getdvarstring("mapname");
+}
+
+function finish_pending(pending, reason)
+{
+    if (!isdefined(level.eroded_island_trials_pending) || level.eroded_island_trials_pending != pending) return;
+    level.eroded_island_trials_pending = undefined;
+    level.eroded_island_trials_ready = false;
+    level.eroded_island_trials_pool_api = undefined;
+    // An old worker cannot publish over a later map/session's diagnostics.
+    if (!isdefined(pending) || pending.map != getdvarstring("mapname") ||
+        pending.epoch != getdvarint("zm_coopStartupEpoch") ||
+        pending.capacity != getdvarint("zm_coopSchemaSlots")) return;
+    setdvar("zm_coopIslandTrialsStatus", reason);
+}
+
+function pending_registry_count(entries, func)
+{
+    if (!isdefined(entries)) return 0;
+    count = registry_count(entries, func);
+    if (count < 0) return -1;
+    keys = getarraykeys(entries);
+    for (index = 0; index < keys.size; index++)
+    {
+        entry = entries[keys[index]];
+        if (entry[0] == func && isdefined(entry[1])) return -2;
+    }
+    return count;
+}
+
+function deferred_install(pending)
+{
+    level endon(#"end_game");
+    level endon(#"intermission");
+    // Return from the system preinit callback before inspecting map registrations.
+    // No player/challenge flag is forced or awaited at this scheduling seam.
+    wait 0.05;
+    connects = 0;
+    disconnects = 0;
+    for (attempt = 0; attempt < 120; attempt++)
+    {
+        if (!pending_context_current(pending))
+        {
+            finish_pending(pending, "registry_context_lost");
+            return;
+        }
+        players = getplayers();
+        if (!isarray(players) || players.size != 0)
+        {
+            finish_pending(pending, "early_roster_not_pristine");
+            return;
+        }
+        connects = 0;
+        disconnects = 0;
+        if (isdefined(level._callbacks))
+        {
+            if (!isarray(level._callbacks))
+            {
+                finish_pending(pending, "registry_invalid_c-1_d-1");
+                return;
+            }
+            connects = pending_registry_count(level._callbacks[#"hash_eaffea17"], &zm_island_challenges::on_player_connect);
+            disconnects = pending_registry_count(level._callbacks[#"hash_aebdd257"], &zm_island_challenges::on_player_disconnect);
+            if (connects < 0 || disconnects < 0 || connects > 1 || disconnects > 1)
+            {
+                finish_pending(pending, "registry_invalid_c" + connects + "_d" + disconnects);
+                return;
+            }
+            if (pending_registry_count(level._callbacks[#"hash_eaffea17"], &on_player_connect) != 0 ||
+                pending_registry_count(level._callbacks[#"hash_aebdd257"], &on_player_disconnect) != 0)
+            {
+                finish_pending(pending, "registry_owned_callback_conflict");
+                return;
+            }
+        }
+        if (connects == 1 && disconnects == 1)
+        {
+            install_ready_registry(pending);
+            return;
+        }
+        setdvar("zm_coopIslandTrialsStatus", "registry_wait_c" + connects + "_d" + disconnects);
+        wait 0.05;
+    }
+    finish_pending(pending, "registry_timeout_c" + connects + "_d" + disconnects);
+}
+
+function install_ready_registry(pending)
+{
+    if (!pending_context_current(pending)) return;
+    // The worker verified an empty roster and exact stock registrations without
+    // yielding. Removing registry entries never attempts to cancel old threads.
+    level.eroded_island_trials_epoch = pending.epoch;
+    level.eroded_island_trials_capacity = pending.capacity;
+    level.eroded_island_trials_revision = 3;
+    level.eroded_island_trials_ready = false;
+    level.eroded_island_trials_pending = undefined;
     callback::remove_on_connect(&zm_island_challenges::on_player_connect);
     callback::remove_on_disconnect(&zm_island_challenges::on_player_disconnect);
     callback::on_connect(&on_player_connect);
@@ -223,7 +308,7 @@ function early_install()
 function context_current()
 {
     return schema_current() && isdefined(level.eroded_island_trials_revision) &&
-        level.eroded_island_trials_revision == 2 && isdefined(level.eroded_island_trials_epoch) &&
+        level.eroded_island_trials_revision == 3 && isdefined(level.eroded_island_trials_epoch) &&
         level.eroded_island_trials_epoch == getdvarint("zm_coopStartupEpoch") &&
         isdefined(level.eroded_island_trials_capacity) &&
         level.eroded_island_trials_capacity == getdvarint("zm_coopSchemaSlots");
@@ -368,7 +453,7 @@ function publish_pool_api()
     if (!registry_owned() || !isdefined(level.eroded_island_trials_ready) ||
         level.eroded_island_trials_ready != true) return false;
     api = spawnstruct();
-    api.revision = 2;
+    api.revision = 3;
     api.map = "zm_island";
     api.epoch = level.eroded_island_trials_epoch;
     api.capacity = level.eroded_island_trials_capacity;
@@ -471,6 +556,8 @@ function reserve_player(player, slot)
     record.trigger_active = false;
     level.eroded_island_trials_records[slot] = record;
     sync_stock_pools();
+    // These existing world fields also carry the extra visual state. No mover bits.
+    if (!reset_world_states(slot, record, 1)) return undefined;
     return record;
 }
 
@@ -481,7 +568,11 @@ function release_player(player, slot)
     record = level.eroded_island_trials_records[slot];
     if (!isdefined(record) || record.owner != player || record.epoch != level.eroded_island_trials_epoch)
         return false;
-    // Retire the record before touching world objects, making duplicate callbacks idempotent.
+    // Reset only this exact owned lease before retiring it. Retail stations stay
+    // at their stock idle state; extra stations use zero as owned absence.
+    state = 0;
+    if (slot < 4) state = 1;
+    if (!reset_world_states(slot, record, state)) return false;
     level.eroded_island_trials_records[slot] = undefined;
     for (tier = 0; tier < 3; tier++)
         return_task(level.eroded_island_trials_pools[tier], slot, player);
@@ -491,8 +582,6 @@ function release_player(player, slot)
         record.trigger_active = false;
         zm_unitrigger::unregister_unitrigger(record.stub);
     }
-    // Never set packed field zero on a visible mover; CSC zero only cancels initialization.
-    if (isdefined(record.pillar)) record.pillar delete();
     return true;
 }
 
@@ -589,7 +678,7 @@ function prepare_player_world(player, slot, record)
     if (!registry_owned() || !valid_slot(slot, level.eroded_island_trials_capacity) ||
         !isarray(level.eroded_island_trials_world) || level.eroded_island_trials_world.size != 8 ||
         !isdefined(record) || record.owner != player || record.epoch != level.eroded_island_trials_epoch ||
-        isdefined(record.stub) || isdefined(record.pillar)) return false;
+        isdefined(record.stub)) return false;
     frame = level.eroded_island_trials_world[slot];
     if (!isdefined(frame) || !bounded_world_point(frame.origin) || !bounded_world_point(frame.angles) ||
         !isarray(frame.lookats) || frame.lookats.size != 3) return false;
@@ -608,17 +697,6 @@ function prepare_player_world(player, slot, record)
     for (tier = 1; tier <= 3; tier++) stub.var_8e2d9e6f[tier] = tier;
     stub.prompt_and_visibility_func = &zm_island_challenges::function_3ae0d6d5;
     record.stub = stub;
-    if (slot >= 4)
-    {
-        // Replicated non-solid locators only; CSC owns its local visual clone.
-        pillar = spawn("script_model", frame.origin);
-        if (!isdefined(pillar) || !isentity(pillar)) return false;
-        record.pillar = pillar;
-        pillar.angles = frame.angles;
-        pillar setmodel("tag_origin");
-        pillar notsolid();
-        pillar clientfield::set("eroded_island_pillar", packed_pillar(slot, 1, 1, 1));
-    }
     return true;
 }
 
@@ -746,18 +824,28 @@ function pillar_state_worker(slot, tier, record)
     publish_pillar_state(slot, tier, 4, record);
 }
 
+function reset_world_states(slot, record, state)
+{
+    if (!context_current() || !valid_slot(slot, level.eroded_island_trials_capacity) ||
+        !isdefined(record) || !isdefined(record.owner) || record.epoch != level.eroded_island_trials_epoch ||
+        !isdefined(level.eroded_island_trials_records) || level.eroded_island_trials_records[slot] != record ||
+        !isint(state) || state < 0 || state > 1 || !isarray(record.states) || record.states.size != 3) return false;
+    for (tier = 1; tier <= 3; tier++)
+    {
+        record.states[tier - 1] = state;
+        level clientfield::set("pillar_challenge_" + slot + "_" + tier, state);
+    }
+    return true;
+}
+
 function publish_pillar_state(slot, tier, state, record)
 {
-    if (!isint(tier) || tier < 1 || tier > 3 || !isint(state) || state < 1 || state > 4) return false;
+    if (!registry_owned() || !valid_slot(slot, level.eroded_island_trials_capacity) ||
+        !isdefined(record) || !isdefined(record.owner) || record.epoch != level.eroded_island_trials_epoch ||
+        !isdefined(level.eroded_island_trials_records) || level.eroded_island_trials_records[slot] != record ||
+        !isint(tier) || tier < 1 || tier > 3 || !isint(state) || state < 1 || state > 4 ||
+        !isarray(record.states) || record.states.size != 3) return false;
     record.states[tier - 1] = state;
-    if (slot < 4)
-    {
-        level clientfield::set("pillar_challenge_" + slot + "_" + tier, state);
-        return true;
-    }
-    if (!isdefined(record.pillar)) return false;
-    packed = packed_pillar(slot, record.states[0], record.states[1], record.states[2]);
-    if (!isdefined(packed)) return false;
-    record.pillar clientfield::set("eroded_island_pillar", packed);
+    level clientfield::set("pillar_challenge_" + slot + "_" + tier, state);
     return true;
 }

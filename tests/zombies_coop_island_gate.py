@@ -12,7 +12,7 @@ function check(value,message){++checks;assert.ok(value,message);}
 function isdefined(value){return value!==undefined;}
 function isint(value){return Number.isInteger(value)&&value>=-2147483648&&value<=2147483647;}
 function isarray(value){return Array.isArray(value);}
-function ready(epoch=17,capacity=8){level={eroded_island_trials_revision:2,eroded_island_trials_epoch:epoch,eroded_island_trials_capacity:capacity,eroded_island_trials_ready:1};}
+function ready(epoch=17,capacity=8){level={eroded_island_trials_revision:3,eroded_island_trials_epoch:epoch,eroded_island_trials_capacity:capacity,eroded_island_trials_ready:1};}
 for(const map of ['zm_zod','zm_factory','zm_tomb','usermap']){level={};check(island_trials_current(17,map,8),'other maps unaffected');}
 for(let capacity=5;capacity<=8;capacity++){ready(17,capacity);check(island_trials_current(17,'zm_island',capacity),'current ready Island capacity');}
 ready();level={};check(!island_trials_current(17,'zm_island',8),'missing early module closed');
@@ -20,7 +20,7 @@ for(const field of ['eroded_island_trials_revision','eroded_island_trials_epoch'
  ready();delete level[field];check(!island_trials_current(17,'zm_island',8),'missing field closed: '+field);
 }
 for(const [field,bad] of [
- ['eroded_island_trials_revision',1],['eroded_island_trials_revision',3],['eroded_island_trials_revision','2'],['eroded_island_trials_revision',[]],
+ ['eroded_island_trials_revision',1],['eroded_island_trials_revision',2],['eroded_island_trials_revision','3'],['eroded_island_trials_revision',[]],
  ['eroded_island_trials_epoch',16],['eroded_island_trials_epoch',18],['eroded_island_trials_epoch','17'],['eroded_island_trials_epoch',{}],
  ['eroded_island_trials_capacity',4],['eroded_island_trials_capacity',9],['eroded_island_trials_capacity','8'],['eroded_island_trials_capacity',[8]],
  ['eroded_island_trials_ready',0],['eroded_island_trials_ready',2],['eroded_island_trials_ready',{}],['eroded_island_trials_ready','1'],['eroded_island_trials_ready',[1]],['eroded_island_trials_ready',1.5]]){

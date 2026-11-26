@@ -15,18 +15,18 @@ function api_current(api, epoch, capacity)
 {
     return isdefined(api) && isdefined(level.eroded_island_trials_pool_api) &&
         level.eroded_island_trials_pool_api == api &&
-        isdefined(api.revision) && isint(api.revision) && api.revision == 2 &&
+        isdefined(api.revision) && isint(api.revision) && api.revision == 3 &&
         isdefined(api.map) && api.map == "zm_island" &&
         isdefined(api.epoch) && isint(api.epoch) && api.epoch == epoch &&
         isdefined(api.capacity) && isint(api.capacity) && api.capacity == capacity &&
         isdefined(api.make_pool) && isdefined(api.take_task) && isdefined(api.return_task) &&
-        isdefined(level.eroded_island_trials_revision) && level.eroded_island_trials_revision == 2 &&
+        isdefined(level.eroded_island_trials_revision) && level.eroded_island_trials_revision == 3 &&
         isdefined(level.eroded_island_trials_epoch) && level.eroded_island_trials_epoch == epoch &&
         isdefined(level.eroded_island_trials_capacity) && level.eroded_island_trials_capacity == capacity &&
         isdefined(level.eroded_island_trials_ready) && level.eroded_island_trials_ready == true &&
         isint(epoch) && epoch > 0 && isint(capacity) && capacity >= 5 && capacity <= 8 &&
         getdvarint("zm_coopStartupEpoch") == epoch && getdvarint("zm_coopSchemaSlots") == capacity &&
-        getdvarint("zm_coopSchemaServerRevision") == 2 && getdvarstring("mapname") == "zm_island";
+        getdvarint("zm_coopSchemaServerRevision") == 3 && getdvarstring("mapname") == "zm_island";
 }
 
 function check(value)

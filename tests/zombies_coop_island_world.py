@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tests'))
 from script_frame_diagnostics import function
 
-NAMES = ('valid_capacity', 'valid_slot', 'packed_pillar', 'bounded_world_point', 'rotate_world_offset',
+NAMES = ('valid_capacity', 'valid_slot', 'bounded_world_point', 'rotate_world_offset',
          'derive_world_frame', 'placement_clear', 'prepare_world_templates', 'prepare_player_world', 'activate_player_world')
 
 
@@ -86,7 +86,8 @@ check(!prepare_world_templates(),'no replacement of an existing owned world cach
 for(const mutate of [()=>owned=false,()=>triggers.pop(),()=>triggers[3].var_7cc697d0=0,()=>triggers[0].var_7cc697d0='0',()=>lookats[2].pop(),()=>lookats[1][0].var_7cc697d0=0,()=>altars=[],()=>altars[0].origin[0]=NaN,()=>lookats[1][0].origin=[9999,1,1],()=>triggers[0].angles[0]=45,()=>floorBad={fraction:NaN,position:points[0],normal:[0,0,1]},()=>floorBad={fraction:1,position:points[0],normal:[0,0,1]},()=>floorBad={fraction:.2,position:points[0],normal:[0,0,0]},()=>sightBad={fraction:.1},()=>sightBad={fraction:NaN}]){reset();mutate();check(!prepare_world_templates(),'invalid geometry/type/trace declines');check(level.eroded_island_trials_world===undefined&&spawns.length===0,'failed preflight publishes no cache/actors');}
 for(const point of [undefined,[1,2],{},'123',[1,'2',3],[NaN,0,0],[Infinity,0,0],[0,0,40000]])check(!bounded_world_point(point),'unknown/nonvector/nonfinite/outside world position refused');
 reset();check(prepare_world_templates(),'world prepared for occupancy');
-for(let slot=0;slot<8;slot++){const {player,record}=playerRecord(slot),before=spawns.length;check(prepare_player_world(player,slot,record),'owned participant world constructed');check(spawns.length-before===(slot>=4?1:0),'model only for occupied extra slot');check(record.stub.var_5fa98d68==='unitrigger_radius_use'&&record.stub.script_unitrigger_type===undefined,'canonical type alias only');check(record.stub.prompt_and_visibility_func===stock_function_3ae0d6d5,'exact retail prompt callback');for(let tier=1;tier<=3;tier++)check(record.stub.var_8e2d9e6f[tier]===tier,'independent real task indices');check(!record.trigger_active&&!calls.includes('register'),'world construction cannot activate prompt');if(slot>=4){check(record.pillar.model==='tag_origin'&&record.pillar.solid===false,'replicated locator non-solid');check(record.pillar.field.key==='eroded_island_pillar'&&record.pillar.field.value===292+slot-4,'all three initial states published together');}check(!prepare_player_world(player,slot,record)&&spawns.length===before+(slot>=4?1:0),'duplicate construct cannot allocate twice');calls=[];check(activate_player_world(player,slot,record),'post-init activation succeeds');check(record.trigger_active&&calls.join(',')==='per_player,register','synchronous registration records active only after success');check(!activate_player_world(player,slot,record),'duplicate activation rejected');calls=[];}
+for(let slot=0;slot<8;slot++){const {player,record}=playerRecord(slot);check(prepare_player_world(player,slot,record),'owned participant world constructed');check(spawns.length===0&&record.pillar===undefined,'all slots use private frames without server locators');check(record.stub.var_5fa98d68==='unitrigger_radius_use'&&record.stub.script_unitrigger_type===undefined,'canonical type alias only');check(record.stub.prompt_and_visibility_func===stock_function_3ae0d6d5,'exact retail prompt callback');for(let tier=1;tier<=3;tier++)check(record.stub.var_8e2d9e6f[tier]===tier,'independent real task indices');check(!record.trigger_active&&!calls.includes('register'),'world construction cannot activate prompt');check(!prepare_player_world(player,slot,record)&&spawns.length===0,'duplicate construct creates no actors');calls=[];check(activate_player_world(player,slot,record),'post-init activation succeeds');check(record.trigger_active&&calls.join(',')==='per_player,register','synchronous registration records active only after success');check(!activate_player_world(player,slot,record),'duplicate activation rejected');calls=[];}
+
 for(const mutate of [v=>level.zones={},v=>level._unitriggers=undefined,v=>delete v.player.flags.flag_player_collected_reward_3,v=>delete v.player.var_873a3e27[2],v=>v.player._challenges={},v=>owned=false,v=>v.record.epoch=6]){reset();prepare_world_templates();const v=playerRecord(4);prepare_player_world(v.player,4,v.record);calls=[];mutate(v);check(!activate_player_world(v.player,4,v.record),'incomplete/foreign/deferred context never registers');check(!calls.includes('register')&&!v.record.trigger_active,'failed activation untouched');}
 reset();prepare_world_templates();{const v=playerRecord(4);prepare_player_world(v.player,4,v.record);registerSuccess=false;check(!activate_player_world(v.player,4,v.record)&&!v.record.trigger_active,'only successful stock registered receipt marks active');}
 console.log(JSON.stringify({passed:true,checks,scope:'Actual extracted source with vector/native stand-ins; no GSC VM/physics/client rendering proof.'}));
@@ -100,7 +101,10 @@ def main():
     args = parser.parse_args()
     source = ROOT / 'scripts/zombies_coop/eroded_coop_island_trials.gsc'
     text = source.read_text(encoding='utf-8')
-    if re.search(r'\.script_[A-Za-z_]+', re.sub(r'//[^\n]*', '', text)):
+    code = re.sub(r'//[^\n]*|/\*[\s\S]*?\*/', '', text)
+    if 'eroded_island_pillar' in code or 'packed_pillar' in code or re.search(r'\bspawn\s*\(', code):
+        raise ValueError('No scriptmover allocation/transport or native locator actor allowed')
+    if re.search(r'\.script_[A-Za-z_]+', code):
         raise ValueError('ACTS reserved script_* field emitted from text rather than canonical raw ID')
     bodies = {name: function(text, 'function ' + name + '(') for name in NAMES}
     for body in bodies.values():

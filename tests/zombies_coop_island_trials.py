@@ -6,10 +6,10 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tests'))
 from script_frame_diagnostics import function
 
-HELPERS=('valid_capacity','valid_slot','valid_task','clone_task','make_pool','take_task','return_task','packed_pillar','registry_count',
+HELPERS=('valid_capacity','valid_slot','valid_task','clone_task','make_pool','take_task','return_task','registry_count',
          'roster_by_slot','participant_complete','completed_roster','player_challenge_action')
 LIFECYCLE=('schema_current','context_current','registry_owned','decline','early_install',
-           'publish_pool_api','initialize_pools','sync_stock_pools','reserve_player','release_player')
+           'pending_context_current','finish_pending','pending_registry_count','install_ready_registry','publish_pool_api','initialize_pools','sync_stock_pools','reserve_player','release_player','reset_world_states','publish_pillar_state')
 
 def translate(body):
     params=set(filter(None,(p.strip() for p in re.search(r'function\s+\w+\(([^)]*)\)',body)[1].split(','))))
@@ -19,7 +19,8 @@ def translate(body):
     result=re.sub(r'&zm_island_challenges::(\w+)',r'stock_\1',body)
     for name in ('on_player_connect','on_player_disconnect','make_pool','take_task','return_task'):
         result=result.replace('&'+name,name)
-    result=result.replace('#"','"').replace('level thread completion_monitor();','launch_monitor();').replace('level thread ownership_watcher();','launch_ownership_watcher();')
+    result=result.replace('level clientfield::set(', 'set_world(')
+    result=result.replace('#"','"').replace('level thread completion_monitor();','launch_monitor();').replace('level thread ownership_watcher();','launch_ownership_watcher();').replace('level thread deferred_install(pending);','launch_deferred(pending);')
     result=re.sub(r'level\s+endon\("([a-z_]+)"\);',r'register_endon("\1");',result)
     for old,new in (('callback::remove_on_connect','remove_on_connect'),('callback::remove_on_disconnect','remove_on_disconnect'),
                     ('callback::on_connect','add_on_connect'),('callback::on_disconnect','add_on_disconnect'),
@@ -58,10 +59,11 @@ function stock_function_5a96677a(){}function stock_function_26c58398(){}function
 // Pinned stock catalog count values include the tier-three thirty-kill task.
 const stockCounts={1:[1,1,5,5,5],2:[1,1,15,10,20,20],3:[8,3,1,30,5]};
 function templates(tier){return stockCounts[tier].map((count,i)=>({n_index:tier,str_info:'localized-'+i,n_count:count,str_notify:'stock_'+tier+'_'+i,func_think:undefined}));}
-let level={},dvars={},playersNow=[],worldSupported=false,receipts=[],monitors=0,deleted=[],unregistered=[],watcherStarts=0,endons=[];
+let level={},dvars={},playersNow=[],worldSupported=false,receipts=[],monitors=0,deleted=[],unregistered=[],watcherStarts=0,endons=[],worldFields={},worldWrites=[],pendingWorkers=[],autoRunPending=true;
 function getdvarint(key){return dvars[key]??0;}function getdvarstring(key){return dvars[key]??'';}
 function setdvar(key,value){dvars[key]=value;}function getplayers(){return playersNow;}
 function prepare_world_templates(){return worldSupported;}
+function set_world(field,value){const slot=Number(field.split("_")[2]);worldFields[field]=value;worldWrites.push({field,value,ownedRecordPresent:level.eroded_island_trials_records[slot]!==undefined});}
 function println(message){receipts.push(message);}function randomint(count){assert.ok(count>0&&count<=8);return 0;}
 function on_player_connect(){}function on_player_disconnect(){}
 function stock_on_player_connect(){}function stock_on_player_disconnect(){}function stock_function_b1cd865a(){}
@@ -70,12 +72,13 @@ function remove_callback(key,fn){const entries=level._callbacks[key],index=entri
 function remove_on_connect(fn){remove_callback(CONNECT,fn);}function remove_on_disconnect(fn){remove_callback(DISCONNECT,fn);}
 function add_on_connect(fn){level._callbacks[CONNECT].push([fn,undefined]);}function add_on_disconnect(fn){level._callbacks[DISCONNECT].push([fn,undefined]);}
 function launch_monitor(){++monitors;}
+function launch_deferred(pending){const w=deferred_install(pending);pendingWorkers.push(w);if(autoRunPending){assert.equal(w.next().value,.05);w.next();}}
 function launch_ownership_watcher(){++watcherStarts;}function register_endon(event){endons.push(event);}
 function unregister_stub(stub){unregistered.push(stub);}function delete_model(model){deleted.push(model);}
 function resetEarly(){
- level={_callbacks:{[CONNECT]:[[foreign,undefined],[stock_on_player_connect,undefined]],[DISCONNECT]:[[stock_on_player_disconnect,undefined],[foreign,{}]]}};
- dvars={mapname:'zm_island',zm_coopSchemaSlots:8,zm_coopSchemaServerRevision:2,zm_coopStartupEpoch:3};
- playersNow=[];worldSupported=false;receipts=[];monitors=0;deleted=[];unregistered=[];watcherStarts=0;endons=[];
+ level={_callbacks:Object.assign([],{[CONNECT]:[[foreign,undefined],[stock_on_player_connect,undefined]],[DISCONNECT]:[[stock_on_player_disconnect,undefined],[foreign,{}]]})};
+ dvars={mapname:'zm_island',zm_coopSchemaSlots:8,zm_coopSchemaServerRevision:3,zm_coopStartupEpoch:3};
+ playersNow=[];worldSupported=false;receipts=[];monitors=0;deleted=[];unregistered=[];watcherStarts=0;endons=[];worldFields={};worldWrites=[];pendingWorkers=[];autoRunPending=true;
 }
 function beginPools(){resetEarly();worldSupported=true;early_install();level._challenges={challenge_1:templates(1),challenge_2:templates(2),challenge_3:templates(3)};level._callbacks[DISCONNECT].push([stock_function_b1cd865a,undefined]);check(initialize_pools(),'stock pools initialized after real init boundary');}
 '''
@@ -146,11 +149,6 @@ check(registry_count([[foreign,undefined]],foreign)===1,'exact registry pointer 
 check(registry_count([[foreign]],foreign)===1,'undefined optional receiver may be absent in stock array');
 check(registry_count([[foreign,{}]],foreign)===0,'object-bound callback not overwritten');
 check(registry_count([[]],foreign)===-1,'malformed registry closed');
-for(let slot=4;slot<8;slot++)for(let a=1;a<=4;a++)for(let b=1;b<=4;b++)for(let c=1;c<=4;c++){
- const packed=packed_pillar(slot,a,b,c);
- check(packed>0&&packed<2048&&((packed&3)+4)===slot&&((packed>>2)&7)===a&&((packed>>5)&7)===b&&((packed>>8)&7)===c,'11bit packed state roundtrip');
-}
-for(const args of [[3,1,1,1],[8,1,1,1],[4,0,1,1],[4,1,5,1],[4,1,1,true]])check(packed_pillar(...args)===undefined,'invalid packed state refused');
 function completedPlayers(count){
  const players=[],records=[];
  for(let slot=0;slot<count;slot++){
@@ -212,25 +210,34 @@ check(!registry_owned()&&!initialize_pools(),'later historical-counter callback 
 beginPools();const owners=Array.from({length:8},(_,slot)=>({entity:true,player:true,slot}));
 for(let slot=0;slot<8;slot++){
  const record=reserve_player(owners[slot],slot);check(record!==undefined&&record.owner===owners[slot],'three tiers reserved for actual owner');
- owners[slot]._challenges=record.tasks;record.stub={slot};record.trigger_active=true;record.pillar={slot};
+ owners[slot]._challenges=record.tasks;record.stub={slot};record.trigger_active=true;
  check(reserve_player(owners[slot],slot)===undefined,'duplicate initializer cannot replace active record');
 }
 const kept=level.eroded_island_trials_records.slice(0,4);
 for(let slot=4;slot<8;slot++)check(release_player(owners[slot],slot),'shrunk owner returned all three tiers');
-check(deleted.length===4&&unregistered.length===4,'each owned mover and stub retired once');
+check(unregistered.length===4&&deleted.length===0,'only owned stubs retired; no server model lifecycle');
+for(let slot=4;slot<8;slot++)for(let tier=1;tier<=3;tier++)check(worldFields['pillar_challenge_'+slot+'_'+tier]===0,'released extra slot is absent in existing world fields');
+check(worldWrites.every(w=>w.ownedRecordPresent),'initial/release states published while exact lease is present');
 for(let slot=4;slot<8;slot++){
  const old=owners[slot];owners[slot]={entity:true,player:true,slot};check(reserve_player(owners[slot],slot)!==undefined,'new entity may rejoin released slot');
  check(!release_player(old,slot),'old entity cannot release new slot occupant');
 }
 check(kept.every((r,i)=>r===level.eroded_island_trials_records[i]),'8 to4 to8 does not reset retained player progress');
-check(deleted.length===4&&unregistered.length===4,'stale release has no world side effects');
+check(deleted.length===0&&unregistered.length===4,'stale release has no server actor side effects');
 beginPools();const owner={entity:true,player:true,slot:0},other={};
 take_task(level.eroded_island_trials_pools[1],0,other,0);
 check(reserve_player(owner,0)===undefined&&level.eroded_island_trials_pools[0].assigned[0]===undefined,'partial three-tier reservation rolls earlier tier back');
 check(level.eroded_island_trials_records[0]===undefined&&level.eroded_island_trials_pools[1].owners[0]===other,'failed reservation preserves existing foreign lease');
 beginPools();const notActivatedOwner={entity:true,player:true,slot:0};
-const notActivated=reserve_player(notActivatedOwner,0);notActivated.stub={prepared:true};notActivated.pillar={prepared:true};
-check(release_player(notActivatedOwner,0)&&unregistered.length===0&&deleted.length===1,'constructed but unregistered stub does not call retail unregister');
+const notActivated=reserve_player(notActivatedOwner,0);notActivated.stub={prepared:true};
+check(release_player(notActivatedOwner,0)&&unregistered.length===0&&deleted.length===0,'constructed but unregistered stub does not call retail unregister');
+for(let tier=1;tier<=3;tier++)check(worldFields['pillar_challenge_0_'+tier]===1,'original slot resets to stock idle one');
+for(let slot=0;slot<8;slot++){beginPools();const player={entity:true,player:true,slot},record=reserve_player(player,slot);
+ for(let tier=1;tier<=3;tier++){check(worldFields['pillar_challenge_'+slot+'_'+tier]===1,'reserve initializes every owned tier idle');check(publish_pillar_state(slot,tier,4,record)&&worldFields['pillar_challenge_'+slot+'_'+tier]===4,'all slots publish existing world state');}
+ const before=worldWrites.length;check(!publish_pillar_state(slot,1,3,{...record})&&worldWrites.length===before,'foreign record cannot publish world field');
+ check(release_player(player,slot),'current lease releases');const after=worldWrites.length;check(!publish_pillar_state(slot,1,2,record)&&worldWrites.length===after,'retired worker cannot restore stale state');
+ for(let tier=1;tier<=3;tier++)check(worldFields['pillar_challenge_'+slot+'_'+tier]===(slot<4?1:0),'release uses stock idle or extra absence by real slot');}
+
 // Step the actual watcher body as a generator; waits are explicit scheduler boundaries.
 for(const afterCompletion of [false,true]){
  beginPools();level.all_challenges_completed=afterCompletion;
@@ -254,7 +261,49 @@ for(const mode of [false,true]){
  for(let capacity=1;capacity<=8;capacity++)for(let tier=1;tier<=3;tier++)check(exercise_pool(api,tier,capacity)===0,'actual private VM fixture exercise passes explicit dense/hole model');
  for(let tier=1;tier<=3;tier++)check(exercise_transition(api,tier)===0,'actual private VM fixture transition body preserves leases');
 }holeMode=false;
-console.log(JSON.stringify({passed:true,checks,scope:'Mechanically translated actual allocator/packing/registry helpers; no GSC VM, world binding or client proof.'}));
+
+// The actual deferred worker is stepped explicitly; the baseline auto-run stand-in
+// above is only a convenience for exercising unrelated allocator helper bodies.
+resetEarly();autoRunPending=false;worldSupported=true;early_install();
+check(level.eroded_island_trials_ready===false&&level.eroded_island_trials_revision===undefined,'early callback never publishes ready or installs synchronously');
+check(pendingWorkers.length===1&&level.eroded_island_trials_pending.epoch===3,'one owned pending epoch published');
+early_install();check(pendingWorkers.length===1,'duplicate preinit cannot queue another pending worker');
+const firstWorker=pendingWorkers[0];check(firstWorker.next().value===.05&&level.eroded_island_trials_revision===undefined,'worker unconditionally yields before first registry inspection');
+check(firstWorker.next().done&&registry_owned()&&level.eroded_island_trials_ready&&level.eroded_island_trials_pending===undefined,'already registered map installs only after yield');
+check(endons.includes('end_game')&&endons.includes('intermission'),'pending worker uses map lifecycle cancellation events');
+resetEarly();autoRunPending=false;worldSupported=true;delete level._callbacks;early_install();
+let lateWorker=pendingWorkers[0];check(lateWorker.next().value===.05&&lateWorker.next().value===.05,'missing map registration waits bounded rather than declining immediately');
+check(dvars.zm_coopIslandTrialsStatus==='registry_wait_c0_d0'&&!level.eroded_island_trials_ready,'missing registry counts are bounded diagnostics only');
+level._callbacks=Object.assign([],{[CONNECT]:[[stock_on_player_connect]],[DISCONNECT]:[[stock_on_player_disconnect]]});
+check(lateWorker.next().done&&registry_owned()&&level.eroded_island_trials_ready,'later exact stock registrations allow safe empty-roster install');
+for(const mutation of [()=>delete level._callbacks,()=>level._callbacks[CONNECT]=[[foreign]],()=>delete level._callbacks[DISCONNECT]]){
+ resetEarly();autoRunPending=false;worldSupported=true;mutation();early_install();const w=pendingWorkers[0];let yields=0,step;
+ do{step=w.next();if(!step.done)yields++;check(yields<=121,'deferred observer cannot exceed finite first-yield plus120polls');}while(!step.done);
+ check(yields===121&&dvars.zm_coopIslandTrialsStatus.startsWith('registry_timeout_c'),'missing/replaced registration ends in explicit count timeout');
+ check(level.eroded_island_trials_pending===undefined&&level.eroded_island_trials_revision===undefined&&!level.eroded_island_trials_ready,'timeout cannot open readiness or leave active pending worker');
+}
+for(const [mutation,status]of [
+ [()=>level._callbacks={},'registry_invalid_c-1_d-1'],
+ [()=>level._callbacks[CONNECT]=[[]],'registry_invalid_c-1_d1'],
+ [()=>level._callbacks[CONNECT].push([stock_on_player_connect]),'registry_invalid_c2_d1'],
+ [()=>level._callbacks[CONNECT]=[[stock_on_player_connect,{}]],'registry_invalid_c-2_d1'],
+ [()=>level._callbacks[DISCONNECT]=[[stock_on_player_disconnect,{}]],'registry_invalid_c1_d-2'],
+ [()=>level._callbacks[CONNECT].push([on_player_connect]),'registry_owned_callback_conflict']]){
+ resetEarly();autoRunPending=false;worldSupported=true;mutation();early_install();const w=pendingWorkers[0];w.next();
+ check(w.next().done&&!level.eroded_island_trials_ready&&level.eroded_island_trials_revision===undefined&&dvars.zm_coopIslandTrialsStatus===status,'unknown/malformed/duplicate owner remains closed without replacement');
+}
+resetEarly();autoRunPending=false;worldSupported=true;early_install();const occupiedWorker=pendingWorkers[0];occupiedWorker.next();playersNow=[{entity:true,player:true,slot:0}];
+check(occupiedWorker.next().done&&dvars.zm_coopIslandTrialsStatus==='early_roster_not_pristine'&&level.eroded_island_trials_revision===undefined,'player appearing during defer closes rather than retrofits callback');
+for(const mutation of [()=>dvars.zm_coopStartupEpoch=4,()=>dvars.zm_coopSchemaSlots=7,()=>dvars.mapname='zm_zod']){
+ resetEarly();autoRunPending=false;worldSupported=true;early_install();const w=pendingWorkers[0];w.next();mutation();dvars.zm_coopIslandTrialsStatus='new-context-status';
+ check(w.next().done&&level.eroded_island_trials_pending===undefined&&dvars.zm_coopIslandTrialsStatus==='new-context-status'&&!level.eroded_island_trials_ready,'stale epoch/capacity/map work cannot overwrite new context diagnostics');
+}
+resetEarly();autoRunPending=false;worldSupported=true;early_install();const oldPending=level.eroded_island_trials_pending,stalePendingWorker=pendingWorkers[0];stalePendingWorker.next();const replacement={epoch:4,capacity:8,map:'zm_island'};level.eroded_island_trials_pending=replacement;
+check(stalePendingWorker.next().done&&level.eroded_island_trials_pending===replacement,'old worker cannot clear a newer pending identity');
+resetEarly();autoRunPending=false;worldSupported=true;early_install();const cancelledWorker=pendingWorkers[0];cancelledWorker.next();cancelledWorker.return();
+check(!level.eroded_island_trials_ready&&level.eroded_island_trials_revision===undefined&&cancelledWorker.next().done,'cancelled worker never resumes an install');
+
+console.log(JSON.stringify({passed:true,checks,scope:'Mechanically translated actual allocator/world-state/registry helpers and bounded deferred installer; no GSC VM, world binding or client proof.'}));
 '''
 
 def main():
@@ -281,6 +330,14 @@ def main():
     if 'wait 0.1;' not in watcher or 'while (context_current())' not in watcher or '!registry_owned()' not in watcher:raise ValueError('Independent ownership watcher missing or unbounded busy loop')
     if 'all_challenges_completed' in watcher or 'eroded_island_trials_pools' in watcher:raise ValueError('Ownership watcher must not depend on completion or initialized pools')
     translated_watcher=translate(watcher).replace('function ownership_watcher(', 'function* ownership_watcher(').replace('wait 0.1;', 'yield 0.1;')
+    deferred=function(text,'function deferred_install(')
+    if 'attempt < 120' not in deferred or deferred.index('wait 0.05;')>deferred.index('for (attempt = 0;'):raise ValueError('Deferred installer needs finite poll budget and unconditional first yield')
+    if 'flag::wait_till' in deferred or 'notify(' in deferred:raise ValueError('Deferred registry cannot await challenge startup or replay callbacks')
+    install=function(text,'function install_ready_registry(')
+    if re.search(r'\b(?:wait|waittill|thread)\b',re.sub(r'//[^\n]*','',install).replace('level thread ownership_watcher();','')):raise ValueError('Exact registry replacement cannot yield')
+    early=function(text,'function early_install(')
+    if 'callback::' in early or 'prepare_world_templates(' in early:raise ValueError('System preinit may only queue one pending registry worker')
+    translated_deferred=translate(deferred).replace('function deferred_install(', 'function* deferred_install(').replace('wait 0.05;', 'yield 0.05;')
     connect=function(text,'function on_player_connect(')
     if connect.index('decline("registry_ownership_lost")')>connect.index('level flag::wait_till'):raise ValueError('Connect ownership loss must revoke before any yield')
     if connect.index('player_challenge_action(')>connect.index('reserve_player('):raise ValueError('Challenge ownership preflight must precede reservation/world writes')
@@ -296,13 +353,14 @@ def main():
     if 'completed_roster(getplayers(), level.players' not in monitor or 'level flag::set("all_challenges_completed")' not in monitor:raise ValueError('Completion unlock lost actual current-roster predicate')
     code=re.sub(r'//[^\n]*|/\*[\s\S]*?\*/','',text)
     if 'var_c28313cd' in code or 'hash_41370469' in code or '::function_974d5f1d(' in code:raise ValueError('Historical completion counter/notification must not be forged')
-    if 'clientfield::set("eroded_island_pillar", 0)' in code:raise ValueError('Visible mover must be deleted, not reset to zero')
+    if 'eroded_island_pillar' in code or 'packed_pillar' in code or re.search(r'\bspawn\s*\(',code) or re.search(r'\brecord\.pillar\b',code):raise ValueError('No scriptmover transport or server locator lifecycle permitted')
+    if 'api.revision = 3;' not in text or 'api.revision == 3' not in fixture:raise ValueError('Current schema/API revision must be three')
     if re.search(r'\b(?:isstruct|isvector|gettype)\s*\(',text):raise ValueError('Unverified type API')
     stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ');family=ROOT.name
     out=a.output_dir.resolve()/('island-trials-'+family+'-'+stamp);out.mkdir(parents=True,exist_ok=False)
-    js=out/'actual-helpers.js';js.write_text(STANDINS+'\n'+'\n'.join(translate(b) for b in bodies.values())+'\n'+translated_watcher+'\n'+'\n'.join(translated_fixture)+'\n'+CASES,encoding='utf-8')
+    js=out/'actual-helpers.js';js.write_text(STANDINS+'\n'+'\n'.join(translate(b) for b in bodies.values())+'\n'+translated_watcher+'\n'+translated_deferred+'\n'+'\n'.join(translated_fixture)+'\n'+CASES,encoding='utf-8')
     run=subprocess.run([a.node,str(js)],capture_output=True,text=True);(out/'stdout.log').write_text(run.stdout,encoding='utf-8');(out/'stderr.log').write_text(run.stderr,encoding='utf-8')
     if run.returncode:raise RuntimeError('Retained failure: '+str(out))
-    report={**json.loads(run.stdout),'family':family,'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'fixture_sha256':hashlib.sha256(fixture_path.read_bytes()).hexdigest(),'test_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'generated_js_sha256':hashlib.sha256(js.read_bytes()).hexdigest(),'extracted_functions':list(bodies)+['ownership_watcher'],'fixture_helpers':list(fixture_helpers),'proof':str(out/'RESULTS.private.json')}
+    report={**json.loads(run.stdout),'family':family,'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'fixture_sha256':hashlib.sha256(fixture_path.read_bytes()).hexdigest(),'test_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'generated_js_sha256':hashlib.sha256(js.read_bytes()).hexdigest(),'extracted_functions':list(bodies)+['ownership_watcher','deferred_install'],'fixture_helpers':list(fixture_helpers),'proof':str(out/'RESULTS.private.json')}
     (out/'RESULTS.private.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8');print(json.dumps(report,indent=2))
 if __name__=='__main__':main()

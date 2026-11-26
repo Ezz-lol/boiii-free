@@ -13,12 +13,12 @@
 
 function schema_revision()
 {
-    return 2;
+    return 3;
 }
 
 function schema_contract()
 {
-    return "5e18c32294a479c8188f5625dfc9204300f228332e2e925d326dfb53c12b460b";
+    return "e1a7df2021d9fea869c1871e836af092c6e9e8fb6828f77a3f7dbfc5cde1eb3d";
 }
 
 function schema_family_mask(map)
@@ -86,11 +86,20 @@ function register_map_slot_fields(map)
     {
         for (slot = 4; slot < 8; slot++)
         {
-            for (challenge = 1; challenge <= 3; challenge++)
-                clientfield::register("world", "pillar_challenge_" + slot + "_" + challenge, 9000, 3, "int", undefined, false, false);
             clientfield::register("world", "portal_state_ending_" + slot, 9000, 1, "int", undefined, false, false);
         }
-        clientfield::register("scriptmover", "eroded_island_pillar", 9000, 11, "int", &island_pillar_clientfield, false, false);
+        clientfield::register("world", "pillar_challenge_4_1", 9000, 3, "int", &island_pillar_4_1, false, true);
+        clientfield::register("world", "pillar_challenge_4_2", 9000, 3, "int", &island_pillar_4_2, false, true);
+        clientfield::register("world", "pillar_challenge_4_3", 9000, 3, "int", &island_pillar_4_3, false, true);
+        clientfield::register("world", "pillar_challenge_5_1", 9000, 3, "int", &island_pillar_5_1, false, true);
+        clientfield::register("world", "pillar_challenge_5_2", 9000, 3, "int", &island_pillar_5_2, false, true);
+        clientfield::register("world", "pillar_challenge_5_3", 9000, 3, "int", &island_pillar_5_3, false, true);
+        clientfield::register("world", "pillar_challenge_6_1", 9000, 3, "int", &island_pillar_6_1, false, true);
+        clientfield::register("world", "pillar_challenge_6_2", 9000, 3, "int", &island_pillar_6_2, false, true);
+        clientfield::register("world", "pillar_challenge_6_3", 9000, 3, "int", &island_pillar_6_3, false, true);
+        clientfield::register("world", "pillar_challenge_7_1", 9000, 3, "int", &island_pillar_7_1, false, true);
+        clientfield::register("world", "pillar_challenge_7_2", 9000, 3, "int", &island_pillar_7_2, false, true);
+        clientfield::register("world", "pillar_challenge_7_3", 9000, 3, "int", &island_pillar_7_3, false, true);
     }
 }
 
@@ -100,27 +109,6 @@ function register_inventory_fields(suffix, version, bits)
         clientfield::register("world", "player" + slot + suffix, version, bits, "int", &zm_utility::setsharedinventoryuimodels, false, false);
 }
 
-
-function island_pillar_decode(value, capacity)
-{
-    if (!isint(value) || value <= 0 || value > 2047 ||
-        !isint(capacity) || capacity < 5 || capacity > 8)
-        return undefined;
-    slot = (value & 3) + 4;
-    if (slot >= capacity)
-        return undefined;
-    result = spawnstruct();
-    result.slot = slot;
-    result.states = array(0, 0, 0);
-    for (challenge = 0; challenge < 3; challenge++)
-    {
-        state = (value >> (2 + challenge * 3)) & 7;
-        if (state < 1 || state > 4)
-            return undefined;
-        result.states[challenge] = state;
-    }
-    return result;
-}
 
 // Preserve the actual template offset in its measured vertical interaction frame.
 function island_pillar_valid_vector(value, bound)
@@ -170,73 +158,97 @@ function island_pillar_clone_pose(template_origin, template_angles, base_origin,
 }
 
 
-function island_pillar_render_current(localclientnum, generation)
+
+function island_pillar_read_state(slot)
 {
-    return isdefined(self) && schema_capacity_current() && getdvarstring("mapname") == "zm_island" &&
-        isdefined(self.eroded_coop_pillar_render_generation) &&
-        isarray(self.eroded_coop_pillar_render_generation) &&
-        self.eroded_coop_pillar_render_generation[localclientnum] == generation;
+    if (!isint(slot) || slot < 4 || slot >= getdvarint("zm_coopSchemaSlots")) return undefined;
+    result = spawnstruct();
+    result.slot = slot;
+    result.states = array();
+    for (tier = 1; tier <= 3; tier++)
+    {
+        value = level clientfield::get("pillar_challenge_" + slot + "_" + tier);
+        // Zero is the extra slot's absent/default state, never a visible pillar.
+        if (!isint(value) || value < 1 || value > 4) return undefined;
+        result.states[tier - 1] = value;
+    }
+    return result;
 }
 
-function island_pillar_retire(localclientnum)
+function island_pillar_render_current(localclientnum, slot, generation)
 {
-    if (!isdefined(self.eroded_coop_pillar_models) || !isarray(self.eroded_coop_pillar_models)) return;
-    record = self.eroded_coop_pillar_models[localclientnum];
+    key = localclientnum * 8 + slot;
+    return schema_capacity_current() && getdvarstring("mapname") == "zm_island" &&
+        slot < getdvarint("zm_coopSchemaSlots") &&
+        isdefined(level.eroded_coop_fields_revision) && level.eroded_coop_fields_revision == schema_revision() &&
+        isdefined(level.eroded_coop_pillar_render_generation) &&
+        isarray(level.eroded_coop_pillar_render_generation) &&
+        level.eroded_coop_pillar_render_generation[key] == generation;
+}
+
+function island_pillar_retire(localclientnum, slot)
+{
+    key = localclientnum * 8 + slot;
+    if (!isdefined(level.eroded_coop_pillar_models) || !isarray(level.eroded_coop_pillar_models)) return;
+    record = level.eroded_coop_pillar_models[key];
     if (!isdefined(record)) return;
-    self.eroded_coop_pillar_models[localclientnum] = undefined;
+    level.eroded_coop_pillar_models[key] = undefined;
     record.active = false;
     if (isdefined(record.model)) record.model delete();
 }
 
-function island_pillar_clientfield(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+function island_pillar_world_update(localclientnum, slot, tier, newval)
 {
-    if (!isdefined(self) || !isint(localclientnum) || localclientnum < 0 || localclientnum > 3 ||
+    if (!isint(localclientnum) || localclientnum < 0 || localclientnum > 3 ||
+        !isint(slot) || slot < 4 || slot > 7 || !isint(tier) || tier < 1 || tier > 3 ||
         getdvarstring("mapname") != "zm_island") return;
-    if (!isdefined(self.eroded_coop_pillar_render_generation))
-        self.eroded_coop_pillar_render_generation = array(0, 0, 0, 0);
-    if (!isdefined(self.eroded_coop_pillar_models))
-        self.eroded_coop_pillar_models = array();
-    if (!isarray(self.eroded_coop_pillar_render_generation) || !isarray(self.eroded_coop_pillar_models)) return;
-    generation = self.eroded_coop_pillar_render_generation[localclientnum];
-    if (!isdefined(generation)) generation = 0;
+    if (!isdefined(level.eroded_coop_pillar_render_generation))
+    {
+        level.eroded_coop_pillar_render_generation = array();
+        for (index = 0; index < 32; index++) level.eroded_coop_pillar_render_generation[index] = 0;
+    }
+    if (!isdefined(level.eroded_coop_pillar_models)) level.eroded_coop_pillar_models = array();
+    if (!isarray(level.eroded_coop_pillar_render_generation) || !isarray(level.eroded_coop_pillar_models)) return;
+    key = localclientnum * 8 + slot;
+    generation = level.eroded_coop_pillar_render_generation[key];
     if (!isint(generation) || generation < 0 || generation > 1000000) return;
     generation++;
-    self.eroded_coop_pillar_render_generation[localclientnum] = generation;
-    decoded = island_pillar_decode(newval, getdvarint("zm_coopSchemaSlots"));
-    if (!isdefined(decoded))
-    {
-        island_pillar_retire(localclientnum);
-        return;
-    }
-    self thread island_pillar_render(localclientnum, decoded, generation);
+    level.eroded_coop_pillar_render_generation[key] = generation;
+    // Rendering reads the committed triplet after this callback returns. Do not
+    // assume GetWorldClientField has already committed the callback's snapshot.
+    level thread island_pillar_render(localclientnum, slot, generation);
 }
 
-function island_pillar_template(localclientnum)
+function island_pillar_template(localclientnum, slot)
 {
-    // Use the actual local retail model and its interaction frame. Server-side
-    // tag_origin is only a replicated locator, never a DObj or a pillar model.
     models = getentarray(localclientnum, "challenge_pillar_0", "targetname");
     triggers = struct::get_array("s_challenge_trigger", "targetname");
-    if (!isarray(models) || models.size != 1 || !isdefined(models[0]) ||
-        !isdefined(models[0].model) || !isarray(triggers) || triggers.size != 4) return undefined;
-    base = undefined;
-    seen = array();
+    altars = struct::get_array("s_challenge_altar", "targetname");
+    if (!isarray(models) || models.size != 1 || !isdefined(models[0]) || !isdefined(models[0].model) ||
+        !isarray(triggers) || triggers.size != 4 || !isarray(altars) || altars.size != 1 ||
+        !isdefined(altars[0]) || !island_pillar_valid_vector(altars[0].origin, 32769)) return undefined;
+    frames = array();
     keys = getarraykeys(triggers);
     for (index = 0; index < keys.size; index++)
     {
         trigger = triggers[keys[index]];
-        // ACTS script_* spelling compiles to field ID zero. This canonical ID
-        // was independently checked against the actual retail field operand.
+        // Canonical retail script_special ID; ACTS literal script_* emits zero.
         if (!isdefined(trigger) || !isint(trigger.var_7cc697d0) || trigger.var_7cc697d0 < 0 ||
-            trigger.var_7cc697d0 > 3 || isdefined(seen[trigger.var_7cc697d0])) return undefined;
-        seen[trigger.var_7cc697d0] = true;
-        if (trigger.var_7cc697d0 != 0) continue;
-        if (isdefined(base)) return undefined;
-        base = trigger;
+            trigger.var_7cc697d0 > 3 || isdefined(frames[trigger.var_7cc697d0]) ||
+            !island_pillar_valid_vector(trigger.origin, 32769) || !island_pillar_valid_vector(trigger.angles, 3600) ||
+            trigger.angles[0] != 0 || trigger.angles[2] != 0) return undefined;
+        frames[trigger.var_7cc697d0] = trigger;
     }
-    if (!isdefined(base)) return undefined;
+    if (!isint(slot) || slot < 4 || slot > 7) return undefined;
+    // Same measured stock-slot pairing and altar-facing yaw as the server.
+    pairs = array(array(0, 1), array(2, 3), array(1, 2), array(0, 3));
+    pair = pairs[slot - 4];
+    origin = (frames[pair[0]].origin + frames[pair[1]].origin) * 0.5;
+    if (distance(origin, altars[0].origin) < 64 || distance(origin, altars[0].origin) > 512) return undefined;
+    facing = vectortoangles(altars[0].origin - origin);
+    angles = (0, facing[1], 0);
     pose = island_pillar_clone_pose(models[0].origin, models[0].angles,
-        base.origin, base.angles, self.origin, self.angles);
+        frames[0].origin, frames[0].angles, origin, angles);
     if (!isdefined(pose)) return undefined;
     result = spawnstruct();
     result.model = models[0].model;
@@ -244,47 +256,56 @@ function island_pillar_template(localclientnum)
     return result;
 }
 
-function island_pillar_model_current(localclientnum, locator, record)
+function island_pillar_model_current(localclientnum, slot, record)
 {
-    return isdefined(locator) && schema_capacity_current() && getdvarstring("mapname") == "zm_island" &&
-        isdefined(record) && record.active && isdefined(record.model) &&
-        record.slot < getdvarint("zm_coopSchemaSlots") &&
-        isdefined(locator.eroded_coop_pillar_models) && isarray(locator.eroded_coop_pillar_models) &&
-        locator.eroded_coop_pillar_models[localclientnum] == record;
+    key = localclientnum * 8 + slot;
+    return schema_capacity_current() && getdvarstring("mapname") == "zm_island" &&
+        isdefined(level.eroded_coop_fields_revision) && level.eroded_coop_fields_revision == schema_revision() &&
+        isdefined(record) && record.active && isdefined(record.model) && record.slot == slot &&
+        isdefined(island_pillar_read_state(slot)) &&
+        isdefined(level.eroded_coop_pillar_models) && isarray(level.eroded_coop_pillar_models) &&
+        level.eroded_coop_pillar_models[key] == record;
 }
 
-function island_pillar_model_lifetime(localclientnum, locator, record)
+function island_pillar_model_lifetime(localclientnum, slot, record)
 {
-    // Run on the owned clone: ending on locator shutdown would skip deletion.
     self endon(#"entityshutdown");
-    while (island_pillar_model_current(localclientnum, locator, record)) wait 0.1;
-    if (isdefined(locator) && isdefined(locator.eroded_coop_pillar_models) &&
-        isarray(locator.eroded_coop_pillar_models) && locator.eroded_coop_pillar_models[localclientnum] == record)
-        locator.eroded_coop_pillar_models[localclientnum] = undefined;
+    while (island_pillar_model_current(localclientnum, slot, record)) wait 0.1;
+    key = localclientnum * 8 + slot;
+    if (isdefined(level.eroded_coop_pillar_models) && isarray(level.eroded_coop_pillar_models) &&
+        level.eroded_coop_pillar_models[key] == record) level.eroded_coop_pillar_models[key] = undefined;
     record.active = false;
     self delete();
 }
 
-function island_pillar_render(localclientnum, decoded, generation)
+function island_pillar_render(localclientnum, slot, generation)
 {
+    key = localclientnum * 8 + slot;
     for (attempt = 0; attempt < 120; attempt++)
     {
-        if (!island_pillar_render_current(localclientnum, generation) ||
-            decoded.slot >= getdvarint("zm_coopSchemaSlots")) return;
-        player = getlocalplayer(localclientnum);
-        record = self.eroded_coop_pillar_models[localclientnum];
-        if (isdefined(record) && (!record.active || record.slot != decoded.slot || !isdefined(record.model)))
+        // Yield before the first read as well as retries: callbacks may run
+        // while their native snapshot is still being committed.
+        wait 0.05;
+        if (!island_pillar_render_current(localclientnum, slot, generation)) return;
+        decoded = island_pillar_read_state(slot);
+        if (!isdefined(decoded))
         {
-            island_pillar_retire(localclientnum);
+            island_pillar_retire(localclientnum, slot);
+            return;
+        }
+        player = getlocalplayer(localclientnum);
+        record = level.eroded_coop_pillar_models[key];
+        if (isdefined(record) && (!record.active || record.slot != slot || !isdefined(record.model)))
+        {
+            island_pillar_retire(localclientnum, slot);
             record = undefined;
         }
         if (isdefined(player) && !isdefined(record))
         {
-            template = island_pillar_template(localclientnum);
+            template = island_pillar_template(localclientnum, slot);
             if (isdefined(template))
             {
-                // spawn_model has no wait; publish the owned record before any
-                // yield so concurrent field updates cannot allocate duplicates.
+                // No wait in stock spawn_model: publish ownership before yielding.
                 model = util::spawn_model(localclientnum, template.model, template.pose.origin, template.pose.angles);
                 if (isdefined(model))
                 {
@@ -292,25 +313,24 @@ function island_pillar_render(localclientnum, decoded, generation)
                     record = spawnstruct();
                     record.active = true;
                     record.model = model;
-                    record.slot = decoded.slot;
+                    record.slot = slot;
                     record.symbol_parts = template.model == "p7_zm_isl_ritual_pillar_symbol";
-                    self.eroded_coop_pillar_models[localclientnum] = record;
-                    model thread island_pillar_model_lifetime(localclientnum, self, record);
+                    level.eroded_coop_pillar_models[key] = record;
+                    model thread island_pillar_model_lifetime(localclientnum, slot, record);
                 }
             }
         }
         if (isdefined(player) && isdefined(record) && record.model hasdobj(localclientnum)) break;
-        wait 0.05;
     }
-    if (!island_pillar_render_current(localclientnum, generation)) return;
-    if (!isdefined(player) || !island_pillar_model_current(localclientnum, self, record) ||
+    if (!island_pillar_render_current(localclientnum, slot, generation)) return;
+    decoded = island_pillar_read_state(slot);
+    if (!isdefined(decoded) || !isdefined(player) || !island_pillar_model_current(localclientnum, slot, record) ||
         !record.model hasdobj(localclientnum))
     {
-        island_pillar_retire(localclientnum);
+        island_pillar_retire(localclientnum, slot);
         return;
     }
-    // Do not address absent joints on a different/composite custom model.
-    // Client-image verification is still required for the retail attachment layout.
+    // Missing/composite custom attachments are not guessed from a model name.
     if (record.symbol_parts) record.model island_pillar_apply_parts(localclientnum, decoded, player);
     record.model show();
 }
@@ -341,4 +361,64 @@ function island_pillar_apply_parts(localclientnum, decoded, player)
         self showpart(localclientnum, "j_" + role + "_" + phase + "_" + suffix,
             "p7_zm_isl_ritual_pillar_symbol");
     }
+}
+
+function island_pillar_4_1(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 4, 1, newval);
+}
+
+function island_pillar_4_2(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 4, 2, newval);
+}
+
+function island_pillar_4_3(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 4, 3, newval);
+}
+
+function island_pillar_5_1(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 5, 1, newval);
+}
+
+function island_pillar_5_2(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 5, 2, newval);
+}
+
+function island_pillar_5_3(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 5, 3, newval);
+}
+
+function island_pillar_6_1(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 6, 1, newval);
+}
+
+function island_pillar_6_2(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 6, 2, newval);
+}
+
+function island_pillar_6_3(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 6, 3, newval);
+}
+
+function island_pillar_7_1(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 7, 1, newval);
+}
+
+function island_pillar_7_2(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 7, 2, newval);
+}
+
+function island_pillar_7_3(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwastimejump)
+{
+    island_pillar_world_update(localclientnum, 7, 3, newval);
 }

@@ -12,8 +12,8 @@ import sys
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 base = root / "scripts/zombies_coop"
-manifest = json.loads((base / "schema-v2.json").read_text(encoding="utf-8"))
-assert (manifest["revision"], manifest["stock_slots"], manifest["schema_slots"], manifest["slot_range"]) == (2, 4, 8, [4, 7])
+manifest = json.loads((base / "schema-v3.json").read_text(encoding="utf-8"))
+assert (manifest["revision"], manifest["stock_slots"], manifest["schema_slots"], manifest["slot_range"]) == (3, 4, 8, [4, 7])
 canonical = json.dumps(manifest["groups"], sort_keys=True, separators=(",", ":")).encode()
 contract = hashlib.sha256(canonical).hexdigest()
 assert manifest["contract_sha256"] == contract
@@ -31,10 +31,13 @@ for name, version, bits in (("castle_inventory", 1, 1), ("stalingrad_wearable", 
     assert (row["version"], row["bits"], row["callback"]) == (version, bits, "zm_utility::setsharedinventoryuimodels")
 assert by_name["island_slot_state"]["suffixes"] == {"_1": 3, "_2": 3, "_3": 3}
 assert by_name["island_slot_state"]["additional"]["bits"] == 1
-replicated = by_name["island_slot_state"]["replicated_pillar"]
-assert (replicated["pool"], replicated["name"], replicated["version"], replicated["bits"], replicated["type"]) == ("scriptmover", "eroded_island_pillar", 9000, 11, "int")
-assert replicated["callback"] == "eroded_coop_fields::island_pillar_clientfield"
-assert replicated["state_shifts"] == [2, 5, 8] and replicated["owner_low_bits"] == 2 and replicated["slot_base"] == 4
+island_contract = by_name["island_slot_state"]
+assert "replicated_pillar" not in island_contract
+assert island_contract["callback"] == "eroded_coop_fields::island_pillar_{slot}_{tier}"
+assert island_contract["callback_for_zero_when_new"] is True
+assert island_contract["states"] == {"inactive": 0, "idle": 1, "started": 2, "completed": 3, "claimed": 4}
+assert island_contract["pool"] == "world" and island_contract["version"] == 9000
+
 
 
 
@@ -90,6 +93,11 @@ def inspect(path, extension, logical_base="scripts/zm/eroded_coop_fields"):
         assert code <= address < code + size
         exports.append((name, namespace, params, flags))
     assert any(n == fnv("__init__system__") and ns == fnv(logical_base.rsplit("/", 1)[1]) and flags & 2 for n, ns, _, flags in exports)
+    if extension == "csc":
+        for slot in range(4, 8):
+            for tier in range(1, 4):
+                assert any(n == fnv(f"island_pillar_{slot}_{tier}") and ns == fnv("eroded_coop_fields") and params == 7
+                    for n, ns, params, flags in exports)
     return data
 
 
@@ -102,9 +110,12 @@ for extension, side in (("gsc", "Server"), ("csc", "Client")):
     assert 'zm_coopSchema' + side + 'Mask' in source and 'zm_coopSchema' + side + 'Contract' in source
     assert 'zm_coopPlayerLimit' not in source and 'getplayers' not in source.lower()
     assert 'coop_schema_capacity(' not in source and 'coop_schema_report(' not in source
-    assert 'clientfield::register("scriptmover", "eroded_island_pillar", 9000, 11, "int"' in source
+    assert 'clientfield::register("scriptmover", "eroded_island_pillar"' not in source
     if extension == "csc":
-        assert '&island_pillar_clientfield' in source and 'record.model hasdobj(localclientnum)' in source
+        for slot in range(4, 8):
+            for tier in range(1, 4):
+                assert f"function island_pillar_{slot}_{tier}(" in source
+        assert 'record.model hasdobj(localclientnum)' in source
         assert 'util::spawn_model(localclientnum, template.model, template.pose.origin, template.pose.angles)' in source
         assert 'for (attempt = 0; attempt < 120; attempt++)' in source
 
@@ -117,7 +128,7 @@ for extension, side in (("gsc", "Server"), ("csc", "Client")):
         assert 'schema_family_mask("' + official_map + '")' in fixture
 print("PASS: paired BO3 1C asset names/imports/autoexec, fixed schema manifest and stock-session isolation")
 
-# All shipped companions and the UI are one frozen schema-v2 bundle. A stale or
+# All shipped companions and the UI are one frozen schema-v3 bundle. A stale or
 # cross-fork payload must fail here before building an incompatible executable.
 island = root / "data/coop_scripts/eroded_coop_island_trials.gsc"
 inspect(island, "gsc", "scripts/zm/eroded_coop_island_trials")
@@ -132,8 +143,8 @@ payloads = {
 }
 for role, digest in payloads.items():
     assert read_pin(role) == digest, role
-bundle = {"revision": 2, "contract_sha256": contract, "payloads": payloads}
+bundle = {"revision": 3, "contract_sha256": contract, "payloads": payloads}
 assert read_pin("bundle") == hashlib.sha256(json.dumps(bundle, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 native = (root / "src/client/component/zombies/companion.hpp").read_text()
-assert re.search(r"companion_revision\s*=\s*2\b", native) and contract in native
-print("PASS: exact three raw companions, canonical UI and schema-v2 bundle pins")
+assert re.search(r"companion_revision\s*=\s*3\b", native) and contract in native
+print("PASS: exact three raw companions, canonical UI and schema-v3 bundle pins")

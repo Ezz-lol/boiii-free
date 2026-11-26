@@ -72,7 +72,7 @@ function island_trials_current(epoch, map, limit)
     if (map != "zm_island") return true;
     if (!isint(epoch) || epoch < 1 || !isint(limit) || limit < 5 || limit > 8) return false;
     return isdefined(level.eroded_island_trials_revision) && isint(level.eroded_island_trials_revision) &&
-        level.eroded_island_trials_revision == 2 &&
+        level.eroded_island_trials_revision == 3 &&
         isdefined(level.eroded_island_trials_epoch) && isint(level.eroded_island_trials_epoch) &&
         level.eroded_island_trials_epoch == epoch &&
         isdefined(level.eroded_island_trials_capacity) && isint(level.eroded_island_trials_capacity) &&

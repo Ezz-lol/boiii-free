@@ -1,6 +1,7 @@
 .vs
 .vscode
 /build/
+__pycache__/
 node_modules/
 usergenerate.bat
 nul

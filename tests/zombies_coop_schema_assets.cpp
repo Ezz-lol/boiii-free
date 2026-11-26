@@ -227,7 +227,8 @@ int main() {
   assert(concurrent[0] && concurrent[1] && concurrent[0] == concurrent[1]);
   // A budget accepts the pinned templates and a small bounded number of clones,
   // then fails rather than freeing or reusing any engine-visible memory.
-  schema_asset_store<test_asset> bounded(4096 * sizeof(void*) + (gsc.size() + csc.size() + island.size()) * 8);
+  const auto byte_budget = 4096 * sizeof(void*) + (gsc.size() + csc.size() + island.size()) * 8;
+  schema_asset_store<test_asset> bounded(byte_budget);
   assert(bounded.pin(gsc, csc, island, error));
   const auto retained = bounded.companion(server_companion, error);
   assert(retained);
@@ -235,7 +236,12 @@ int main() {
   for (;;) {
     bounded.begin_generation(false);
     if (!bounded.companion(server_companion, error)) break;
-    ++accepted; assert(accepted < 10);
+    ++accepted;
+    // Each retained generation holds at least the raw server payload. The
+    // other companions can grow independently; their size must not imply a
+    // fixed number of server clones in this exhaustion test.
+    assert(static_cast<std::size_t>(accepted) <= byte_budget / gsc.size());
+    assert(bounded.retained().second <= byte_budget);
   }
   assert(bounded.exhausted() && !error.empty());
   assert(std::string_view(retained->buffer, retained->len) == gsc);

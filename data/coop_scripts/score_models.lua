@@ -58,7 +58,7 @@ return function(original)
       end
     end
     -- Diagnostics only. Native checksums remain authoritative for compatibility.
-    Engine.SetDvar("zm_coopSchemaUIRevision", 2)
+    Engine.SetDvar("zm_coopSchemaUIRevision", 3)
     return unpack(result, 2, result.n)
   end
 end

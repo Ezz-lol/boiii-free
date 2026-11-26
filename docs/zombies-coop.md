@@ -64,9 +64,14 @@ keeps original selections while records remain and tracks exact player/slot/map
 ownership through disconnect and rejoin. It reuses the retail task workers,
 prompts, rewards, and shared altar. Its global unlock checks the completed current
 roster and preserves a legitimately earned latch. Unknown callback owners or
-foreign challenge state close readiness instead of being overwritten. Original
-four-player world references remain unchanged; four extra non-solid replicated
-locators use validated measured frames for the paired client pillar renderer.
+foreign challenge state close readiness instead of being overwritten. An
+empty-server installer yields once and observes stock registration under a
+finite map/epoch/capacity guard; it never replays connected events or waits for
+the player challenge flag. An already present local host still declines this
+early path until listen-host dispatch ordering is verified. Original
+four-player world references remain unchanged; extra private interaction frames
+and the paired client renderer reuse twelve existing world state fields without
+adding scriptmover bits or server locator actors.
 See [Island trials and validation boundaries](zombies-coop-island-trials.md).
 These new bindings require fresh isolated canaries and actual client interaction
 checks; pool expansion and local helper tests do not certify the full quest.

@@ -19,8 +19,8 @@ function check(value)
 function run()
 {
     failures = 0;
-    failures += check(eroded_coop_fields::schema_revision() == 2);
-    failures += check(eroded_coop_fields::schema_contract() == "5e18c32294a479c8188f5625dfc9204300f228332e2e925d326dfb53c12b460b");
+    failures += check(eroded_coop_fields::schema_revision() == 3);
+    failures += check(eroded_coop_fields::schema_contract() == "e1a7df2021d9fea869c1871e836af092c6e9e8fb6828f77a3f7dbfc5cde1eb3d");
     failures += check(eroded_coop_fields::schema_family_mask("zm_zod") == 3);
     failures += check(eroded_coop_fields::schema_family_mask("zm_factory") == 3);
     failures += check(eroded_coop_fields::schema_family_mask("zm_castle") == 7);
@@ -36,7 +36,7 @@ function run()
     failures += check(eroded_coop_fields::schema_family_mask("zm_moon") == 35);
     failures += check(eroded_coop_fields::schema_family_mask("zm_tomb") == 3);
     failures += check(eroded_coop_fields::schema_family_mask("zm_user_inherited") == 3);
-    failures += check(getdvarint("zm_coopSchemaClientRevision") == 2);
+    failures += check(getdvarint("zm_coopSchemaClientRevision") == 3);
     failures += check(getdvarstring("zm_coopSchemaClientContract") == eroded_coop_fields::schema_contract());
     for (slot = 4; slot < 8; slot++)
     {

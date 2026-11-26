@@ -5,9 +5,9 @@
 #include <string_view>
 
 namespace zombies::coop {
-inline constexpr int companion_revision = 2;
+inline constexpr int companion_revision = 3;
 inline constexpr std::string_view companion_contract =
-    "5e18c32294a479c8188f5625dfc9204300f228332e2e925d326dfb53c12b460b";
+    "e1a7df2021d9fea869c1871e836af092c6e9e8fb6828f77a3f7dbfc5cde1eb3d";
 
 // Native session/request state, independent of saved preferences or script dvars.
 int frozen_schema_capacity() noexcept;

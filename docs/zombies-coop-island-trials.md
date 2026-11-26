@@ -11,9 +11,14 @@ who remained connected.
 The Island-only early asset is `scripts/zm/eroded_coop_island_trials.gsc`, shipped
 as `data/coop_scripts/eroded_coop_island_trials.gsc`. Its system registration names
 both `zm_laststand` and `eroded_coop_fields` as ordered direct dependencies because
-the retail dependency executor is not recursive. It replaces only the exact
-stock trial connect/disconnect registrations and declines a nonempty early
-roster. Existing listen-host dispatch ordering still requires client runtime
+the retail dependency executor is not recursive. Its preinit callback queues one
+map/epoch-owned installer, which yields once before observing the registry. It
+waits for absent stock registrations for at most 120 polls plus the first yield
+(6.05 simulation seconds), without awaiting challenge initialization or forcing
+flags. It replaces only exact single stock connect/disconnect registrations on
+an empty roster. Malformed, duplicate, object-bound, conflicting, or missing
+registrations remain closed with bounded count diagnostics; a player appearing
+during the wait also declines installation. Existing listen-host dispatch ordering still requires client runtime
 verification; this does not retrofit already dispatched stock callbacks.
 
 All players use the existing task-progress, completion-toast, and reward
@@ -24,18 +29,24 @@ stock completion FX once. The earned unlock remains latched for later joins.
 The shared reward altar and its original pickup/disconnect handling remain owned
 by the retail reward functions.
 
-Extra pillar state uses the paired 11-bit `eroded_island_pillar` scriptmover field:
-two owner bits followed by three 3-bit states. A visible owned mover is deleted
-on cleanup, rather than resetting its field to zero. The server preserves the
-original four trigger and look-at references. Four extra non-solid locators use
-the measured wall midpoints, face the existing altar, and rotate the original
-look-at offsets into each new frame. Floor, line-of-sight, spacing, field types,
-and unique real-slot bindings must pass before readiness opens. Failure retains
-`geometry_pending` and closes expanded Island admission. The client creates the
-visual pillar from the replicated locator; the server needs no client-only
-pillar model. These new world bindings still require an isolated runtime check
-and actual client rendering and interaction checks.
+Extra pillar state reuses the twelve already allocated world fields
+`pillar_challenge_4_1` through `pillar_challenge_7_3`. No extra scriptmover field,
+server locator actor, or native pool expansion is required. Each exact owned
+reservation initializes all three fields to idle state one. Owned release resets
+extra slots to zero, allowing the client to retire its own visual model; the
+original four slots retain the retail disconnect reset of one. A stale owner or
+old worker cannot reset a later occupant's fields.
 
+The server preserves the original four trigger and look-at references. Four
+extra private frames use the measured wall midpoints, face the existing altar,
+and rotate the original look-at offsets into each new frame. Floor,
+line-of-sight, spacing, vector types, and unique real-slot bindings must pass
+before readiness opens. Failure retains `geometry_pending` and closes expanded
+Island admission. The paired client derives the matching frames and uses the
+current three world states to own one local visual pillar per occupied extra
+slot. It cancels stale render work and retires an absent slot. These new world
+bindings still require an isolated runtime check and actual client rendering and
+interaction checks.
 ACTS treats `script_` identifiers as raw hash literals. The adapter uses verified
 canonical aliases for `script_special` and `script_unitrigger_type`, while keeping
 the retail fields' actual identities. Compiler checks must inspect the emitted

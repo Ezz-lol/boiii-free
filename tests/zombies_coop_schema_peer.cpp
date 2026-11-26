@@ -3,14 +3,14 @@
 #include <string>
 using namespace zombies::coop;
 int main() {
-  const auto token = schema_token(); assert(token.size() == 131 && token.starts_with("2:"));
+  const auto token = schema_token(); assert(token.size() == 131 && token.starts_with("3:"));
   assert(expanded_descriptor_capacity("8") == 8);
   for (auto bad : {"", "4", "9", "08", "8x", "-8", "2147483648"})
     assert(expanded_descriptor_capacity(bad) == 0);
-  assert(schema_descriptor_matches("2", companion_contract, payloads::bundle_sha256));
+  assert(schema_descriptor_matches("3", companion_contract, payloads::bundle_sha256));
   assert(!schema_descriptor_matches("1", companion_contract, payloads::bundle_sha256));
-  assert(!schema_descriptor_matches("2", "wrong", payloads::bundle_sha256));
-  for (auto bad : {"", "02", "2 ", "3", "-2", "2147483648"})
+  assert(!schema_descriptor_matches("3", "wrong", payloads::bundle_sha256));
+  for (auto bad : {"", "03", "3 ", "2", "-3", "2147483648"})
     assert(!schema_descriptor_matches(bad, companion_contract, payloads::bundle_sha256));
   assert(schema_proof_message("ab", "c", token) != schema_proof_message("a", "bc", token));
   assert(schema_proof_message("challenge", "connect one", token) !=

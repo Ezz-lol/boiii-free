@@ -1,9 +1,9 @@
 #pragma once
 namespace zombies::coop::payloads {
-// Exact schema-v2 payload pins; bundle uses the documented canonical JSON manifest.
-inline constexpr const char* island_trials_sha256 = "a6a6e0ad37d8605ddb665baaaf2af23f407fe9ded41d9da880e5596f85babd47";
-inline constexpr const char* server_sha256 = "40941578eb3eb16fc8cef37ae3607722edd069b5be67c9f0228289df1a90072b";
-inline constexpr const char* client_sha256 = "ed577f6fecb6c2614f5216a774ae22cdd4a81ac2b7ce99a4da3b44a24f73cf45";
-inline constexpr const char* ui_sha256 = "3c214d08c35a070b795d2bb01128788752406a849adc25a99a10841943195786";
-inline constexpr const char* bundle_sha256 = "5f27fbcb27e35721bb6d443ef8b02be4bb43949a262ef835884a178520b1eeb1";
+// Exact schema-v3 payload pins; bundle uses the documented canonical JSON manifest.
+inline constexpr const char* island_trials_sha256 = "ce4c3ac0541230a48e1500b2610b419a040e71c9eeccbc2b63973383bf828a99";
+inline constexpr const char* server_sha256 = "0dbc4c5736802c081fbd5ed127031af5e4f91575d3aae5e1f58d7b9904268b83";
+inline constexpr const char* client_sha256 = "2ddc5568bcf51aab35ebb2a5206e99cf092596d8912d94aa29f71c0e622533d7";
+inline constexpr const char* ui_sha256 = "2d741809f4ce101e31210ea1423c5cbcfef30b306c2eaa2009854cacf4c6c91d";
+inline constexpr const char* bundle_sha256 = "1f5040b1a3236b70dbcb8a71de11af06310e06e9169c7610026ba4067e2b8bfe";
 }
