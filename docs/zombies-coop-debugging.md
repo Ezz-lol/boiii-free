@@ -274,3 +274,16 @@ bounded placement filter records `empty_endgame_placement_pruned`; nonempty or
 unknown data is left alone. This marker identifies cleanup execution, and a
 fresh error-free runtime test must establish its effect on stock challenge
 teardown. It is not a gameplay or quest-completion receipt.
+
+## Ezz diagnostic extraction
+
+`-extract-assets <regex>` accepts an explicit asset-name filter. The aliases
+`--extract-assets` and `-e` also accept a separate value or `alias=value`.
+For example, `-extract-assets "^scripts/zm/_zm_powerups[.]gsc$"` selects that
+logical script name. A bare extraction flag retains the existing all-assets
+mode. Empty, invalid or repeated extraction arguments fail before game startup.
+A literal regex equal to an option name or starting with `+` uses `alias=value`.
+
+`python tests/extractor_flags.py --compiler clang++` compiles the actual flags
+source and bundled argument parser without starting a game. Its cases cover
+explicit filters, engine-command values, aliases and unchanged bare/absent flags.
