@@ -5,6 +5,7 @@
 #using scripts/zm/_zm_utility;
 #using scripts/shared/callbacks_shared;
 #using scripts/shared/ai/zombie_utility;
+#using scripts/shared/flag_shared;
 
 #namespace eroded_coop;
 
@@ -719,7 +720,7 @@ function count_callback_owned(owner)
 function normal_round_target(round, count)
 {
     if (!isint(round) || round < 1 || !isint(count) || count < 1 || count > 8 ||
-        !count_callback_owned(level.max_zombie_func))
+        !count_callback_owned(level.max_zombie_func) || custom_round_controller())
         return undefined;
     return zm::get_zombie_count_for_round(round, count);
 }
@@ -729,10 +730,43 @@ function custom_round_controller()
     return round_controller_reason() != "normal";
 }
 
+// Stock lazily installs zm::round_think when this owner is absent. A known
+// map thinker is recognized by its profile; unknown controllers keep ownership.
+function round_thinker_owned(owner, known)
+{
+    return !isdefined(owner) || owner == &zm::round_think || (isdefined(known) && owner == known);
+}
+
+function moon_round_budget_owned(on_moon, teleporter_used, from_nml, round, saved_round)
+{
+    if (!isdefined(on_moon) || !on_moon || !isdefined(teleporter_used) || teleporter_used ||
+        !isint(round) || round < 1)
+        return false;
+    // Stock clears teleporter_used before restoring prev_round_zombies. The
+    // durable saved round also protects listeners that resume after that clear,
+    // regardless of whether the restored quota is smaller, equal or larger.
+    if (isdefined(from_nml) && from_nml && (!isint(saved_round) || saved_round < 1 || round <= saved_round))
+        return false;
+    return true;
+}
+
 function round_controller_reason()
 {
     if (!count_callback_owned(level.max_zombie_func))
         return "custom_count_callback_preserved";
+    if (!round_thinker_owned(level.round_think_func, level.eroded_coop_known_round_think))
+        return "custom_round_thinker_preserved";
+    if (isdefined(level.eroded_coop_known_round_think) &&
+        level.round_think_func == level.eroded_coop_known_round_think &&
+        isdefined(level.eroded_coop_profile_map) && level.eroded_coop_profile_map == "zm_moon")
+    {
+        teleporter_used = undefined;
+        if (flag::exists("teleporter_used"))
+            teleporter_used = level flag::get("teleporter_used");
+        if (!moon_round_budget_owned(level.on_the_moon, teleporter_used, level._from_nml,
+            level.round_number, level.nml_last_round))
+            return "moon_restored_budget_preserved";
+    }
     // Dog/spider/chaos rounds temporarily replace the normal spawner. Their
     // counters and special-actor budgets are not normal zombie quotas.
     if (isdefined(level.round_spawn_func) && level.round_spawn_func != &zm::round_spawning)

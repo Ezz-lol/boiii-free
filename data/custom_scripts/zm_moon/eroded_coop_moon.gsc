@@ -13,6 +13,7 @@ function autoexec main()
         return;
     level.eroded_coop_profile_delay = &zm::get_zombie_spawn_delay;
     level.eroded_coop_profile_characters = &zm_moon::givecustomcharacters;
+    level.eroded_coop_known_round_think = &zm_moon::moon_round_think_func;
     level.eroded_coop_profile_radio = true;
     level.eroded_coop_profile_map = "zm_moon";
     level.eroded_coop_profile_epoch = epoch;

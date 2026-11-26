@@ -48,7 +48,7 @@ for entry in maps:
     assert "limit < 5 || limit > 8 || epoch < 1" in text, name
     assert f"&{entry['source']}::{entry['chars']}" in text, name
     assert ("level.eroded_coop_profile_radio = true;" in text) == entry["radio"], name
-    for field, key in (("known_custom_spawn", "spawn"), ("known_total_setup", "total")):
+    for field, key in (("known_custom_spawn", "spawn"), ("known_total_setup", "total"), ("known_round_think", "think")):
         if entry.get(key):
             assert f"level.eroded_coop_{field} = &{entry[key]};" in text, name
         else:

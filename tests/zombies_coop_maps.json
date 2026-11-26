@@ -113,7 +113,8 @@
       "pack": "Chronicles",
       "source": "zm_moon",
       "chars": "givecustomcharacters",
-      "radio": true
+      "radio": true,
+      "think": "zm_moon::moon_round_think_func"
     },
     {
       "map": "zm_tomb",

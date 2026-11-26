@@ -66,6 +66,12 @@ separately. Conservative polling can retain queued recycling credits when exact
 per-AI event ordering is ambiguous. Map-owned special-round setup is preserved and
 never replayed just because someone joined or left.
 
+Unknown round thinkers retain quota ownership. Moon's known thinker can restore
+a saved budget after No Man's Land; that entire resumed round remains map-owned,
+including restored decreases or equal values. Ordinary adaptation may resume on
+a later fresh normal round above the saved round. A worker also stops before
+accounting when Moon enters a teleport/No Man's Land transition.
+
 The controller balances the stock four character archetypes and preserves known
 connected singleton quest/radio owners. Extra-slot empty stock GobbleGum packs
 get a fallback without replacing valid/custom packs. Spawn separation uses bounded

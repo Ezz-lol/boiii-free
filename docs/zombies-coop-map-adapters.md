@@ -13,22 +13,22 @@ own `custom_scripts/<map>` directory. The common controller imports no stock
 map module. Private read-only AU1 inventory found all fourteen root map FF files;
 file presence does not establish dependency completeness or successful loading.
 
-| Map | Identifier | Source-owned profile / special paths preserved |
-| --- | --- | --- |
-| Shadows of Evil | `zm_zod` | Map pacing `function_59804866`; mixed parasite/raps `function_33aa4940`; stock opening-round delays |
-| The Giant | `zm_factory` | Mixed dog callback `zm_factory::function_33aa4940`; normal and dog rounds remain separate |
-| Der Eisendrache | `zm_castle` | Character module `zm_castle_characters`; mixed dog callback `zm_castle_dogs::function_33aa4940`; dog round ownership retained |
-| Zetsubou No Shima | `zm_island` | Mixed spider callback `zm_island_spiders::function_33aa4940`; special spawners and map challenge/portal fields remain separate contracts |
-| Gorod Krovi | `zm_stalingrad` | Mixed mangler/valkyrie callback `function_33aa4940`; custom round-wait function retained |
-| Revelations | `zm_genesis` | Normal stock pacing; chaos-round spawn/wait replacements retain their own budgets |
-| Nacht der Untoten | `zm_prototype` | Stock normal-round seams and map character setup |
-| Verruckt | `zm_asylum` | Stock normal-round seams; map's own start locations and character setup |
-| Shi No Numa | `zm_sumpf` | Stock normal-round seams; dog-round spawners retain ownership |
-| Kino der Toten | `zm_theater` | Stock normal-round seams and mixed actor setup; this map ID is distinct from Theater replay mode |
-| Ascension | `zm_cosmodrome` | Stock normal-round seams; monkey/special round ownership retained |
-| Shangri-La | `zm_temple` | Known `zombie_total_set_func = function_f10deff8` initializes special thresholds; it is recognized, never rerun by population adaptation |
-| Moon | `zm_moon` | Native map character setup; No Man's Land spawner is outside normal quota adaptation; unexplained restored budgets defer to the map |
-| Origins | `zm_tomb` | Stock normal-round seams; `give_personality_characters`; stock timed-out-zombie queue recycling |
+| Map               | Identifier      | Source-owned profile / special paths preserved                                                                                           |
+| ----------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Shadows of Evil   | `zm_zod`        | Map pacing `function_59804866`; mixed parasite/raps `function_33aa4940`; stock opening-round delays                                      |
+| The Giant         | `zm_factory`    | Mixed dog callback `zm_factory::function_33aa4940`; normal and dog rounds remain separate                                                |
+| Der Eisendrache   | `zm_castle`     | Character module `zm_castle_characters`; mixed dog callback `zm_castle_dogs::function_33aa4940`; dog round ownership retained            |
+| Zetsubou No Shima | `zm_island`     | Mixed spider callback `zm_island_spiders::function_33aa4940`; special spawners and map challenge/portal fields remain separate contracts |
+| Gorod Krovi       | `zm_stalingrad` | Mixed mangler/valkyrie callback `function_33aa4940`; custom round-wait function retained                                                 |
+| Revelations       | `zm_genesis`    | Normal stock pacing; chaos-round spawn/wait replacements retain their own budgets                                                        |
+| Nacht der Untoten | `zm_prototype`  | Stock normal-round seams and map character setup                                                                                         |
+| Verruckt          | `zm_asylum`     | Stock normal-round seams; map's own start locations and character setup                                                                  |
+| Shi No Numa       | `zm_sumpf`      | Stock normal-round seams; dog-round spawners retain ownership                                                                            |
+| Kino der Toten    | `zm_theater`    | Stock normal-round seams and mixed actor setup; this map ID is distinct from Theater replay mode                                         |
+| Ascension         | `zm_cosmodrome` | Stock normal-round seams; monkey/special round ownership retained                                                                        |
+| Shangri-La        | `zm_temple`     | Known `zombie_total_set_func = function_f10deff8` initializes special thresholds; it is recognized, never rerun by population adaptation |
+| Moon              | `zm_moon`       | Known `moon_round_think_func`; No Man's Land and the resumed saved round keep map-owned quotas; later fresh normal rounds may adapt      |
+| Origins           | `zm_tomb`       | Stock normal-round seams; `give_personality_characters`; stock timed-out-zombie queue recycling                                          |
 
 Base/bonus maps are Zod and Factory. Awakening, Eclipse, Descent and Salvation add
 Castle, Island, Stalingrad and Genesis. The remaining eight are Chronicles.
@@ -54,12 +54,23 @@ recycled quota after a shrink. Concurrent AI/actor limits are not raised.
 
 A temporary nonstock `round_spawn_func` stops normal quota adaptation. Known
 mixed-AI callbacks remain called by stock; the addon observes their quota
-consumption rather than spawning replacements itself. Unknown total-set or
-mixed-AI callbacks retain ownership. Special rounds keep their stock calculations
+consumption rather than spawning replacements itself. Unknown round thinkers,
+total-set or mixed-AI callbacks retain ownership. Special rounds keep their stock calculations
 and schedules; this does not promise a new live-resize implementation for every
 special controller. Temple's initializer resets monkey counters and derives
 napalm/screecher/monkey thresholds, so calling it on a membership change would be
 incorrect and is explicitly avoided.
+
+Moon's thinker restores `prev_round_zombies` after starting the normal spawner,
+and clears `teleporter_used` before that assignment. A restored decrease must not
+be counted as actual spawning, and an equal restored value does not prove a fresh
+quota. The exact Moon thinker is recognized only by its map profile. Adaptation
+declines in No Man's Land, during a pending teleport, and for the saved resumed
+round (`_from_nml` with the current round at or below `nml_last_round`). Missing
+on-moon/teleport state or an invalid saved round during resume also declines.
+This guard is checked before capture and again before any
+worker accounts or rewrites counters. A later fresh normal round above the saved
+round can adapt; the resumed round is never reconstructed from its pending quota.
 
 ## Repeated crew, respawns, and bots
 

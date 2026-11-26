@@ -77,6 +77,8 @@ function run()
     failures += check(!eroded_coop::gum_pack_needs_fallback(array("weapon_null"), 4, 8));
     failures += check(!eroded_coop::gum_pack_needs_fallback(array("real", "weapon_null", "weapon_null", "weapon_null", "weapon_null"), 4, 8));
     saved_round_spawn = level.round_spawn_func;
+    saved_round_think = level.round_think_func;
+    level.round_think_func = &zm::round_think;
     failures += check(eroded_coop::count_callback_owned(undefined));
     failures += check(eroded_coop::count_callback_owned(&zombie_utility::default_max_zombie_func));
     failures += check(!eroded_coop::count_callback_owned(&custom_count_callback));
@@ -123,6 +125,8 @@ function run()
     level.fn_custom_round_ai_spawn = saved_custom_spawn;
     level.eroded_coop_known_custom_spawn = saved_known_spawn;
     level.eroded_coop_test_setup_calls = saved_setup_calls;
+    level.round_think_func = saved_round_think;
+    failures += test_round_thinker_ownership();
     failures += test_captured_round_event();
     failures += check(eroded_coop::valid_counters(100, 5));
     failures += check(!eroded_coop::valid_counters(1, 2));
@@ -367,6 +371,76 @@ function test_captured_round_event()
 
 function custom_bgb_callback()
 {
+}
+
+// Real production predicates, with all temporary owner fields restored before
+// returning or yielding. No map-only import and no map-owned callback is run.
+function test_round_thinker_ownership()
+{
+    failures = 0;
+    failures += check(eroded_coop::round_thinker_owned(undefined, undefined));
+    failures += check(eroded_coop::round_thinker_owned(&zm::round_think, undefined));
+    failures += check(!eroded_coop::round_thinker_owned(&custom_round_thinker, undefined));
+    failures += check(eroded_coop::round_thinker_owned(&custom_round_thinker, &custom_round_thinker));
+    failures += check(!eroded_coop::round_thinker_owned(&custom_round_thinker, &custom_bgb_callback));
+    saved_think = level.round_think_func;
+    saved_known_think = level.eroded_coop_known_round_think;
+    saved_count = level.max_zombie_func;
+    saved_calls = level.eroded_coop_test_think_calls;
+    level.eroded_coop_test_think_calls = 0;
+    level.round_think_func = &custom_round_thinker;
+    level.eroded_coop_known_round_think = undefined;
+    level.max_zombie_func = &zombie_utility::default_max_zombie_func;
+    failures += check(eroded_coop::round_controller_reason() == "custom_round_thinker_preserved");
+    failures += check(!isdefined(eroded_coop::normal_round_target(3, 8)));
+    failures += check(level.eroded_coop_test_think_calls == 0);
+    level.round_think_func = saved_think;
+    level.eroded_coop_known_round_think = saved_known_think;
+    level.max_zombie_func = saved_count;
+    level.eroded_coop_test_think_calls = saved_calls;
+
+    failures += check(eroded_coop::moon_round_budget_owned(true, false, undefined, 1, undefined));
+    failures += check(eroded_coop::moon_round_budget_owned(true, false, false, 3, undefined));
+    failures += check(!eroded_coop::moon_round_budget_owned(undefined, false, false, 3, 2));
+    failures += check(!eroded_coop::moon_round_budget_owned(false, false, false, 3, 2));
+    failures += check(!eroded_coop::moon_round_budget_owned(true, undefined, false, 3, 2));
+    failures += check(!eroded_coop::moon_round_budget_owned(true, true, false, 3, 2));
+    failures += check(!eroded_coop::moon_round_budget_owned(true, false, true, 3, undefined));
+    failures += check(!eroded_coop::moon_round_budget_owned(true, false, true, 3, 3));
+    failures += check(!eroded_coop::moon_round_budget_owned(true, false, true, 2, 3));
+    failures += check(!eroded_coop::moon_round_budget_owned(true, false, true, 0, 3));
+    failures += check(!eroded_coop::moon_round_budget_owned(true, false, true, 3, 0));
+    failures += check(eroded_coop::moon_round_budget_owned(true, false, true, 4, 3));
+    restored = array(40, 100, 140);
+    for (i = 0; i < restored.size; i++)
+    {
+        // Both restore directions, including a coincidentally equal target,
+        // remain unchanged even after stock cleared teleporter_used.
+        seed = eroded_coop::make_round_seed(3, 8, 100, 0, 17, 100, 9);
+        pending = restored[i];
+        consumed = seed.consumed;
+        if (eroded_coop::moon_round_budget_owned(true, false, true, 3, 3))
+            consumed += eroded_coop::accounted_spawn_delta(seed.pending, pending, 0);
+        failures += check(pending == restored[i] && consumed == 0);
+    }
+    // A normal worker must stop when an in-flight Moon -> NML transition takes
+    // ownership, before reinterpreting a map-cleared total as spawned zombies.
+    consumed = 0;
+    failures += check(eroded_coop::moon_round_budget_owned(true, false, true, 4, 3));
+    if (eroded_coop::moon_round_budget_owned(false, true, true, 4, 4))
+        consumed += eroded_coop::accounted_spawn_delta(100, 0, 0);
+    failures += check(consumed == 0);
+    // Fresh n+1 can resume ordinary 8 -> 4 -> 8 accounting; the separate
+    // captured-event fixture exercises elapsed spawns/recycles and these quotas.
+    failures += check(eroded_coop::moon_round_budget_owned(true, false, true, 5, 4));
+    failures += check(eroded_coop::remaining_budget(50, 30, 2) == 22);
+    failures += check(eroded_coop::remaining_budget(100, 30, 2) == 72);
+    return failures;
+}
+
+function custom_round_thinker()
+{
+    level.eroded_coop_test_think_calls++;
 }
 
 function custom_total_setup()
