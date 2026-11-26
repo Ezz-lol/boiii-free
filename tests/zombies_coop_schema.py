@@ -12,19 +12,48 @@ import sys
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 base = root / "scripts/zombies_coop"
-manifest = json.loads((base / "schema-v3.json").read_text(encoding="utf-8"))
-assert (manifest["revision"], manifest["stock_slots"], manifest["schema_slots"], manifest["slot_range"]) == (3, 4, 8, [4, 7])
+manifest = json.loads((base / "schema-v4.json").read_text(encoding="utf-8"))
+assert (manifest["revision"], manifest["stock_slots"], manifest["schema_slots"], manifest["slot_range"]) == (4, 4, 8, [4, 7])
 canonical = json.dumps(manifest["groups"], sort_keys=True, separators=(",", ":")).encode()
 contract = hashlib.sha256(canonical).hexdigest()
-assert manifest["contract_sha256"] == contract
+assert manifest["contract_sha256"] == contract == "c08cfc132da28936a532f91936afe6970730b8351fe3c64aff52bf48bce395f1"
 by_name = {row["name"]: row for row in manifest["groups"]}
 assert len(by_name) == 7 and len({row["id"] for row in by_name.values()}) == 7
 assert by_name["revive"]["version"] == 1 and by_name["revive"]["bits"] == 5
 assert by_name["revive"]["callback"] == "zm_laststand::update_bleedout_timer"
-assert by_name["score"]["suffixes"] == {
-    ".score_cf_damage": 3, ".score_cf_death_normal": 2, ".score_cf_death_torso": 2,
-    ".score_cf_death_neck": 2, ".score_cf_death_head": 2, ".score_cf_death_melee": 2,
+expected_score = {
+    "id": 2,
+    "name": "score",
+    "maps": [
+        "*"
+    ],
+    "transport": "engine_playerScore",
+    "extra_clientuimodel_bits": 0,
+    "model": "PlayerList.{displayRow}.playerScore",
+    "identity": "PlayerList.{displayRow}.clientNum",
+    "presentation": "actual_point_delta_hud",
+    "stock_slot_range": [
+        0,
+        3
+    ],
+    "extra_slot_range": [
+        4,
+        7
+    ],
+    "stock_producer": {
+        "module": "scripts/zm/_zm_score.gsc",
+        "function": "wait_score_cf_increment_info",
+        "ownership": "exact_native_verified_module_and_callsite",
+        "dispatch": "eroded_coop_fields::score_event_increment_uimodel",
+        "receiver": "viewer",
+        "parameters": 1
+    },
+    "stock_counter_calls": "preserved_slots_0_3",
+    "extra_counter_calls": "no_dispatch_after_validated_identity"
 }
+assert by_name["score"] == expected_score
+assert by_name["score"]["extra_clientuimodel_bits"] == 0
+assert "pool" not in by_name["score"] and "suffixes" not in by_name["score"]
 for name, version, bits in (("castle_inventory", 1, 1), ("stalingrad_wearable", 12000, 2),
                             ("genesis_wearable", 15000, 4), ("moon_wearable", 21000, 1)):
     row = by_name[name]
@@ -93,6 +122,10 @@ def inspect(path, extension, logical_base="scripts/zm/eroded_coop_fields"):
         assert code <= address < code + size
         exports.append((name, namespace, params, flags))
     assert any(n == fnv("__init__system__") and ns == fnv(logical_base.rsplit("/", 1)[1]) and flags & 2 for n, ns, _, flags in exports)
+    if extension == "gsc" and logical_base.endswith("eroded_coop_fields"):
+        assert (fnv("increment_uimodel"), fnv("clientfield"), 1) in imports
+        assert any(n == fnv("score_event_increment_uimodel") and ns == fnv("eroded_coop_fields") and params == 1
+            for n, ns, params, flags in exports)
     if extension == "csc":
         for slot in range(4, 8):
             for tier in range(1, 4):
@@ -119,6 +152,12 @@ for extension, side in (("gsc", "Server"), ("csc", "Client")):
         assert 'util::spawn_model(localclientnum, template.model, template.pose.origin, template.pose.angles)' in source
         assert 'for (attempt = 0; attempt < 120; attempt++)' in source
 
+    # Revision4 deliberately adds no clientuimodel bit allocation. The exact
+    # stock score producer wrapper keeps slots0..3 on their original counters;
+    # expanded rows display authoritative engine playerScore deltas instead.
+    assert not re.search(r"\bclientfield::register\s*\(\s*[\"']clientuimodel[\"']", source)
+    assert re.search(r"\bfunction\s+schema_revision\s*\(\s*\)\s*\{\s*return\s+4\s*;\s*\}", source)
+
     assert not (root / "data/custom_scripts/zm" / ("eroded_coop_fields." + extension)).exists()
     inspect(root / "data/coop_scripts" / ("eroded_coop_fields." + extension), extension)
     fixture = (root / "tests/gsc" / ("eroded_coop_schema_selftest." + extension)).read_text(encoding="utf-8")
@@ -128,7 +167,7 @@ for extension, side in (("gsc", "Server"), ("csc", "Client")):
         assert 'schema_family_mask("' + official_map + '")' in fixture
 print("PASS: paired BO3 1C asset names/imports/autoexec, fixed schema manifest and stock-session isolation")
 
-# All shipped companions and the UI are one frozen schema-v3 bundle. A stale or
+# All shipped companions and the UI are one frozen schema-v4 bundle. A stale or
 # cross-fork payload must fail here before building an incompatible executable.
 island = root / "data/coop_scripts/eroded_coop_island_trials.gsc"
 inspect(island, "gsc", "scripts/zm/eroded_coop_island_trials")
@@ -143,8 +182,8 @@ payloads = {
 }
 for role, digest in payloads.items():
     assert read_pin(role) == digest, role
-bundle = {"revision": 3, "contract_sha256": contract, "payloads": payloads}
+bundle = {"revision": 4, "contract_sha256": contract, "payloads": payloads}
 assert read_pin("bundle") == hashlib.sha256(json.dumps(bundle, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 native = (root / "src/client/component/zombies/companion.hpp").read_text()
-assert re.search(r"companion_revision\s*=\s*3\b", native) and contract in native
-print("PASS: exact three raw companions, canonical UI and schema-v3 bundle pins")
+assert re.search(r"companion_revision\s*=\s*4\b", native) and contract in native
+print("PASS: exact three raw companions, canonical UI and schema-v4 bundle pins")

@@ -34,7 +34,10 @@ values and identity changes establish a baseline; they do not animate another
 player's old score. Each row permits at most eight simultaneous effects, closes
 them on disconnect or identity change, and releases its subscriptions and children
 when the HUD closes. These aggregate effects are distinct from the stock
-per-damage/death counter effects retained for the original display positions.
+per-damage/death counter effects retained for native scorer slots 0-3. For
+native scorers 4-7 compacted into the original display positions, retail ZMScr's
+existing actual-playerScore fallback supplies the effect. No second subscriber
+is added to those first four rows, and no extra score counters consume UI bits.
 The stock `LUI.UIElement.close` detaches an element before closing it in C; the
 extension closes and detaches its effects and row children before their panes,
 then calls the original HUD close. Existing fifth-row or extra-points widgets

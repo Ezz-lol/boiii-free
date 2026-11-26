@@ -226,3 +226,24 @@ names, identifiers or audio alias contents.
 epoch-checked heartbeat. Zero means no valid positive round has been observed;
 it is not a synthetic round or a gameplay counter. Crash collection continues to
 read only the cached snapshot, without entering the script VM.
+
+## Score source and field budget
+
+`coopScoreSourceStatus` queues a bounded, read-only server-pipeline sample and
+prints `COOP_SCORE_SOURCE|` with version, verified, map, capacity, realm, native
+schema generation, revision and contract. `verified` requires the current native
+Zombies context and the retained, fingerprinted score import adapter for this
+server VM. Script dvars cannot create that cache entry. Schema generation and
+bot-roster generation are independent counters.
+
+`zm_coopScoreEventStatus=owned_delta_only` means the extra-scorer helper has
+executed in its bound map/epoch. It is not proof of actual point awards, client
+rendering or combat AI. Current ownership failures revoke the paired receipt;
+stale workers cannot revoke their successor. Cached crash diagnostics include
+the status, without entering the script VM from a crash handler.
+
+Extra score-event counters previously consumed 52 declared UI bits and caused a
+stock Gorod Krovi registration to run out of space. Registry entry count,
+physical player-state arrays and the usable per-set packing budget are different
+limits; this adapter does not widen engine structures or native network fields.
+Controlled test-only dispatch fixtures are never installed in production data.

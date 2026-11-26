@@ -6,6 +6,8 @@
 #include "loader/component_loader.hpp"
 #include "scheduler.hpp"
 #include "zombies/companion.hpp"
+#include "zombies/schema_assets.hpp"
+#include "command.hpp"
 #include "zombies/diagnostic_ring.hpp"
 #include "zombies/diagnostics.hpp"
 #include <utils/flags.hpp>
@@ -101,8 +103,10 @@ void capture_snapshot() {
                                        "zm_coopGumStatus",
                                        "zm_coopLastEvent",
                                        "zm_coopSchemaServerContract",
-                                       "zm_coopSchemaClientContract", "zm_coopIslandTrialsStatus",
-                                       "zm_coopCastleVOStatus"};
+                                       "zm_coopSchemaClientContract",
+                                       "zm_coopIslandTrialsStatus",
+                                       "zm_coopCastleVOStatus",
+                                       "zm_coopScoreEventStatus"};
     std::string snapshot =
         "{\"sample_tick_ms\":" + std::to_string(GetTickCount64());
     snapshot +=
@@ -206,6 +210,17 @@ struct diagnostics_component final : generic_component {
   void post_unpack() override {
     image_role.store(game::is_server() ? 1 : 2);
     debug_output.store(utils::flags::has_flag("coop-debug"));
+    command::add("coopScoreSourceStatus", [](const command::params &params) {
+      if (params.size() != 1)
+        return;
+      scheduler::once(
+          [] {
+            const auto receipt = schema_assets::score_source_diagnostic();
+            printf("COOP_SCORE_SOURCE|%s\n", receipt.c_str());
+            fflush(stdout);
+          },
+          scheduler::pipeline::server);
+    });
     diagnostic_event("diagnostics_start", image_role.load());
     game_event::on_g_init_game(map_initialized);
     game_event::on_g_shutdown_game(map_shutdown);

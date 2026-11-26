@@ -13,11 +13,26 @@ return function(original)
     if type(slots) ~= "number" or slots ~= math.floor(slots) or slots < 5 or slots > 8 then
       return original(...)
     end
+    if CoD.isFrontend or CoD.isCampaign or not CoD.isZombie then
+      return original(...)
+    end
     local register = Engine.RegisterClientUIModelField
     assert(type(register) == "function", "Missing client UI model registration API")
     local seen, conflict = {}, nil
     local observe = function(name, kind, bits, version, ...)
       if type(name) == "string" then
+        -- Decline an incompatible owner BEFORE invoking the native API. This
+        -- includes custom suffixes, case aliases and noncanonical slot tokens
+        -- inside the owned score namespace, which must not consume packed bits.
+        -- The entry-mode check owns this whole synchronous load. A chunk must
+        -- not change mode flags to bypass admission before its native call.
+        if name:lower():match("^playerlist%.client[^%.]*%.score_cf_") then
+          local stockSlot, stockEvent = name:match("^PlayerList%.client([0-3])%.score_cf_([a-z_]+)$")
+          assert(stockSlot and widths[stockEvent], "Unsupported score counter owner: " .. name)
+          assert(kind == Enum.UIModelClientFieldType.CF_COUNTER and bits == widths[stockEvent] and version == 1,
+            "Incompatible score clientfield contract: " .. name)
+          assert(not seen[name], "Duplicate score counter owner: " .. name)
+        end
         local slot, event = name:match("^PlayerList%.client([0-7])%.score_cf_([a-z_]+)$")
         if slot and widths[event] then
           if kind ~= Enum.UIModelClientFieldType.CF_COUNTER or bits ~= widths[event] or version ~= 1 then
@@ -39,7 +54,7 @@ return function(original)
     end
     assert(owns, "Client UI registration changed while the schema was loading")
     assert(not conflict, "Incompatible score clientfield contract: " .. tostring(conflict))
-    -- Stock slots must exist before extending their exact known contract.
+    -- Stock slots must retain their exact known contract.
     -- An unrelated HUD/mod remains an explicit unsupported contract.
     for slot = 0, 3 do
       for _, event in ipairs(events) do
@@ -47,18 +62,17 @@ return function(original)
           "Missing stock score clientfield for slot " .. slot)
       end
     end
-    -- A compatible mod may already register some extra fields. Keep those;
-    -- create only absent entries after validating every observed signature.
+    -- Keep only the observed stock24counter fields. Extra scorer/display rows
+    -- use the engine's actual playerScore delta, including compacted row0..3.
+    -- An external extra-counter schema is an explicit unsupported contract.
     for slot = 4, 7 do
       for _, event in ipairs(events) do
-        local name = "PlayerList.client" .. slot .. ".score_cf_" .. event
-        if not seen[name] then
-          register(name, Enum.UIModelClientFieldType.CF_COUNTER, widths[event], 1)
-        end
+        assert(not seen["PlayerList.client" .. slot .. ".score_cf_" .. event],
+          "Unexpected extra score counter contract for slot " .. slot)
       end
     end
     -- Diagnostics only. Native checksums remain authoritative for compatibility.
-    Engine.SetDvar("zm_coopSchemaUIRevision", 3)
+    Engine.SetDvar("zm_coopSchemaUIRevision", 4)
     return unpack(result, 2, result.n)
   end
 end

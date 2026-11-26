@@ -13,12 +13,12 @@
 
 function schema_revision()
 {
-    return 3;
+    return 4;
 }
 
 function schema_contract()
 {
-    return "e1a7df2021d9fea869c1871e836af092c6e9e8fb6828f77a3f7dbfc5cde1eb3d";
+    return "c08cfc132da28936a532f91936afe6970730b8351fe3c64aff52bf48bce395f1";
 }
 
 function schema_family_mask(map)
@@ -71,21 +71,14 @@ function register_schema()
             level.eroded_coop_name_values[slot] = name;
         }
     }
-    for (slot = 4; slot < 8; slot++)
-    {
-        prefix = "PlayerList.client" + slot + ".score_cf_";
-        clientfield::register("clientuimodel", prefix + "damage", 1, 3, "counter");
-        clientfield::register("clientuimodel", prefix + "death_normal", 1, 2, "counter");
-        clientfield::register("clientuimodel", prefix + "death_torso", 1, 2, "counter");
-        clientfield::register("clientuimodel", prefix + "death_neck", 1, 2, "counter");
-        clientfield::register("clientuimodel", prefix + "death_head", 1, 2, "counter");
-        clientfield::register("clientuimodel", prefix + "death_melee", 1, 2, "counter");
-    }
     register_map_slot_fields(tolower(getdvarstring("mapname")));
     // Inert metadata only until a fingerprinted stock VO call invokes the helper.
     // Inventory/CSC field families continue to follow their existing contracts.
     if (!castle_selector_bind(getdvarint("zm_coopStartupEpoch"), getdvarstring("mapname"), getdvarint("zm_coopSchemaSlots")))
         return;
+    if (!score_event_bind(getdvarint("zm_coopStartupEpoch"), getdvarstring("mapname"), getdvarint("zm_coopSchemaSlots")))
+        return;
+    setdvar("zm_coopScoreEventStatus", "armed_for_known_module");
     setdvar("zm_coopCastleVOStatus", "armed_for_known_module");
     level.eroded_coop_fields_revision = schema_revision();
     callback::on_connect(&remember_extra_player_name);
@@ -273,7 +266,7 @@ function castle_dialogue_get_all_closest(origin, candidates, exclusions, limit, 
     if (!castle_selector_bound_current()) return result;
     if (isdefined(level.eroded_coop_castle_selector_declined)) return result;
     if (!isdefined(level.eroded_coop_fields_revision) || !isint(level.eroded_coop_fields_revision) ||
-        level.eroded_coop_fields_revision != 3 || getdvarint("zm_coopSchemaServerRevision") != 3)
+        level.eroded_coop_fields_revision != schema_revision() || getdvarint("zm_coopSchemaServerRevision") != schema_revision())
     {
         castle_selector_decline("schema_context_unavailable");
         return result;
@@ -323,4 +316,123 @@ function castle_dialogue_get_all_closest(origin, candidates, exclusions, limit, 
     // Keep stock distance ordering, exclusions, nearest-four bound and radius.
     // The original caller still owns its post-selection is_player_valid check.
     return array::get_all_closest(origin, filtered, exclusions, limit, radius);
+}
+
+
+// Intended only for the exact native-verified method import in stock
+// zm_score::wait_score_cf_increment_info. Method self is the VIEWER; the
+// canonical field encodes the SCORER. Native current-VM source proof is required
+// before expanded readiness; these dvars are diagnostics, not authentication.
+function score_event_bind(epoch, map, capacity)
+{
+    if (!isint(epoch) || epoch < 1 || !castle_selector_map_valid(map) ||
+        !isint(capacity) || capacity < 5 || capacity > 8) return false;
+    if (getdvarint("zm_coopStartupEpoch") != epoch || getdvarstring("mapname") != map ||
+        getdvarint("zm_coopSchemaSlots") != capacity || getdvarint("zm_coopAppliedLimit") != capacity) return false;
+    if (isdefined(level.eroded_coop_score_event_epoch))
+        return score_event_bound_current() && !isdefined(level.eroded_coop_score_event_declined);
+    level.eroded_coop_score_event_epoch = epoch;
+    level.eroded_coop_score_event_map = map;
+    level.eroded_coop_score_event_capacity = capacity;
+    return true;
+}
+
+function score_event_bound_current()
+{
+    return isdefined(level.eroded_coop_score_event_epoch) && isint(level.eroded_coop_score_event_epoch) &&
+        level.eroded_coop_score_event_epoch > 0 &&
+        isdefined(level.eroded_coop_score_event_map) && castle_selector_map_valid(level.eroded_coop_score_event_map) &&
+        isdefined(level.eroded_coop_score_event_capacity) && isint(level.eroded_coop_score_event_capacity) &&
+        level.eroded_coop_score_event_capacity >= 5 && level.eroded_coop_score_event_capacity <= 8 &&
+        getdvarint("zm_coopStartupEpoch") == level.eroded_coop_score_event_epoch &&
+        getdvarstring("mapname") == level.eroded_coop_score_event_map &&
+        getdvarint("zm_coopSchemaSlots") == level.eroded_coop_score_event_capacity &&
+        getdvarint("zm_coopAppliedLimit") == level.eroded_coop_score_event_capacity;
+}
+
+function score_event_current()
+{
+    // Stock spawn publishes ready_for_score_events independently of the later
+    // round-controller ReadyEpoch. Field publication is synchronous/no-yield;
+    // preserve those early native-verified stock calls after this schema binds.
+    return score_event_bound_current() && !isdefined(level.eroded_coop_score_event_declined) &&
+        isdefined(level.eroded_coop_fields_revision) && isint(level.eroded_coop_fields_revision) &&
+        level.eroded_coop_fields_revision == schema_revision() &&
+        getdvarint("zm_coopSchemaServerRevision") == schema_revision() &&
+        getdvarstring("zm_coopSchemaServerContract") == schema_contract();
+}
+
+function score_event_decline(reason)
+{
+    if (!score_event_bound_current() || isdefined(level.eroded_coop_score_event_declined)) return;
+    level.eroded_coop_score_event_declined = true;
+    setdvar("zm_coopScoreEventStatus", reason);
+    setdvar("zm_coopStatus", "declined_score_event_owner");
+    setdvar("zm_coopSchemaServerRevision", 0);
+    println("[Zombies coop] score_event=declined");
+}
+
+function score_event_field_slot(cf)
+{
+    if (!isstring(cf) || cf.size < 29 || getsubstr(cf, 0, 17) != "PlayerList.client" ||
+        getsubstr(cf, 18, 28) != ".score_cf_") return undefined;
+    token = getsubstr(cf, 17, 18);
+    slot = undefined;
+    if (token == "0") slot = 0;
+    else if (token == "1") slot = 1;
+    else if (token == "2") slot = 2;
+    else if (token == "3") slot = 3;
+    else if (token == "4") slot = 4;
+    else if (token == "5") slot = 5;
+    else if (token == "6") slot = 6;
+    else if (token == "7") slot = 7;
+    if (!isdefined(slot)) return undefined;
+    event = getsubstr(cf, 28, cf.size);
+    if (event != "damage" && event != "death_normal" && event != "death_torso" &&
+        event != "death_neck" && event != "death_head" && event != "death_melee") return undefined;
+    return slot;
+}
+
+function score_event_increment_uimodel(cf)
+{
+    if (!score_event_current())
+    {
+        score_event_decline("score_context_unrecognized");
+        return undefined;
+    }
+    if (!isdefined(self) || !isentity(self) || !isplayer(self))
+    {
+        score_event_decline("score_viewer_unrecognized");
+        return undefined;
+    }
+    viewer = self getentitynumber();
+    if (!isint(viewer) || viewer < 0 || viewer >= level.eroded_coop_score_event_capacity ||
+        !isdefined(self.ready_for_score_events) || !isint(self.ready_for_score_events) || self.ready_for_score_events != true)
+    {
+        score_event_decline("score_viewer_unrecognized");
+        return undefined;
+    }
+    slot = score_event_field_slot(cf);
+    if (!isdefined(slot))
+    {
+        score_event_decline("score_field_unrecognized");
+        return undefined;
+    }
+    if (slot >= level.eroded_coop_score_event_capacity)
+    {
+        score_event_decline("score_slot_outside_capacity");
+        return undefined;
+    }
+    // Preserve the exact native method receiver, argument and return for stock
+    // scorer slots, including a viewer whose own slot is4..7.
+    if (slot < 4) return self clientfield::increment_uimodel(cf);
+    // Extra scorer slots use existing actual-playerScore delta presentation;
+    // only the redundant cosmetic counter fanout is omitted. No score writes.
+    if (!isdefined(level.eroded_coop_score_event_seen))
+    {
+        level.eroded_coop_score_event_seen = true;
+        setdvar("zm_coopScoreEventStatus", "owned_delta_only");
+        println("[Zombies coop] score_event=extra_delta_only");
+    }
+    return undefined;
 }

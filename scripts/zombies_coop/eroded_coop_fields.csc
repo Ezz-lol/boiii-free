@@ -13,12 +13,12 @@
 
 function schema_revision()
 {
-    return 3;
+    return 4;
 }
 
 function schema_contract()
 {
-    return "e1a7df2021d9fea869c1871e836af092c6e9e8fb6828f77a3f7dbfc5cde1eb3d";
+    return "c08cfc132da28936a532f91936afe6970730b8351fe3c64aff52bf48bce395f1";
 }
 
 function schema_family_mask(map)
@@ -63,7 +63,7 @@ function register_schema()
         level.laststands[slot].laststand_update_clientfields = "laststand_update" + slot;
         clientfield::register("world", level.laststands[slot].laststand_update_clientfields, 1, 5, "counter", &zm_laststand::update_bleedout_timer, false, false);
     }
-    // Matching score clientuimodels are registered by the early UI Lua hook.
+    // Extra score displays use existing playerScore deltas; no extra UI bit allocation.
 
     register_map_slot_fields(tolower(getdvarstring("mapname")));
     level.eroded_coop_fields_revision = schema_revision();

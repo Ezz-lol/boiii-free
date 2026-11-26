@@ -4,7 +4,7 @@ The default test commits no retail bytes. --retail-path optionally checks a
 private, user-supplied exact raw object against the production fixed contract.
 """
 from pathlib import Path
-import argparse, hashlib, json, subprocess
+import argparse, hashlib, json, re, subprocess
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--compiler',required=True)
@@ -14,10 +14,14 @@ args=parser.parse_args()
 root=Path(__file__).resolve().parents[1]
 source=root/'src/client/component/zombies_schema_assets.cpp'
 original=source.read_text()
-guard=original.split('bool castle_current(const castle_request& request) noexcept {',1)[1].split('\nstd::optional<castle_request>',1)[0]
-assert 'frozen_schema_map(' not in guard and 'refresh_schema_session(' not in guard
-assert 'schema_asset_failure(' not in guard
-body='\n'.join(line for line in original.splitlines() if not line.startswith('#include'))
+guard_start=re.search(r'\bbool\s+castle_current\s*\(\s*const\s+castle_request\s*&\s*request\s*\)\s*noexcept\s*\{',original)
+assert guard_start, 'actual castle_current function missing'
+guard_end=re.search(r'\bstd::optional\s*<\s*castle_request\s*>\s+capture_castle_request',original[guard_start.end():])
+assert guard_end, 'actual request capture boundary missing'
+guard=original[guard_start.end():guard_start.end()+guard_end.start()]
+assert not re.search(r'\bfrozen_schema_map\s*\(',guard) and not re.search(r'\brefresh_schema_session\s*\(',guard)
+assert not re.search(r'\bschema_asset_failure\s*\(',guard)
+body='\n'.join(line for line in original.splitlines() if not line.lstrip().startswith('#include'))
 out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
 prelude=r'''
 #define NOMINMAX
@@ -43,6 +47,8 @@ prelude=r'''
 #include "HEADER_ROOT/zombies/schema_asset_store.hpp"
 #include "HEADER_ROOT/zombies/schema_context_policy.hpp"
 #include "HEADER_ROOT/zombies/castle_selector.hpp"
+#include "HEADER_ROOT/zombies/score_events.hpp"
+#include "HEADER_ROOT/zombies/companion.hpp"
 namespace mock {
 std::atomic_bool failed{};
 std::atomic_int failures{},capacity{8},frozen_calls{};

@@ -77,7 +77,7 @@ function launch_ownership_watcher(){++watcherStarts;}function register_endon(eve
 function unregister_stub(stub){unregistered.push(stub);}function delete_model(model){deleted.push(model);}
 function resetEarly(){
  level={_callbacks:Object.assign([],{[CONNECT]:[[foreign,undefined],[stock_on_player_connect,undefined]],[DISCONNECT]:[[stock_on_player_disconnect,undefined],[foreign,{}]]})};
- dvars={mapname:'zm_island',zm_coopSchemaSlots:8,zm_coopSchemaServerRevision:3,zm_coopStartupEpoch:3};
+ dvars={mapname:'zm_island',zm_coopSchemaSlots:8,zm_coopSchemaServerRevision:4,zm_coopStartupEpoch:3};
  playersNow=[];worldSupported=false;receipts=[];monitors=0;deleted=[];unregistered=[];watcherStarts=0;endons=[];worldFields={};worldWrites=[];pendingWorkers=[];autoRunPending=true;
 }
 function beginPools(){resetEarly();worldSupported=true;early_install();level._challenges={challenge_1:templates(1),challenge_2:templates(2),challenge_3:templates(3)};level._callbacks[DISCONNECT].push([stock_function_b1cd865a,undefined]);check(initialize_pools(),'stock pools initialized after real init boundary');}
@@ -354,7 +354,8 @@ def main():
     code=re.sub(r'//[^\n]*|/\*[\s\S]*?\*/','',text)
     if 'var_c28313cd' in code or 'hash_41370469' in code or '::function_974d5f1d(' in code:raise ValueError('Historical completion counter/notification must not be forged')
     if 'eroded_island_pillar' in code or 'packed_pillar' in code or re.search(r'\bspawn\s*\(',code) or re.search(r'\brecord\.pillar\b',code):raise ValueError('No scriptmover transport or server locator lifecycle permitted')
-    if 'api.revision = 3;' not in text or 'api.revision == 3' not in fixture:raise ValueError('Current schema/API revision must be three')
+    if 'api.revision = 3;' not in text or 'api.revision == 3' not in fixture:raise ValueError('Island internal API revision must remain three')
+    if 'getdvarint("zm_coopSchemaServerRevision") == 4' not in text or 'getdvarint("zm_coopSchemaServerRevision") == 4' not in fixture:raise ValueError('Public paired schema receipt must be four')
     if re.search(r'\b(?:isstruct|isvector|gettype)\s*\(',text):raise ValueError('Unverified type API')
     stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ');family=ROOT.name
     out=a.output_dir.resolve()/('island-trials-'+family+'-'+stamp);out.mkdir(parents=True,exist_ok=False)

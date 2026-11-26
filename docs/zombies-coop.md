@@ -39,11 +39,19 @@ state prepares eligible local hosting before CSC/UI loading. Pending requests
 expire or cancel; active matches retain allocation through travel. Solo staging
 does not prefreeze an expanded schema.
 
-The UI wrapper runs the stock clientfield-model chunk first and extends only its
-six exact score-event counters for slots 4-7, after checking versions, widths and
-types. Paired scripts add stock-compatible revive state, score counters and the
-selected official map's extra-player field families. Execution receipts are
-diagnostics, not authentication. Expanded remote direct-connect also needs a
+Schema revision 4 keeps the original 24 score-event UI counters and validates
+their versions, widths and types before forwarding registration. It adds no
+extra score counters: the engine's actual playerScore delta supplies feedback
+for extra scorers, including when they occupy one of the first four display rows.
+This recovers 52 clientuimodel bits without changing engine storage or packing.
+An exact stock score-module fingerprint redirects only its reviewed viewer-method
+import; scorer slots 0-3 retain their original counter dispatch, while canonical
+slots 4-7 use the existing delta presentation. Actual point awards are unchanged.
+Unknown module variants or score-counter owners decline expanded readiness.
+Paired scripts retain stock-compatible revive state and the selected official
+map's extra-player field families. All participants require matching revision 4
+code and data; prior schema manifests remain historical records. Execution
+receipts are diagnostics, not authentication. Expanded remote direct-connect also needs a
 bounded signed capability tail bound to the challenge, native connect command
 and schema token. Existing identity/lobby/privacy checks still apply. The engine's
 native clientfield checksum remains enforced; signed metadata is not attestation

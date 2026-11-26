@@ -16,7 +16,7 @@ function schema_current()
     capacity = getdvarint("zm_coopSchemaSlots");
     return isint(capacity) && capacity >= 5 && capacity <= 8 &&
         getdvarstring("mapname") == "zm_island" &&
-        getdvarint("zm_coopSchemaServerRevision") == 3;
+        getdvarint("zm_coopSchemaServerRevision") == 4;
 }
 
 function autoexec __init__system__()

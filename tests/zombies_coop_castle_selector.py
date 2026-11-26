@@ -43,6 +43,7 @@ function gsc_size(value){return typeof value==='string'?value.length:getarraykey
 function getsubstr(value,start,end){return value.slice(start,end);}
 function issubstr(value,part){return value.includes(part);}
 let level={},dvars={},receipts=[],writes=[],calls=[];
+function schema_revision(){return 4;}
 function getdvarint(name){return dvars[name]??0;}
 function getdvarstring(name){return dvars[name]??'';}
 function setdvar(name,value){dvars[name]=value;writes.push([name,value]);}
@@ -54,7 +55,7 @@ function closest(origin,candidates,exclusions,limit,radius){
   .filter(v=>!exclusions.includes(v.p)&&v.d<=radius*radius).sort((a,b)=>a.d-b.d||a.i-b.i).slice(0,limit).map(v=>v.p);
 }
 function stock_get_all_closest(origin,candidates,exclusions,limit,radius){calls.push({origin,candidates,exclusions,limit,radius,seen:level.eroded_coop_castle_selector_seen,status:dvars.zm_coopCastleVOStatus});return closest(origin,candidates,exclusions,limit,radius);}
-function reset(capacity=8,map='zm_castle'){level={eroded_coop_fields_revision:3,var_4ea3bfd0:table()};dvars={zm_coopStartupEpoch:17,mapname:map,zm_coopSchemaSlots:capacity,zm_coopAppliedLimit:capacity,zm_coopSchemaServerRevision:3,zm_coopStatus:'experimental_callbacks_installed',zm_coopCastleVOStatus:'armed_for_known_module'};receipts=[];writes=[];calls=[];}
+function reset(capacity=8,map='zm_castle'){level={eroded_coop_fields_revision:4,var_4ea3bfd0:table()};dvars={zm_coopStartupEpoch:17,mapname:map,zm_coopSchemaSlots:capacity,zm_coopAppliedLimit:capacity,zm_coopSchemaServerRevision:4,zm_coopStatus:'experimental_callbacks_installed',zm_coopCastleVOStatus:'armed_for_known_module'};receipts=[];writes=[];calls=[];}
 function bind(capacity=8,map='zm_castle'){reset(capacity,map);check(castle_selector_bind(17,map,capacity)==1,'native current binding');}
 function invoke(candidates,origin=vec(),exclusions=[],limit=4,radius=900){return castle_dialogue_get_all_closest(origin,candidates,exclusions,limit,radius);}
 function only_active_receipt(){return writes.length===1&&writes[0][0]==='zm_coopCastleVOStatus'&&writes[0][1]==='owned_selector_active'&&receipts.length===1&&receipts[0]==='[Zombies coop] castle_selector=active';}
@@ -116,7 +117,7 @@ for(const bad of[-1,4,8,'0',true,1.5,undefined,{},[]]){bind();invoke([player(bad
 for(const key of[-1,8,'x','0']){bind();let input=[player(0,1,'a')];input[KEYS]=[key];invoke(input);declined('candidate_keys_unrecognized');}
 bind(5);invoke(Array.from({length:6},(_,i)=>player(0,i,'a'+i)));declined('candidate_count_unrecognized');
 for(const args of[[vec(),[],[],5,900],[vec(),[],[],4,901],[vec(),[],[],true,900],[vec(),[],[],4,'900'],[{},[],[],4,900],[vec(),{},[],4,900],[vec(),[],{},4,900]]){bind();castle_dialogue_get_all_closest(...args);check(calls.length===0,'unrecognized call contract refuses delegate');declined('selector_arguments_unrecognized');}
-for(const value of[undefined,0,2,'3',true]){bind();level.eroded_coop_fields_revision=value;invoke([]);declined('schema_context_unavailable');}
+for(const value of[undefined,0,2,3,'4',true]){bind();level.eroded_coop_fields_revision=value;invoke([]);declined('schema_context_unavailable');}
 bind();dvars.zm_coopSchemaServerRevision=0;invoke([]);declined('schema_context_unavailable');
 
 // Missing/stale old callbacks are inert and cannot poison a fresh epoch/map.
@@ -152,7 +153,7 @@ check(level.eroded_coop_castle_selector_seen===1&&only_active_receipt(),'first v
 check(calls[0].seen===1&&calls[0].status==='owned_selector_active','active receipt precedes stock delegate');
 invoke([player(1,2,'second-active')]);invoke([]);
 check(calls.length===3&&only_active_receipt(),'subsequent valid calls delegate without extra writes or log spam');
-check(dvars.zm_coopStatus==='experimental_callbacks_installed'&&dvars.zm_coopSchemaServerRevision===3,'active receipt does not alter ready schema/status');
+check(dvars.zm_coopStatus==='experimental_callbacks_installed'&&dvars.zm_coopSchemaServerRevision===4,'active receipt does not alter ready schema/status');
 level.var_4ea3bfd0[0][0][0]='late-mutation-after-active';invoke([]);
 declined('dialogue_table_unrecognized',true);
 const refusedWrites=JSON.stringify(writes),refusedMessages=JSON.stringify(receipts);invoke([]);
@@ -175,6 +176,7 @@ def main():
     bodies='\n\n'.join(functions)
     register=function(text,'function register_schema(')
     binding='if (!castle_selector_bind(getdvarint("zm_coopStartupEpoch"), getdvarstring("mapname"), getdvarint("zm_coopSchemaSlots")))'
+    assert re.search(r'function\s+schema_revision\s*\(\s*\)\s*\{\s*return\s+4\s*;\s*\}', function(text,'function schema_revision('))
     assert '#using scripts/shared/array_shared;' in text
     assert '#using scripts/zm/zm_castle_vo' not in text
     assert not re.search(r'\b(wait|waittill|thread|endon)\b',re.sub(r'//[^\n]*','',bodies))
@@ -198,7 +200,7 @@ def main():
     (out/'stdout.log').write_text(result.stdout,encoding='utf-8');(out/'stderr.log').write_text(result.stderr,encoding='utf-8')
     report={'passed':result.returncode==0,'family':family,'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),
             'test_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'generated_js_sha256':hashlib.sha256(js.read_bytes()).hexdigest(),
-            'functions':list(HELPERS),'source_contract_checks':13,'command':command,'exit_code':result.returncode}
+            'functions':list(HELPERS),'source_contract_checks':14,'command':command,'exit_code':result.returncode}
     if result.returncode==0:report.update(json.loads(result.stdout))
     (out/'RESULTS.private.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps({'proof':str(out/'RESULTS.private.json'),**report},indent=2))

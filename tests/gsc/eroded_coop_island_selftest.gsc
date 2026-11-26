@@ -26,7 +26,7 @@ function api_current(api, epoch, capacity)
         isdefined(level.eroded_island_trials_ready) && level.eroded_island_trials_ready == true &&
         isint(epoch) && epoch > 0 && isint(capacity) && capacity >= 5 && capacity <= 8 &&
         getdvarint("zm_coopStartupEpoch") == epoch && getdvarint("zm_coopSchemaSlots") == capacity &&
-        getdvarint("zm_coopSchemaServerRevision") == 3 && getdvarstring("mapname") == "zm_island";
+        getdvarint("zm_coopSchemaServerRevision") == 4 && getdvarstring("mapname") == "zm_island";
 }
 
 function check(value)
