@@ -1,10 +1,14 @@
 #include <std_include.hpp>
+#define BOIII_COOP_EZZ
 
 #include "zombies/companion.hpp"
 #include "zombies/diagnostics.hpp"
 #include "zombies/schema_assets.hpp"
 #include "zombies/schema_asset_store.hpp"
 #include "zombies/schema_context_policy.hpp"
+#include "zombies/castle_selector.hpp"
+#include "game/utils.hpp"
+#include <utils/cryptography.hpp>
 
 namespace zombies::coop::schema_assets {
 namespace {
@@ -44,6 +48,102 @@ void retained_event(std::string_view phase, std::size_t length) noexcept {
     diagnostic_event("schema-asset-retained", static_cast<std::int64_t>(count),
         static_cast<std::int64_t>(bytes));
   } catch (...) {}
+}
+struct castle_request {
+  int capacity{};
+  std::string map;
+  t7::schema_asset_store<script_asset>::generation_lease lease;
+};
+bool castle_zombies_mode() {
+#ifdef BOIII_COOP_EZZ
+  return game::com::Com_SessionMode_GetMode() == game::eModes::ZOMBIES;
+#else
+  return game::Com_SessionMode_GetMode() == game::MODE_ZOMBIES;
+#endif
+}
+std::string_view castle_current_map() {
+  // Bound the native string without allocating. Use existing CB/Ezz dvar APIs;
+  // a peer's frozen allocation alone does not establish the active game mode.
+  const auto dvar = game::Dvar_FindVar("mapname");
+  const auto* value = dvar ? game::Dvar_GetString(dvar) : nullptr;
+  if (!value) return {};
+  for (std::size_t i = 0; i <= 64; ++i)
+    if (!value[i]) return {value, i};
+  return {};
+}
+castle_selector::context castle_snapshot(const castle_request& request) noexcept {
+  return {true, request.capacity, request.lease.role, request.lease.generation, request.map, request.map};
+}
+bool castle_current(const castle_request& request) noexcept {
+  try {
+    if (!castle_zombies_mode()) return false;
+    const auto actual = castle_current_map();
+    // Called while the store generation lock is held: never take the companion
+    // context mutex here. The frozen map was verified outside store locks at
+    // capture. Recheck native mode/map and atomic capacity against that snapshot;
+    // the store independently checks and holds its current server VM lease.
+    return castle_selector::same_context(castle_snapshot(request),
+        {castle_zombies_mode(), frozen_schema_capacity(), request.lease.role,
+         request.lease.generation, actual, request.map});
+  } catch (...) { return false; }
+}
+std::optional<castle_request> capture_castle_request(std::string_view path) {
+  if (!castle_zombies_mode()) return std::nullopt;
+  castle_request request{frozen_schema_capacity(), std::string(castle_current_map()), assets.capture_generation(path)};
+  const auto frozen = frozen_schema_map();
+  if (!castle_selector::valid_context({castle_zombies_mode(), request.capacity, request.lease.role,
+      request.lease.generation, request.map, frozen})) return std::nullopt;
+  return request;
+}
+void castle_failure(const castle_request& request, std::string_view reason) noexcept {
+  try {
+    // A late worker from an old VM must never poison its successor. Hold the
+    // generation lock across the native-context check and failure publication.
+    (void)assets.if_current(request.lease, [&] { if (castle_current(request)) fail(reason); });
+  } catch (...) {}
+}
+castle_selector::digest castle_digest(std::span<const std::uint8_t> bytes) {
+  const auto raw = utils::cryptography::sha256::compute(bytes.data(), bytes.size(), false);
+  if (raw.size() != 32) throw std::runtime_error("Invalid raw SHA-256 result.");
+  castle_selector::digest result{};
+  std::memcpy(result.data(), raw.data(), result.size());
+  return result;
+}
+script_asset* transform_castle(std::string_view path, script_asset* original) noexcept {
+  std::optional<castle_request> request;
+  try {
+    request = capture_castle_request(path);
+    if (!request) return original;
+    if (auto* cached = assets.cached(path, request->lease)) {
+      bool current = false;
+      (void)assets.if_current(request->lease, [&] { current = castle_current(*request); });
+      return current ? cached : original;
+    }
+    if (schema_assets_failed()) return original;
+    if (!original || !original->buffer || original->len <= 0 ||
+        static_cast<std::size_t>(original->len) > castle_selector::input_limit) {
+      castle_failure(*request, "Missing or oversized raw Castle VO script.");
+      return original;
+    }
+    // Older VMs can offer their linked/post-transform object. Always recover
+    // the pristine PRE-transform template before the fixed raw digest gate.
+    auto pristine = assets.template_for(original);
+    if (!pristine) pristine = std::vector<std::uint8_t>(original->buffer, original->buffer + original->len);
+    auto cloned = castle_selector::rewrite(*pristine, castle_digest);
+    if (!cloned.changed) {
+      castle_failure(*request, "Castle VO script differs from the verified pre-link import contract.");
+      return original;
+    }
+    std::string error;
+    auto* result = assets.retain_if(path, std::move(cloned.bytes), error, request->lease,
+        std::move(pristine), [&] { return castle_current(*request); });
+    if (!result) castle_failure(*request, error);
+    else retained_event("schema-castle-import-gsc", static_cast<std::size_t>(result->len));
+    return result ? result : original;
+  } catch (...) {
+    if (request) castle_failure(*request, "Could not retain the verified Castle VO import repair.");
+    return original;
+  }
 }
 } // namespace
 
@@ -131,6 +231,7 @@ script_asset* transform(const char* name, script_asset* original) noexcept {
   if (!active()) return original;
   try {
     const auto path = bounded_path(name);
+    if (castle_selector::is_asset(path)) return transform_castle(path, original);
     const auto map = frozen_schema_map();
     if (!t7::is_schema_anchor(path, map)) return original;
     const bool island_anchor = t7::is_island_server_anchor(path, map);

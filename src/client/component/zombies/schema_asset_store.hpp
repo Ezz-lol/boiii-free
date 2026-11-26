@@ -82,8 +82,9 @@ template <class Asset> class schema_asset_store {
     std::string name;
     std::vector<std::uint8_t> bytes;
     std::vector<std::uint8_t> immutable;
-    entry(std::string_view path, std::vector<std::uint8_t> data)
-        : name(path), bytes(std::move(data)), immutable(bytes) {
+    entry(std::string_view path, std::vector<std::uint8_t> data,
+        std::optional<std::vector<std::uint8_t>> pristine = {})
+        : name(path), bytes(std::move(data)), immutable(pristine ? std::move(*pristine) : bytes) {
       static_assert(std::is_trivially_copyable_v<Asset>);
       // CB names the 24-byte asset RawFile and declares a 32-bit length. Its
       // SCRIPTPARSETREE consumer uses the same length slot as Ezz's size_t;
@@ -192,6 +193,14 @@ public:
     std::scoped_lock lock(mutex_);
     return {index, generation_[index]};
   }
+  // Execute a context-guarded failure action only while this VM lease is current.
+  // The callback must not call this store; begin_generation cannot overtake it.
+  template <class Action> bool if_current(generation_lease lease, Action action) {
+    std::scoped_lock lock(mutex_);
+    if (lease.role > 1 || lease.generation != generation_[lease.role]) return false;
+    action();
+    return true;
+  }
   // Only the native transform of a validated Island server anchor may arm this
   // identity. A new SERVER VM revokes it; a CSC generation cannot grant it.
   bool authorize_island_server(generation_lease lease) {
@@ -224,7 +233,16 @@ public:
     return std::nullopt;
   }
   Asset* retain(std::string_view name, std::vector<std::uint8_t> bytes, std::string& error,
-      std::optional<generation_lease> lease = {}) {
+      std::optional<generation_lease> lease = {},
+      std::optional<std::vector<std::uint8_t>> pristine = {}) {
+    return retain_if(name, std::move(bytes), error, lease, std::move(pristine), [] { return true; });
+  }
+  // The caller's native context is sampled under the generation lock before
+  // allocations and again immediately before publication. Guards must not call
+  // this store. Optional pristine backing is charged as immutable.capacity().
+  template <class Guard> Asset* retain_if(std::string_view name, std::vector<std::uint8_t> bytes,
+      std::string& error, std::optional<generation_lease> lease,
+      std::optional<std::vector<std::uint8_t>> pristine, Guard current) {
     std::scoped_lock lock(mutex_);
     const auto key = canonical_asset(name);
     if (key.empty()) { error = "Invalid compiled asset path."; return nullptr; }
@@ -233,24 +251,37 @@ public:
       error = "Script asset generation changed during lookup; stale work was rejected.";
       return nullptr;
     }
+    if (!current()) { error = "Native schema context changed during lookup."; return nullptr; }
     auto& cache = current_[index];
     if (const auto found = cache.find(key); found != cache.end()) return found->second;
     if (exhausted_) {
       error = "Schema asset store is permanently exhausted; restart required.";
       return nullptr;
     }
-    auto fresh = std::make_unique<entry>(key, std::move(bytes));
+    auto fresh = std::make_unique<entry>(key, std::move(bytes), std::move(pristine));
     const auto charge = sizeof(entry) + fresh->name.capacity() + 1 + fresh->bytes.capacity() +
         fresh->immutable.capacity() + sizeof(std::pair<const std::string, Asset*>) + name.size() + 64;
+    if (!current()) { error = "Native schema context changed before retention."; return nullptr; }
     if (count_ >= exposed_.size() || charge > limit_ || retained_ > limit_ - charge) {
       error = "Experimental schema asset retention limit reached; restart required.";
       exhausted_ = true;
       return nullptr;
     }
+    // Allocate the cache node before publishing lifetime/count/charge. A node
+    // allocation failure must not leave a half-published retained entry.
+    const auto inserted = cache.emplace(key, nullptr);
+    bool accepted = false;
+    try { accepted = current(); }
+    catch (...) { cache.erase(inserted.first); throw; }
+    if (!accepted) {
+      cache.erase(inserted.first);
+      error = "Native schema context changed before publication.";
+      return nullptr;
+    }
     auto* result = &fresh->asset;
     exposed_[count_++] = std::move(fresh);
     retained_ += charge;
-    cache.emplace(key, result);
+    inserted.first->second = result;
     return result;
   }
 

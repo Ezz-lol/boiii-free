@@ -212,3 +212,17 @@ scope, preserving its existing four-player/MP/CP/minimum-player behavior.
 This source-backed correction still requires isolated startup, phase and
 teardown verification with the exact resulting build. It does not itself prove
 real-client gameplay, texture acknowledgements, HUD behavior or all-map quests.
+
+## Castle selector and current round
+
+`zm_coopCastleVOStatus` starts as `armed_for_known_module` when the paired server
+fields are bound. `owned_selector_active` means the reviewed responder helper has
+actually run; it is published once per VM, with a short `castle_selector=active`
+receipt. A bounded refusal reason accompanies `declined_castle_dialogue_owner`.
+The cached private crash snapshot includes this status. It contains no player
+names, identifiers or audio alias contents.
+
+`zm_coopRoundNumber` is the current typed stock round sampled by the owned,
+epoch-checked heartbeat. Zero means no valid positive round has been observed;
+it is not a synthetic round or a gameplay counter. Crash collection continues to
+read only the cached snapshot, without entering the script VM.

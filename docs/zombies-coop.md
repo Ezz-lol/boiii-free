@@ -152,3 +152,20 @@ code uses existing source-backed seams, but actual client execution, mixed CB/Ez
 joins, occupied network reconnects, all-map quests/bosses and arbitrary Workshop
 maps remain unverified. Keep both PRs experimental until those checks exist.
 No live deployment is part of this change.
+
+## Inherited Castle dialogue
+
+The opt-in server adapter recognizes one fingerprinted stock Castle VO object.
+It redirects only the verified five-argument responder query to an owned helper;
+other imports, code bytes and stock dialogue playback remain intact. The helper
+excludes character archetypes without an authored response row before delegating
+the original distance ordering, exclusion list, nearest-four limit and radius.
+It does not assign new characters or replace audio aliases.
+
+The same exact server module may be inherited by a compatible custom Zombies
+map. Native mode, map, capacity and VM generation must still match. This does not
+add Castle inventory/CSC field families to custom maps or certify custom quests.
+Unknown script variants, malformed response data or late ownership changes decline
+the expanded adapter through the existing deferred native error path. A new VM
+uses pristine raw backing; retired linked objects remain retained within the
+existing process-lifetime budget.

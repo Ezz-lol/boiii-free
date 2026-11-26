@@ -101,7 +101,8 @@ void capture_snapshot() {
                                        "zm_coopGumStatus",
                                        "zm_coopLastEvent",
                                        "zm_coopSchemaServerContract",
-                                       "zm_coopSchemaClientContract", "zm_coopIslandTrialsStatus"};
+                                       "zm_coopSchemaClientContract", "zm_coopIslandTrialsStatus",
+                                       "zm_coopCastleVOStatus"};
     std::string snapshot =
         "{\"sample_tick_ms\":" + std::to_string(GetTickCount64());
     snapshot +=

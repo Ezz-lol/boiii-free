@@ -22,6 +22,8 @@ function autoexec main()
     if (isdefined(level.eroded_coop_started_epoch) && level.eroded_coop_started_epoch == epoch &&
         isdefined(level.eroded_coop_started_map) && level.eroded_coop_started_map == map)
         return;
+    // Diagnostic zero means no valid current round has been observed yet.
+    setdvar("zm_coopRoundNumber", 0);
     setdvar("zm_coopStatus", "disabled");
     clear_readiness();
     setdvar("zm_coopRoundStatus", "inactive");
@@ -218,6 +220,12 @@ function diagnostic_heartbeat(epoch, map)
             setdvar("zm_coopStatus", "callback_ownership_lost");
             return;
         }
+        // Capture the observed stock round in every owned phase, including
+        // specials. Never infer a round from quota counters or modify gameplay.
+        observed_round = 0;
+        if (isdefined(level.round_number) && isint(level.round_number) && level.round_number > 0)
+            observed_round = level.round_number;
+        setdvar("zm_coopRoundNumber", observed_round);
         setdvar("zm_coopHeartbeat", heartbeat);
         setdvar("zm_coopPlayers", getplayers().size);
         wait 1;
