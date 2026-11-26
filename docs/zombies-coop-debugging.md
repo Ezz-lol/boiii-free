@@ -18,6 +18,19 @@ limited to the current position plus 16 callers.
 `fault_pc` is the VM source-lookup byte address and can lie inside an operand;
 it is neither a native exception RIP nor a guaranteed opcode start.
 
+Run `coopScriptErrorStatus` through the existing console or authorized RCON to
+read the same `game::log_script_errors()` predicate used by the error logger.
+One flushed `COOP_SCRIPT_LOGGING|` JSON record reports role, support, enabled
+state, whether the setting dvar is bound and whether the launch flag is present.
+On the dedicated image, the client-only settings component normally leaves this
+binding unbound, so the predicate uses `-log-script-errors`. On the client image,
+a bound `boiii_logScriptErrors` setting takes precedence over the flag. Setting
+the unrelated `sv_logScriptErrors` does not enable Ezz's logger, and querying an
+unbound `boiii_logScriptErrors` cannot verify the dedicated flag predicate.
+The command registers or changes no dvar. Confirm its actual enabled receipt
+before testing; an empty error list or requested flag alone does not establish
+script-clean startup, continuous observation or the absence of all errors.
+
 Object/function metadata uses the existing per-instance object pool and validated
 code/export bounds, with no new database lookup or script-asset load. Existing
 optional GDB/source-line resolution remains. File, function and source text are

@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "script.hpp"
+#include "command.hpp"
 
 #include <component/dump.hpp>
 #include <component/game_event.hpp>
@@ -58,6 +59,24 @@ template <> struct hash<TreeDirectory> {
 } // namespace std
 
 namespace script {
+
+// BEGIN READONLY SCRIPT LOGGING STATUS
+bool script_error_logging_enabled() noexcept {
+  return game::log_script_errors();
+}
+void print_script_logging_status() {
+  const bool status_server = game::is_server();
+  const bool status_supported = status_server || game::is_client();
+  const bool status_bound = status_supported && static_cast<bool>(game::log_script_errors_flag.dvar);
+  const bool status_flag = utils::flags::has_flag("log-script-errors");
+  printf("COOP_SCRIPT_LOGGING|{\"version\":1,\"family\":\"ezz\",\"role\":\"%s\",\"supported\":%s,\"enabled\":%s,\"binding\":\"%s\",\"dvar_bound\":%s,\"flag_present\":%s}\n",
+      status_server ? "dedicated" : "client", status_supported ? "true" : "false",
+      status_supported && script_error_logging_enabled() ? "true" : "false",
+      !status_supported ? "unsupported" : status_bound ? "dvar" : "command_line",
+      status_bound ? "true" : "false", status_flag ? "true" : "false");
+  fflush(stdout);
+}
+// END READONLY SCRIPT LOGGING STATUS
 
 void print_script_log(const char *message) {
   game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
@@ -1647,7 +1666,7 @@ std::vector<std::string> get_script_callstack(scriptInstance_t inst,
 utils::hook::detour Scr_Error_hook;
 
 void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
-  if (supported_frame_instance(inst) && game::log_script_errors()) {
+  if (supported_frame_instance(inst) && script_error_logging_enabled()) {
     void *caller_addr = _ReturnAddress();
     if (is_server()) {
       sv_detailedScriptErrors->set(true);
@@ -1700,6 +1719,7 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("script");
 
   void post_unpack() override {
+    command::add("coopScriptErrorStatus", print_script_logging_status);
     // Return custom or overrided scripts if found
     db_find_x_asset_header_hook.create(DB_FindXAssetHeader,
                                        DB_FindXAssetHeader_TryOverride);
