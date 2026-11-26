@@ -9,6 +9,7 @@
 #include "zombies/companion.hpp"
 #include "zombies/diagnostics.hpp"
 #include "zombies_lobby_vm.hpp"
+#include "scheduler.hpp"
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -240,8 +241,16 @@ struct component final : generic_component {
                                   "Local coop ending revision.");
     (void)game::register_dvar_int("zm_coopEndingEpoch", 0, 0, INT_MAX, 0u,
                                   "Local coop ending epoch.");
-    (void)game::register_dvar_string("zm_coopEndingMap", "", 0u,
-                                     "Local coop ending map.");
+    // String dvars follow the existing main-pipeline registration boundary.
+    // An early map command may already have created the receipt via Dvar_Set;
+    // never re-register/reset its current value after a fresh epoch was armed.
+    scheduler::once(
+        [] {
+          if (!game::Dvar_FindVar("zm_coopEndingMap"))
+            (void)game::register_dvar_string("zm_coopEndingMap", "", 0u,
+                                             "Local coop ending map.");
+        },
+        scheduler::pipeline::main);
   }
 };
 } // namespace zombies::coop
