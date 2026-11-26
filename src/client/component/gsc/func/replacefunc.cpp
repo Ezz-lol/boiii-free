@@ -11,6 +11,7 @@
 #include <component/game_event.hpp>
 #include <component/name.hpp>
 #include <component/script.hpp>
+#include <component/zombies/schema_assets.hpp>
 #include <component/toast.hpp>
 #include <loader/component_loader.hpp>
 
@@ -36,6 +37,7 @@ void gscr_replacefunc(scriptInstance_t inst) {
   const uintptr_t replacement_addr = game::scr::Scr_GetFunc(inst, 1);
 
   if (target_addr && replacement_addr) {
+    zombies::coop::schema_assets::observe_common_detour(target_addr);
     function_replacements[target_addr] = replacement_addr;
     detours_enabled.store(true, std::memory_order_release);
   }

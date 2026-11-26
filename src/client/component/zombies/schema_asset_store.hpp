@@ -149,7 +149,6 @@ template <class Asset> class schema_asset_store {
     const auto filename = bounded_name(object, read32(object, 0x34));
     return filename && *filename == expected;
   }
-
 public:
   struct generation_lease {
     unsigned role{};
@@ -369,6 +368,42 @@ public:
     return result;
   }
 
+  // Mandatory server assets share one retained VM lease.
+  // Both callbacks are native-only; neither may call this store or
+  // engine/linker.
+  template <class Guard, class Action>
+  bool common_powerup_if(generation_lease lease, const Asset *common,
+                         const Asset *powerup, bool require_score, Guard guard,
+                         Action action) {
+    std::scoped_lock lock(mutex_);
+    if (exhausted_ || lease.role != 0 || lease.generation != generation_[0] ||
+        !common || !powerup)
+      return false;
+    const auto find = [&](const char *name) -> const Asset * {
+      const auto found = current_[0].find(name);
+      return found == current_[0].end() ? nullptr : found->second;
+    };
+    if (find("custom_scripts/zm/eroded_coop.gsc") != common ||
+        find("scripts/zm/_zm_powerups.gsc") != powerup ||
+        (require_score && !find("scripts/zm/_zm_score.gsc")) || !guard())
+      return false;
+    action();
+    return true;
+  }
+
+  template <class Guard, class Action>
+  bool common_only_if(generation_lease lease, const Asset *common, Guard guard,
+                      Action action) {
+    std::scoped_lock lock(mutex_);
+    if (exhausted_ || lease.role != 0 || lease.generation != generation_[0] ||
+        !common)
+      return false;
+    const auto found = current_[0].find("custom_scripts/zm/eroded_coop.gsc");
+    if (found == current_[0].end() || found->second != common || !guard())
+      return false;
+    action();
+    return true;
+  }
   std::pair<std::size_t, std::size_t> retained() {
     std::scoped_lock lock(mutex_);
     return {count_, retained_};

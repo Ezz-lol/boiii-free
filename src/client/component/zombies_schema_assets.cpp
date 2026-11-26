@@ -8,6 +8,7 @@
 #include "zombies/schema_context_policy.hpp"
 #include "zombies/castle_selector.hpp"
 #include "zombies/score_events.hpp"
+#include "zombies/powerup_events.hpp"
 #include "game/utils.hpp"
 #include <utils/cryptography.hpp>
 
@@ -253,6 +254,102 @@ script_asset *transform_score(std::string_view path,
     return original;
   }
 }
+
+common_lifecycle common_sources;
+bool common_current(const common_request &request) noexcept {
+  return common_helper::native_session_current(request.session);
+}
+bool common_owned(const common_request &request) noexcept {
+  return common_helper::native_session_owned(request.session);
+}
+void common_revoke(const common_request &request) noexcept {
+  (void)common_helper::revoke_native_session(request.session);
+}
+std::optional<common_request>
+capture_common_request(bool require_proof = true) {
+  auto token = common_helper::capture_native_session();
+  if (!token || !castle_zombies_mode())
+    return {};
+#ifdef BOIII_COOP_EZZ
+  if (game::com::Com_IsRunningUILevel())
+    return {};
+#else
+  if (game::Com_IsRunningUILevel())
+    return {};
+#endif
+  const std::string actual(castle_current_map());
+  const auto frozen = frozen_schema_map();
+  if (actual != token->map || frozen != token->map ||
+      token->capacity != frozen_schema_capacity())
+    return {};
+  const auto lease = assets.capture_generation(common_helper::logical_name);
+  common_request request{lease, token->epoch, token->capacity, token->map,
+                         token};
+  if (lease.role != 0 ||
+      !(require_proof ? common_current(request) : common_owned(request)))
+    return {};
+  return request;
+}
+script_asset *transform_powerup(script_asset *original) noexcept {
+  std::optional<common_request> request;
+  try {
+    request = capture_common_request(false);
+    if (!request)
+      return original;
+    if (auto *backing = common_sources.lookup_powerup(
+            assets, *request, [&] { return common_owned(*request); }))
+      return backing;
+    if (!common_current(*request))
+      return original;
+    // Pending/missing common cannot authorize a stock clone for expanded play.
+    if (!common_sources.lookup_common(assets, *request,
+                                      [&] { return common_owned(*request); })) {
+      common_revoke(*request);
+      return original;
+    }
+    if (auto *cached = assets.cached(powerup_events::asset_name, request->vm))
+      return cached;
+    if (!original || !original->buffer || original->len <= 0 ||
+        static_cast<std::size_t>(original->len) > powerup_events::input_limit) {
+      common_revoke(*request);
+      return original;
+    }
+    auto pristine = assets.template_for(original);
+    if (!pristine) {
+      const auto *begin =
+          reinterpret_cast<const std::uint8_t *>(original->buffer);
+      pristine = std::vector<std::uint8_t>(begin, begin + original->len);
+    }
+    auto changed = powerup_events::rewrite(*pristine, castle_digest);
+    if (!changed.changed) {
+      common_revoke(*request);
+      return original;
+    }
+    std::string error;
+    auto *retained =
+        assets.retain_if(powerup_events::asset_name, std::move(changed.bytes),
+                         error, request->vm, std::move(pristine),
+                         [&] { return common_current(*request); });
+    if (!retained) {
+      common_revoke(*request);
+      return original;
+    }
+    const auto base = reinterpret_cast<std::uintptr_t>(retained->buffer);
+    if (!common_sources.pair_transformed_powerup(
+            assets, *request, retained,
+            {{base + 0x5070, base + 0x5198}, {base + 20888, base + 21432}},
+            [&] { return common_current(*request); })) {
+      common_revoke(*request);
+      return original;
+    }
+    return retained;
+  } catch (...) {
+    if (request)
+      common_revoke(*request);
+    return original;
+  }
+}
+
 struct score_source_sample {
   bool verified{};
   std::string map;
@@ -285,6 +382,192 @@ score_source_sample capture_score_source() noexcept {
 
 } // namespace
 
+bool common_required() noexcept {
+  try {
+    return castle_zombies_mode() && frozen_schema_capacity() >= 5;
+  } catch (...) {
+    return false;
+  }
+}
+std::optional<common_request> common_begin_load() noexcept {
+  try {
+    return capture_common_request();
+  } catch (...) {
+    return {};
+  }
+}
+std::optional<common_binding> bind_common_loader(
+    script_asset *selected, std::span<const std::uint8_t> compiled,
+    std::span<const std::uint8_t> readable,
+    std::span<const std::uint8_t> cleaned, bool readable_success) noexcept {
+  try {
+#ifdef BOIII_COOP_EZZ
+    constexpr auto family = common_helper::family::ezz;
+#else
+    constexpr auto family = common_helper::family::cb;
+#endif
+    return common_helper::bind_loader_object(family, selected, compiled,
+                                             readable, cleaned,
+                                             readable_success, castle_digest);
+  } catch (...) {
+    return {};
+  }
+}
+std::optional<common_seal> seal_common_loader(const common_binding &binding,
+                                              script_asset *selected) noexcept {
+  try {
+    return common_helper::seal_selected_winner(binding, selected,
+                                               castle_digest);
+  } catch (...) {
+    return {};
+  }
+}
+bool preregister_common(const common_request &request,
+                        const common_seal &seal) noexcept {
+  try {
+    std::string error;
+    return common_sources.preregister(
+               assets, request, seal, castle_digest, error,
+               [&] { return common_current(request); }) != nullptr;
+  } catch (...) {
+    common_revoke(request);
+    return false;
+  }
+}
+void common_load_failed(const common_request &request) noexcept {
+  common_revoke(request);
+}
+void common_load_returned(const common_request &request) noexcept {
+  try {
+    if (!common_sources.note_common_load_returned(
+            assets, request, [&] { return common_current(request); }))
+      common_revoke(request);
+  } catch (...) {
+    common_revoke(request);
+  }
+}
+void common_finish_load(const common_request &request) noexcept {
+  try {
+    if (!common_sources.finish_loader(assets, request,
+                                      [&] { return common_current(request); }))
+      common_revoke(request);
+  } catch (...) {
+    common_revoke(request);
+  }
+}
+bool common_source_pair_ready() noexcept {
+  try {
+    auto request = capture_common_request();
+    return request && common_sources.ready(assets, *request, [&] {
+      return common_current(*request);
+    });
+  } catch (...) {
+    return false;
+  }
+}
+script_asset *common_backing(const char *name) noexcept {
+  try {
+    if (t7::canonical_asset(bounded_path(name)) != common_helper::logical_name)
+      return nullptr;
+    auto request = capture_common_request(false);
+    return request
+               ? common_sources.lookup_common(
+                     assets, *request, [&] { return common_owned(*request); })
+               : nullptr;
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+script_asset *powerup_backing(const char *name) noexcept {
+  try {
+    if (t7::canonical_asset(bounded_path(name)) != powerup_events::asset_name)
+      return nullptr;
+    auto request = capture_common_request(false);
+    return request
+               ? common_sources.lookup_powerup(
+                     assets, *request, [&] { return common_owned(*request); })
+               : nullptr;
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+void observe_common_replacement(const char *name,
+                                std::span<const std::uint8_t> compiled,
+                                std::span<const std::uint8_t> readable,
+                                std::span<const std::uint8_t> cleaned,
+                                bool readable_success) noexcept {
+  std::optional<common_request> request;
+  try {
+    if (t7::canonical_asset(bounded_path(name)) != common_helper::logical_name)
+      return;
+    // Loader workers need no engine calls or companion/runtime mutex here.
+    auto token = common_helper::capture_native_session();
+    if (!token)
+      return;
+    const auto lease = assets.capture_generation(common_helper::logical_name);
+    request =
+        common_request{lease, token->epoch, token->capacity, token->map, token};
+    if (!common_owned(*request))
+      return;
+    auto *current = common_sources.lookup_common(
+        assets, *request, [&] { return common_owned(*request); });
+    if (!current)
+      return; // Initial registry scans have not sealed a winner yet.
+    const auto immutable = assets.template_for(current);
+    bool identical = immutable &&
+                     compiled.size() <= common_helper::common_limit &&
+                     castle_digest(*immutable) == castle_digest(compiled);
+#ifdef BOIII_COOP_EZZ
+    identical = identical && readable_success &&
+                readable.size() <= common_helper::common_limit &&
+                cleaned.size() <= common_helper::common_limit &&
+                castle_digest(readable) == common_helper::source_pin &&
+                castle_digest(cleaned) == common_helper::source_pin;
+#else
+    (void)readable;
+    (void)cleaned;
+    (void)readable_success;
+    identical =
+        identical && castle_digest(compiled) == common_helper::cb_compiled_pin;
+#endif
+    if (!identical)
+      common_revoke(*request);
+    // An identical duplicate never clears a prior revocation or resets load
+    // state.
+  } catch (...) {
+    if (request)
+      common_revoke(*request);
+  }
+}
+void observe_common_detour(std::uintptr_t target) noexcept {
+  try {
+    auto request = capture_common_request(false);
+    if (!request)
+      return;
+    (void)common_sources.observe_detour(
+        assets, target, [&] { return common_owned(*request); },
+        [&](int) { common_revoke(*request); });
+  } catch (...) {
+  }
+}
+std::string common_source_pair_diagnostic() {
+  auto request = capture_common_request(false);
+  const bool verified = request && common_sources.ready(assets, *request, [&] {
+    return common_current(*request);
+  });
+  return "{\"version\":1,\"verified\":" +
+         std::string(verified ? "true" : "false") + ",\"map\":\"" +
+         (request ? request->map : std::string{}) +
+         "\",\"capacity\":" + std::to_string(request ? request->capacity : 0) +
+         ",\"realm\":0,\"generation\":" +
+         std::to_string(request ? request->vm.generation : 0) +
+         ",\"revision\":" + std::to_string(companion_revision) +
+         ",\"contract\":\"" + std::string(companion_contract) +
+         "\",\"linked_body_authenticated\":false}";
+}
+
 bool score_producer_ready() noexcept { return capture_score_source().verified; }
 std::string score_source_diagnostic() {
   const auto sample = capture_score_source();
@@ -301,6 +584,8 @@ std::string score_source_diagnostic() {
 }
 
 void begin_vm_generation(bool client) noexcept {
+  if (!client)
+    common_helper::invalidate_native_session();
   try {
     if (assets.exhausted()) {
       fail("Schema asset store exhausted; restart required.");
@@ -433,6 +718,8 @@ script_asset *transform(const char *name, script_asset *original) noexcept {
     return original;
   try {
     const auto path = bounded_path(name);
+    if (t7::canonical_asset(path) == powerup_events::asset_name)
+      return transform_powerup(original);
     if (castle_selector::is_asset(path))
       return transform_castle(path, original);
     if (score_events::is_asset(path))

@@ -98,6 +98,10 @@ void print_script_log(const char *message) {
 utils::hook::detour db_find_x_asset_header_hook;
 
 static utils::memory::allocator allocator;
+static std::mutex common_binding_mutex;
+static std::unordered_map<const ScriptParseTree *,
+                          zombies::coop::schema_assets::common_binding>
+    common_bindings;
 
 static loadedScriptMap_t loaded_scripts;
 static loadedRawFileMap_t loaded_rawfiles;
@@ -237,6 +241,19 @@ std::string normalize_path(std::string path) {
 static std::mutex db_mutex;
 const GSC_OBJ *get_linked_obj(const std::string &name) {
   const std::string normalized_name = normalize_script_name(name);
+  if (auto *power = zombies::coop::schema_assets::powerup_backing(
+          normalized_name.c_str()))
+    return power->buffer;
+  if (auto *power = zombies::coop::schema_assets::powerup_backing(
+          (normalized_name + ".gsc").c_str()))
+    return power->buffer;
+
+  if (auto *common =
+          zombies::coop::schema_assets::common_backing(normalized_name.c_str()))
+    return common->buffer;
+  if (auto *common = zombies::coop::schema_assets::common_backing(
+          (normalized_name + ".gsc").c_str()))
+    return common->buffer;
 
   // Try with extension first, then without
   std::string with_ext = normalized_name;
@@ -468,7 +485,9 @@ void print_loading_script(const std::string &name) {
   print_script_log(log);
 }
 
-void load_script(const std::string &name, const std::string &data) {
+void load_script(const std::string &name, const std::string &data,
+                 const std::string *common_readable = nullptr,
+                 const std::string *common_cleaned = nullptr) {
 
   const bool is_csc = utils::string::ends_with(name, ".csc");
   const bool is_gsc = utils::string::ends_with(name, ".gsc");
@@ -491,11 +510,40 @@ void load_script(const std::string &name, const std::string &data) {
       return;
     }
 
+    if (name == "custom_scripts/zm/eroded_coop.gsc") {
+      const auto span = [](const std::string &value) {
+        return std::span(reinterpret_cast<const std::uint8_t *>(value.data()),
+                         value.size());
+      };
+      zombies::coop::schema_assets::observe_common_replacement(
+          name.c_str(), span(data),
+          common_readable ? span(*common_readable)
+                          : std::span<const std::uint8_t>{},
+          common_cleaned ? span(*common_cleaned)
+                         : std::span<const std::uint8_t>{},
+          common_readable && common_cleaned);
+    }
     ScriptParseTree *parse_tree = allocator.allocate<ScriptParseTree>();
     parse_tree->name = allocator.duplicate_string(name);
     parse_tree->buffer =
         reinterpret_cast<GSC_OBJ *>(allocator.duplicate_string(data));
     parse_tree->len = data.length();
+
+    if (name == "custom_scripts/zm/eroded_coop.gsc" && common_readable &&
+        common_cleaned) {
+      const auto span = [](const std::string &value) {
+        return std::span(reinterpret_cast<const std::uint8_t *>(value.data()),
+                         value.size());
+      };
+      auto bound = zombies::coop::schema_assets::bind_common_loader(
+          parse_tree, span(data), span(*common_readable), span(*common_cleaned),
+          true);
+      if (bound) {
+        std::lock_guard common_lock(common_binding_mutex);
+        if (common_bindings.size() < 64)
+          common_bindings.emplace(parse_tree, std::move(*bound));
+      }
+    }
 
     while (loaded_scripts.try_emplace_l(
         name,
@@ -575,7 +623,7 @@ void load_script_file(std::string &data,
 
           print_loading_script(name);
           std::string bytecode(result.bytecode.begin(), result.bytecode.end());
-          load_script(name, bytecode);
+          load_script(name, bytecode, &data, &cleaned_source);
           add_gdb(name, result.gdb);
 
           // Register replacefunc entries as pending detours
@@ -693,7 +741,10 @@ std::optional<std::string> find_missing_include(const queued_script &script) {
   return std::nullopt;
 }
 
-void execute_queued_script(const queued_script &script) {
+void execute_queued_script(
+    const queued_script &script,
+    const std::optional<zombies::coop::schema_assets::common_request>
+        &common_request) {
   if (const std::optional<std::string> missing = find_missing_include(script)) {
     print_script_log(utils::string::va(
         "Skipped script '%s' because it needs '%s', which this game mode does "
@@ -703,6 +754,9 @@ void execute_queued_script(const queued_script &script) {
   }
 
   scr::Scr_LoadScript(script.inst, script.base_name.data());
+  if (common_request && script.inst == SCRIPTINSTANCE_SERVER &&
+      script.name == "custom_scripts/zm/eroded_coop.gsc")
+    zombies::coop::schema_assets::common_load_returned(*common_request);
 
   print_script_log(utils::string::va("Loaded script '%s' into the VM",
                                      script_path(script.name).c_str()));
@@ -1266,7 +1320,10 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
         result.scriptParseTree = zombies::coop::schema_assets::lookup_companion(name);
         return result;
       }
-      result.scriptParseTree = get_loaded_script(name);
+      result.scriptParseTree =
+          zombies::coop::schema_assets::common_backing(name);
+      if (!result.scriptParseTree)
+        result.scriptParseTree = get_loaded_script(name);
       break;
     }
     case XAssetType::RAWFILE: {
@@ -1303,6 +1360,10 @@ void clear_script_memory() {
   std::scoped_lock lock(script_load_mutex);
 
   execution_queue.clear();
+  {
+    std::lock_guard common_lock(common_binding_mutex);
+    common_bindings.clear();
+  }
   loaded_scripts.clear();
   script_gdbs.clear();
   script_hash_names.clear();
@@ -1405,6 +1466,13 @@ void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
       !com::Com_IsRunningUILevel()) {
     zombies::coop::validate_startup();
   }
+
+  const bool require_common = inst == SCRIPTINSTANCE_SERVER &&
+                              zombies::coop::schema_assets::common_required();
+  auto common_request = require_common
+                            ? zombies::coop::schema_assets::common_begin_load()
+                            : std::nullopt;
+  std::optional<zombies::coop::schema_assets::common_seal> common_sealed;
   scr::Scr_BeginLoadScripts(inst, user);
 
   if (!com::Com_IsInGame() || com::Com_IsRunningUILevel()) {
@@ -1414,19 +1482,47 @@ void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
   {
     std::scoped_lock lock(script_load_mutex);
     execution_queue.clear();
+    {
+      std::lock_guard common_lock(common_binding_mutex);
+      common_bindings.clear();
+    }
     load_scripts();
     rebuild_script_gdb();
+    if (common_request) {
+      auto *selected = get_loaded_script("custom_scripts/zm/eroded_coop.gsc");
+      std::optional<zombies::coop::schema_assets::common_binding> bound;
+      {
+        std::lock_guard common_lock(common_binding_mutex);
+        auto found = common_bindings.find(selected);
+        if (found != common_bindings.end())
+          bound = found->second;
+      }
+      if (bound && selected)
+        common_sealed =
+            zombies::coop::schema_assets::seal_common_loader(*bound, selected);
+    }
   }
 
+  if (require_common && (!common_request || !common_sealed ||
+                         !zombies::coop::schema_assets::preregister_common(
+                             *common_request, *common_sealed))) {
+    if (common_request)
+      zombies::coop::schema_assets::common_load_failed(*common_request);
+    return;
+  }
   for (const queued_script &script : execution_queue) {
-    execute_queued_script(script);
+    execute_queued_script(script, common_request);
   }
 
-  std::scoped_lock lock(script_load_mutex);
-  if (!pending_detours.access<bool>(
-          [](auto &pending_detours) { return pending_detours.empty(); })) {
-    apply_pending_detours();
+  {
+    std::scoped_lock lock(script_load_mutex);
+    if (!pending_detours.access<bool>(
+            [](auto &pending_detours) { return pending_detours.empty(); })) {
+      apply_pending_detours();
+    }
   }
+  if (common_request)
+    zombies::coop::schema_assets::common_finish_load(*common_request);
 }
 
 std::string resolve_hash(ScrVarCanonicalName_t hash) {

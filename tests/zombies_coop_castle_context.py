@@ -10,8 +10,9 @@ parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--compiler',required=True)
 parser.add_argument('--output',type=Path,required=True)
 parser.add_argument('--retail-path',type=Path)
+parser.add_argument('--repo',type=Path,default=Path(__file__).resolve().parents[1])
 args=parser.parse_args()
-root=Path(__file__).resolve().parents[1]
+root=args.repo.resolve()
 source=root/'src/client/component/zombies_schema_assets.cpp'
 original=source.read_text()
 guard_start=re.search(r'\bbool\s+castle_current\s*\(\s*const\s+castle_request\s*&\s*request\s*\)\s*noexcept\s*\{',original)
@@ -49,6 +50,8 @@ prelude=r'''
 #include "HEADER_ROOT/zombies/castle_selector.hpp"
 #include "HEADER_ROOT/zombies/score_events.hpp"
 #include "HEADER_ROOT/zombies/companion.hpp"
+#include "HEADER_ROOT/zombies/common_helper_source_pair.hpp"
+#include "HEADER_ROOT/zombies/powerup_events.hpp"
 namespace mock {
 std::atomic_bool failed{};
 std::atomic_int failures{},capacity{8},frozen_calls{};
@@ -90,8 +93,9 @@ static_assert(sizeof(GSC_OBJ)==0x48 && !std::is_convertible_v<GSC_OBJ,std::uint8
 struct ScriptParseTree{const char* name;std::size_t len;GSC_OBJ* buffer;};
 static_assert(sizeof(ScriptParseTree)==0x18);
 }
+bool Com_IsRunningUILevel(){return false;}
 eModes Com_SessionMode_GetMode(){return mode;}
-namespace com{eModes Com_SessionMode_GetMode(){return mode;}}
+namespace com{eModes Com_SessionMode_GetMode(){return mode;}bool Com_IsRunningUILevel(){return false;}}
 }
 namespace utils::cryptography::sha256 {
 std::string compute(const std::uint8_t* data,std::size_t length,bool hex){
@@ -103,6 +107,16 @@ std::string compute(const std::uint8_t* data,std::size_t length,bool hex){
 }
 }
 namespace zombies::coop {
+// This legacy Castle fixture intentionally has no common-source session.
+// Positive provider/pair behavior is covered by common_context/common_sources.
+namespace common_helper {
+native_ticket capture_native_session() noexcept {return {};}
+void invalidate_native_session() noexcept {}
+bool native_session_current(const native_ticket&) noexcept {return false;}
+bool native_session_owned(const native_ticket&) noexcept {return false;}
+bool native_admission_current() noexcept {return false;}
+bool revoke_native_session(const native_ticket&) noexcept {return false;}
+}
 int frozen_schema_capacity() noexcept{return mock::capacity.load();}
 std::string frozen_schema_map(){std::lock_guard lock(mock::context_mutex);++mock::frozen_calls;return mock::frozen_map;}
 bool schema_assets_failed() noexcept{return mock::failed.load();}
@@ -111,10 +125,17 @@ void diagnostic_event(std::string_view,std::int64_t=0,std::int64_t=0) noexcept{}
 void refresh_schema_session() noexcept{}
 namespace schema_assets {
 using script_asset=game::scr::ScriptParseTree;
+COMMON_ALIASES
 bool prepare_client_generation(std::string_view,bool,bool&) noexcept;
 }
 }
 '''
+public_interface=root/'src/client/component/zombies/schema_assets.hpp'
+public_text=public_interface.read_text()
+common_start=public_text.index('using common_lifecycle')
+common_end=public_text.index('bool common_required()',common_start)
+common_aliases=public_text[common_start:common_end]
+prelude=prelude.replace('COMMON_ALIASES',common_aliases)
 prelude=prelude.replace('HEADER_ROOT',(root/'src/client/component').as_posix())
 assert '#define BOIII_COOP_EZZ' in original
 tests=r'''
@@ -208,6 +229,7 @@ proof=dict(passed=True,scope='Actual component C++ bodies with native state/lock
     source=str(source),source_sha256=sha(source),generated_sha256=sha(generated),test_sha256=sha(Path(__file__)),
     command=command,run_command=run_command,stdout=run.stdout,retail_private_supplied=bool(args.retail_path),
     lock_order_adversary=True,guard_has_no_frozen_context_getter=True,
+    common_session_standin='intentionally_absent',public_interface_sha256=sha(public_interface),
     ezz_dvar_const_ambiguity_mirrored=True,ezz_gsc_object_size=72,ezz_buffer_type='GSC_OBJ*',byte_stride_verified=True)
 (out/'RESULTS.private.json').write_text(json.dumps(proof,indent=2)+'\n')
 print(json.dumps(proof))

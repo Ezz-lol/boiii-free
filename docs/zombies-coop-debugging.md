@@ -287,3 +287,53 @@ A literal regex equal to an option name or starting with `+` uses `alias=value`.
 `python tests/extractor_flags.py --compiler clang++` compiles the actual flags
 source and bundled argument parser without starting a game. Its cases cover
 explicit filters, engine-command values, aliases and unchanged bare/absent flags.
+
+## Powerup expiry and matching loader data
+
+The fixed stock powerup caller can route its timer to the matching coop helper.
+The helper preserves the stock countdown, Temporal Gift extension, loop sound,
+flag reset and temporary-entity cleanup. It skips only the final player-owned
+team sound when both effective rosters are empty in the same owned ending
+session. Unknown ownership, another epoch, ordinary gameplay and stock capacity
+retain the stock worker or sound behavior. This is a targeted teardown fix,
+not a general replacement for map scripts or engine pool limits.
+
+Expanded admission also requires a current server-VM source pair: the winning
+common module, retained powerup caller and score adapter must share the current
+map, capacity and generation. CB checks the shipped compiled common payload;
+Ezz checks the exact readable source and its successful compiler path before
+retaining that selected object. The loader records return from the real common
+load call and completion of its existing load loop. These receipts establish
+source/cache/lifecycle provenance; they do not authenticate the engine's active
+linked function body or independently establish successful VM execution.
+
+A missing or changed pair closes expanded admission. Known Ezz pending and
+runtime detours on the protected caller or helper withdraw its receipt while
+preserving normal detour execution and backing lifetime. Unrelated mod detours
+keep their existing behavior. Native plugins and arbitrary memory modification
+are outside this check. Install each executable with that build's complete
+matching data, and use a fresh map or process after changing it.
+
+Portable regression checks:
+
+```text
+python tests/zombies_coop_powerup_timer.py
+python tests/zombies_coop_powerup_events.py --compiler clang++
+```
+
+The GSC checks execute selected actual bodies under explicit stand-ins. The
+metadata checks use synthetic objects. Neither test replaces an isolated game
+VM run, real-client joins or all-map gameplay verification.
+
+`coopPowerupSourceStatus` queues the separate read-only server-pipeline receipt
+`COOP_POWERUP_SOURCE|`. Its `verified` value describes the current source pair;
+`linked_body_authenticated` is explicitly false. The existing score-source
+receipt and its keys are unchanged. The source pair may remain current during
+its owned ending, while admission remains closed.
+
+Additional portable lifecycle checks:
+
+```text
+python tests/zombies_coop_common_sources.py --compiler clang++
+python tests/zombies_coop_common_context.py --compiler clang++
+```

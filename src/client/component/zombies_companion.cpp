@@ -515,7 +515,8 @@ bool schema_server_ready() noexcept {
   if (ending_session_current())
     return false;
   if (frozen_schema_capacity() < 5 || schema_assets_failed() ||
-      !schema_assets::score_producer_ready())
+      !schema_assets::score_producer_ready() ||
+      !schema_assets::common_source_pair_ready())
     return false;
   try {
     return read_string("zm_coopStatus") == "experimental_callbacks_installed" &&

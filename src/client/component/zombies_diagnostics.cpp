@@ -224,6 +224,17 @@ struct diagnostics_component final : generic_component {
           },
           scheduler::pipeline::server);
     });
+    command::add("coopPowerupSourceStatus", [](const command::params &params) {
+      if (params.size() != 1)
+        return;
+      scheduler::once(
+          [] {
+            const auto receipt = schema_assets::common_source_pair_diagnostic();
+            printf("COOP_POWERUP_SOURCE|%s\n", receipt.c_str());
+            fflush(stdout);
+          },
+          scheduler::pipeline::server);
+    });
     diagnostic_event("diagnostics_start", image_role.load());
     game_event::on_g_init_game(map_initialized);
     game_event::on_g_shutdown_game(map_shutdown);

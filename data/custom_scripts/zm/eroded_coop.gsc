@@ -11,6 +11,10 @@
 #using scripts/shared/bots/_bot_combat;
 #using scripts/shared/flag_shared;
 
+#using scripts/zm/_zm_bgb;
+
+#using scripts/zm/_zm_powerups;
+
 #namespace eroded_coop;
 
 function autoexec main()
@@ -1560,4 +1564,54 @@ function track_round(epoch, map, seed)
         diagnostic_round_values(count, target, consumed, pending);
         diagnostic_event("normal_round_population_changed");
     }
+}
+
+
+// The verified stock caller import routes its timer here. Keep the expiry
+// exception confined to the current owned ending session and empty rosters.
+function powerup_timer_ending_empty_current(epoch, map)
+{
+    return startup_identity_current(epoch, map) && ending_latched(epoch, map) &&
+        getdvarstring("zm_coopStatus") == "ending" && endgame_cleanup_owned() &&
+        level.eroded_coop_disconnect_epoch == epoch && level.eroded_coop_disconnect_map == map &&
+        disconnect_rosters_empty(getplayers(), level.players);
+}
+
+function guarded_powerup_timer( player_team, str_powerup )
+{
+    // Keep the original stock worker and receiver/arguments outside known
+    // paired ownership. The native redirect changes one verified stock caller
+    // import only; this helper's fallback import must remain untouched.
+    if (!endgame_cleanup_owned())
+    {
+        self zm_powerups::time_remaining_on_powerup(player_team, str_powerup);
+        return;
+    }
+    epoch = level.eroded_coop_disconnect_epoch;
+    map = level.eroded_coop_disconnect_map;
+
+    str_index_on = "zombie_powerup_" + str_powerup + "_on";
+    str_index_time = "zombie_powerup_" + str_powerup + "_time";
+    str_sound_loop = "zmb_" + str_powerup + "_loop";
+    str_sound_off = "zmb_" + str_powerup + "_loop_off";
+    temp_ent = spawn( "script_origin", ( 0, 0, 0 ) );
+    temp_ent playloopsound( str_sound_loop );
+    
+    if ( bgb::is_team_enabled( "zm_bgb_temporal_gift" ) )
+    {
+        level.zombie_vars[ player_team ][ str_index_time ] += 30;
+    }
+    
+    while ( level.zombie_vars[ player_team ][ str_index_time ] >= 0 )
+    {
+        wait 0.05;
+        level.zombie_vars[ player_team ][ str_index_time ] -= 0.05;
+    }
+    
+    level.zombie_vars[ player_team ][ str_index_on ] = 0;
+    if (!powerup_timer_ending_empty_current(epoch, map))
+        getplayers()[ 0 ] playsoundtoteam( str_sound_off, player_team );
+    temp_ent stoploopsound( 2 );
+    level.zombie_vars[ player_team ][ str_index_time ] = 30;
+    temp_ent delete();
 }

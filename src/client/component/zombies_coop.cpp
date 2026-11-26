@@ -7,6 +7,7 @@
 #include "zombies/coop_runtime.hpp"
 #include "zombies/startup_gate.hpp"
 #include "zombies/companion.hpp"
+#include "zombies/common_helper_native_context.hpp"
 #include "zombies/diagnostics.hpp"
 #include "zombies_lobby_vm.hpp"
 #include "scheduler.hpp"
@@ -21,6 +22,7 @@ std::mutex state_mutex;
 startup_gate gate;
 std::atomic_bool blocked{false};
 ending_policy::admission_lifecycle admission_state;
+common_helper::native_publication common_native_context;
 int epoch = 0;
 int applied_limit = 0;
 bool reported = false;
@@ -56,6 +58,7 @@ const char *poll_startup() {
   const std::lock_guard<std::mutex> lock(state_mutex);
   if (game::com::Com_IsRunningUILevel() ||
       game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES) {
+    common_native_context.invalidate();
     gate.reset();
     admission_state.reset();
     blocked.store(false, std::memory_order_release);
@@ -129,8 +132,37 @@ bool mark_session_ending(int expected_epoch) noexcept {
 }
 
 bool admission_ready() noexcept {
-  return !blocked.load(std::memory_order_acquire) && !admission_state.ending();
+  return !blocked.load(std::memory_order_acquire) &&
+         !admission_state.ending() && common_helper::native_admission_current();
 }
+
+namespace common_helper {
+void invalidate_native_session() noexcept {
+  common_native_context.invalidate();
+}
+native_ticket capture_native_session() noexcept {
+  return common_native_context.capture();
+}
+bool native_session_owned(const native_ticket &saved) noexcept {
+  return common_native_context.owned(saved, active_startup_epoch(),
+                                     frozen_schema_capacity());
+}
+bool native_session_current(const native_ticket &saved) noexcept {
+  return common_native_context.provenance_current(saved, active_startup_epoch(),
+                                                  frozen_schema_capacity(),
+                                                  schema_assets_failed());
+}
+bool native_admission_current() noexcept {
+  return frozen_schema_capacity() < 5 ||
+         (!session_ending() &&
+          native_session_current(capture_native_session()));
+}
+bool revoke_native_session(const native_ticket &saved) noexcept {
+  return saved && saved->epoch == active_startup_epoch() &&
+         saved->capacity == frozen_schema_capacity() &&
+         common_native_context.revoke(saved);
+}
+} // namespace common_helper
 
 bool expanded_host() noexcept {
   const std::lock_guard<std::mutex> lock(state_mutex);
@@ -139,6 +171,7 @@ bool expanded_host() noexcept {
 
 void shutdown_map() noexcept {
   const std::lock_guard<std::mutex> lock(state_mutex);
+  common_native_context.invalidate();
   // Revoke before script memory is released. The next VM load must explicitly
   // arm a fresh map; old same-map readiness cannot reopen admission meanwhile.
   map_armed = false;
@@ -151,6 +184,7 @@ void shutdown_map() noexcept {
 
 const char *begin_startup() {
   const std::lock_guard<std::mutex> lock(state_mutex);
+  common_native_context.invalidate();
   if (game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES)
     return nullptr;
   const int configured =
@@ -201,6 +235,14 @@ const char *begin_startup() {
   (void)game::Dvar_SetFromStringByName("zm_coopEndingMap", "", true);
   (void)game::Dvar_SetFromStringByName("zm_coopEndingEpoch", "0", true);
   admission_state.arm(epoch, requested > stock_limit);
+  if (requested > stock_limit &&
+      !common_native_context.publish(epoch, requested, active_map)) {
+    admission_state.reset();
+    map_armed = false;
+    blocked.store(true, std::memory_order_release);
+    reported = true;
+    return "Could not publish the owned common-helper native session.";
+  }
   return nullptr;
 }
 
