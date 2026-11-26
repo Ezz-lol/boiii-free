@@ -157,3 +157,26 @@ Dedicated canaries and bots do not validate a joining client's CSC/bootstrap,
 UI field registration, score widgets, revive indicators or occupied network
 sessions. Those require matching real clients, slots 5-8, down/revive and points
 events, disconnect/rejoin, rotations and each map/custom-map adapter under test.
+
+
+## Bounded connected-player builtin capture
+
+On the supported dedicated-server image only, `-coop-debug` requests one early
+read-only capture of the connected-player builtin metadata and exactly 256 code
+bytes. `coopDumpConnectedPlayersBuiltin` permits a manual retry if that capture
+failed. There are at most two attempts per process and no further capture after
+a successful write. Clients report unsupported before any engine-table access.
+
+The private `logs/coop-builtin-PID-tick-attempt.json` file is created without
+replacing an existing file and remains smaller than 2 KiB. It includes the image
+identity, guarded table identity, action coordinates, code bytes and a failure
+reason. Readable committed pages, the allocation/image bounds, known dedicated
+checksum and executable section/page protections must all validate; an incomplete
+or changed read fails closed. `COOP_BUILTIN_CAPTURE` reports whether the file and
+capture succeeded. The early attempt can fail if the table is not yet unpacked;
+the explicit retry is for that case.
+
+This diagnostic does not invoke the builtin, change its return value, hook a
+function, read the VM stack, produce a process dump or fix the startup/teardown
+failure. It records no player names, XUIDs, credentials or other player secrets.
+The captured game-code bytes and resulting analysis must remain private.

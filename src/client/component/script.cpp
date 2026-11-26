@@ -11,6 +11,8 @@
 #include <component/scheduler.hpp>
 #include <component/zombies/coop_runtime.hpp>
 #include <component/zombies/schema_assets.hpp>
+#include <component/zombies/builtin_snapshot_windows.hpp>
+#include <utils/flags.hpp>
 #include <loader/component_loader.hpp>
 
 #include <game/utils.hpp>
@@ -77,6 +79,13 @@ void print_script_logging_status() {
   fflush(stdout);
 }
 // END READONLY SCRIPT LOGGING STATUS
+
+// BEGIN READONLY CONNECTED BUILTIN CAPTURE
+void capture_connected_builtin_snapshot() noexcept {
+  const bool dedicated = game::is_server();
+  zombies::coop::builtin_snapshot::capture_and_write("ezz", dedicated, dedicated ? game::get_base() : 0);
+}
+// END READONLY CONNECTED BUILTIN CAPTURE
 
 void print_script_log(const char *message) {
   game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
@@ -1720,6 +1729,7 @@ struct component final : generic_component {
 
   void post_unpack() override {
     command::add("coopScriptErrorStatus", print_script_logging_status);
+    command::add("coopDumpConnectedPlayersBuiltin", capture_connected_builtin_snapshot);
     // Return custom or overrided scripts if found
     db_find_x_asset_header_hook.create(DB_FindXAssetHeader,
                                        DB_FindXAssetHeader_TryOverride);
@@ -1745,6 +1755,7 @@ struct component final : generic_component {
                                     Scr_FindObjFileInfo_Impl);
     Scr_GetFileAndLineNum_hook.create(Scr_GetFileAndLineNum,
                                       Scr_GetFileAndLineNum_Impl);
+    if (game::is_server() && utils::flags::has_flag("coop-debug")) capture_connected_builtin_snapshot();
   }
 };
 } // namespace script
