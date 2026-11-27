@@ -1,5 +1,7 @@
 #include <std_include.hpp>
 
+#include "scheduler.hpp"
+
 #include <loader/component_loader.hpp>
 
 #include <filesystem>
@@ -38,12 +40,6 @@ struct component final : generic_component {
     log("Loaded " + std::to_string(extensions_.size()) + " plugin(s)");
   }
 
-  ~component() override {
-    log("Unloading " + std::to_string(extensions_.size()) + " plugin(s)...");
-    for (utils::nt::library &lib : extensions_)
-      lib.free();
-  }
-
   void post_load() override {
     for (utils::nt::library &lib : extensions_) {
       try {
@@ -60,6 +56,14 @@ struct component final : generic_component {
       } catch (...) {
       } // Plugin might not have this function
     }
+
+    scheduler::once(
+        [this] {
+          for (const utils::nt::library &lib : extensions_) {
+            lib.invoke<void>("post_start");
+          }
+        },
+        scheduler::pipeline::main);
   }
 
   void pre_destroy() override {
@@ -112,18 +116,13 @@ private:
 
         try {
           utils::nt::library lib = utils::nt::library::load(file.path());
-          const char *plugin_name = nullptr;
-          std::string fallback_name;
-
-          try {
-            plugin_name = lib.invoke<const char *>("p_name");
-          } catch (...) {
-            fallback_name = file.path().filename().string();
-            plugin_name = fallback_name.c_str();
-          }
+          const char *plugin_name = lib.invoke<const char *>("p_name");
+          const std::string name = plugin_name != nullptr
+                                       ? plugin_name
+                                       : file.path().filename().string();
 
           extensions_.push_back(std::move(lib));
-          log("Loaded: " + std::string(plugin_name));
+          log("Loaded: " + name);
         } catch (const std::exception &e) {
           log("Failed to load " + file.path().filename().string() + ": " +
               e.what());
