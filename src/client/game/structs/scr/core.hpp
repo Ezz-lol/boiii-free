@@ -2042,6 +2042,13 @@ PACKED(struct debugFileInfo_t {
   DEF_PAD(34, 4);
   GSC_GDB *gdb;
 
+  alwaysinline void free_gdb() {
+    if (gdb != nullptr) {
+      free(gdb);
+      gdb = nullptr;
+    }
+  }
+
   IMPL_SLICE_METHODS(source, sourceLen);
   IMPL_SLICE_METHODS(lineStartAddr, lineStartAddrCount);
 });

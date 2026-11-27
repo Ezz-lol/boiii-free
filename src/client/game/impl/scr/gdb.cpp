@@ -44,7 +44,7 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info,
   if (gdbSize >= sizeof(GSC_GDB) && header->hasMagic(GSC_GDB::T7_MAGIC) &&
       header->lineinfo_offset <= gdbSize &&
       header->lineinfo_count <=
-          (gdbSize - header->lineinfo_offset) / sizeof(uint64_t) &&
+          (gdbSize - header->lineinfo_offset) / sizeof(uintptr_t) &&
       header->stringtable_offset <= gdbSize) {
     const char *table = header->stringtable();
     const char *const end = reinterpret_cast<const char *>(header) + gdbSize;
@@ -70,49 +70,47 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info,
     if (strings.size() != header->stringtable_count) {
       std::println(std::cerr, "Invalid GDB string table for script '{}'",
                    debug->filename == nullptr ? "<unknown>" : debug->filename);
-      free(debug->gdb);
-      debug->gdb = nullptr;
-      return;
-    }
+      debug->free_gdb();
+    } else {
 
-    /*
-       Convert relative line‑info offsets to absolute addresses.
-       The line‑info table resides at header->lineinfo_offset and must be
-       8‑byte aligned. Each entry is a 32‑bit offset that becomes an
-       absolute pointer into the gdbBuffer.
-    */
-    uint64_t *lineInfo = align(header->lineinfo().data(), sizeof(uint64_t));
+      /*
+         Convert relative line‑info offsets to absolute addresses.
+         The line‑info table resides at header->lineinfo_offset and must be
+         8‑byte aligned. Each entry is a 32‑bit offset that becomes an
+         absolute pointer into the gdbBuffer.
+      */
+      uintptr_t *lineInfo = align(header->lineinfo().data(), sizeof(uintptr_t));
 
-    const uint32_t lineinfoCount = header->lineinfo_count;
+      const uint32_t lineinfoCount = header->lineinfo_count;
 
-    for (uint32_t i = 0; i < lineinfoCount; ++i) {
-      lineInfo[i] += reinterpret_cast<uint64_t>(info->activeVersion);
-    }
-
-    // Store the converted line table and its entry count.
-    debug->lineStartAddr =
-        std::bit_cast<uint8_t **>(lineInfo); // uint64_t* array
-    debug->lineStartAddrCount = static_cast<int32_t>(lineinfoCount);
-
-    // Canonicalise every string in the string table (required for later
-    // lookups).
-    for (const char *name : strings) {
-      const ScrVarCanonicalName_t hash = builtin::fnv1a(name);
-      const char *existing = sl::SL_LookupCanonicalString(hash);
-      if (existing != nullptr && strcmp(existing, name) != 0) {
-        std::println(
-            std::cerr,
-            "Canonical name hash collision in script '{}': '{}' and '{}'",
-            debug->filename == nullptr ? "<unknown>" : debug->filename,
-            existing, name);
-        std::cerr.flush();
+      for (uint32_t i = 0; i < lineinfoCount; ++i) {
+        lineInfo[i] += reinterpret_cast<uintptr_t>(info->activeVersion);
       }
-      sl::SL_GenerateCanonicalString(name);
+
+      // Store the converted line table and its entry count.
+      debug->lineStartAddr =
+          std::bit_cast<uint8_t **>(lineInfo); // uintptr_t* array
+      debug->lineStartAddrCount = static_cast<int32_t>(lineinfoCount);
+
+      // Canonicalise every string in the string table (required for later
+      // lookups).
+      for (const char *name : strings) {
+        const ScrVarCanonicalName_t hash = builtin::fnv1a(name);
+        const char *existing = sl::SL_LookupCanonicalString(hash);
+        if (existing != nullptr && strcmp(existing, name) != 0) {
+          std::println(
+              std::cerr,
+              "Canonical name hash collision in script '{}': '{}' and '{}'",
+              debug->filename == nullptr ? "<unknown>" : debug->filename,
+              existing, name);
+          std::cerr.flush();
+        }
+        sl::SL_GenerateCanonicalString(name);
+      }
     }
   } else {
     // Invalid magic – free the buffer and clear the pointer.
-    free(debug->gdb);
-    debug->gdb = nullptr;
+    debug->free_gdb();
   }
 }
 
@@ -140,8 +138,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
 
       // Build the expected filename inside the ZIP: "<original>.gdb"
       scr_path_t gdbFileName;
-      snprintf(gdbFileName, std::size(gdbFileName), "%s.gdb",
-               info->debugInfo.filename);
+      snformatf(gdbFileName, "{}.gdb", info->debugInfo.filename);
 
       // Normalise backslashes to forward slashes (required by ZIP loader)
       for (char *p = gdbFileName; *p != '\0'; ++p) {
@@ -155,10 +152,10 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
           unzLocateFile(zipFile.GetHandle(), gdbFileName, 0);
       if (locateResult == UNZ_OK) {
         // Retrieve the uncompressed size
-        unz_file_info fileInfo;
-        unzGetCurrentFileInfo(zipFile.GetHandle(), &fileInfo, nullptr, 0,
+        unz_file_info file_info;
+        unzGetCurrentFileInfo(zipFile.GetHandle(), &file_info, nullptr, 0,
                               nullptr, 0, nullptr, 0);
-        const uint32_t fileSize = fileInfo.uncompressed_size;
+        const uint32_t fileSize = file_info.uncompressed_size;
 
         // Allocate memory with malloc – freed later via free()
         void *const rawGdb = malloc(fileSize);
@@ -188,8 +185,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
 
         // Build the virtual path: "all/scriptgdb/<filename>"
         scr_path_t relPath;
-        snprintf(relPath, std::size(relPath), "all/scriptgdb/%s",
-                 info->debugInfo.filename);
+        snformatf(relPath, "all/scriptgdb/{}", info->debugInfo.filename);
 
         scr_path_t fullPath;
         const char *const pubId = ugc::active_mod->publisherId;
@@ -225,7 +221,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
 /// Attempts to read the per‑file GDB first from the global scriptgdb.zip,
 /// then from user‑generated content zones if a mod is active.
 void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
-                        objFileInfo_t *const fileInfo) {
+                        objFileInfo_t *const file_info) {
 
   // Try to load from the global script debug ZIP archive.
   scr_path_t zipPath;
@@ -238,8 +234,7 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
 
     // Build the expected filename inside the ZIP: "<script>.gdb"
     scr_path_t gdbFileName;
-    snprintf(gdbFileName, std::size(gdbFileName), "%s.gdb",
-             fileInfo->debugInfo.filename);
+    snformatf(gdbFileName, "{}.gdb", file_info->debugInfo.filename);
 
     // Normalise backslashes to forward slashes.
     for (char *p = gdbFileName; *p != '\0'; ++p) {
@@ -249,10 +244,10 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
     }
 
     if (unzLocateFile(zipFile.GetHandle(), gdbFileName, 0) == UNZ_OK) {
-      unz_file_info fileInfoZ;
-      unzGetCurrentFileInfo(zipFile.GetHandle(), &fileInfoZ, nullptr, 0,
+      unz_file_info file_infoZ;
+      unzGetCurrentFileInfo(zipFile.GetHandle(), &file_infoZ, nullptr, 0,
                             nullptr, 0, nullptr, 0);
-      const uint32_t fileSize = fileInfoZ.uncompressed_size;
+      const uint32_t fileSize = file_infoZ.uncompressed_size;
 
       void *const rawGdb = malloc(fileSize);
       if (rawGdb != nullptr) {
@@ -261,8 +256,8 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
           unzCloseCurrentFile(zipFile.GetHandle());
         }
 
-        fileInfo->debugInfo.gdb = static_cast<GSC_GDB *>(rawGdb);
-        LoadGDBDataForDebugInfo(fileInfo, fileSize);
+        file_info->debugInfo.gdb = static_cast<GSC_GDB *>(rawGdb);
+        LoadGDBDataForDebugInfo(file_info, fileSize);
       }
     }
   }
@@ -275,8 +270,7 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
 
       // Build the virtual path: "all/scriptgdb/<filename>"
       scr_path_t relPath;
-      snprintf(relPath, std::size(relPath), "all/scriptgdb/%s",
-               fileInfo->debugInfo.filename);
+      snformatf(relPath, "all/scriptgdb/{}", file_info->debugInfo.filename);
 
       scr_path_t fullPath;
       const char *const pubId = ugc::active_mod->publisherId;
@@ -294,8 +288,8 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
           if (buffer != nullptr) {
             file.read(reinterpret_cast<char *>(buffer), fileSize);
             buffer[fileSize] = '\0';
-            fileInfo->debugInfo.gdb = reinterpret_cast<GSC_GDB *>(buffer);
-            LoadGDBDataForDebugInfo(fileInfo, static_cast<size_t>(fileSize));
+            file_info->debugInfo.gdb = reinterpret_cast<GSC_GDB *>(buffer);
+            LoadGDBDataForDebugInfo(file_info, static_cast<size_t>(fileSize));
           }
         }
       }
@@ -328,155 +322,146 @@ objFileInfo_t *Scr_FindObjFileInfo_Impl(const scriptInstance_t inst,
 /// successful, maps the address to a line in the original script file.
 void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
                                 const char **const filename,
-                                int32_t *const lineNum,
-                                const char **const sourceLine) {
+                                int32_t *const line_num,
+                                const char **const source_line) {
   if (filename != nullptr) {
     *filename = "<ERROR>";
   }
-  if (lineNum != nullptr) {
-    *lineNum = -1;
+  if (line_num != nullptr) {
+    *line_num = -1;
   }
-  if (sourceLine != nullptr) {
-    *sourceLine = "";
+  if (source_line != nullptr) {
+    *source_line = "";
   }
 
   // Find the script object containing the given bytecode pointer.
-  objFileInfo_t *fileInfo = Scr_FindObjFileInfo_Impl(inst, pos);
-  if (fileInfo != nullptr) {
+  objFileInfo_t *file_info = Scr_FindObjFileInfo_Impl(inst, pos);
+  if (file_info != nullptr) {
     // Always provide the filename if it exists.
     if (filename != nullptr) {
-      *filename = fileInfo->debugInfo.filename;
+      *filename = file_info->debugInfo.filename;
     }
 
-    if (lineNum != nullptr &&
+    if (line_num != nullptr &&
         (game::is_client() || sv_detailedScriptErrors->get_bool())) {
-      LoadScriptGDB_Impl(inst, fileInfo);
+      LoadScriptGDB_Impl(inst, file_info);
 
-      const int32_t lineAddrCount = fileInfo->debugInfo.lineStartAddrCount;
-      if (lineAddrCount > 0) {
+      const int32_t line_addr_count = file_info->debugInfo.lineStartAddrCount;
+      if (line_addr_count > 0) {
         // The line table contains absolute addresses of the start of each line.
-        uint64_t *const lineTable = reinterpret_cast<uint64_t *const>(
-            fileInfo->debugInfo.lineStartAddr);
-        int32_t lineIdx = 0;
+        uintptr_t *const lineTable = reinterpret_cast<uintptr_t *const>(
+            file_info->debugInfo.lineStartAddr);
+        int32_t line_idx = 0;
 
         // Find the last line with start address <= 'pos'.
-        while (lineIdx < lineAddrCount &&
-               pos > reinterpret_cast<uint8_t *>(lineTable[lineIdx])) {
-          ++lineIdx;
+        while (line_idx < line_addr_count &&
+               pos > reinterpret_cast<uint8_t *>(lineTable[line_idx])) {
+          ++line_idx;
         }
 
         // If we advanced at least once, the previous entry is the desired line.
-        *lineNum = (lineIdx > 0) ? (lineIdx - 1) : -1;
+        *line_num = (line_idx > 0) ? (line_idx - 1) : -1;
       } else {
-        *lineNum = -1;
+        *line_num = -1;
       }
 
       // If a valid line number was found and a source line is requested,
       // extract the corresponding text from the source buffer.
-      if (sourceLine != nullptr && *lineNum >= 0 &&
-          fileInfo->debugInfo.source != nullptr) {
-        char *src = fileInfo->debugInfo.source;
-        const int32_t srcLen = fileInfo->debugInfo.sourceLen;
-        int32_t currentLine = 0;
-        int32_t lineStartOff = 0;
+      if (source_line != nullptr && *line_num >= 0 &&
+          file_info->debugInfo.source != nullptr) {
+        char *src = file_info->debugInfo.source;
+        const int32_t src_len = file_info->debugInfo.sourceLen;
+        int32_t current_line = 0;
+        int32_t line_start_off = 0;
         int32_t offset = 0;
 
         // Lines are separated by null characters in the source buffer.
-        while (offset < srcLen && currentLine < *lineNum) {
+        while (offset < src_len && current_line < *line_num) {
           if (src[offset] == '\0') {
-            ++currentLine;
+            ++current_line;
           }
           ++offset;
-          if (currentLine == *lineNum) {
-            lineStartOff = offset;
+          if (current_line == *line_num) {
+            line_start_off = offset;
           }
         }
 
-        *sourceLine = &src[lineStartOff];
+        *source_line = &src[line_start_off];
       }
 
       // Release the GDB buffer immediately – it is only needed for the
       // lookup.
-      if (fileInfo->debugInfo.gdb != nullptr) {
-        free(fileInfo->debugInfo.gdb);
-        fileInfo->debugInfo.gdb = nullptr;
-      }
+      file_info->debugInfo.free_gdb();
     }
   }
 }
 
 std::vector<int32_t> Scr_GetImportLineNumbers(const scriptInstance_t inst,
                                               const GSC_OBJ *const obj,
-                                              objFileInfo_t *const fileInfo,
+                                              objFileInfo_t *const file_info,
                                               const GSC_IMPORT_ITEM *import) {
   std::vector<int32_t> lines;
-  if (fileInfo == nullptr || obj == nullptr || import == nullptr) {
+  if (file_info == nullptr || obj == nullptr || import == nullptr) {
     return lines;
   }
 
-  LoadScriptGDB(inst, fileInfo);
+  LoadScriptGDB(inst, file_info);
 
-  const int32_t lineAddrCount = fileInfo->debugInfo.lineStartAddrCount;
-  const uint64_t *const lineTable =
-      reinterpret_cast<const uint64_t *>(fileInfo->debugInfo.lineStartAddr);
+  const int32_t line_addr_count = file_info->debugInfo.lineStartAddrCount;
+  const uintptr_t *const lineTable =
+      reinterpret_cast<const uintptr_t *>(file_info->debugInfo.lineStartAddr);
 
-  if (lineAddrCount > 0 && lineTable != nullptr) {
+  if (line_addr_count > 0 && lineTable != nullptr) {
     for (const uint32_t offset : import->addresses()) {
-      const uint64_t pos = reinterpret_cast<uint64_t>(obj) + offset;
-      int32_t lineIdx = 0;
-      while (lineIdx < lineAddrCount && pos > lineTable[lineIdx]) {
-        ++lineIdx;
+      const uintptr_t pos = reinterpret_cast<uintptr_t>(obj) + offset;
+      int32_t line_idx = 0;
+      for (; line_idx < line_addr_count && pos > lineTable[line_idx];
+           ++line_idx) {
       }
-      if (lineIdx > 0 && std::ranges::find(lines, lineIdx) == lines.end()) {
-        lines.push_back(lineIdx);
+      if (line_idx > 0 && std::ranges::find(lines, line_idx) == lines.end()) {
+        lines.push_back(line_idx);
       }
     }
   }
 
-  if (fileInfo->debugInfo.gdb != nullptr) {
-    free(fileInfo->debugInfo.gdb);
-    fileInfo->debugInfo.gdb = nullptr;
-  }
+  file_info->debugInfo.free_gdb();
 
   return lines;
 }
 
 void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
-                             objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
+                             objFileInfo_t *file_info, GSC_IMPORT_ITEM *import,
                              char *errorString, int errorStringLength) {
-  if (fileInfo == nullptr || errorString == nullptr || errorStringLength <= 0) {
-    return;
-  }
+  if (file_info != nullptr && errorString != nullptr && errorStringLength > 0) {
+    const std::vector<int32_t> lines =
+        Scr_GetImportLineNumbers(inst, prime_obj, file_info, import);
 
-  const std::vector<int32_t> lines =
-      Scr_GetImportLineNumbers(inst, prime_obj, fileInfo, import);
-
-  std::string linesBuffer;
-  for (const int32_t line : lines) {
-    if (!linesBuffer.empty()) {
-      linesBuffer += ", ";
+    std::string lines_buffer;
+    if (lines.empty()) {
+      lines_buffer = "?";
+    } else {
+      lines_buffer = resolve_string(lines[0]);
+      for (size_t line_idx = 1; line_idx < lines.size(); ++line_idx) {
+        lines_buffer += std::format(", {}", lines[line_idx]);
+      }
     }
-    linesBuffer += std::to_string(line);
-  }
-  if (linesBuffer.empty()) {
-    linesBuffer = "?";
-  }
 
-  const char *lookupResult = sl::SL_LookupCanonicalString(import->name);
-  const std::string functionName =
-      lookupResult != nullptr && lookupResult[0] != NULL
-          ? lookupResult
-          : std::format("{:X}", import->name);
+    const char *lookupResult = sl::SL_LookupCanonicalString(import->name);
+    const std::string functionName =
+        lookupResult == nullptr || lookupResult[0] == NULL
+            ? std::format("{:X}", import->name)
+            : lookupResult;
 
-  const std::string errorMessage =
-      std::format(" \"{}\" with {} parameters in \"{}\" at {} {} ****\n",
-                  functionName, import->param_count, prime_obj->get_name(),
-                  lines.size() > 1 ? "lines" : "line", linesBuffer);
+    const std::string errorMessage =
+        std::format(" \"{}\" with {} parameters in \"{}\" at {} {} ****\n",
+                    functionName, import->param_count, prime_obj->get_name(),
+                    lines.size() > 1 ? "lines" : "line", lines_buffer);
 
-  const size_t currentLen = std::strlen(errorString);
-  if (currentLen + 1 < static_cast<size_t>(errorStringLength)) {
-    std::strncat(errorString, errorMessage.c_str(),
-                 static_cast<size_t>(errorStringLength) - currentLen - 1);
+    const size_t currentLen = std::strlen(errorString);
+    if (currentLen + 1 < static_cast<size_t>(errorStringLength)) {
+      std::strncat(errorString, errorMessage.c_str(),
+                   static_cast<size_t>(errorStringLength) - currentLen - 1);
+    }
   }
 }
 } // namespace scr

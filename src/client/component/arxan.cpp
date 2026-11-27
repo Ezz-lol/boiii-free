@@ -770,10 +770,10 @@ void dump_executable(const std::string_view &stage) {
     const std::string &base_file_name = exe_basename();
 
     if (successful) {
-      std::println("{} dumped to {} successfully", base_file_name,
+      std::println(std::cout, "{} dumped to {} successfully", base_file_name,
                    output_file_path.string());
     } else {
-      std::println("Failed to dump {} to {}", base_file_name,
+      std::println(std::cout, "Failed to dump {} to {}", base_file_name,
                    output_file_path.string());
     }
   }

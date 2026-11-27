@@ -9,7 +9,7 @@
 #ifndef __optimize
 #if GNUC_OR_CLANG
 #define __optimize __attribute__((hot))
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
 // No equivalent that I can find. Add if found or known otherwise.
 #define __optimize
 #else
@@ -101,10 +101,10 @@ alwaysinline void ir_memory_barrier() {
 #ifndef PUSH_DISABLE_OPTIMIZATION
 #ifdef __clang__
 #define PUSH_DISABLE_OPTIMIZATION() _Pragma("clang optimize off")
-#elif defined(__GNUC__)
+#elifdef __GNUC__
 #define PUSH_DISABLE_OPTIMIZATION()                                            \
   _Pragma("GCC push_options") _Pragma("GCC optimize(\"O0\")")
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
 #define PUSH_DISABLE_OPTIMIZATION() _Pragma("optimize(\"\", off)")
 #endif
 #endif
@@ -112,9 +112,9 @@ alwaysinline void ir_memory_barrier() {
 #ifndef POP_DISABLE_OPTIMIZATION
 #ifdef __clang__
 #define POP_DISABLE_OPTIMIZATION() _Pragma("clang optimize on")
-#elif defined(__GNUC__)
+#elifdef __GNUC__
 #define POP_DISABLE_OPTIMIZATION() _Pragma("GCC pop_options")
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
 #define POP_DISABLE_OPTIMIZATION() _Pragma("optimize(\"\", on)")
 #endif
 #endif

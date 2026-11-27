@@ -6,6 +6,8 @@ namespace detail {
 
 // Helper to check if T is in List...
 template <typename T, typename... List>
+// Lower snake-case is standard for type utilities
+// NOLINTNEXTLINE(readability-identifier-naming)
 inline constexpr bool is_in_v = (std::is_same_v<T, List> || ...);
 
 // Helper to check for duplicate types in a pack
@@ -19,6 +21,8 @@ struct has_duplicates<T, Rest...>
                          has_duplicates<Rest...>::value> {};
 
 template <typename... TPack>
+// Lower snake-case is standard for type utilities
+// NOLINTNEXTLINE(readability-identifier-naming)
 inline constexpr bool has_duplicates_v = has_duplicates<TPack...>::value;
 
 // Helper to check if all types in a pack are identical
@@ -34,6 +38,8 @@ struct all_same<T1, T2, Rest...>
                          all_same<T2, Rest...>::value> {};
 
 template <typename... TPack>
+// Lower snake-case is standard for type utilities
+// NOLINTNEXTLINE(readability-identifier-naming)
 inline constexpr bool all_same_v = all_same<TPack...>::value;
 
 } // namespace detail
@@ -41,49 +47,81 @@ inline constexpr bool all_same_v = all_same<TPack...>::value;
 template <typename... Ts> struct AnyOf {
   // Any of the left-hand types in the right-hand list
   template <typename... List>
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool In = (... || detail::is_in_v<Ts, List...>);
 
   // None of the left-hand types in the right-hand list
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   template <typename... List> static constexpr bool NotIn = !In<List...>;
 
   // Set properties
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Equal = detail::has_duplicates_v<Ts...>;
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Inequal = !detail::all_same_v<Ts...>;
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Unique = !Equal;
 
   // Checks if any type in Ts... satisfies a trait/concept template.
   template <template <typename...> class Pred, typename... Extra>
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Satisfying = (... || Pred<Ts, Extra...>::value);
 };
 
 template <typename... Ts> struct AllOf {
   template <typename... List>
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool In = (... && detail::is_in_v<Ts, List...>);
 
   template <typename... List>
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool NotIn = (... && !detail::is_in_v<Ts, List...>);
-
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Equal = detail::has_duplicates_v<Ts...>;
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Inequal = !detail::all_same_v<Ts...>;
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Unique = !Equal;
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Homogeneous = detail::all_same_v<Ts...>;
 
   template <template <typename...> class Pred, typename... Extra>
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Satisfying = (... && Pred<Ts, Extra...>::value);
 };
 
-// ============================================================================
-// NoneOf: Negative quantification (No types match)
-// ============================================================================
 template <typename... Ts> struct NoneOf {
   template <typename... List>
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool In = (... && !detail::is_in_v<Ts, List...>);
 
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Equal = detail::has_duplicates_v<Ts...>;
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Inequal = !detail::all_same_v<Ts...>;
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Unique = !Equal;
 
   template <template <typename...> class Pred, typename... Extra>
+  // Purposefully upper camelcase for `concept`-like usage
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr bool Satisfying = (... && !Pred<Ts, Extra...>::value);
 };
 

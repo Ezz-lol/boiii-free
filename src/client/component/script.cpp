@@ -1623,7 +1623,7 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
     std::string prev_code_positions_string{};
     if (!callstack.empty()) {
       prev_code_positions_string = std::format("[0] {}", callstack[0]);
-      for (size_t i = 0; i < callstack.size(); ++i) {
+      for (size_t i = 1; i < callstack.size(); ++i) {
         prev_code_positions_string += std::format("\n[{}] {}", i, callstack[i]);
       }
     }

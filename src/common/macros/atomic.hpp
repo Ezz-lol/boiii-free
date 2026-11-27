@@ -26,7 +26,7 @@ template <UnderlyingAtomicIntegral T>
 alwaysinline void atomic_store(volatile T *ptr, T desired) {
 #ifdef GNUC_OR_CLANG
   __atomic_store_n(ptr, desired, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   if constexpr (sizeof(T) == 1) {
     _InterlockedExchange8(reinterpret_cast<char volatile *>(ptr),
                           static_cast<char>(desired));
@@ -50,7 +50,7 @@ alwaysinline T atomic_inc(volatile T *ptr) {
   constexpr T ONE = 1;
 #ifdef GNUC_OR_CLANG
   return __atomic_add_fetch(ptr, ONE, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   if constexpr (sizeof(T) == 1) {
     return static_cast<T>(
         _InterlockedExchangeAdd8(reinterpret_cast<char volatile *>(ptr), 1) +
@@ -75,7 +75,7 @@ alwaysinline T atomic_dec(volatile T *ptr) {
   constexpr T ONE = 1;
 #ifdef GNUC_OR_CLANG
   return __atomic_sub_fetch(ptr, ONE, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   if constexpr (sizeof(T) == 1) {
     return static_cast<T>(
         _InterlockedExchangeAdd8(reinterpret_cast<char volatile *>(ptr), -1) -
@@ -99,7 +99,7 @@ template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_add(volatile T *ptr, T value) {
 #ifdef GNUC_OR_CLANG
   return __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   if constexpr (sizeof(T) == 1) {
     return static_cast<T>(
         _InterlockedExchangeAdd8(reinterpret_cast<char volatile *>(ptr),
@@ -130,7 +130,7 @@ template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_sub(volatile T *ptr, T value) {
 #ifdef GNUC_OR_CLANG
   return __atomic_sub_fetch(ptr, value, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   if constexpr (sizeof(T) == 1) {
     return static_cast<T>(
         _InterlockedExchangeAdd8(reinterpret_cast<char volatile *>(ptr),
@@ -163,7 +163,7 @@ alwaysinline bool atomic_compare_exchange(volatile T *ptr, T *expected,
 #ifdef GNUC_OR_CLANG
   return __atomic_compare_exchange_n(ptr, expected, desired, false,
                                      __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   T cmp = *expected;
   T prev = 0;
   if constexpr (sizeof(T) == 1) {
@@ -203,7 +203,7 @@ template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_and(volatile T *ptr, T value) {
 #ifdef GNUC_OR_CLANG
   return __atomic_and_fetch(ptr, value, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   if constexpr (sizeof(T) == 1) {
     char old = _InterlockedAnd8(reinterpret_cast<char volatile *>(ptr),
                                 static_cast<char>(value));
@@ -230,7 +230,7 @@ template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_or(volatile T *ptr, T value) {
 #ifdef GNUC_OR_CLANG
   return __atomic_or_fetch(ptr, value, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   if constexpr (sizeof(T) == 1) {
     char old = _InterlockedOr8(reinterpret_cast<char volatile *>(ptr),
                                static_cast<char>(value));
@@ -257,7 +257,7 @@ template <UnderlyingAtomicIntegral T>
 alwaysinline T atomic_xor(volatile T *ptr, T value) {
 #ifdef GNUC_OR_CLANG
   return __atomic_xor_fetch(ptr, value, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   if constexpr (sizeof(T) == 1) {
     char old = _InterlockedXor8(reinterpret_cast<char volatile *>(ptr),
                                 static_cast<char>(value));
@@ -286,7 +286,7 @@ alwaysinline T atomic_xor(volatile T *ptr, T value) {
 alwaysinline bool atomic_toggle(volatile bool *ptr) {
 #ifdef GNUC_OR_CLANG
   return __atomic_xor_fetch(ptr, true, __ATOMIC_SEQ_CST);
-#elif defined(MSC)
+#elifdef MSC
   // _InterlockedXor8 returns the old value; XOR with 1 and invert to get the
   // new boolean value.
   return static_cast<bool>(

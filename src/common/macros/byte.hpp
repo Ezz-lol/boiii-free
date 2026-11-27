@@ -8,7 +8,7 @@
 inline constexpr uint64_t byteswap(uint64_t val) {
 #if defined(__GNUC__) || defined(__clang__)
   return __builtin_bswap64(val);
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
   return _byteswap_uint64(val);
 #else
   // Fallback if compiler is unknown
@@ -33,7 +33,7 @@ inline constexpr T byteswap(T val) {
 inline constexpr uint32_t byteswap(uint32_t val) {
 #if defined(__GNUC__) || defined(__clang__)
   return __builtin_bswap32(val);
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
   return _byteswap_ulong(val);
 #else
   // Fallback if compiler is unknown
@@ -52,7 +52,7 @@ inline constexpr T byteswap(T val) {
 inline constexpr uint16_t byteswap(uint16_t val) {
 #if defined(__GNUC__) || defined(__clang__)
   return __builtin_bswap16(val);
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
   return _byteswap_ushort(val);
 #else
   // Fallback if compiler is unknown

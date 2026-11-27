@@ -318,30 +318,29 @@ void start_hot_reload(const std::string &path) {
 namespace {
 
 void stop_hot_reload() {
-  if (!hot_reload_running.load(std::memory_order_acquire)) {
+  if (hot_reload_running.load(std::memory_order_acquire)) {
+    hot_reload_running.store(false, std::memory_order_release);
+    hot_reload_files.clear();
+    hot_reload_path.clear();
+
+    // Remove the Lua timer
+    const std::string lua_code =
+        "pcall(function() "
+        "local UIRootFull = LUI.roots.UIRootFull; "
+        "if UIRootFull.HotReloadTimer then "
+        "UIRootFull:removeElement(UIRootFull.HotReloadTimer); "
+        "UIRootFull.HotReloadTimer = nil end; "
+        "end)";
+    execute_raw_lua(lua_code, "HotReloadTimerStop");
+
+    game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                          game::consoleLabel_e::DEFAULT,
+                          "^2Hot Reload: Stopped watching.\n");
+  } else {
     game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                           game::consoleLabel_e::DEFAULT,
                           "^3Hot Reload: Not currently watching.\n");
-    return;
   }
-
-  hot_reload_running.store(false, std::memory_order_release);
-  hot_reload_files.clear();
-  hot_reload_path.clear();
-
-  // Remove the Lua timer
-  const std::string lua_code =
-      "pcall(function() "
-      "local UIRootFull = LUI.roots.UIRootFull; "
-      "if UIRootFull.HotReloadTimer then "
-      "UIRootFull:removeElement(UIRootFull.HotReloadTimer); "
-      "UIRootFull.HotReloadTimer = nil end; "
-      "end)";
-  execute_raw_lua(lua_code, "HotReloadTimerStop");
-
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT,
-                        "^2Hot Reload: Stopped watching.\n");
 }
 
 bool is_loaded_script(const std::string &name) {
@@ -349,11 +348,9 @@ bool is_loaded_script(const std::string &name) {
 }
 
 bool is_local_script(const std::string &name) {
-  if (globals.local_scripts.contains(name))
-    return true;
-  if (!name.ends_with(".lua") && globals.local_scripts.contains(name + ".lua"))
-    return true;
-  return false;
+  return globals.local_scripts.contains(name) ||
+         (!name.ends_with(".lua") &&
+          globals.local_scripts.contains(name + ".lua"));
 }
 
 std::string get_root_script(const std::string &name) {
@@ -375,7 +372,7 @@ const char *get_hks_type_name(const HksObjectType type) {
   }
 
   const char *name = s_compilerTypeName->pool[index];
-  return name ? name : "unknown";
+  return name == nullptr ? "unknown" : name;
 }
 
 bool try_stringify_with_lua(const script_value &value, std::string &out) {
@@ -447,7 +444,7 @@ arguments lua_print(variadic_args args) {
 
   for (const std::string_view &blacklisted_contents :
        BLACKLISTED_LUA_PRINT_CONTENTS) {
-    if (message.find(blacklisted_contents) != std::string::npos) {
+    if (message.contains(blacklisted_contents)) {
       return {};
     }
   }
@@ -474,12 +471,11 @@ void print_error(const std::string &error) {
                         "^1**********************************************\n");
 
   if (game::com::Com_IsRunningUILevel()) {
-    const std::string popup_msg = error;
     scheduler::once(
-        [popup_msg] {
+        [error] {
           if (game::com::Com_IsRunningUILevel()) {
-            UI_OpenErrorPopupWithMessage(
-                game::LOCAL_CLIENT_0, game::errorCode::UI, popup_msg.c_str());
+            UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
+                                         game::errorCode::UI, error.c_str());
           }
         },
         scheduler::pipeline::main, 1s);
@@ -487,7 +483,7 @@ void print_error(const std::string &error) {
 }
 
 void print_loading_script(const std::string_view &name) {
-  std::println("Loading LUI script '{}'", name.data());
+  std::println(std::cout, "Loading LUI script '{}'", name.data());
   game::trace("Loading LUI script '{}'", name);
 }
 
@@ -504,7 +500,7 @@ int load_buffer(const std::string &name, const std::string &data) {
       state->m_global->m_bytecodeSharingMode;
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
 
-  auto _0 = gsl_lite::finally([state, sharing_mode] {
+  auto _ = gsl_lite::finally([state, sharing_mode] {
     state->m_global->m_bytecodeSharingMode = sharing_mode;
   });
 
@@ -563,25 +559,23 @@ void load_local_script_files(const std::string &script_dir) {
 }
 
 void load_scripts(const std::string &script_dir) {
-  if (!utils::io::directory_exists(script_dir)) {
-    return;
-  }
+  if (utils::io::directory_exists(script_dir)) {
+    load_local_script_files(script_dir);
 
-  load_local_script_files(script_dir);
+    const std::vector<std::filesystem::path> scripts =
+        utils::io::list_files(script_dir);
 
-  const std::vector<std::filesystem::path> scripts =
-      utils::io::list_files(script_dir);
-
-  for (const std::filesystem::path &script : scripts) {
-    std::string data;
-    const std::string script_file = script.generic_string();
-    if (std::filesystem::is_directory(script) &&
-        utils::io::read_file(script_file + "/__init__.lua", &data)) {
-      print_loading_script(script_file);
-      const std::string full_path = script_file + "/__init__.lua";
-      const std::string display_name =
-          script.filename().generic_string() + "/__init__.lua";
-      load_script(full_path, data, display_name);
+    for (const std::filesystem::path &script : scripts) {
+      std::string data;
+      const std::string script_file = script.generic_string();
+      if (std::filesystem::is_directory(script) &&
+          utils::io::read_file(script_file + "/__init__.lua", &data)) {
+        print_loading_script(script_file);
+        const std::string full_path = script_file + "/__init__.lua";
+        const std::string display_name =
+            script.filename().generic_string() + "/__init__.lua";
+        load_script(full_path, data, display_name);
+      }
     }
   }
 }
@@ -597,7 +591,7 @@ void enable_globals() {
 
   lua_State *state = *primary_luaVM;
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
-  const arguments _f = lua["loadstring"](code)[0]();
+  lua["loadstring"](code)[0]();
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::SECURE;
 }
 
@@ -638,7 +632,7 @@ constexpr frozen::unordered_set<frozen::string,
             KNOWN_MALICIOUS_MODS_ARRAY);
 
 inline bool malicious_mod_loaded() {
-  if (!active_mod->publisherId[0]) {
+  if (active_mod->publisherId[0] == NULL) {
     return false;
   }
   std::vector<std::string> mods = mod_stack::get(active_mod->publisherId);
@@ -672,7 +666,7 @@ void setup_lua_globals() {
   lua["T7Overcharged"] = true;
 }
 
-void register_t7overcharged_dvars() {
+void register_t7recharged_dvars() {
   game::register_dvar_float("t7o_strafe_speed_scale", 1.0f, 0.0f, 10.0f,
                             game::dvarFlags_e::NONE, "Strafe speed scale");
   game::register_dvar_bool("t7o_omnimovement", false, game::dvarFlags_e::NONE,
@@ -685,46 +679,42 @@ void register_t7overcharged_dvars() {
 void start() {
   setup_lua_globals();
 
-  if (!load_ui_scripts()) {
-    return;
+  if (load_ui_scripts()) {
+    const utils::nt::library host{};
+    const char *folder = game::is_server() ? "lobby_scripts/" : "ui_scripts/";
+    load_scripts((game::get_data_path() / folder).string());
+    load_scripts((game::get_boiii_dir_path() / folder).string());
   }
-
-  const utils::nt::library host{};
-  const char *folder = game::is_server() ? "lobby_scripts/" : "ui_scripts/";
-  load_scripts((game::get_data_path() / folder).string());
-  load_scripts((game::get_boiii_dir_path() / folder).string());
 }
 
 void try_start() {
   try {
     start();
   } catch (const std::exception &ex) {
-    std::println("Failed to load LUI scripts: {}", ex.what());
+    std::println(std::cout, "Failed to load LUI scripts: {}", ex.what());
   }
 }
 
 void reload_private_game_menu_scripts() {
-  if (!load_ui_scripts()) {
-    return;
-  }
+  if (load_ui_scripts()) {
+    const utils::nt::library host{};
+    const std::filesystem::path roots[] = {
+        game::get_data_path() / "ui_scripts",
+        host.get_folder() / "boiii/ui_scripts",
+    };
+    const char *files[] = {
+        "party/datasources_start_menu_game_options.lua",
+        "party/__init__.lua",
+    };
 
-  const utils::nt::library host{};
-  const std::filesystem::path roots[] = {
-      game::get_data_path() / "ui_scripts",
-      host.get_folder() / "boiii/ui_scripts",
-  };
-  const char *files[] = {
-      "party/datasources_start_menu_game_options.lua",
-      "party/__init__.lua",
-  };
-
-  for (const char *file : files) {
-    for (const std::filesystem::path &root : roots) {
-      const std::filesystem::path path = root / file;
-      std::string data;
-      if (utils::io::read_file(path.string(), &data)) {
-        load_script(path.generic_string(), data, file);
-        break;
+    for (const char *file : files) {
+      for (const std::filesystem::path &root : roots) {
+        const std::filesystem::path path = root / file;
+        std::string data;
+        if (utils::io::read_file(path.string(), &data)) {
+          load_script(path.generic_string(), data, file);
+          break;
+        }
       }
     }
   }
@@ -829,7 +819,8 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
       try {
         reload_private_game_menu_scripts();
       } catch (const std::exception &ex) {
-        std::println("Failed to reload private-game menu scripts: {}",
+        std::println(std::cout,
+                     "Failed to reload private-game menu scripts: {}",
                      ex.what());
       }
     }
@@ -1749,7 +1740,7 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
   const std::string log = std::format("[Lua] Not loading \"{}\" ({}): {}",     \
                                       filename ? filename : "NULL",            \
                                       func_name ? func_name : "NULL", reason); \
-  std::println("{}", log);                                                     \
+  std::println(std::cout, "{}", log);                                          \
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,           \
                         game::consoleLabel_e::DEFAULT, "%s\n", log.c_str());   \
   lua_pushfunction(s, lua_stub_func, func_name);                               \
@@ -2706,7 +2697,7 @@ public:
                                  Lua_CoD_FFReader_EnforceOverride);
     utils::hook::call(game::select(0x141D3CD0A, 0x1403F233A), hks_load_stub);
     load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
-    scheduler::once(register_t7overcharged_dvars, scheduler::pipeline::main);
+    scheduler::once(register_t7recharged_dvars, scheduler::pipeline::main);
 
     hks_package_require_hook.create(package_require.get(),
                                     hks_package_require_stub);

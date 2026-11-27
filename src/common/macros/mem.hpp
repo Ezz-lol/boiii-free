@@ -7,13 +7,14 @@
 #include <span>
 #include <type_traits>
 
+#include "macros/builtin.hpp"
 #include "macros/optimization.hpp"
 #include "macros/type/integral.hpp"
 
 #ifndef INTRINSIC_MEMSET
 #if defined(__clang__) || defined(__GNUC__)
 #define INTRINSIC_MEMSET(buf, val, count) __builtin_memset(buf, val, count)
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
 #pragma intrinsic(memset)
 #define INTRINSIC_MEMSET(buf, val, count) memset(buf, val, count)
 #else
@@ -24,7 +25,7 @@
 #ifndef INTRINSIC_MEMCPY
 #if defined(__clang__) || defined(__GNUC__)
 #define INTRINSIC_MEMCPY(buf, src, count) __builtin_memcpy(buf, src, count)
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
 #pragma intrinsic(memcpy)
 #define INTRINSIC_MEMCPY(buf, src, count) memcpy(buf, src, count)
 #else
@@ -35,7 +36,7 @@
 #ifndef INTRINSIC_MEMCMP
 #if defined(__clang__) || defined(__GNUC__)
 #define INTRINSIC_MEMCMP(lhs, rhs, count) __builtin_memcmp(lhs, rhs, count)
-#elif defined(_MSC_VER)
+#elifdef _MSC_VER
 #pragma intrinsic(memcmp)
 #define INTRINSIC_MEMCMP(lhs, rhs, count) memcmp(lhs, rhs, count)
 #else
@@ -49,14 +50,13 @@
  */
 template <typename Out, typename In>
   requires(std::is_pointer_v<In> && std::is_pointer_v<Out>)
-inline constexpr Out constexpr_ptr_cast(const In in) {
+alwaysinline constexpr Out constexpr_ptr_cast(const In in) {
   using stripped_in_t =
       std::add_pointer_t<std::remove_cv_t<std::remove_pointer_t<In>>>;
   if (std::is_constant_evaluated()) {
     return std::bit_cast<Out>(const_cast<stripped_in_t>(in));
-  } else {
-    return reinterpret_cast<Out>(const_cast<stripped_in_t>(in));
   }
+  return reinterpret_cast<Out>(const_cast<stripped_in_t>(in));
 }
 
 /**
@@ -64,8 +64,8 @@ inline constexpr Out constexpr_ptr_cast(const In in) {
  * compile-time and runtime evaluation.
  */
 template <typename T, IntegralLike<uint8_t> Val, IntegralLike<size_t> Size>
-inline constexpr T *constexpr_memset(T *dst_arg, Val val_arg,
-                                     Size count) noexcept {
+alwaysinline constexpr T *constexpr_memset(T *dst_arg, Val val_arg,
+                                           Size count) noexcept {
   const uint8_t val = static_cast<uint8_t>(val_arg);
   const size_t n = static_cast<size_t>(count);
   uint8_t *dst = constexpr_ptr_cast<uint8_t *>(dst_arg);
@@ -87,8 +87,8 @@ inline constexpr T *constexpr_memset(T *dst_arg, Val val_arg,
  * compile-time and runtime evaluation.
  */
 template <typename T, size_t Extent, IntegralLike<uint8_t> Val>
-inline constexpr std::span<T, Extent> constexpr_memset(std::span<T, Extent> dst,
-                                                       Val val_arg) noexcept {
+alwaysinline constexpr std::span<T, Extent>
+constexpr_memset(std::span<T, Extent> dst, Val val_arg) noexcept {
   constexpr_memset(dst.data(), val_arg, dst.size_bytes());
   return dst;
 }
@@ -97,16 +97,17 @@ inline constexpr std::span<T, Extent> constexpr_memset(std::span<T, Extent> dst,
  * @brief Fills a C-style array with a specified byte value.
  */
 template <typename T, const size_t Extent, IntegralLike<uint8_t> Val>
-inline constexpr T (&constexpr_memset(T (&dst)[Extent], Val val_arg)) [Extent] {
-  constexpr_memset(std::span<T, Extent>(dst, Extent), val_arg);
-  return dst;
-}
+alwaysinline constexpr T (&constexpr_memset(T (&dst)[Extent], Val val_arg))
+    [Extent] {
+      constexpr_memset(std::span<T, Extent>(dst, Extent), val_arg);
+      return dst;
+    }
 
 /**
  * @brief Fills an std::array object with a specified byte value.
  */
 template <typename T, const size_t Extent, IntegralLike<uint8_t> Val>
-inline constexpr std::array<T, Extent> &constexpr_memset(
+alwaysinline constexpr std::array<T, Extent> &constexpr_memset(
     std::array<T, Extent> &dst, Val val_arg) noexcept {
   constexpr_memset(std::span<T, Extent>(dst.data(), Extent), val_arg);
   return dst;
@@ -117,8 +118,8 @@ inline constexpr std::array<T, Extent> &constexpr_memset(
  * compile-time and runtime evaluation.
  */
 template <typename D, typename S, IntegralLike<size_t> Size>
-inline constexpr D *constexpr_memcpy(D *dst_arg, const S *src_arg,
-                                     Size count) noexcept {
+alwaysinline constexpr D *constexpr_memcpy(D *dst_arg, const S *src_arg,
+                                           Size count) noexcept {
   const size_t n = static_cast<size_t>(count);
   uint8_t *dst = constexpr_ptr_cast<uint8_t *>(dst_arg);
   const uint8_t *src = constexpr_ptr_cast<const uint8_t *>(src_arg);
@@ -141,13 +142,13 @@ inline constexpr D *constexpr_memcpy(D *dst_arg, const S *src_arg,
  * static and dynamic extents.
  */
 template <typename T, size_t ExtentDst, size_t ExtentSrc>
-inline constexpr std::span<T, ExtentDst>
+alwaysinline constexpr std::span<T, ExtentDst>
 constexpr_memcpy(std::span<T, ExtentDst> dst,
                  std::span<const T, ExtentSrc> src) noexcept {
   if (std::is_constant_evaluated()) {
-    constexpr size_t Count = std::min<size_t>(ExtentDst, ExtentSrc);
+    constexpr size_t COUNT = std::min<size_t>(ExtentDst, ExtentSrc);
     UNROLL_NEXT_LOOP
-    for (size_t i = 0; i < Count; ++i) {
+    for (size_t i = 0; i < COUNT; ++i) {
       dst[i] = src[i];
     }
   } else {
@@ -163,18 +164,19 @@ constexpr_memcpy(std::span<T, ExtentDst> dst,
  * @brief Copies data between two C-style arrays.
  */
 template <typename T, const size_t ExtentDst, const size_t ExtentSrc>
-inline constexpr T (&constexpr_memcpy(T (&dst)[ExtentDst],
-                                      const T (&src)[ExtentSrc])) [ExtentDst] {
-  constexpr_memcpy(std::span<T, ExtentDst>(dst, ExtentDst),
-                   std::span<const T, ExtentSrc>(src, ExtentSrc));
-  return dst;
-}
+alwaysinline constexpr T (&constexpr_memcpy(T (&dst)[ExtentDst],
+                                            const T (&src)[ExtentSrc]))
+    [ExtentDst] {
+      constexpr_memcpy(std::span<T, ExtentDst>(dst, ExtentDst),
+                       std::span<const T, ExtentSrc>(src, ExtentSrc));
+      return dst;
+    }
 
 /**
  * @brief Copies data between two std::array objects.
  */
 template <typename T, const size_t ExtentDst, const size_t ExtentSrc>
-inline constexpr std::array<T, ExtentDst> &constexpr_memcpy(
+alwaysinline constexpr std::array<T, ExtentDst> &constexpr_memcpy(
     std::array<T, ExtentDst> &dst,
     const std::array<T, ExtentSrc> &src) noexcept {
   constexpr_memcpy(std::span<T, ExtentDst>(dst.data(), ExtentDst),
@@ -187,8 +189,8 @@ inline constexpr std::array<T, ExtentDst> &constexpr_memcpy(
  * compile-time and runtime evaluation.
  */
 template <typename L, typename R, IntegralLike<size_t> Size>
-inline constexpr int32_t constexpr_memcmp(const L *lhs_arg, const R *rhs_arg,
-                                          Size count) noexcept {
+alwaysinline constexpr int32_t
+constexpr_memcmp(const L *lhs_arg, const R *rhs_arg, Size count) noexcept {
   const size_t n = static_cast<size_t>(count);
   const uint8_t *lhs = constexpr_ptr_cast<const uint8_t *>(lhs_arg);
   const uint8_t *rhs = constexpr_ptr_cast<const uint8_t *>(rhs_arg);
@@ -213,13 +215,13 @@ inline constexpr int32_t constexpr_memcmp(const L *lhs_arg, const R *rhs_arg,
  * static and dynamic extents.
  */
 template <typename T, size_t ExtentLhs, size_t ExtentRhs>
-inline constexpr int32_t
+alwaysinline constexpr int32_t
 constexpr_memcmp(std::span<const T, ExtentLhs> lhs,
                  std::span<const T, ExtentRhs> rhs) noexcept {
   if (std::is_constant_evaluated()) {
-    constexpr size_t Count = std::min<size_t>(ExtentLhs, ExtentRhs);
+    constexpr size_t COUNT = std::min<size_t>(ExtentLhs, ExtentRhs);
     UNROLL_NEXT_LOOP
-    for (size_t i = 0; i < Count; ++i) {
+    for (size_t i = 0; i < COUNT; ++i) {
       if (lhs[i] != rhs[i]) {
         return static_cast<int32_t>(lhs[i]) - static_cast<int32_t>(rhs[i]);
       }
@@ -237,8 +239,9 @@ constexpr_memcmp(std::span<const T, ExtentLhs> lhs,
  * @brief Compares data between two C-style arrays.
  */
 template <typename T, const size_t ExtentLhs, const size_t ExtentRhs>
-inline constexpr int constexpr_memcmp(const T (&lhs)[ExtentLhs],
-                                      const T (&rhs)[ExtentRhs]) noexcept {
+alwaysinline constexpr int
+constexpr_memcmp(const T (&lhs)[ExtentLhs],
+                 const T (&rhs)[ExtentRhs]) noexcept {
   return constexpr_memcmp(std::span<const T, ExtentLhs>(lhs, ExtentLhs),
                           std::span<const T, ExtentRhs>(rhs, ExtentRhs));
 }
@@ -247,7 +250,7 @@ inline constexpr int constexpr_memcmp(const T (&lhs)[ExtentLhs],
  * @brief Compares data between two std::array objects.
  */
 template <typename T, const size_t ExtentLhs, const size_t ExtentRhs>
-inline constexpr int
+alwaysinline constexpr int
 constexpr_memcmp(const std::array<T, ExtentLhs> &lhs,
                  const std::array<T, ExtentRhs> &rhs) noexcept {
   return constexpr_memcmp(std::span<const T, ExtentLhs>(lhs.data(), ExtentLhs),
@@ -259,6 +262,8 @@ constexpr_memcmp(const std::array<T, ExtentLhs> &lhs,
  * time based purely on their types.
  */
 template <typename B, typename... Args>
+// Lower snake-case is standard for type utilities
+// NOLINTNEXTLINE(readability-identifier-naming)
 constexpr size_t concatenated_bytes_len_v = []() {
   return ((std::is_array_v<std::remove_cvref_t<Args>>
                ? std::extent_v<std::remove_cvref_t<Args>>
@@ -283,10 +288,10 @@ concat_bytes(Args &&...args) {
   auto append = [&result, &offset]<typename T>(T &&arg) {
     using Decayed = std::remove_cvref_t<T>;
     if constexpr (std::is_array_v<Decayed>) {
-      constexpr size_t extent = std::extent_v<Decayed>;
+      constexpr size_t EXTENT = std::extent_v<Decayed>;
       [&result, &offset, &arg]<size_t... Is>(std::index_sequence<Is...>) {
         ((result[offset++] = static_cast<B>(arg[Is])), ...);
-      }(std::make_index_sequence<extent>{});
+      }(std::make_index_sequence<EXTENT>{});
     } else {
       result[offset++] = static_cast<B>(arg);
     }

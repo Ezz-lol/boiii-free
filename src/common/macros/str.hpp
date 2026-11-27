@@ -1,7 +1,10 @@
 #pragma once
 
 #include "macros/builtin.hpp"
+#include "macros/type/core.hpp"
 #include "macros/type/set.hpp"
+
+#include <format>
 #include <string>
 
 template <typename T>
@@ -92,4 +95,101 @@ template <StringLike T> char *stringlike_data(T &str) {
   } else {
     return str.data();
   }
+}
+
+template <typename T>
+concept CStrLike =
+    std::is_pointer_v<std::remove_cvref_t<T>> &&
+    std::is_same_v<
+        std::remove_cv_t<std::remove_pointer_t<std::remove_cvref_t<T>>>, char>;
+
+template <typename T>
+concept ToStringable = requires(const T &val) {
+  { std::to_string(val) } -> std::convertible_to<std::string>;
+};
+
+// e.g. std::bitset<N>::to_string()
+template <typename T>
+concept HasToStringMethod = requires(const T &val) {
+  { val.to_string() } -> std::convertible_to<std::string>;
+};
+
+template <typename T>
+concept DefaultFormattable = std::formattable<T, char>;
+
+template <typename T>
+concept ImplicitlyStringConvertible = std::is_convertible_v<T, std::string>;
+
+template <typename T>
+concept ExplicitlyStringConvertible = std::is_constructible_v<std::string, T>;
+
+template <typename T>
+concept StringConvertible =
+    IsString<T> || ImplicitlyStringConvertible<T> ||
+    ExplicitlyStringConvertible<T> || ToStringable<T> ||
+    DefaultFormattable<T> || CStrLike<T> || IsFilesystemPath<T> || IsEnum<T> ||
+    HasToStringMethod<T> || IsByte<T> || IsException<T>;
+
+template <StringConvertible T>
+[[nodiscard]] alwaysinline std::string resolve_string(const T &val) {
+  if constexpr (IsString<T> || ImplicitlyStringConvertible<T>) {
+    return val;
+  } else if constexpr (IsFilesystemPath<T>) {
+    return val.string();
+  } else if constexpr (IsEnum<T>) {
+    return resolve_string(std::to_underlying(val));
+  } else if constexpr (IsByte<T>) {
+    return resolve_string(std::to_integer<uint32_t>(val));
+  } else if constexpr (IsException<T>) {
+    return val.what();
+  } else if constexpr (HasToStringMethod<T>) {
+    return val.to_string();
+  } else if constexpr (ExplicitlyStringConvertible<T>) {
+    return std::string(val);
+  } else if constexpr (DefaultFormattable<T>) {
+    return std::format("{}", val);
+  } else if constexpr (ToStringable<T>) {
+    return std::to_string(val);
+  } else {
+    static_assert(false,
+                  "resolve_string: no conversion branch matched — this is a "
+                  "StringConvertible concept/branch mismatch");
+    std::unreachable();
+  }
+}
+
+template <typename T>
+  requires(std::is_pointer_v<std::remove_cvref_t<T>> && !StringConvertible<T> &&
+           StringConvertible<
+               std::remove_cv_t<std::remove_pointer_t<std::remove_cvref_t<T>>>>)
+[[nodiscard]] alwaysinline std::string resolve_string(const T &val) {
+  return resolve_string(*val);
+}
+
+// Wrapper of `std::format_to_n` that NUL-termintes the formatted string, just
+// as `snprintf` does.
+template <std::output_iterator<char> Out, class... Args>
+alwaysinline constexpr std::format_to_n_result<Out>
+snformatf(Out out, std::iter_difference_t<Out> n,
+          std::format_string<Args...> fmt, Args &&...args) {
+  if (n <= 0) {
+    return std::format_to_n_result<Out>{out, 0};
+  }
+
+  const std::iter_difference_t<Out> max_chars =
+      static_cast<std::iter_difference_t<Out>>(n - 1);
+  std::format_to_n_result<Out> result =
+      std::format_to_n(out, max_chars, fmt, std::forward<Args>(args)...);
+  *result.out = '\0';
+  ++result.out;
+  result.size = std::formatted_size(fmt, std::forward<Args>(args)...);
+  return result;
+}
+
+template <std::size_t N, class... Args>
+alwaysinline constexpr std::format_to_n_result<char *>
+snformatf(char (&out)[N], std::format_string<Args...> fmt, Args &&...args) {
+  return snformatf(out,
+                   static_cast<std::iter_difference_t<char *>>(std::size(out)),
+                   fmt, std::forward<Args>(args)...);
 }

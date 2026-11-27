@@ -94,7 +94,7 @@ resolved_frame resolve_address(void *addr) {
     frame.rva = frame.address - frame.module_base;
 
     if (frame.module_name == "BlackOps3.exe")
-      frame.rva += 0x140000000;
+      frame.rva += game::ENGINE_MODULE_BASE;
   } else {
     frame.module_name = "unknown";
     frame.rva = frame.address;
@@ -112,7 +112,7 @@ resolved_frame resolve_address(void *addr) {
   if (SymFromAddr(GetCurrentProcess(), frame.address, &displacement, sym)) {
     frame.function_name = sym->Name;
     if (displacement > 0)
-      frame.function_name += utils::string::va("+0x%llX", displacement);
+      frame.function_name += std::format("+0x{:X}", displacement);
   }
 
   // Try to resolve source file and line
