@@ -43,9 +43,9 @@ inline digest hex_digest(std::string_view text) {
   return value;
 }
 inline const auto source_pin = hex_digest(
-    "199cb573e1034ed6299158f43c1e92c523a3287d25673d7912985ccdcbe500b7");
+    "2abee4396f2086a235ac338560ab6a864fe7627975c7f519ef2af187a8c82589");
 inline const auto cb_compiled_pin = hex_digest(
-    "9a1aca430f15a051d66fc7658de8102085610c3b67b065b069a96397b76cd7f2");
+    "3b0a7e35408bbc9f8649dcf7244489c6126753c226b8ed8dd4f5c997dc7a2d73");
 
 inline std::optional<descriptor> inspect(std::span<const std::uint8_t> bytes) {
   if (bytes.size() < t7::object_header_size || bytes.size() > common_limit ||
