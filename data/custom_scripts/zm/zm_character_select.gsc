@@ -12,7 +12,7 @@ function __init__()
 {
 	// Mods and custom maps keep their own character handling
 	fs_game = GetDvarString("fs_game");
-	if (IsDedicated() || (fs_game != "" && fs_game != "usermaps") || !is_supported_map(GetDvarString("mapname")))
+	if (IsDedicated() || (fs_game != "" && fs_game != "usermaps" && !GetDvarInt("zm_character_select_mods")) || !is_supported_map(GetDvarString("mapname")))
 		return;
 
 	callback::on_start_gametype(&init);

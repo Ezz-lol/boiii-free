@@ -56,6 +56,15 @@ local PostLoadFunc = function(menu, controller)
     end
     GoBack(menu, controller)
   end, false)
+  if Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES and CoD.ZMMapHasCharacterSelect then
+    local supported = CoD.ZMMapHasCharacterSelect()
+    menu:subscribeToModel(Engine.CreateModel(Engine.GetGlobalModel(), "MapVote.mapVoteMapNext"), function()
+      if CoD.ZMMapHasCharacterSelect() ~= supported then
+        supported = not supported
+        menu.Options:updateDataSource()
+      end
+    end, false)
+  end
 end
 
 DataSources.GameSettingsFlyoutButtonsCustom = DataSourceHelpers.ListSetup(

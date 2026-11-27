@@ -7,6 +7,7 @@ if
   type(Engine.IsUsingMods) == "function"
   and Engine.IsUsingMods()
   and (type(Engine.UsingModsUgcName) ~= "function" or Engine.UsingModsUgcName() ~= "usermaps")
+  and not Engine.DvarBool(nil, "zm_character_select_mods")
 then
   return
 end
@@ -32,11 +33,8 @@ local MAP_HEROES = {
 -- Shadows of Evil's heroes are listed by their archetype instead of their name
 local HERO_NAMES = { [5] = "Floyd Campbell", [6] = "Jack Vincent", [7] = "Jessica Rose", [8] = "Nero Blackstone" }
 
-local RANDOM_HERO = 4
-
-if not Engine.DvarBool(nil, "zm_character_chosen") then
-  Engine.SetHero(Engine.GetPrimaryController(), Enum.eModes.MODE_ZOMBIES, RANDOM_HERO)
-  Engine.SetDvar("zm_character_chosen", 1)
+if Engine.GetEquippedHero(Engine.GetPrimaryController(), Enum.eModes.MODE_ZOMBIES) == 4 then
+  Engine.SetHero(Engine.GetPrimaryController(), Enum.eModes.MODE_ZOMBIES, 0)
 end
 
 local pending = {}
@@ -66,7 +64,6 @@ local function heroesTakenByOthers(controller)
     end
   end
   if not Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) then
-    taken[RANDOM_HERO] = nil
     return taken
   end
   -- Each member's equipped hero is part of the client info the lobby syncs to everyone. Split screen players are read
@@ -85,7 +82,6 @@ local function heroesTakenByOthers(controller)
       end
     end
   end
-  taken[RANDOM_HERO] = nil
   return taken
 end
 
@@ -108,14 +104,8 @@ CoD.OverlayUtility.AddSystemOverlay("ZMCharacterSelect", {
       local equipped = Engine.GetEquippedHero(controller, Enum.eModes.MODE_ZOMBIES)
       local taken = heroesTakenByOthers(controller)
       local items = {}
-      local heroes = { RANDOM_HERO }
       for _, hero in ipairs(mapHeroes() or {}) do
-        table.insert(heroes, hero)
-      end
-      for _, hero in ipairs(heroes) do
-        local name = hero == RANDOM_HERO and "RANDOM"
-          or HERO_NAMES[hero]
-          or Engine.Localize(heroList[hero + 1].displayName)
+        local name = HERO_NAMES[hero] or Engine.Localize(heroList[hero + 1].displayName)
         if taken[hero] ~= nil then
           name = name .. " (" .. shortName(taken[hero]) .. ")"
         elseif hero == equipped then
