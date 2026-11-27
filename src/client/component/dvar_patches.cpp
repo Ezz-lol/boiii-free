@@ -138,6 +138,7 @@ void patch_flags() {
     dvar_set_flags("gpad_stick_deadzone_max", game::dvarFlags_e::ARCHIVE);
     dvar_set_flags("gpad_stick_deadzone_min", game::dvarFlags_e::ARCHIVE);
     dvar_set_flags("cg_drawLagometer", game::dvarFlags_e::ARCHIVE);
+    dvar_remove_flags("splitscreen_playerCount", game::dvarFlags_e::ARCHIVE);
   }
 
   scheduler::execute(scheduler::pipeline::dvars_flags_patched);
