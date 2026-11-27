@@ -10,6 +10,9 @@ namespace join {
 
 WEAK symbol<lobby::join::Join> s_join{0x1556CB6D0, 0x14857E170};
 WEAK symbol<LocalClientPool<JoinClient>> s_joinClient{0x1556CB4B0, 0x14857E000};
+WEAK symbol<JoinClientState(ControllerIndex_t controllerIndex,
+                            LobbyType sourceLobbyType)>
+    LobbyJoinClient_GetState{0x141ED8220, 0x0};
 WEAK symbol<int32_t> s_successTimeout{0x1556CB6CC, 0x14857E16C};
 WEAK symbol<JoinSourceStatePool<const char *>> s_joinNames{0x143390390,
                                                            0x141122260};

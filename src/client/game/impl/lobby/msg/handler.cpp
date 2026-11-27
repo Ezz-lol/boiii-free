@@ -6,6 +6,7 @@
 #include "game/impl/lobby/reservation.hpp"
 #include "game/impl/lobby/serverlist.hpp"
 #include "game/impl/lobby/spinner.hpp"
+#include "utils/hook.hpp"
 #include "utils/string.hpp"
 
 #include "game/utils.hpp"
@@ -1452,13 +1453,22 @@ void HandleHostLeaveWithParty(ControllerIndex_t controllerIndex,
 #endif
 }
 
+static join::JoinClient &join_client(const ControllerIndex_t controllerIndex) {
+  join::JoinClient *const clients =
+      is_client()
+          ? utils::hook::extract<join::JoinClient *>(reinterpret_cast<void *>(
+                join::LobbyJoinClient_GetState.offset(6)))
+          : &(*join::s_joinClient)[0];
+  return clients[controllerIndex];
+}
+
 // Client <- Host
 void HandleAgreementRequest(ControllerIndex_t controllerIndex,
                             net::netadr_t *fromAdr, XUID fromXUID,
                             LobbyMsg *lobbyMsg) {
   Msg_JoinAgreementRequest msgData{};
 
-  join::JoinClient &joinClient = (*join::s_joinClient)[controllerIndex];
+  join::JoinClient &joinClient = join_client(controllerIndex);
   if (joinClient.state == join::JoinClientState::IDLE) {
     if (msgData.package(*lobbyMsg)) {
 #ifndef NDEBUG
@@ -1505,7 +1515,7 @@ void HandleJoinComplete(ControllerIndex_t controllerIndex,
                         net::netadr_t *fromAdr, XUID fromXUID,
                         LobbyMsg *lobbyMsg) {
 
-  join::JoinClient &client = (*join::s_joinClient)[controllerIndex];
+  join::JoinClient &client = join_client(controllerIndex);
   Msg_JoinComplete msgData{};
 
   if (msgData.package(*lobbyMsg) &&
