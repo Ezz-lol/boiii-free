@@ -175,6 +175,23 @@ struct component final : generic_component {
           game::register_dvar_int(
               "zm_bot_mode", 0, 0, 2, game::dvarFlags_e::ARCHIVE,
               "Zombies bot behaviour: 0 follow, 1 wander, 2 camp");
+          game::register_dvar_int("zm_bot_difficulty", 1, 0, 3,
+                                  game::dvarFlags_e::ARCHIVE,
+                                  "Zombies bot difficulty: 0 recruit, 1 "
+                                  "regular, 2 hardened, 3 veteran");
+          game::register_dvar_int("zm_bot_loadout", 0, 0, 1,
+                                  game::dvarFlags_e::ARCHIVE,
+                                  "Zombies bots use the host's weapon kits");
+          for (const char *feature :
+               {"zm_bot_revive", "zm_bot_doors", "zm_bot_box",
+                "zm_bot_wallbuys", "zm_bot_perks", "zm_bot_pap",
+                "zm_bot_windows", "zm_bot_powerups", "zm_bot_gums",
+                "zm_bot_wunderfizz", "zm_bot_shield", "zm_bot_power",
+                "zm_bot_grenades"}) {
+            game::register_dvar_int(feature, 1, 0, 1,
+                                    game::dvarFlags_e::ARCHIVE,
+                                    "Zombies bot feature toggle");
+          }
         },
         scheduler::pipeline::main);
 

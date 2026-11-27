@@ -6,6 +6,8 @@
 
 #include "com.hpp"
 
+#include <game/utils.hpp>
+
 #include <utils/hook.hpp>
 
 namespace weapon_kits {
@@ -429,11 +431,23 @@ void resolve_item_index(const game::weapon::Weapon weapon) {
 template <game::scr::builtin::BuiltinMethod *Original>
 void build_kit_method_stub(const game::scr::scriptInstance_t inst,
                            game::scr::scr_entref_t *entref) {
-  if (game::com::Com_SessionMode_IsMode(game::eModes::ZOMBIES) &&
-      game::scr::Scr_GetNumParam(inst) > 0) {
+  if (!game::com::Com_SessionMode_IsMode(game::eModes::ZOMBIES)) {
+    (*Original)(inst, entref);
+    return;
+  }
+  if (game::scr::Scr_GetNumParam(inst) > 0) {
     resolve_item_index(game::scr::Scr_GetWeapon(inst, 0));
   }
-  (*Original)(inst, entref);
+  game::scr::scr_entref_t ref = *entref;
+  if (game::is_client() && ref.classnum == 0 &&
+      ref.u.entnum > game::CLIENT_INDEX_0 &&
+      ref.u.entnum < game::get_dvar_int("com_maxclients").value_or(0) &&
+      game::get_dvar_int("zm_bot_loadout").value_or(0) == 1 &&
+      game::sv::SV_IsTestClient(static_cast<game::ClientNum_t>(ref.u.entnum)) &&
+      !game::sv::SV_IsTestClient(game::CLIENT_INDEX_0)) {
+    ref.u.entnum = game::CLIENT_INDEX_0;
+  }
+  (*Original)(inst, &ref);
 }
 
 game::scr::builtin::BuiltinMethod get_build_kit_weapon;

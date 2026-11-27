@@ -40,15 +40,30 @@ if not modded and DataSources.BotSettings then
       Engine.SetDvar(dvar, item.value)
     end
   end
+  local features = {
+    { "zm_bot_revive", "Revive Players" },
+    { "zm_bot_doors", "Open Doors" },
+    { "zm_bot_box", "Use Box" },
+    { "zm_bot_wallbuys", "Buy Wall Weapons" },
+    { "zm_bot_perks", "Buy Perks" },
+    { "zm_bot_pap", "Pack-a-Punch" },
+    { "zm_bot_windows", "Repair Windows" },
+    { "zm_bot_powerups", "Pick Up Power-ups" },
+    { "zm_bot_gums", "Use GobbleGums" },
+    { "zm_bot_wunderfizz", "Use Der Wunderfizz" },
+    { "zm_bot_shield", "Pick Up Shield" },
+    { "zm_bot_power", "Turn On Power" },
+    { "zm_bot_grenades", "Use Grenades" },
+  }
   local zmBotSettings = DataSourceHelpers.ListSetup("BotSettings", function(controller)
     local counts = { { option = "MENU_DISABLED", value = 0, default = true } }
     for count = 1, 17 do
       table.insert(counts, { option = tostring(count), value = count })
     end
-    return {
+    local settings = {
       CoD.OptionsUtility.CreateDvarSettings(
         controller,
-        "BOT COUNT",
+        "Bot Count",
         "MENU_FREE_BOT_DESC",
         "ZMBotOptions_Count",
         "zm_bots",
@@ -56,12 +71,41 @@ if not modded and DataSources.BotSettings then
         nil,
         setBotDvar
       ),
-      CoD.OptionsUtility.CreateDvarSettings(controller, "BOT BEHAVIOUR", "", "ZMBotOptions_Mode", "zm_bot_mode", {
-        { option = "FOLLOW", value = 0, default = true },
-        { option = "WANDER", value = 1 },
-        { option = "CAMP", value = 2 },
+      CoD.OptionsUtility.CreateDvarSettings(controller, "Bot Behaviour", "", "ZMBotOptions_Mode", "zm_bot_mode", {
+        { option = "Follow", value = 0, default = true },
+        { option = "Wander", value = 1 },
+        { option = "Camp", value = 2 },
+      }, nil, setBotDvar),
+      CoD.OptionsUtility.CreateDvarSettings(
+        controller,
+        "Bot Difficulty",
+        "",
+        "ZMBotOptions_Difficulty",
+        "zm_bot_difficulty",
+        {
+          { option = "Recruit", value = 0 },
+          { option = "Regular", value = 1, default = true },
+          { option = "Hardened", value = 2 },
+          { option = "Veteran", value = 3 },
+        },
+        nil,
+        setBotDvar
+      ),
+      CoD.OptionsUtility.CreateDvarSettings(controller, "Bot Loadouts", "", "ZMBotOptions_Loadout", "zm_bot_loadout", {
+        { option = "Default", value = 0, default = true },
+        { option = "Copy Host", value = 1 },
       }, nil, setBotDvar),
     }
+    for _, feature in ipairs(features) do
+      table.insert(
+        settings,
+        CoD.OptionsUtility.CreateDvarSettings(controller, feature[2], "", "ZMBotOptions_" .. feature[1], feature[1], {
+          { option = "On", value = 1, default = true },
+          { option = "Off", value = 0 },
+        }, nil, setBotDvar)
+      )
+    end
+    return settings
   end, true)
   DataSources.BotSettings = setmetatable({}, {
     __index = function(_, key)
@@ -75,6 +119,8 @@ if not modded and LUI.createMenu.GameSettings_Bots then
   LUI.createMenu.GameSettings_Bots = function(controller)
     local menu = createBotsMenu(controller)
     if isZombies() then
+      require("ui.uieditor.widgets.Scrollbars.verticalScrollbar")
+      menu.Options.ButtonList:setVerticalScrollbar(CoD.verticalScrollbar)
       menu.Options.Title.DescTitle:setText("BOTS")
       menu.GameSettingsBackground.GameSettingsSelectedItemInfo:setAlpha(0)
     end
