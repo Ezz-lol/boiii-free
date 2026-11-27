@@ -301,64 +301,79 @@ template <typename T_DvarValue> union TemplateDvarValue {
   DvarColor _color;
   SessionModePool<T_DvarValue *> _indirect;
 
-  inline constexpr bool enabled() const { return _enabled; }
+  [[nodiscard]] inline constexpr bool enabled() const { return _enabled; }
 
-  inline constexpr int32_t integer() const { return _integer; }
+  [[nodiscard]] inline constexpr int32_t integer() const { return _integer; }
 
-  inline constexpr uint32_t unsignedInt() const { return _unsignedInt; }
+  [[nodiscard]] inline constexpr uint32_t unsignedInt() const {
+    return _unsignedInt;
+  }
 
-  inline constexpr int64_t integer64() const { return _integer64; }
+  [[nodiscard]] inline constexpr int64_t integer64() const {
+    return _integer64;
+  }
 
-  inline constexpr uint64_t unsignedInt64() const { return _unsignedInt64; }
+  [[nodiscard]] inline constexpr uint64_t unsignedInt64() const {
+    return _unsignedInt64;
+  }
 
-  inline constexpr float value() const { return _value; }
+  [[nodiscard]] inline constexpr float value() const { return _value; }
 
-  inline constexpr const vec4_t &vector() const { return _vector; }
-  inline constexpr const vec2_t &vec2() const { return _vec2; }
-  inline constexpr const vec3_t &vec3() const { return _vec3; }
-  inline constexpr const char *string() const { return _string; }
-  inline constexpr DvarColor color() const { return _color; }
+  [[nodiscard]] inline constexpr const vec4_t &vector() const {
+    return _vector;
+  }
+  [[nodiscard]] inline constexpr const vec2_t &vec2() const { return _vec2; }
+  [[nodiscard]] inline constexpr const vec3_t &vec3() const { return _vec3; }
+  [[nodiscard]] inline constexpr const char *string() const { return _string; }
+  [[nodiscard]] inline constexpr DvarColor color() const { return _color; }
 
-  inline constexpr bool &enabled() { return _enabled; }
+  [[nodiscard]] inline constexpr bool &enabled() { return _enabled; }
 
-  inline constexpr int32_t &integer() { return _integer; }
+  [[nodiscard]] inline constexpr int32_t &integer() { return _integer; }
 
-  inline constexpr uint32_t &unsignedInt() { return _unsignedInt; }
+  [[nodiscard]] inline constexpr uint32_t &unsignedInt() {
+    return _unsignedInt;
+  }
 
-  inline constexpr int64_t &integer64() { return _integer64; }
+  [[nodiscard]] inline constexpr int64_t &integer64() { return _integer64; }
 
-  inline constexpr uint64_t &unsignedInt64() { return _unsignedInt64; }
+  [[nodiscard]] inline constexpr uint64_t &unsignedInt64() {
+    return _unsignedInt64;
+  }
 
-  inline constexpr float &value() { return _value; }
+  [[nodiscard]] inline constexpr float &value() { return _value; }
 
-  inline constexpr vec4_t &vector() { return _vector; }
-  inline constexpr vec2_t &vec2() { return _vec2; }
-  inline constexpr vec3_t &vec3() { return _vec3; }
-  inline constexpr const char *&string() { return _string; }
-  inline constexpr DvarColor &color() { return _color; }
+  [[nodiscard]] inline constexpr vec4_t &vector() { return _vector; }
+  [[nodiscard]] inline constexpr vec2_t &vec2() { return _vec2; }
+  [[nodiscard]] inline constexpr vec3_t &vec3() { return _vec3; }
+  [[nodiscard]] inline constexpr const char *&string() { return _string; }
+  [[nodiscard]] inline constexpr DvarColor &color() { return _color; }
 
-  inline const T_DvarValue *indirect(eModes mode) const {
+  [[nodiscard]] inline const T_DvarValue *indirect(eModes mode) const {
     return validate(mode) ? _indirect[mode] : nullptr;
   }
-  inline const SessionModePool<T_DvarValue *> &indirect() const {
+  [[nodiscard]] inline const SessionModePool<T_DvarValue *> &indirect() const {
     return _indirect;
   }
 
-  inline T_DvarValue *indirect(eModes mode) {
+  [[nodiscard]] inline T_DvarValue *indirect(eModes mode) {
     return validate(mode) ? _indirect[mode] : nullptr;
   }
-  inline SessionModePool<T_DvarValue *> &indirect() { return _indirect; }
-  inline const T_DvarValue *sessionModeSpecific(eModes mode) const {
+  [[nodiscard]] inline SessionModePool<T_DvarValue *> &indirect() {
+    return _indirect;
+  }
+  [[nodiscard]] inline const T_DvarValue *
+  sessionModeSpecific(eModes mode) const {
     return indirect(mode);
   }
-  inline T_DvarValue *sessionModeSpecific(eModes mode) {
+  [[nodiscard]] inline T_DvarValue *sessionModeSpecific(eModes mode) {
     return indirect(mode);
   }
-  inline const T_DvarValue *sessionModeSpecific() const {
+  [[nodiscard]] inline const T_DvarValue *sessionModeSpecific() const {
     return indirect(com::Com_SessionMode_GetMode());
   }
 
-  inline T_DvarValue *sessionModeSpecific() {
+  [[nodiscard]] inline T_DvarValue *sessionModeSpecific() {
     return indirect(com::Com_SessionMode_GetMode());
   }
   inline constexpr bool
@@ -485,94 +500,122 @@ struct EncryptionCapableDvarValue {
   // Fields renamed with "_" prefix in favor of consolidated method interface
   // to allow identical usage of both DvarValue and EncryptionCapableDvarValue.
   // in the `EngineDependentDvar` methods
-  inline constexpr bool enabled() const noexcept { return _value.enabled(); }
+  [[nodiscard]] inline constexpr bool enabled() const noexcept {
+    return _value.enabled();
+  }
 
-  inline constexpr int32_t integer() const noexcept { return _value.integer(); }
+  [[nodiscard]] inline constexpr int32_t integer() const noexcept {
+    return _value.integer();
+  }
 
-  inline constexpr uint32_t unsignedInt() const noexcept {
+  [[nodiscard]] inline constexpr uint32_t unsignedInt() const noexcept {
     return _value.unsignedInt();
   }
 
-  inline constexpr int64_t integer64() const noexcept {
+  [[nodiscard]] inline constexpr int64_t integer64() const noexcept {
     return _value.integer64();
   }
 
-  inline constexpr uint64_t unsignedInt64() const noexcept {
+  [[nodiscard]] inline constexpr uint64_t unsignedInt64() const noexcept {
     return _value.unsignedInt64();
   }
 
-  inline constexpr float value() const noexcept { return _value.value(); }
+  [[nodiscard]] inline constexpr float value() const noexcept {
+    return _value.value();
+  }
 
-  inline constexpr const vec4_t &vector() const noexcept {
+  [[nodiscard]] inline constexpr const vec4_t &vector() const noexcept {
     return _value.vector();
   }
-  inline constexpr const vec2_t &vec2() const noexcept { return _value.vec2(); }
-  inline constexpr const vec3_t &vec3() const noexcept { return _value.vec3(); }
+  [[nodiscard]] inline constexpr const vec2_t &vec2() const noexcept {
+    return _value.vec2();
+  }
+  [[nodiscard]] inline constexpr const vec3_t &vec3() const noexcept {
+    return _value.vec3();
+  }
 
-  inline constexpr const char *string() const noexcept {
+  [[nodiscard]] inline constexpr const char *string() const noexcept {
     return _value.string();
   }
-  inline constexpr DvarColor color() const noexcept { return _value.color(); }
+  [[nodiscard]] inline constexpr DvarColor color() const noexcept {
+    return _value.color();
+  }
 
-  inline constexpr bool &enabled() { return _value.enabled(); }
+  [[nodiscard]] inline constexpr bool &enabled() { return _value.enabled(); }
 
-  inline constexpr int32_t &integer() { return _value.integer(); }
+  [[nodiscard]] inline constexpr int32_t &integer() { return _value.integer(); }
 
-  inline constexpr uint32_t &unsignedInt() { return _value.unsignedInt(); }
+  [[nodiscard]] inline constexpr uint32_t &unsignedInt() {
+    return _value.unsignedInt();
+  }
 
-  inline constexpr int64_t &integer64() { return _value.integer64(); }
+  [[nodiscard]] inline constexpr int64_t &integer64() {
+    return _value.integer64();
+  }
 
-  inline constexpr uint64_t &unsignedInt64() { return _value.unsignedInt64(); }
+  [[nodiscard]] inline constexpr uint64_t &unsignedInt64() {
+    return _value.unsignedInt64();
+  }
 
-  inline constexpr float &value() { return _value.value(); }
+  [[nodiscard]] inline constexpr float &value() { return _value.value(); }
 
-  inline constexpr vec4_t &vector() { return _value.vector(); }
-  inline constexpr vec2_t &vec2() noexcept { return _value.vec2(); }
-  inline constexpr vec3_t &vec3() noexcept { return _value.vec3(); }
-  inline constexpr const char *&string() { return _value.string(); }
-  inline constexpr DvarColor &color() { return _value.color(); }
+  [[nodiscard]] inline constexpr vec4_t &vector() { return _value.vector(); }
+  [[nodiscard]] inline constexpr vec2_t &vec2() noexcept {
+    return _value.vec2();
+  }
+  [[nodiscard]] inline constexpr vec3_t &vec3() noexcept {
+    return _value.vec3();
+  }
+  [[nodiscard]] inline constexpr const char *&string() {
+    return _value.string();
+  }
+  [[nodiscard]] inline constexpr DvarColor &color() { return _value.color(); }
 
-  inline constexpr const encryptedDvar_t *indirect(eModes mode) const noexcept {
+  [[nodiscard]] inline constexpr const encryptedDvar_t *
+  indirect(eModes mode) const noexcept {
     return _value.indirect(mode);
   }
-  inline constexpr const SessionModePool<encryptedDvar_t *> &
+  [[nodiscard]] inline constexpr const SessionModePool<encryptedDvar_t *> &
   indirect() const noexcept {
     return _value.indirect();
   }
-  inline constexpr encryptedDvar_t *indirect(eModes mode) {
+  [[nodiscard]] inline constexpr encryptedDvar_t *indirect(eModes mode) {
     return _value.indirect(mode);
   }
-  inline SessionModePool<encryptedDvar_t *> &indirect() {
+  [[nodiscard]] inline SessionModePool<encryptedDvar_t *> &indirect() {
     return _value.indirect();
   }
 
-  inline const encryptedDvar_t *
+  [[nodiscard]] inline const encryptedDvar_t *
   sessionModeSpecific(eModes mode) const noexcept {
     return _value.sessionModeSpecific(mode);
   }
-  inline const encryptedDvar_t *sessionModeSpecific() const noexcept {
+  [[nodiscard]] inline const encryptedDvar_t *
+  sessionModeSpecific() const noexcept {
     return _value.sessionModeSpecific();
   }
-  inline encryptedDvar_t *sessionModeSpecific(eModes mode) {
+  [[nodiscard]] inline encryptedDvar_t *sessionModeSpecific(eModes mode) {
     return _value.sessionModeSpecific(mode);
   }
-  inline encryptedDvar_t *sessionModeSpecific() {
+  [[nodiscard]] inline encryptedDvar_t *sessionModeSpecific() {
     return _value.sessionModeSpecific();
   }
 
-  inline const uint64_t &encryptedValue() const noexcept {
+  [[nodiscard]] inline const uint64_t &encryptedValue() const noexcept {
     return _encryptedValue;
   }
 
-  inline uint64_t &encryptedValue() noexcept { return _encryptedValue; }
+  [[nodiscard]] inline uint64_t &encryptedValue() noexcept {
+    return _encryptedValue;
+  }
 
-  static inline uint64_t encrypt(bool val) noexcept {
-    uint32_t peb = PEB32();
+  [[nodiscard]] static inline uint64_t encrypt(bool val) noexcept {
+    uint32_t peb = UINT_PPEB32();
     uint32_t x = val ? 1 : 0;
     uint32_t z = 0;
 
     // 1) key == 0x4F48F38
-    z = static_cast<uint16_t>((peb ^ 0xC8C0u) - x * 0x56DDu);
+    z = static_cast<uint16_t>((peb ^ 0xC8C0u) - (x * 0x56DDu));
     x = std::rotr(x, 16);
 
     // 2) key == 0xCAE3A886
@@ -580,16 +623,16 @@ struct EncryptionCapableDvarValue {
 
     // 3) key == 0x6250C961
     uint32_t t = std::rotr(x, 16);
-    uint16_t u = static_cast<uint16_t>((peb ^ 0xC3ECu) - x * 0xC67u);
+    uint16_t u = static_cast<uint16_t>((peb ^ 0xC3ECu) - (x * 0xC67u));
     x = u ^ t;
     z = static_cast<uint16_t>(x);
 
     // 4) key == 0x5C395230
-    z = static_cast<uint16_t>((peb ^ 0xBC84u) - z * 0x1C72u);
+    z = static_cast<uint16_t>((peb ^ 0xBC84u) - (z * 0x1C72u));
 
     // 5) key == 0x6AAA441D
     uint32_t tmp = z ^ std::rotl(x, 16);
-    z = static_cast<uint16_t>((peb ^ 0xC8ADu) + tmp * 0x5C92u);
+    z = static_cast<uint16_t>((peb ^ 0xC8ADu) + (tmp * 0x5C92u));
     x = std::rotl(tmp, 16);
 
     // 6) key == 0x62078B4F
@@ -601,8 +644,8 @@ struct EncryptionCapableDvarValue {
     return x;
   }
 
-  static inline uint32_t encrypt(float val) {
-    uint32_t peb = PEB32();
+  [[nodiscard]] static inline uint32_t encrypt(float val) {
+    uint32_t peb = UINT_PPEB32();
     uint32_t result = std::bit_cast<uint32_t>(val);
     uint32_t s = 0;
 
@@ -611,12 +654,12 @@ struct EncryptionCapableDvarValue {
 
     // 2) key == 0xD96A6946
     result = std::rotl(result, 16);
-    uint32_t t = static_cast<uint16_t>((peb ^ 0xAE44u) + s * 450u);
+    uint32_t t = static_cast<uint16_t>((peb ^ 0xAE44u) + (s * 450u));
     result ^= t;
     s = static_cast<uint16_t>(result);
 
     // 3) key == 0x2E207F95
-    s = static_cast<uint16_t>((peb ^ 0x8065u) - s * 0x760Bu);
+    s = static_cast<uint16_t>((peb ^ 0x8065u) - (s * 0x760Bu));
 
     // 4) key == 0x3C08BA56
     result = std::rotl(result, 16);
@@ -627,14 +670,14 @@ struct EncryptionCapableDvarValue {
 
     // 6) key == 0xB1242083
     result = std::rotl(result, 16);
-    s = static_cast<uint16_t>((peb ^ 0x252u) + s * 0x78F8u);
+    s = static_cast<uint16_t>((peb ^ 0x252u) + (s * 0x78F8u));
 
     // 7) key == 0x1CD815D5
     result ^= s;
     s = static_cast<uint16_t>(result);
 
     // 8) key == 0xC65161C4
-    s = static_cast<uint16_t>((peb ^ 0x9FFAu) + s * 0x2C23u);
+    s = static_cast<uint16_t>((peb ^ 0x9FFAu) + (s * 0x2C23u));
 
     // 9) key == 0xFF6FF984 -> terminal 0x4843D1BC
     result = std::rotl(s ^ std::rotl(result, 16), 16);
@@ -642,14 +685,14 @@ struct EncryptionCapableDvarValue {
     return result; // zero‑extend to 64 bits when stored
   }
 
-  static inline uint64_t encrypt(uint32_t val) noexcept {
-    int32_t peb = PEB32();
+  [[nodiscard]] static inline uint64_t encrypt(uint32_t val) noexcept {
+    int32_t peb = UINT_PPEB32();
 
     uint32_t result = val; // ebx
     uint32_t y = 0;        // edx
 
     // 1) key == 0x9CF31C5
-    y = static_cast<uint16_t>((peb ^ 0x7C35u) - result * 0x565Bu);
+    y = static_cast<uint16_t>((peb ^ 0x7C35u) - (result * 0x565Bu));
     // key ^= 0xA6B5A745 == new key = 0xAF7A9680
 
     // 2) key == 0xAF7A9680 (break)
@@ -658,7 +701,7 @@ struct EncryptionCapableDvarValue {
 
     // 3) key == 0xA0026BBE
     uint32_t temp = result ^ y; // ebx ^ edx
-    y = static_cast<uint16_t>((peb ^ 0x6BFAu) + temp * 0x54F1u);
+    y = static_cast<uint16_t>((peb ^ 0x6BFAu) + (temp * 0x54F1u));
     result = std::rotr(temp, 16) ^ y;
     // key ^= 0x9521BEB4 == 0x3523D50A
 
@@ -667,7 +710,7 @@ struct EncryptionCapableDvarValue {
     // key ^= 0xD7A4E0B7 == 0xE28735BD
 
     // 5) key == 0xE28735BD
-    y = static_cast<uint16_t>((peb ^ 0x0FFFF9674u) - y * 0x5534u);
+    y = static_cast<uint16_t>((peb ^ 0x0FFFF9674u) - (y * 0x5534u));
     // key ^= 0x08E45694 == 0xEA636329
 
     // 6) key == 0xEA636329
@@ -680,7 +723,7 @@ struct EncryptionCapableDvarValue {
     // key ^= 0xB69644E4 == 0x5E56705F
 
     // 8) key == 0x5E56705F
-    y = static_cast<uint16_t>((peb ^ 0x6A32u) + y * 0x1757u);
+    y = static_cast<uint16_t>((peb ^ 0x6A32u) + (y * 0x1757u));
     // key ^= 0x79E6DDA5 == 0x27B0ADFA
 
     // 9) key == 0x27B0ADFA
@@ -695,23 +738,23 @@ struct EncryptionCapableDvarValue {
   }
 
   // Enum only. String is not encrypted.
-  static inline uint64_t encrypt(const char *val) noexcept {
+  [[nodiscard]] static inline uint64_t encrypt(const char *val) noexcept {
     return encrypt(static_cast<uint32_t>(reinterpret_cast<uint64_t>(val)));
   }
 
-  static inline uint64_t encrypt(int32_t val) noexcept {
+  [[nodiscard]] static inline uint64_t encrypt(int32_t val) noexcept {
     return encrypt(std::bit_cast<uint32_t>(val));
   }
 
   static constexpr uint32_t INVALID_DVAR_TYPE_DEFAULT_SEED = 0;
 
   // Invalid or otherwise unknown dvar type
-  static inline uint64_t encrypt() noexcept {
+  [[nodiscard]] static inline uint64_t encrypt() noexcept {
     return encrypt(INVALID_DVAR_TYPE_DEFAULT_SEED);
   }
 
-  static inline uint64_t encrypt(uint64_t value) {
-    uint64_t peb = PEB();
+  [[nodiscard]] static inline uint64_t encrypt(uint64_t value) {
+    uint64_t peb = UINT_PPEB();
     uint64_t enc = value;
     uint64_t t = 0;
 
@@ -760,21 +803,25 @@ struct EncryptionCapableDvarValue {
     return enc;
   }
 
-  static inline uint64_t encrypt(int64_t val) noexcept {
+  [[nodiscard]] static inline uint64_t encrypt(int64_t val) noexcept {
     return encrypt(std::bit_cast<uint64_t>(val));
   }
 
   static constexpr uint64_t UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE = 0;
-  static inline uint64_t encrypt([[maybe_unused]] vec2_t val) noexcept {
+  [[nodiscard]] static inline uint64_t
+  encrypt([[maybe_unused]] vec2_t val) noexcept {
     return UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE;
   }
-  static inline uint64_t encrypt([[maybe_unused]] vec3_t val) noexcept {
+  [[nodiscard]] static inline uint64_t
+  encrypt([[maybe_unused]] vec3_t val) noexcept {
     return UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE;
   }
-  static inline uint64_t encrypt([[maybe_unused]] vec4_t val) noexcept {
+  [[nodiscard]] static inline uint64_t
+  encrypt([[maybe_unused]] vec4_t val) noexcept {
     return UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE;
   }
-  static inline uint64_t encrypt([[maybe_unused]] DvarColor val) noexcept {
+  [[nodiscard]] static inline uint64_t
+  encrypt([[maybe_unused]] DvarColor val) noexcept {
     return UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE;
   }
 
@@ -806,7 +853,9 @@ struct EncryptionCapableDvarValue {
 
   inline constexpr int64_t set(int64_t val,
                                bool shouldEncrypt = true) noexcept {
-    encryptedValue() = encrypt(val);
+    if (shouldEncrypt) {
+      encryptedValue() = encrypt(val);
+    }
     return _value.set(val);
   }
 
@@ -852,12 +901,12 @@ struct EncryptionCapableDvarValue {
     }
     return _value.set(val);
   }
-  inline constexpr const char *set(const std::string_view &val,
-                                   bool shouldEncrypt) {
+  [[nodiscard]] inline constexpr const char *set(const std::string_view &val,
+                                                 bool shouldEncrypt) {
     return set(val.data(), shouldEncrypt);
   }
-  inline constexpr const char *set(const std::string &val,
-                                   bool shouldEncrypt = true) {
+  [[nodiscard]] inline constexpr const char *set(const std::string &val,
+                                                 bool shouldEncrypt = true) {
     return set(val.c_str(), shouldEncrypt);
   }
   inline constexpr DvarColor set(DvarColor val,
@@ -882,7 +931,8 @@ union DvarLimits {
     int32_t stringCount;
     const char **strings;
 
-    inline constexpr std::span<const char *> enumerations() const noexcept {
+    [[nodiscard]] inline constexpr std::span<const char *>
+    enumerations() const noexcept {
       return {strings, static_cast<size_t>(stringCount)};
     }
   } enumeration;
@@ -895,9 +945,9 @@ union DvarLimits {
   PrimitiveLimit<vec_t> vector;
 
   inline constexpr bool contains(const char *val) noexcept {
-    if (val) {
+    if (val != nullptr) {
       for (const char *str : enumeration.enumerations()) {
-        if (str && std::strcmp(str, val) == 0) {
+        if (str != nullptr && std::strcmp(str, val) == 0) {
           return true;
         }
       }
@@ -987,132 +1037,162 @@ public:
   DvarLimits _domain;
   dvar<T_DvarValue> *_hashNext;
 
-  inline dvarType_t type() const noexcept { return _type; }
-  inline dvarType_t &type() noexcept { return _type; }
+  [[nodiscard]] inline dvarType_t type() const noexcept { return _type; }
+  [[nodiscard]] inline dvarType_t &type() noexcept { return _type; }
 
-  inline bool modified() const noexcept { return _modified; }
-  inline bool &modified() noexcept { return _modified; }
+  [[nodiscard]] inline bool modified() const noexcept { return _modified; }
+  [[nodiscard]] inline bool &modified() noexcept { return _modified; }
 
-  inline const T_DvarValue &current() const noexcept { return _current; }
-  inline T_DvarValue &current() noexcept { return _current; }
+  [[nodiscard]] inline const T_DvarValue &current() const noexcept {
+    return _current;
+  }
+  [[nodiscard]] inline T_DvarValue &current() noexcept { return _current; }
 
-  inline const T_DvarValue &latched() const noexcept { return _latched; }
-  inline T_DvarValue &latched() noexcept { return _latched; }
+  [[nodiscard]] inline const T_DvarValue &latched() const noexcept {
+    return _latched;
+  }
+  [[nodiscard]] inline T_DvarValue &latched() noexcept { return _latched; }
 
-  inline const T_DvarValue &reset() const noexcept { return _reset; }
-  inline T_DvarValue &reset() noexcept { return _reset; }
+  [[nodiscard]] inline const T_DvarValue &reset() const noexcept {
+    return _reset;
+  }
+  [[nodiscard]] inline T_DvarValue &reset() noexcept { return _reset; }
 
-  inline DvarLimits domain() const noexcept { return _domain; }
-  inline DvarLimits &domain() noexcept { return _domain; }
+  [[nodiscard]] inline DvarLimits domain() const noexcept { return _domain; }
+  [[nodiscard]] inline DvarLimits &domain() noexcept { return _domain; }
 
-  inline dvarStrHash_t name() const noexcept { return _name; }
-  inline dvarStrHash_t &name() noexcept { return _name; }
+  [[nodiscard]] inline dvarStrHash_t name() const noexcept { return _name; }
+  [[nodiscard]] inline dvarStrHash_t &name() noexcept { return _name; }
 
-  inline const char *debugName() const noexcept { return _debugName; }
-  inline ConstCharPtr &debugName() noexcept { return _debugName; }
+  [[nodiscard]] inline const char *debugName() const noexcept {
+    return _debugName;
+  }
+  [[nodiscard]] inline ConstCharPtr &debugName() noexcept { return _debugName; }
 
-  inline const char *description() const noexcept { return _description; }
-  inline ConstCharPtr &description() noexcept { return _description; }
+  [[nodiscard]] inline const char *description() const noexcept {
+    return _description;
+  }
+  [[nodiscard]] inline ConstCharPtr &description() noexcept {
+    return _description;
+  }
 
-  inline dvar<T_DvarValue> *hashNext() const noexcept { return _hashNext; }
-  inline dvar<T_DvarValue> *&hashNext() noexcept { return _hashNext; }
+  [[nodiscard]] inline dvar<T_DvarValue> *hashNext() const noexcept {
+    return _hashNext;
+  }
+  [[nodiscard]] inline dvar<T_DvarValue> *&hashNext() noexcept {
+    return _hashNext;
+  }
 
-  inline constexpr const SessionModePool<dvar<T_DvarValue> *> &
+  [[nodiscard]] inline constexpr const SessionModePool<dvar<T_DvarValue> *> &
   indirect() const noexcept {
     return reinterpret_cast<const SessionModePool<dvar<T_DvarValue> *> &>(
         _current.indirect());
   }
 
-  inline constexpr SessionModePool<dvar<T_DvarValue> *> &indirect() noexcept {
+  [[nodiscard]] inline constexpr SessionModePool<dvar<T_DvarValue> *> &
+  indirect() noexcept {
     return reinterpret_cast<SessionModePool<dvar<T_DvarValue> *> &>(
         _current.indirect());
   }
 
-  inline dvar<T_DvarValue> *sessionModeSpecific() noexcept {
+  [[nodiscard]] inline dvar<T_DvarValue> *sessionModeSpecific() noexcept {
     return type() == dvarType_t::SESSIONMODE_BASE_DVAR
                ? _current.sessionModeSpecific()
                : nullptr;
   }
-  inline const dvar<T_DvarValue> *sessionModeSpecific() const noexcept {
+  [[nodiscard]] inline const dvar<T_DvarValue> *
+  sessionModeSpecific() const noexcept {
     return type() == dvarType_t::SESSIONMODE_BASE_DVAR
                ? _current.sessionModeSpecific()
                : nullptr;
   }
 
-  inline dvar<T_DvarValue> *sessionModeSpecific(eModes mode) noexcept {
+  [[nodiscard]] inline dvar<T_DvarValue> *
+  sessionModeSpecific(eModes mode) noexcept {
     return type() == dvarType_t::SESSIONMODE_BASE_DVAR
                ? _current.sessionModeSpecific(mode)
                : nullptr;
   }
-  inline const dvar<T_DvarValue> *
+  [[nodiscard]] inline const dvar<T_DvarValue> *
   sessionModeSpecific(eModes mode) const noexcept {
     return type() == dvarType_t::SESSIONMODE_BASE_DVAR
                ? _current.sessionModeSpecific(mode)
                : nullptr;
   }
 
-  inline constexpr const uint64_t &encryptedValue() const noexcept {
+  [[nodiscard]] inline constexpr const uint64_t &
+  encryptedValue() const noexcept {
     return _current.encryptedValue();
   }
-  inline constexpr uint64_t &encryptedValue() noexcept {
+  [[nodiscard]] inline constexpr uint64_t &encryptedValue() noexcept {
     return _current.encryptedValue();
   }
 
-  inline const dvar<T_DvarValue> *resolve() const noexcept {
+  [[nodiscard]] inline const dvar<T_DvarValue> *resolve() const noexcept {
     const dvar<T_DvarValue> *sessionModeSpecificDvar = sessionModeSpecific();
     return sessionModeSpecificDvar ? sessionModeSpecificDvar : this;
   }
-  inline dvar<T_DvarValue> *resolve() noexcept {
+  [[nodiscard]] inline dvar<T_DvarValue> *resolve() noexcept {
     dvar<T_DvarValue> *sessionModeSpecificDvar = sessionModeSpecific();
     return sessionModeSpecificDvar ? sessionModeSpecificDvar : this;
   }
 
-  inline DvarFlags flags() const noexcept { return resolve()->_flags; }
-  inline DvarFlags &flags() noexcept { return resolve()->_flags; }
+  [[nodiscard]] inline DvarFlags flags() const noexcept {
+    return resolve()->_flags;
+  }
+  [[nodiscard]] inline DvarFlags &flags() noexcept { return resolve()->_flags; }
 
-  inline const vec4_t &get_vector() const noexcept {
+  [[nodiscard]] inline const vec4_t &get_vector() const noexcept {
     return resolve()->current().vector();
   }
-  inline vec4_t &get_vector() noexcept { return resolve()->current().vector(); }
+  [[nodiscard]] inline vec4_t &get_vector() noexcept {
+    return resolve()->current().vector();
+  }
 
-  inline const vec2_t &get_vec2() const noexcept {
+  [[nodiscard]] inline const vec2_t &get_vec2() const noexcept {
     return resolve()->current().vec2();
   }
-  inline vec2_t &get_vec2() noexcept { return resolve()->current().vec2(); }
+  [[nodiscard]] inline vec2_t &get_vec2() noexcept {
+    return resolve()->current().vec2();
+  }
 
-  inline const vec3_t &get_vec3() const noexcept {
+  [[nodiscard]] inline const vec3_t &get_vec3() const noexcept {
     return resolve()->current().vec3();
   }
-  inline vec3_t &get_vec3() noexcept { return resolve()->current().vec3(); }
+  [[nodiscard]] inline vec3_t &get_vec3() noexcept {
+    return resolve()->current().vec3();
+  }
 
-  inline int32_t get_int() const noexcept {
+  [[nodiscard]] inline int32_t get_int() const noexcept {
     return resolve()->current().integer();
   }
-  inline constexpr uint32_t get_uint() const noexcept {
+  [[nodiscard]] inline constexpr uint32_t get_uint() const noexcept {
     return resolve()->current().unsignedInt();
   }
-  inline int64_t get_int64() const noexcept {
+  [[nodiscard]] inline int64_t get_int64() const noexcept {
     return resolve()->current().integer64();
   }
-  inline uint64_t get_uint64() const noexcept {
+  [[nodiscard]] inline uint64_t get_uint64() const noexcept {
     return resolve()->current().unsignedInt64();
   }
-  inline bool get_bool() const noexcept {
+  [[nodiscard]] inline bool get_bool() const noexcept {
     return resolve()->current().enabled();
   }
-  inline float get_float() const noexcept {
+  [[nodiscard]] inline float get_float() const noexcept {
     return resolve()->current().value();
   }
-  inline const char *get_cstring() const noexcept {
+  [[nodiscard]] inline const char *get_cstring() const noexcept {
     return resolve()->current().string();
   }
-  inline std::optional<std::string_view> get_string() const noexcept {
+  [[nodiscard]] inline std::optional<std::string_view>
+  get_string() const noexcept {
     const char *str = get_cstring();
-    return str ? std::optional(std::string_view(str)) : std::nullopt;
+    return str == nullptr ? std::nullopt : std::optional(std::string_view(str));
   }
 
   template <typename Func>
-  inline std::optional<std::invoke_result_t<Func, const std::string_view &>>
+  [[nodiscard]] inline std::optional<
+      std::invoke_result_t<Func, const std::string_view &>>
   map_string(const Func &func) const noexcept {
     const std::optional<std::string_view> str = get_string();
     if (str.has_value()) {
@@ -1120,7 +1200,8 @@ public:
     }
     return std::nullopt;
   }
-  template <PrimitiveDvarValue T> inline constexpr T get() const noexcept {
+  template <PrimitiveDvarValue T>
+  [[nodiscard]] inline constexpr T get() const noexcept {
     constexpr size_t T_Size = sizeof(T);
     if constexpr (std::is_same_v<T, int32_t>) {
       return get_int();
@@ -1204,29 +1285,35 @@ public:
   std::optional<std::string> set(const std::string &val,
                                  bool execModifiedCallback = true) noexcept;
 
-  inline int32_t get_int() noexcept { return resolve()->current().integer(); }
-  inline constexpr uint32_t get_uint() noexcept {
+  [[nodiscard]] inline int32_t get_int() noexcept {
+    return resolve()->current().integer();
+  }
+  [[nodiscard]] inline constexpr uint32_t get_uint() noexcept {
     return resolve()->current().unsignedInt();
   }
-  inline int64_t get_int64() noexcept {
+  [[nodiscard]] inline int64_t get_int64() noexcept {
     return resolve()->current().integer64();
   }
-  inline uint64_t get_uint64() noexcept {
+  [[nodiscard]] inline uint64_t get_uint64() noexcept {
     return resolve()->current().unsignedInt64();
   }
-  inline bool get_bool() noexcept { return resolve()->current().enabled(); }
-  inline float get_float() noexcept { return resolve()->current().value(); }
-  inline const char *get_cstring() noexcept {
+  [[nodiscard]] inline bool get_bool() noexcept {
+    return resolve()->current().enabled();
+  }
+  [[nodiscard]] inline float get_float() noexcept {
+    return resolve()->current().value();
+  }
+  [[nodiscard]] inline const char *get_cstring() noexcept {
     return resolve()->current().string();
   }
-  inline std::optional<std::string_view> get_string() noexcept {
+  [[nodiscard]] inline std::optional<std::string_view> get_string() noexcept {
     const char *str = get_cstring();
-    return str ? std::optional(std::string_view(str)) : std::nullopt;
+    return str == nullptr ? std::nullopt : std::optional(std::string_view(str));
   }
 
   constexpr operator EngineDependentDvar() noexcept;
 
-  inline std::string to_string() const noexcept {
+  [[nodiscard]] inline std::string to_string() const noexcept {
     const dvar<T_DvarValue> *resolved = resolve();
     switch (resolved->type()) {
     case dvarType_t::BOOL: {
@@ -1389,12 +1476,13 @@ union EngineDependentDvarMut {
   [[nodiscard]] inline const char *get_cstring() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get_cstring());
   }
-  template <typename T> inline T get() const {
+  template <typename T> [[nodiscard]] inline T get() const {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(get<T>());
   }
 
   template <typename Func>
-  inline std::optional<std::invoke_result_t<Func, const std::string_view &>>
+  [[nodiscard]] inline std::optional<
+      std::invoke_result_t<Func, const std::string_view &>>
   map_string(const Func &func) const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(map_string(func));
   }
@@ -1403,27 +1491,27 @@ union EngineDependentDvarMut {
     return is_server() ? 0 : cl->encryptedValue();
   }
 
-  inline dvarStrHash_t &name() noexcept {
+  [[nodiscard]] inline dvarStrHash_t &name() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(name());
   }
   [[nodiscard]] inline dvarStrHash_t name() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(name());
   }
 
-  inline ConstCharPtr &debugName() noexcept {
+  [[nodiscard]] inline ConstCharPtr &debugName() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(debugName());
   }
   [[nodiscard]] inline const char *debugName() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(debugName());
   }
 
-  inline ConstCharPtr &description() noexcept {
+  [[nodiscard]] inline ConstCharPtr &description() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(description());
   }
   [[nodiscard]] inline const char *description() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(description());
   }
-  inline DvarFlags &flags() noexcept {
+  [[nodiscard]] inline DvarFlags &flags() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(flags());
   }
 
@@ -1448,13 +1536,13 @@ union EngineDependentDvarMut {
 
   inline void clearFlags() noexcept { flags().clear(); }
 
-  inline dvarType_t &type() noexcept {
+  [[nodiscard]] inline dvarType_t &type() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(type());
   }
-  inline dvarType_t type() const noexcept {
+  [[nodiscard]] inline dvarType_t type() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(type());
   }
-  inline EngineDependentDvarMut sessionModeSpecific() const {
+  [[nodiscard]] inline EngineDependentDvarMut sessionModeSpecific() const {
     EngineDependentDvarMut result{nullptr};
     if (is_server()) {
       result.sv = reinterpret_cast<dvar_t *>(sv->sessionModeSpecific());
@@ -1465,7 +1553,7 @@ union EngineDependentDvarMut {
     return result;
   }
 
-  inline EngineDependentDvarMut resolve() const {
+  [[nodiscard]] inline EngineDependentDvarMut resolve() const {
     EngineDependentDvarMut result{};
     if (is_server()) {
       result.sv = reinterpret_cast<dvar_t *>(sv->resolve());
@@ -1475,19 +1563,19 @@ union EngineDependentDvarMut {
     return result;
   }
 
-  inline bool &modified() noexcept {
+  [[nodiscard]] inline bool &modified() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(modified());
   }
-  inline bool modified() const noexcept {
+  [[nodiscard]] inline bool modified() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(modified());
   }
-  inline DvarLimits &domain() noexcept {
+  [[nodiscard]] inline DvarLimits &domain() noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(domain());
   }
-  inline DvarLimits &domain() const noexcept {
+  [[nodiscard]] inline DvarLimits &domain() const noexcept {
     return ENGINE_DEPENDENT_DVAR_METHOD_DISPATCH(domain());
   }
-  inline EngineDependentDvarMut setHashNext(dvar_t *next) {
+  [[nodiscard]] inline EngineDependentDvarMut setHashNext(dvar_t *next) {
     EngineDependentDvarMut result = hashNext();
     if (is_server()) {
       sv->hashNext() = next;
@@ -1496,7 +1584,8 @@ union EngineDependentDvarMut {
     }
     return result;
   }
-  inline EngineDependentDvarMut setHashNext(encryptedDvar_t *next) {
+  [[nodiscard]] inline EngineDependentDvarMut
+  setHashNext(encryptedDvar_t *next) {
     EngineDependentDvarMut result = hashNext();
     if (is_server()) {
       sv->hashNext() = reinterpret_cast<dvar_t *>(next);
@@ -1505,7 +1594,8 @@ union EngineDependentDvarMut {
     }
     return result;
   }
-  inline EngineDependentDvarMut setHashNext(EngineDependentDvarMut next) {
+  [[nodiscard]] inline EngineDependentDvarMut
+  setHashNext(EngineDependentDvarMut next) {
     EngineDependentDvarMut result = hashNext();
     if (is_server()) {
       sv->hashNext() = next.sv;
@@ -1514,7 +1604,7 @@ union EngineDependentDvarMut {
     }
     return result;
   }
-  inline EngineDependentDvarMut hashNext() const {
+  [[nodiscard]] inline EngineDependentDvarMut hashNext() const {
     EngineDependentDvarMut result{};
     if (is_server()) {
       result.sv = reinterpret_cast<dvar_t *>(sv->hashNext());
@@ -1524,8 +1614,12 @@ union EngineDependentDvarMut {
     return result;
   }
 
-  inline constexpr bool nonnull() const noexcept { return sv != nullptr; }
-  inline constexpr bool null() const noexcept { return sv == nullptr; }
+  [[nodiscard]] inline constexpr bool nonnull() const noexcept {
+    return sv != nullptr;
+  }
+  [[nodiscard]] inline constexpr bool null() const noexcept {
+    return sv == nullptr;
+  }
 
   inline constexpr bool operator!() const noexcept { return null(); }
   inline constexpr bool

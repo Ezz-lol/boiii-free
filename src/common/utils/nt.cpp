@@ -3,6 +3,9 @@
 #include <lmcons.h>
 #include <shellapi.h>
 
+#include <frozen/string.h>
+#include <frozen/unordered_set.h>
+
 #include "string.hpp"
 
 namespace utils::nt {
@@ -282,6 +285,10 @@ std::string load_resource(const int id) {
 
 void relaunch_self() {
   const library self = library::get_by_address(relaunch_self);
+  constexpr frozen::string FILTERED_ARGS_ARRAY[] = {"norelaunch", "update"};
+  constexpr frozen::unordered_set<frozen::string,
+                                  std::size(FILTERED_ARGS_ARRAY)>
+      FILTERED_ARGS = frozen::make_unordered_set(FILTERED_ARGS_ARRAY);
 
   STARTUPINFOA startup_info;
   PROCESS_INFORMATION process_info;
@@ -303,7 +310,7 @@ void relaunch_self() {
     std::wstring wide_arg(argv[i]);
     std::string arg = string::convert(wide_arg);
 
-    if (arg != "norelaunch" && arg != "update") {
+    if (!FILTERED_ARGS.contains(std::string_view(arg))) {
       // The engine doesn't run +set or +exec when they're quoted, so only
       // quote what needs it
       const bool needs_quotes =

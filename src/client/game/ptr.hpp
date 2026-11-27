@@ -7,40 +7,59 @@
 #include <intrin.h>
 
 namespace game {
-#ifdef _WIN64
+#if defined(_WIN64) || defined(_WIN32)
 #include <intrin.h>
-alwaysinline uintptr_t PEB() {
-  // PEB pointer location on x64 Windows TEB (GS:[0x60])
-  return std::bit_cast<uintptr_t>(__readgsqword(0x60));
-}
-#elif defined(_WIN32)
-#include <intrin.h>
-alwaysinline uintptr_t PEB() {
-  // PEB pointer location on x86 Windows TEB (FS:[0x30])
-  return static_cast<uintptr_t>(__readfsdword(0x30));
+#include <winternl.h>
+[[nodiscard]] alwaysinline uintptr_t UINT_PPEB() {
+  const PTEB teb = reinterpret_cast<const PTEB>(NtCurrentTeb());
+  return reinterpret_cast<uintptr_t>(teb->ProcessEnvironmentBlock);
 }
 #else
-alwaysinline uintptr_t PEB() {
+alwaysinline uintptr_t UINT_PPEB() {
   return 0; // Fallback
 }
 #endif
 
-alwaysinline uint32_t PEB32() { return static_cast<uint32_t>(PEB()); }
+alwaysinline uint32_t UINT_PPEB32() { return static_cast<uint32_t>(UINT_PPEB()); }
 
 // Without ASLR
 constexpr uintptr_t ENGINE_MODULE_BASE = 0x140000000;
-constexpr uintptr_t ENGINE_ADDRESS_SPACE_SIZE = 0x030000000;
+constexpr uintptr_t ENGINE_ADDRESS_SPACE_SIZE = 0x020000000;
+constexpr uintptr_t ENGINE_MODULE_ADDRESS_SPACE_END =
+    ENGINE_MODULE_BASE + ENGINE_ADDRESS_SPACE_SIZE;
+
+alwaysinline bool valid_default_base_engine_module_ptr(uintptr_t ptr) {
+  return ptr >= ENGINE_MODULE_BASE && ptr < ENGINE_MODULE_ADDRESS_SPACE_END;
+}
+
+template <typename T>
+alwaysinline bool valid_default_base_engine_module_ptr(const T *ptr) {
+  return valid_default_base_engine_module_ptr(reinterpret_cast<uintptr_t>(ptr));
+}
+
+alwaysinline bool valid_engine_module_ptr(uintptr_t ptr) {
+  return ptr >= get_engine_base() &&
+         ptr < (get_engine_base() + ENGINE_ADDRESS_SPACE_SIZE);
+}
+
+template <typename T> alwaysinline bool valid_engine_module_ptr(const T *ptr) {
+  return valid_engine_module_ptr(reinterpret_cast<uintptr_t>(ptr));
+}
 
 alwaysinline uintptr_t relocate(const uintptr_t ptr) {
-  return ptr == UINTPTR_NULLPTR
-             ? UINTPTR_NULLPTR
-             : get_engine_base() + (ptr - ENGINE_MODULE_BASE);
+  if (valid_default_base_engine_module_ptr(ptr)) {
+    return get_engine_base() + (ptr - ENGINE_MODULE_BASE);
+  }
+
+  return ptr;
 }
 
 alwaysinline uintptr_t derelocate(const uintptr_t ptr) {
-  return ptr == UINTPTR_NULLPTR
-             ? UINTPTR_NULLPTR
-             : (ptr - get_engine_base()) + ENGINE_MODULE_BASE;
+  if (valid_engine_module_ptr(ptr)) {
+    return (ptr - get_engine_base()) + ENGINE_MODULE_BASE;
+  }
+
+  return ptr;
 }
 
 template <typename T> alwaysinline T *derelocate(T *ptr) {
@@ -107,15 +126,6 @@ alwaysinline bool valid_stack_ptr(uintptr_t ptr) {
 
 template <typename T> alwaysinline bool valid_stack_ptr(const T *ptr) {
   return valid_stack_ptr(reinterpret_cast<uintptr_t>(ptr));
-}
-
-alwaysinline bool valid_engine_module_ptr(uintptr_t ptr) {
-  return ptr >= get_engine_base() &&
-         ptr < (get_engine_base() + ENGINE_ADDRESS_SPACE_SIZE);
-}
-
-template <typename T> alwaysinline bool valid_engine_module_ptr(const T *ptr) {
-  return valid_engine_module_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 
 alwaysinline bool valid_current_module_ptr(uintptr_t ptr) {
