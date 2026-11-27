@@ -764,8 +764,121 @@ inline contract captured_contract() {
 }
 } // namespace fixed_bgb_global
 
+// Exact current stock challenge object; server catalog allocation is separate from the wire schema.
+namespace zombies::coop::map_import_binding::fixed_stalingrad_challenges {
+inline zombies::coop::map_import_binding::contract captured_contract() {
+  using namespace zombies::coop::map_import_binding;
+  contract c{}; c.independently_verified = true; // fresh full bytes + bounded metadata + exact ACTS kind1 rows, not runtime proof
+  c.logical_name = "scripts/zm/zm_stalingrad_challenges.gsc";
+  c.sha256 = {0xec, 0x6a, 0x38, 0xec, 0x2d, 0xf1, 0x0, 0x4e, 0x8b, 0x3, 0xa4, 0x53, 0x81, 0xa5, 0xf7, 0xd3, 0xc1, 0xcb, 0x63, 0x24, 0x93, 0x2b, 0xa, 0x2a, 0x43, 0xc1, 0xa6, 0x66, 0x3b, 0x24, 0x9a, 0x7};
+  c.object_size = 41492; c.source_crc = 0x4a76afb0; c.code = 0xeed; c.code_size = 0x6697;
+  c.companion_include = "custom_scripts/zm/eroded_coop_stalingrad_challenges_entry";
+  c.verified_function_reference_shape = true; // actual old ACTS GetResolveFunction + existing kind1 fixture layout
+  { binding rule{};
+    rule.source = {0x5b6b9132, 0xe0675efb, 0, 0x21};
+    rule.destination = {0x69a508f0, 0x86f10977, 0, 0x01};
+    call_site site{};
+    site.owner = {0x452f4c65, 0xef8, 0xf40, 0x2dc19561, 0xe0675efb, 0x0, 0x2};
+    site.reference = 0xefe; site.opcode = 0x1619; site.parameter_byte = 0;
+    site.instruction = {0x19, 0x16, 0x32, 0x91, 0x6b, 0x5b, 0x0, 0x0, 0x0, 0x0};
+    site.function_reference = true; rule.sites.push_back(std::move(site)); c.bindings.push_back(std::move(rule)); }
+  { binding rule{};
+    rule.source = {0xfb4f96b5, 0xe0675efb, 0, 0x21};
+    rule.destination = {0x3ba37349, 0x86f10977, 0, 0x01};
+    call_site site{};
+    site.owner = {0xd9f85152, 0x1170, 0x18a8, 0x5b6b9132, 0xe0675efb, 0x0, 0x0};
+    site.reference = 0x180c; site.opcode = 0x1010; site.parameter_byte = 0;
+    site.instruction = {0x10, 0x10, 0x35, 0x2f, 0xb5, 0x96, 0x4f, 0xfb, 0x0, 0x0, 0x0, 0x0};
+    site.function_reference = true; rule.sites.push_back(std::move(site)); c.bindings.push_back(std::move(rule)); }
+  { binding rule{};
+    rule.source = {0x7d27aacb, 0xe0675efb, 0, 0x21};
+    rule.destination = {0x643a7daf, 0x86f10977, 0, 0x01};
+    call_site site{};
+    site.owner = {0xd9f85152, 0x1170, 0x18a8, 0x5b6b9132, 0xe0675efb, 0x0, 0x0};
+    site.reference = 0x182c; site.opcode = 0x03d0; site.parameter_byte = 0;
+    site.instruction = {0xd0, 0x3, 0x71, 0x51, 0xcb, 0xaa, 0x27, 0x7d, 0x0, 0x0, 0x0, 0x0};
+    site.function_reference = true; rule.sites.push_back(std::move(site)); c.bindings.push_back(std::move(rule)); }
+  c.repeated_import_keys.emplace(import_key{0x1d22626, 0xe0675efb, 0x2, 0x24}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0xd5b5054, 0xae969b2b, 0x1, 0x2}, std::uint16_t{9});
+  c.repeated_import_keys.emplace(import_key{0x1567335c, 0x40f1a093, 0x1, 0x2}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x1ab5ebec, 0xad23e503, 0x1, 0x4}, std::uint16_t{9});
+  c.repeated_import_keys.emplace(import_key{0x1f3745c0, 0xe0675efb, 0x1, 0x24}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x1f9e3a2a, 0x172ba133, 0x3, 0x2}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x202d5265, 0xae969b2b, 0x1, 0x2}, std::uint16_t{6});
+  c.repeated_import_keys.emplace(import_key{0x224232f4, 0xe0675efb, 0x0, 0x34}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x22664e38, 0xe0675efb, 0x0, 0x21}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x23c9ffd3, 0xe0675efb, 0x1, 0x25}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x2ce855f3, 0xe0675efb, 0x1, 0x25}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x2ce855f3, 0xe0675efb, 0x1, 0x35}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x307b88f2, 0x84970cc4, 0x2, 0x2}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x316bc7ca, 0xe0675efb, 0x0, 0x24}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x331efedc, 0x71e9cb84, 0x1, 0x4}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x33e91747, 0xe0675efb, 0x2, 0x24}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x33e91747, 0xe0675efb, 0x2, 0x34}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x3687d5bd, 0x172ba133, 0x1, 0x2}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x3f67a723, 0xe0675efb, 0x3, 0x24}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x47d18840, 0x84970cc4, 0x1, 0x2}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x47d18840, 0x84970cc4, 0x1, 0x12}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x48c6a3a2, 0xe0675efb, 0x0, 0x24}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x48f26766, 0xe0675efb, 0x0, 0x24}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x50ccee8d, 0xe0675efb, 0x0, 0x24}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x50f16166, 0x71e9cb84, 0x5, 0x2}, std::uint16_t{10});
+  c.repeated_import_keys.emplace(import_key{0x52a59a0c, 0x3b5de3f, 0x1, 0x2}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x60e1ca5f, 0xe0675efb, 0x0, 0x21}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x688ed188, 0x71e9cb84, 0x1, 0x4}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x69554b3e, 0x84970cc4, 0x2, 0x2}, std::uint16_t{15});
+  c.repeated_import_keys.emplace(import_key{0x6ada35ba, 0xe0675efb, 0x2, 0x22}, std::uint16_t{5});
+  c.repeated_import_keys.emplace(import_key{0x6e2770d8, 0xe0675efb, 0x1, 0x22}, std::uint16_t{8});
+  c.repeated_import_keys.emplace(import_key{0x6e2770d8, 0xe0675efb, 0x1, 0x32}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x74d6b22f, 0x71e9cb84, 0x2, 0x4}, std::uint16_t{4});
+  c.repeated_import_keys.emplace(import_key{0x74d6b22f, 0xad23e503, 0x1, 0x4}, std::uint16_t{6});
+  c.repeated_import_keys.emplace(import_key{0x74d6b22f, 0xad23e503, 0x1, 0x14}, std::uint16_t{5});
+  c.repeated_import_keys.emplace(import_key{0x7922262b, 0xad23e503, 0x1, 0x4}, std::uint16_t{16});
+  c.repeated_import_keys.emplace(import_key{0x7d15e2f8, 0xe0675efb, 0x2, 0x22}, std::uint16_t{4});
+  c.repeated_import_keys.emplace(import_key{0x7faf4c39, 0x14b42b8a, 0x2, 0x2}, std::uint16_t{5});
+  c.repeated_import_keys.emplace(import_key{0x81403b2f, 0xe0675efb, 0x2, 0x22}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x81403b2f, 0xe0675efb, 0x2, 0x32}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x8332f7f6, 0x84970cc4, 0x1, 0x2}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x84970cc4, 0xe0675efb, 0x1, 0x22}, std::uint16_t{6});
+  c.repeated_import_keys.emplace(import_key{0x84970cc4, 0xe0675efb, 0x1, 0x32}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x84970cc4, 0xe0675efb, 0x3, 0x22}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x860a040a, 0xe0675efb, 0x1, 0x24}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x8bdea13c, 0xe0675efb, 0x2, 0x24}, std::uint16_t{4});
+  c.repeated_import_keys.emplace(import_key{0x8bdea13c, 0xe0675efb, 0x3, 0x24}, std::uint16_t{4});
+  c.repeated_import_keys.emplace(import_key{0x921a1574, 0xe0675efb, 0x1, 0x24}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x970609e0, 0xe0675efb, 0x5, 0x22}, std::uint16_t{15});
+  c.repeated_import_keys.emplace(import_key{0x9903d501, 0xe0675efb, 0x0, 0x21}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0x9d134160, 0xad23e503, 0x1, 0x4}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0x9d134160, 0xad23e503, 0x1, 0x14}, std::uint16_t{6});
+  c.repeated_import_keys.emplace(import_key{0x9ffe5c12, 0xe0675efb, 0x0, 0x24}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0xa1b986ba, 0x40f1a093, 0x1, 0x4}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0xa8fb77bd, 0xe0675efb, 0x0, 0x22}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0xa96a2721, 0xe0675efb, 0x2, 0x24}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0xb3c0448e, 0xe0675efb, 0x1, 0x32}, std::uint16_t{8});
+  c.repeated_import_keys.emplace(import_key{0xb3fffcec, 0xe0675efb, 0x0, 0x21}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0xb8862210, 0xe0675efb, 0x2, 0x24}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0xb9fd52a4, 0x82b91a51, 0x3, 0x2}, std::uint16_t{5});
+  c.repeated_import_keys.emplace(import_key{0xbc7ce905, 0xe0675efb, 0x1, 0x22}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0xbd181031, 0x33d4b538, 0x1, 0x4}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0xc35e6aab, 0xad23e503, 0x1, 0x4}, std::uint16_t{11});
+  c.repeated_import_keys.emplace(import_key{0xc4d5ec1f, 0xe0675efb, 0x1, 0x22}, std::uint16_t{5});
+  c.repeated_import_keys.emplace(import_key{0xc7f3ce11, 0xe0675efb, 0x0, 0x24}, std::uint16_t{13});
+  c.repeated_import_keys.emplace(import_key{0xcb2c15eb, 0xe0675efb, 0x2, 0x24}, std::uint16_t{12});
+  c.repeated_import_keys.emplace(import_key{0xcb3d1c9b, 0xe0675efb, 0x2, 0x22}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0xcc4d5165, 0x71e9cb84, 0x2, 0x4}, std::uint16_t{7});
+  c.repeated_import_keys.emplace(import_key{0xd48f2ab3, 0xe0675efb, 0x1, 0x24}, std::uint16_t{2});
+  c.repeated_import_keys.emplace(import_key{0xdc8c8404, 0xe0675efb, 0x0, 0x24}, std::uint16_t{6});
+  c.repeated_import_keys.emplace(import_key{0xe8547a5b, 0xe0675efb, 0x1, 0x24}, std::uint16_t{4});
+  c.repeated_import_keys.emplace(import_key{0xe9c3870b, 0x71e9cb84, 0x2, 0x4}, std::uint16_t{8});
+  c.repeated_import_keys.emplace(import_key{0xf08cb3ce, 0xe0675efb, 0x0, 0x21}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0xf99f9ce7, 0xe0675efb, 0x0, 0x21}, std::uint16_t{3});
+  c.repeated_import_keys.emplace(import_key{0xfbbc8608, 0xe0675efb, 0x2, 0x25}, std::uint16_t{3});
+  return c;
+}
+} // namespace fixed_stalingrad_challenges
+
 namespace zombies::coop::map_mechanics {
-inline constexpr std::array<map_runtime_bridge::descriptor, 8> descriptors{{
+inline constexpr std::array<map_runtime_bridge::descriptor, 9> descriptors{{
   {"zm_temple", "scripts/zm/zm_temple_pack_a_punch.gsc", &map_import_binding::fixed_temple::captured_contract, 3, false, true},
   {"zm_castle", "scripts/zm/zm_castle_ee_bossfight.gsc", &map_import_binding::fixed_castle::captured_contract, 5, false, true},
   {"zm_factory", "scripts/zm/zm_factory_teleporter.gsc", &map_import_binding::fixed_factory::captured_contract, 8, false, true},
@@ -774,6 +887,7 @@ inline constexpr std::array<map_runtime_bridge::descriptor, 8> descriptors{{
   {"zm_stalingrad", "scripts/zm/zm_stalingrad_wearables.gsc", &map_import_binding::fixed_stalingrad_wearables::captured_contract, 96, false, true},
   {"zm_stalingrad", "scripts/zm/zm_stalingrad.gsc", &map_import_binding::fixed_stalingrad_main::captured_contract, 96, true, true},
   {"", "scripts/zm/bgbs/_zm_bgb_anywhere_but_here.gsc", &map_import_binding::fixed_bgb_global::captured_contract, 64, false, false},
+  {"zm_stalingrad", "scripts/zm/zm_stalingrad_challenges.gsc", &map_import_binding::fixed_stalingrad_challenges::captured_contract, 128, false, true},
 }};
 inline constexpr std::size_t global_bgb_descriptor = 7;
 static_assert(descriptors[global_bgb_descriptor].map.empty());

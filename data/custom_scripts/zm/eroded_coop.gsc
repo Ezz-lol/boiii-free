@@ -150,6 +150,35 @@ function island_trials_current(epoch, map, limit)
         level.eroded_island_trials_ready == true;
 }
 
+// Server map receipt. The map helper is loaded by the native exact-object
+// adapter only; never import a map-only stock module into this controller.
+function stalingrad_pools_current(epoch, map, limit)
+{
+    if (map != "zm_stalingrad") return true;
+    if (!isint(epoch) || epoch < 1 || !isint(limit) || limit < 5 || limit > 8 ||
+        getdvarint("zm_coopStartupEpoch") != epoch || getdvarstring("mapname") != map ||
+        getdvarint("zm_coopAppliedLimit") != limit || getdvarint("zm_coopSchemaSlots") != limit)
+        return false;
+    expected_size = 6;
+    if (limit > 6) expected_size = limit;
+    now = gettime();
+    return isdefined(level.eroded_stalingrad_pool_revision) && isint(level.eroded_stalingrad_pool_revision) &&
+        level.eroded_stalingrad_pool_revision == 1 &&
+        isdefined(level.eroded_stalingrad_pool_map) && isstring(level.eroded_stalingrad_pool_map) &&
+        level.eroded_stalingrad_pool_map == map &&
+        isdefined(level.eroded_stalingrad_pool_epoch) && isint(level.eroded_stalingrad_pool_epoch) &&
+        level.eroded_stalingrad_pool_epoch == epoch &&
+        isdefined(level.eroded_stalingrad_pool_capacity) && isint(level.eroded_stalingrad_pool_capacity) &&
+        level.eroded_stalingrad_pool_capacity == limit &&
+        isdefined(level.eroded_stalingrad_pool_catalog_size) && isint(level.eroded_stalingrad_pool_catalog_size) &&
+        level.eroded_stalingrad_pool_catalog_size == expected_size &&
+        isdefined(level.eroded_stalingrad_pool_tick) && isint(level.eroded_stalingrad_pool_tick) &&
+        isint(now) && level.eroded_stalingrad_pool_tick >= 0 && now >= level.eroded_stalingrad_pool_tick &&
+        now - level.eroded_stalingrad_pool_tick <= 1000 &&
+        isdefined(level.eroded_stalingrad_pool_ready) && isint(level.eroded_stalingrad_pool_ready) &&
+        level.eroded_stalingrad_pool_ready == true;
+}
+
 function map_profile_current(epoch, map)
 {
     return isdefined(level.eroded_coop_profile_map) && level.eroded_coop_profile_map == map &&
@@ -186,6 +215,7 @@ function install(limit, epoch, map)
     while (!isdefined(level.player_too_many_players_check_func) || !isdefined(level.func_get_zombie_spawn_delay) ||
         (official_map(map) && !map_profile_current(epoch, map)) ||
         !island_trials_current(epoch, map, limit) ||
+        !stalingrad_pools_current(epoch, map, limit) ||
         disconnect_endgame_pending(level.onendgame) || !isdefined(level._notetrack_handler) ||
         (isarray(level._notetrack_handler) && !isdefined(level._notetrack_handler["zombie_window_melee"])) ||
         (map_profile_current(epoch, map) && isdefined(level.eroded_coop_known_total_setup) &&
@@ -201,7 +231,7 @@ function install(limit, epoch, map)
         }
         wait 0.05;
     }
-    if (!startup_current(epoch, map))
+    if (!startup_current(epoch, map) || !stalingrad_pools_current(epoch, map, limit))
         return;
     expected_delay = &zm::get_zombie_spawn_delay;
     if (map_profile_current(epoch, map) && isdefined(level.eroded_coop_profile_delay))
@@ -266,9 +296,10 @@ function install(limit, epoch, map)
         setdvar("zm_coopMapAdapter", "inherited_stock_callbacks_custom_logic_preserved");
     // A terminal event observed while startup helpers yielded must never be
     // followed by a fresh heartbeat or positive readiness publication.
-    if (!startup_current(epoch, map)) return;
+    if (!startup_current(epoch, map) || !stalingrad_pools_current(epoch, map, limit)) return;
     diagnostic_event("callbacks_installed");
     level thread diagnostic_heartbeat(epoch, map);
+    if (!startup_current(epoch, map) || !stalingrad_pools_current(epoch, map, limit)) return;
     setdvar("zm_coopReadyMap", map);
     setdvar("zm_coopReadyEpoch", epoch);
     setdvar("zm_coopStatus", "experimental_callbacks_installed");
@@ -364,6 +395,7 @@ function owns_callbacks()
         level.player_too_many_players_check_func == &player_count_check &&
         level.func_get_zombie_spawn_delay == &spawn_delay &&
         island_trials_current(getdvarint("zm_coopStartupEpoch"), getdvarstring("mapname"), level.eroded_coop_limit) &&
+        stalingrad_pools_current(getdvarint("zm_coopStartupEpoch"), getdvarstring("mapname"), level.eroded_coop_limit) &&
         round_setup_context_current() && round_setup_owner_owned() && disconnect_guards_owned() &&
         bot_threat_guard_compatible() && fake_death_guard_compatible();
 }

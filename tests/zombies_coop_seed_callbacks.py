@@ -23,7 +23,7 @@ HELPERS=('total_setup_original_owned','total_setup_owner_owned','round_setup_con
     'round_setup_owner_owned','install_round_seed_hook','run_original_total_setup','round_total_setup',
     'next_round_generation','round_generation_current','make_round_seed','valid_counters',
     'count_callback_owned','normal_round_target','custom_round_controller','round_thinker_owned',
-    'moon_round_budget_owned','round_controller_reason','island_trials_current','owns_callbacks')
+    'moon_round_budget_owned','round_controller_reason','island_trials_current', 'stalingrad_pools_current','owns_callbacks')
 
 
 def mask(source):

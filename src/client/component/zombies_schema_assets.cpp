@@ -160,7 +160,7 @@ castle_selector::digest castle_digest(std::span<const std::uint8_t> bytes) {
 namespace map_bridge = zombies::coop::map_runtime_bridge;
 using map_store_lease = t7::schema_asset_store<script_asset>::generation_lease;
 using map_bridge_request = map_bridge::request<map_store_lease>;
-using map_bridge_proofs = map_bridge::receipts<script_asset, 8>;
+using map_bridge_proofs = map_bridge::receipts<script_asset, std::tuple_size_v<std::remove_cvref_t<decltype(map_mechanics::descriptors)>>>;
 std::mutex map_operation_mutex; // component -> store; never acquired by a store callback
 map_bridge_proofs map_proofs;
 
@@ -332,10 +332,10 @@ bool map_handles_helper(const char *name) noexcept {
 }
 bool map_pin_all_helpers(std::string &error) noexcept {
   try {
-    static_assert(std::tuple_size_v<std::remove_cvref_t<decltype(map_mechanics::compiled_payloads)>> == 7);
-    static_assert(t7::map_companion_names.size() == 7);
-    static_assert(std::tuple_size_v<std::remove_cvref_t<decltype(map_mechanics::descriptors)>> == 8);
-    std::array<std::string_view, 7> views{};
+    static_assert(std::tuple_size_v<std::remove_cvref_t<decltype(map_mechanics::compiled_payloads)>> == 8);
+    static_assert(t7::map_companion_names.size() == 8);
+    static_assert(std::tuple_size_v<std::remove_cvref_t<decltype(map_mechanics::descriptors)>> == 9);
+    std::array<std::string_view, t7::map_companion_names.size()> views{};
     for (unsigned i = 0; i < views.size(); ++i) {
       const auto &payload = map_mechanics::compiled_payloads[i];
       if (payload.name != t7::map_companion_names[i] || payload.bytes.empty()) {
@@ -347,7 +347,7 @@ bool map_pin_all_helpers(std::string &error) noexcept {
     bool pinned = false;
     {
       const std::lock_guard lock(map_operation_mutex);
-      pinned = map_bridge::pin_helpers(assets, std::span<const std::string_view, 7>(views), error);
+      pinned = map_bridge::pin_helpers(assets, std::span<const std::string_view, t7::map_companion_names.size()>(views), error);
     }
     return pinned;
   } catch (...) {
@@ -544,7 +544,7 @@ bool map_observe_helper_detour(std::uintptr_t target) noexcept {
     auto r = capture_map_backing_identity(t7::map_companion_names[0]);
     if (!r) return false;
     struct protected_range { script_asset *asset{}; std::uintptr_t begin{}, end{}; };
-    std::array<protected_range, 7> ranges{};
+    std::array<protected_range, t7::map_companion_names.size()> ranges{};
     for (unsigned i = 0; i < ranges.size(); ++i) {
       const auto bytes = map_mechanics::compiled_payloads[i].bytes;
       if (bytes.size() < t7::object_header_size) continue;

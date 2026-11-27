@@ -45,7 +45,7 @@ std::string alias(std::string_view name){std::string value(name);for(auto& c:val
 int main(int argc,char** argv) {
   if(argc!=3)return 2;
   static_assert(companion_count==3);
-  static_assert(map_companion_names.size()==7);
+  static_assert(map_companion_names.size()==8);
   static_assert(retention_limit==32u*1024u*1024u);
   const auto raw=load(argv[1]);const auto raw_client=load(argv[2]);
   const auto wire_server=renamed(raw,server_companion),wire_client=renamed(raw_client,client_companion),wire_island=renamed(raw,island_companion);
@@ -56,7 +56,7 @@ int main(int argc,char** argv) {
   // Identity table remains separate from the original wire schema table.
   for(unsigned i=0;i<map_companion_names.size();++i){
     const auto name=map_companion_names[i];
-    check(map_companion_identity(name)==i,"seven exact map identities");
+    check(map_companion_identity(name)==i,"eight exact map identities");
     check(map_companion_identity(aliases[i])==i,"case/separator identity alias");
     check(!fixed_companion_identity(name),"map code is not old wire companion");
     check(!map_companion_identity(std::string(name)+".bak"),"suffix rejected");
@@ -103,7 +103,7 @@ int main(int argc,char** argv) {
     for(unsigned i=0;i<map_companion_names.size();++i)check(store.pin_map_companion(i,payloads[i],error),"map and wire share store without identity collision");
     const auto lease=store.capture_generation(server_companion);check(store.authorize_island_server(lease),"existing island authorization unchanged");
     for(const auto name:companion_names)check(store.companion(name,error)!=nullptr,"all original three wire lookups work");
-    for(const auto name:map_companion_names)check(store.map_companion(name,error,lease)!=nullptr,"all seven server code lookups work");
+    for(const auto name:map_companion_names)check(store.map_companion(name,error,lease)!=nullptr,"all eight server code lookups work");
   }
   // Local allocation rollback at every allocation point, followed by retry.
   int failed_pins=0,failed_lookups=0;
@@ -114,7 +114,7 @@ int main(int argc,char** argv) {
     check(store.pin_map_companion(0,payloads[0],error),"pin retry succeeds after allocation rollback");
     check(contents(store.map_companion(map_companion_names[0],error,store.capture_generation(server_companion)))==payloads[0],"retry exposes exact bytes");
   }
-  check(failed_pins>=7,"multiple independent pin allocation failures exercised");
+  check(failed_pins>=8,"multiple independent pin allocation failures exercised");
   for(int point=0;point<16;++point){
     Store store;check(store.pin_map_companion(0,payloads[0],error),"lookup injection pin");const auto before=store.retained();
     const auto lease=store.capture_generation(server_companion);Asset* result=nullptr;
@@ -143,7 +143,7 @@ int main(int argc,char** argv) {
     std::array<Asset*,map_companion_names.size()> emergency{};const auto calls=allocation_calls.load();fail_all=true;
     for(unsigned i=0;i<map_companion_names.size();++i)emergency[i]=reserved.emergency_map_companion(aliases[i]);
     auto* unknown=reserved.emergency_map_companion("unknown");fail_all=false;
-    check(allocation_calls==calls&&!unknown,"all seven and unknown emergency paths allocate nothing");
+    check(allocation_calls==calls&&!unknown,"all eight and unknown emergency paths allocate nothing");
     for(unsigned i=0;i<map_companion_names.size();++i){check(emergency[i]&&contents(emergency[i])==payloads[i],"every emergency keeps its own canonical object");for(unsigned j=0;j<i;++j)check(emergency[i]!=emergency[j],"emergency identities never alias other map slots");}
   }
   {Store count_bound;check(count_bound.pin_map_companion(0,payloads[0],error),"count exhaustion pin");

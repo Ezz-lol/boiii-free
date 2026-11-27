@@ -31,7 +31,7 @@ def verify(root):
     header = root / manifest["generated_header"]
     assert hashlib.sha256(header.read_bytes()).hexdigest() == manifest["generated_header_sha256"]
     text = header.read_text()
-    assert len(manifest["entries"]) == 7
+    assert len(manifest["entries"]) == 8
     logical_names = set()
     exported = {}
     imports = []
@@ -98,7 +98,7 @@ def verify(root):
     key = atom + r",\s*" + atom + r",\s*" + atom + r",\s*" + atom
     destinations = re.findall(r"c\.bindings\.push_back\(\{\{[^}]+\},\s*\{" + key + r"\}", contract_header)
     destinations += re.findall(r"rule\.destination\s*=\s*\{" + key + r"\}", contract_header)
-    assert len(destinations) == 14
+    assert len(destinations) == 17
     for function, space, argc, flags in destinations:
         target = (int(space, 0), int(function, 0))
         assert target in exported, f"retargeted destination is absent: {target}"
@@ -107,17 +107,17 @@ def verify(root):
     assert contracts["wire_schema_changed"] is False
     assert contracts["linked_body_authenticated"] is False
     rows = contracts["stock_objects"]
-    assert len(rows) == 8 and len({row["path"] for row in rows}) == 8
-    assert sum(row["selected_references"] for row in rows) == 19
+    assert len(rows) == 9 and len({row["path"] for row in rows}) == 9
+    assert sum(row["selected_references"] for row in rows) == 22
     assert sum(row["add_core_fields_include"] for row in rows) == 1
     assert next(row for row in rows if row["add_core_fields_include"])["profile"] == "stalingrad_main"
     for row in rows:
-        assert row["helpers"] & ~127 == 0 and row["helpers"] != 0
+        assert row["helpers"] & ~255 == 0 and row["helpers"] != 0
         assert re.fullmatch("[0-9a-f]{64}", row["raw_sha256"])
         assert row["path"].startswith("scripts/zm/") and row["path"].endswith(".gsc")
     generic = next(row for row in rows if row["profile"] == "bgb_global")
     assert generic["map"] == "" and generic["required_for_map"] is False and generic["helpers"] == 64
-    print("PASS seven source/object payloads, helper imports, eight contracts and 19 exact references; metadata only")
+    print("PASS eight source/object payloads, helper imports, nine contracts and 22 exact references; metadata only")
 
 
 if __name__ == "__main__":

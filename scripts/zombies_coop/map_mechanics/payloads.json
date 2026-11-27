@@ -8,7 +8,7 @@
   "compiler": "ACTS 3.3.0",
   "compiler_sha256": "d6db380930717a5d434a68c84155f152fb44efe87e9a59e133299b3bd978b4cf",
   "generated_header": "src/client/component/zombies/map_mechanics_payloads.hpp",
-  "generated_header_sha256": "b3293d0ca0f8137036224733e56a29db61bff03166a85c3fb8af93e955114098",
+  "generated_header_sha256": "dc4e55e0c0618885fe3d4bf958786e0790663e5ac42f01417f366a11744484c6",
   "entries": [
     {
       "index": 0,
@@ -712,6 +712,190 @@
       },
       "code_offset": 625,
       "code_bytes": 8827
+    },
+    {
+      "index": 7,
+      "source": "scripts/zombies_coop/map_mechanics/eroded_coop_stalingrad_challenges_entry.gsc",
+      "source_sha256": "3708b4b3ba21bf981390505f141ded2400cdc65ec2941d271b0619f488ece930",
+      "compiled_sha256": "7847680eaaf70bc514dea65b6a9e8092d240a04a53a4594755fa1fc8e4911cab",
+      "compiled_bytes": 28203,
+      "logical_name": "custom_scripts/zm/eroded_coop_stalingrad_challenges_entry.gsc",
+      "namespace": "eroded_coop_stalingrad_challenges",
+      "export_count": 34,
+      "exports": {
+        "a73d2db0": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 1972682789
+        },
+        "57e7e8d1": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2116174348
+        },
+        "0e3e7db8": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 2291502334
+        },
+        "37164850": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2387221887
+        },
+        "41445997": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2022739087
+        },
+        "7cda3581": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2480727213
+        },
+        "f25824b6": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 798602763
+        },
+        "b403416d": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 573143785
+        },
+        "9ad7c829": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 1216959939
+        },
+        "1ff6f64d": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 4272991718
+        },
+        "d1fc7a01": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 27191549
+        },
+        "1123004b": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 2065311004
+        },
+        "a4d2a8f7": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 4216013
+        },
+        "f48b8071": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2478394256
+        },
+        "81496a86": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 1734668032
+        },
+        "8eaa7c30": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 216039637
+        },
+        "2084a1a5": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1651374684
+        },
+        "69a508f0": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2964640304
+        },
+        "2d4432db": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 275929985
+        },
+        "3ba37349": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 1308405273
+        },
+        "643a7daf": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2415217976
+        },
+        "cd544a38": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 829058907
+        },
+        "fdced91a": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 3399683131
+        },
+        "43d863e3": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3842786351
+        },
+        "64384a27": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 3426782366
+        },
+        "4adba605": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2451848729
+        },
+        "e65fd8d5": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 575499855
+        },
+        "baadf007": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 175861289
+        },
+        "bfe80904": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3310559493
+        },
+        "e4e498bc": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3499035361
+        },
+        "e2ebe56c": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 487758493
+        },
+        "be5ca444": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1978654248
+        },
+        "49871fa8": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1441993067
+        },
+        "e672d0b6": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 739423182
+        }
+      },
+      "code_offset": 823,
+      "code_bytes": 22163
     }
   ]
 }

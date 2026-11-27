@@ -96,6 +96,18 @@
       "helpers": 64,
       "add_core_fields_include": false,
       "required_for_map": false
+    },
+    {
+      "profile": "stalingrad_challenges",
+      "map": "zm_stalingrad",
+      "path": "scripts/zm/zm_stalingrad_challenges.gsc",
+      "raw_sha256": "ec6a38ec2df1004e8b03a45381a5f7d3c1cb6324932b0a2a43c1a6663b249a07",
+      "raw_bytes": 41492,
+      "selected_references": 3,
+      "factory": "fixed_stalingrad_challenges::captured_contract",
+      "helpers": 128,
+      "add_core_fields_include": false,
+      "required_for_map": true
     }
   ],
   "wire_schema_changed": false,

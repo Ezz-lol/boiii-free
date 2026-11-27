@@ -5,8 +5,8 @@ through eight. Configured one-through-four sessions keep their stock paths. It
 uses the current real player roster, including bots; it does not invent player
 entities or change the network schema to fit map geometry.
 
-The native loader checks eight specific stock script objects before redirecting
-19 call or function-reference imports to seven authored helpers. A different
+The native loader checks nine specific stock script objects before redirecting
+22 call or function-reference imports to eight authored helpers. A different
 stock object or conflicting producer fails the expanded readiness gate. Stock
 code, exports and source CRC stay unchanged; only checked import/include metadata
 is rebuilt. Helpers have fixed names, immutable pre-link templates and separate
@@ -23,6 +23,13 @@ The helpers cover:
   Eight passengers share the existing four tags. Landing waits are bounded;
   collision grace requires the owned core callback and more than four live
   players. Separation runs after arrival, never while attached to the dragon.
+- Gorod challenge allocation uses independently owned per-player descriptors.
+  The initial catalog is bounded by the configured session capacity, with a
+  minimum of the six stock descriptors per tier. Departing players return only
+  their validated assignments once; consumed assignments are not replenished.
+  Current-roster counts, catalog conservation and callback ownership must remain
+  valid for expanded readiness. This does not validate every challenge worker
+  or reuse of the same player script object on reconnect.
 - Shared Anywhere But Here validation/activation and destination selection.
   Selection retains the chosen enabled room and its existing children, supports
   explicit custom labels above four, and otherwise shares stock labels. An

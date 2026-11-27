@@ -22,7 +22,7 @@ struct asset {
 };
 using store_type = t7::schema_asset_store<asset>;
 using request_type = b::request<store_type::generation_lease>;
-using proofs_type = b::receipts<asset, 8>;
+using proofs_type = b::receipts<asset, 9>;
 template <class Store, class Request, class Guard>
 inline constexpr bool requires_guarded_emergency = requires(Store &store, Request r, Guard guard) {
   store.emergency_map_companion(t7::map_companion_names[1], r.lease, guard);
@@ -39,19 +39,20 @@ static m::digest witness(std::span<const std::uint8_t> bytes) {
 static void put16(std::span<std::uint8_t> bytes, std::size_t at, std::uint16_t value) {
   bytes[at] = static_cast<std::uint8_t>(value); bytes[at + 1] = static_cast<std::uint8_t>(value >> 8);
 }
-static const std::array<std::string_view, 8> module_paths{
+static const std::array<std::string_view, 9> module_paths{
  "scripts/zm/zm_temple_pack_a_punch.gsc", "scripts/zm/zm_castle_ee_bossfight.gsc",
  "scripts/zm/zm_factory_teleporter.gsc", "scripts/zm/zm_theater_teleporter.gsc",
  "scripts/zm/zm_stalingrad_dragon.gsc", "scripts/zm/zm_stalingrad_wearables.gsc",
- "scripts/zm/zm_stalingrad.gsc", "scripts/zm/bgbs/_zm_bgb_anywhere_but_here.gsc"};
-static const std::array<std::string_view, 8> module_maps{
- "zm_temple", "zm_castle", "zm_factory", "zm_theater", "zm_stalingrad", "zm_stalingrad", "zm_stalingrad", "zm_stalingrad"};
+ "scripts/zm/zm_stalingrad.gsc", "scripts/zm/bgbs/_zm_bgb_anywhere_but_here.gsc",
+ "scripts/zm/zm_stalingrad_challenges.gsc"};
+static const std::array<std::string_view, 9> module_maps{
+ "zm_temple", "zm_castle", "zm_factory", "zm_theater", "zm_stalingrad", "zm_stalingrad", "zm_stalingrad", "zm_stalingrad", "zm_stalingrad"};
 static constexpr unsigned optional_helper = t7::map_companion_names.size() > 6 ? 6u : 5u;
 static constexpr b::helper_mask gorod_helpers = 32 | (b::helper_mask{1} << optional_helper);
-static const std::array<unsigned, 8> helper_index{1, 2, 3, 4, 5, 5, 5, optional_helper};
-static std::array<std::vector<std::uint8_t>, 8> module_data;
-static std::array<m::contract, 8> contracts;
-static std::array<asset, 8> originals;
+static const std::array<unsigned, 9> helper_index{1, 2, 3, 4, 5, 5, 5, optional_helper, 7};
+static std::array<std::vector<std::uint8_t>, 9> module_data;
+static std::array<m::contract, 9> contracts;
+static std::array<asset, 9> originals;
 static std::array<std::string, t7::map_companion_names.size()> payload_data;
 static std::array<std::string_view, t7::map_companion_names.size()> payload_views;
 static m::contract fixture_factory(unsigned index) {
@@ -59,7 +60,7 @@ static m::contract fixture_factory(unsigned index) {
   return contracts[index];
 }
 template <unsigned Index> static m::contract factory() { return fixture_factory(Index); }
-static const std::array<b::descriptor, 8> descriptors{{
+static const std::array<b::descriptor, 9> descriptors{{
  {module_maps[0], module_paths[0], factory<0>, 3, false},
  {module_maps[1], module_paths[1], factory<1>, 5, false},
  {module_maps[2], module_paths[2], factory<2>, 8, false},
@@ -67,7 +68,8 @@ static const std::array<b::descriptor, 8> descriptors{{
  {module_maps[4], module_paths[4], factory<4>, gorod_helpers, false},
  {module_maps[5], module_paths[5], factory<5>, gorod_helpers, false},
  {module_maps[6], module_paths[6], factory<6>, gorod_helpers, true},
- {"", module_paths[7], factory<7>, b::helper_mask{1} << optional_helper, false, false}}};
+ {"", module_paths[7], factory<7>, b::helper_mask{1} << optional_helper, false, false},
+ {module_maps[8], module_paths[8], factory<8>, b::helper_mask{1} << 7, false, true}}};
 static const auto rows = std::span<const b::descriptor>(descriptors);
 static std::vector<std::uint8_t> object(std::string_view name, bool module) {
   std::vector<std::uint8_t> bytes(0x400);
@@ -139,7 +141,7 @@ static void matrix() {
         auto repeated = b::route_stock(store, proofs, rows, r, module_paths[i], changed.asset, witness, guard);
         check(repeated.state == b::outcome::cached && repeated.asset == changed.asset, "same VM identity despite linker mutation");
       }
-      check(expected_modules == (std::string_view(map) == "zm_stalingrad" ? 3u : 1u), "all exact mandatory descriptors counted");
+      check(expected_modules == (std::string_view(map) == "zm_stalingrad" ? 4u : 1u), "all exact mandatory descriptors counted");
       check(!b::ready(store, proofs, rows, r, guard).ready, "stock receipts alone cannot ready");
       const auto mask = b::detail::dependencies(rows, map);
       for (unsigned i = 0; i < payload_views.size(); ++i) {
@@ -180,7 +182,7 @@ static void generations_and_routing() {
   check(!b::ready(store, proofs, rows, other, guard).ready, "requested optional BGB demands helper receipt");
   check(b::lookup_helper(store, proofs, rows, other, t7::map_companion_names[optional_helper], static_cast<asset *>(nullptr), guard).okay(), "optional global helper retained");
   check(b::ready(store, proofs, rows, other, guard).ready, "custom map ready after requested optional module and helper");
-  check(b::route_stock(store, proofs, rows, other, module_paths[6], &originals[6], witness, guard).state == b::outcome::untouched, "seven map-specific descriptors remain exact-map only");
+  check(b::route_stock(store, proofs, rows, other, module_paths[6], &originals[6], witness, guard).state == b::outcome::untouched, "eight map-specific descriptors remain exact-map only");
   auto stock = fresh; stock.capacity = 4;
   check(b::route_stock(store, proofs, rows, stock, module_paths[6], &originals[6], witness, guard).state == b::outcome::untouched, "configured stock unchanged");
   check(b::route_stock(store, proofs, rows, fresh, "scripts/zm/zm_stalingrad.csc", &originals[6], witness, guard).state == b::outcome::untouched, "client script never matched to server path");
@@ -189,11 +191,13 @@ static void transitive_dependencies() {
   if constexpr (optional_helper == 5) return;
   store_type store; proofs_type proofs; pin(store); const auto r = capture(store, "zm_stalingrad");
   auto guard = [] { return true; };
-  for (unsigned index : {4u, 5u, 6u})
+  for (unsigned index : {4u, 5u, 6u, 8u})
     check(b::route_stock(store, proofs, rows, r, module_paths[index], &originals[index], witness, guard).okay(), "Gorod mandatory module retained");
   check(b::lookup_helper(store, proofs, rows, r, t7::map_companion_names[5], static_cast<asset *>(nullptr), guard).okay(), "Gorod direct helper retained");
   check(!b::ready(store, proofs, rows, r, guard).ready, "Gorod direct helper alone misses shared BGB dependency");
   check(b::lookup_helper(store, proofs, rows, r, t7::map_companion_names[6], static_cast<asset *>(nullptr), guard).okay(), "shared BGB dependency retained");
+  check(!b::ready(store, proofs, rows, r, guard).ready, "Challenge helper receipt is also mandatory");
+  check(b::lookup_helper(store, proofs, rows, r, t7::map_companion_names[7], static_cast<asset *>(nullptr), guard).okay(), "Challenge helper dependency retained");
   check(b::ready(store, proofs, rows, r, guard).ready, "Gorod transitive helper receipts complete");
 }
 static void fail_closed_and_reentrancy() {
@@ -300,7 +304,7 @@ int main() {
   try {
     initialize(); matrix(); generations_and_routing(); transitive_dependencies(); fail_closed_and_reentrancy(); emergency(); serialized_producer();
     std::cout << "checks=" << checks << " helper_count=" << t7::map_companion_names.size()
-              << " scope=portable-synthetic-eight-module-runtime-bridge-only\n";
+              << " scope=portable-synthetic-nine-module-runtime-bridge-only\n";
   } catch (const std::exception &error) {
     std::cerr << "failed checks=" << checks << " reason=" << error.what() << '\n'; return 1;
   }

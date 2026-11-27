@@ -18,7 +18,7 @@ if not DEFAULT_SOURCE.is_file():
     DEFAULT_SOURCE = ROOT / "data/custom_scripts/zm/eroded_coop.gsc"
 sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
 NAMES = ("main", "clear_readiness", "startup_identity_current", "ending_latched", "startup_current", "mark_ending",
-         "watch_pre_end_game", "watch_direct_end_game", "official_map", "island_trials_current", "map_profile_current",
+         "watch_pre_end_game", "watch_direct_end_game", "official_map", "island_trials_current", "stalingrad_pools_current", "map_profile_current",
          "diagnostic_round_values", "install", "diagnostic_heartbeat")
 
 
@@ -143,6 +143,28 @@ for(const cap of [0,9]){reset(cap);main();check(order.length===0&&dvars.zm_coopS
 reset(8,0);main();check(order.length===0&&dvars.zm_coopStatus==='invalid_startup_epoch','invalid startup retains original decline');
 reset();level.eroded_coop_started_epoch=17;level.eroded_coop_started_map='zm_castle';
 const duplicate=JSON.stringify([level,dvars]);main();check(writes.length===0&&order.length===0&&JSON.stringify([level,dvars])===duplicate,'preexisting duplicate installer keeps all prior readiness/heartbeat');
+
+// Actual installer cannot publish through a missing or withdrawn map receipt.
+function seed_stalingrad_receipt(){
+ dvars.zm_coopSchemaSlots=8;
+ Object.assign(level,{eroded_stalingrad_pool_revision:1,eroded_stalingrad_pool_map:'zm_stalingrad',
+  eroded_stalingrad_pool_epoch:17,eroded_stalingrad_pool_capacity:8,eroded_stalingrad_pool_catalog_size:8,
+  eroded_stalingrad_pool_tick:now,eroded_stalingrad_pool_ready:1});
+}
+reset(8,17,'zm_stalingrad');main();
+check(jobs[0].next().value===.05&&beats.length===0&&dvars.zm_coopReadyEpoch===0,'missing Stalingrad catalog keeps actual installer pending');
+seed_stalingrad_receipt();check(jobs[0].next().done&&beats.length===1&&dvars.zm_coopReadyEpoch===17,'fresh Stalingrad catalog releases installer');
+const originalSpawn=install_spawn_hook;
+reset(8,17,'zm_stalingrad');main();seed_stalingrad_receipt();
+install_spawn_hook=function(){level.eroded_stalingrad_pool_ready=0;};
+check(jobs[0].next().done&&beats.length===0&&dvars.zm_coopReadyEpoch===0,'helper-time pool withdrawal stops ready publication');
+install_spawn_hook=originalSpawn;
+const originalHeartbeat=launch_heartbeat;
+reset(8,17,'zm_stalingrad');main();seed_stalingrad_receipt();
+launch_heartbeat=function(epoch,map){originalHeartbeat(epoch,map);level.eroded_stalingrad_pool_ready=0;};
+check(jobs[0].next().done&&beats.length===1&&dvars.zm_coopReadyEpoch===0,'post-heartbeat withdrawal cannot be revived by installer');
+launch_heartbeat=originalHeartbeat;
+
 console.log(JSON.stringify({passed:true,checks,scope:'Mechanically translated actual private GSC lifecycle bodies with explicit coroutine/engine stand-ins. No engine scheduling, native ending admission, map-end or crash proof.'}));
 '''
 
@@ -171,7 +193,7 @@ def main():
     assert main_body.index("level thread watch_pre_end_game") < main_body.index("level thread watch_direct_end_game") < main_body.index("level thread install")
     assert main_body.index("if (limit <= 4)") < main_body.index('setdvar("zm_coopEndingRevision"')
     install = bodies["install"]
-    assert install.index("if (!startup_current(epoch, map)) return;") < install.index("level thread diagnostic_heartbeat") < install.index('setdvar("zm_coopReadyMap", map)')
+    assert install.index("if (!startup_current(epoch, map) || !stalingrad_pools_current(epoch, map, limit)) return;") < install.index("level thread diagnostic_heartbeat") < install.index('setdvar("zm_coopReadyMap", map)')
     heartbeat = bodies["diagnostic_heartbeat"]
     assert heartbeat.index("if (!startup_current(epoch, map))") < heartbeat.index('setdvar("zm_coopHeartbeat"')
     output = args.output_dir.resolve() / ("ending-gsc-" + datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))
