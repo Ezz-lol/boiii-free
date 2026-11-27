@@ -607,18 +607,28 @@ alwaysinline const game::LocalClientPool<game::XUID> &server_guids() {
   return guids;
 }
 
+template <int32_t index> game::XUID extra_client_guid() {
+  static const game::XUID guid =
+      get_key(static_cast<game::ControllerIndex_t>(index)).get_hash();
+  return guid;
+}
+
 game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
-  return client_guids()[game::validate(controllerIndex)
-                            ? controllerIndex
-                            : game::CONTROLLER_INDEX_0];
+  switch (controllerIndex) {
+  case 2:
+    return extra_client_guid<2>();
+  case 3:
+    return extra_client_guid<3>();
+  default:
+    return client_guids()[game::validate(controllerIndex)
+                              ? controllerIndex
+                              : game::CONTROLLER_INDEX_0];
+  }
 }
 
 game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
-  static const game::LocalClientPool<game::XUID> &guids =
-      game::is_client() ? client_guids() : server_guids();
-
-  return guids[game::validate(controllerIndex) ? controllerIndex
-                                               : game::CONTROLLER_INDEX_0];
+  return game::is_client() ? get_client_guid(controllerIndex)
+                           : server_guids()[game::CONTROLLER_INDEX_0];
 }
 
 game::XUID get_guid(const game::ClientNum_t client_num) {
