@@ -34,6 +34,12 @@ end
 
 if not modded and DataSources.BotSettings then
   local stockBotSettings = DataSources.BotSettings
+  local function setBotDvar(_, item, _, dvar)
+    UpdateInfoModels(item)
+    if item.value ~= Engine.DvarInt(nil, dvar) then
+      Engine.SetDvar(dvar, item.value)
+    end
+  end
   local zmBotSettings = DataSourceHelpers.ListSetup("BotSettings", function(controller)
     local counts = { { option = "MENU_DISABLED", value = 0, default = true } }
     for count = 1, 17 do
@@ -46,13 +52,15 @@ if not modded and DataSources.BotSettings then
         "MENU_FREE_BOT_DESC",
         "ZMBotOptions_Count",
         "zm_bots",
-        counts
+        counts,
+        nil,
+        setBotDvar
       ),
       CoD.OptionsUtility.CreateDvarSettings(controller, "BOT BEHAVIOUR", "", "ZMBotOptions_Mode", "zm_bot_mode", {
         { option = "FOLLOW", value = 0, default = true },
         { option = "WANDER", value = 1 },
         { option = "CAMP", value = 2 },
-      }),
+      }, nil, setBotDvar),
     }
   end, true)
   DataSources.BotSettings = setmetatable({}, {

@@ -191,6 +191,12 @@ local function addScoreRows(widget, menu, controller)
     local entry = Engine.CreateModel(playerList, place)
     Engine.SetModelValue(Engine.CreateModel(entry, "zombieInventoryIcon"), "blacktransparent")
     Engine.SetModelValue(Engine.CreateModel(entry, "zombieWearableIcon"), "blacktransparent")
+    for name, value in pairs({ zombiePlayerIcon = "blacktransparent", playerScoreShown = 0 }) do
+      local model = Engine.CreateModel(entry, name)
+      if Engine.GetModelValue(model) == nil then
+        Engine.SetModelValue(model, value)
+      end
+    end
     local row = CoD.ZMScr_ListingSm.new(menu, controller)
     local top = -26 * (place - STOCK_MAX + 1)
     row:setLeftRight(true, false, 16.28, 101.28)
