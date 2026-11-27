@@ -2,8 +2,6 @@
 
 #include "func.hpp"
 
-#include <string>
-
 #include <game/impl/scr/scr.hpp>
 #include <game/impl/scr/var.hpp>
 #include <game/impl/sv/sv.hpp>
@@ -13,6 +11,9 @@
 #include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
+
+#include <frozen/string.h>
+#include <frozen/unordered_set.h>
 
 using namespace game;
 using namespace game::scr;
@@ -35,8 +36,8 @@ namespace {
 utils::hook::detour Scr_GetFunction_hook;
 BuiltinFunction Scr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
                                              BuiltinType *type,
-                                             int32_t *min_args,
-                                             int32_t *max_args) {
+                                             uint32_t *min_args,
+                                             uint32_t *max_args) {
   if (custom_builtins::functions.server.map.contains(canonId)) {
     const BuiltinFunctionDef *def =
         &custom_builtins::functions.server.map[canonId];
@@ -54,8 +55,8 @@ BuiltinFunction Scr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
 
 utils::hook::detour Scr_GetMethod_hook;
 BuiltinMethod Scr_GetMethod_SearchCustom(ScrVarCanonicalName_t canonId,
-                                         BuiltinType *type, int32_t *min_args,
-                                         int32_t *max_args) {
+                                         BuiltinType *type, uint32_t *min_args,
+                                         uint32_t *max_args) {
   if (custom_builtins::methods.server.map.contains(canonId)) {
     const BuiltinMethodDef *def = &custom_builtins::methods.server.map[canonId];
 
@@ -91,8 +92,8 @@ Scr_GetMethodReverseLookup_SearchCustom(BuiltinMethod method) {
 utils::hook::detour CScr_GetFunction_hook;
 BuiltinFunction CScr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
                                               BuiltinType *type,
-                                              int32_t *min_args,
-                                              int32_t *max_args) {
+                                              uint32_t *min_args,
+                                              uint32_t *max_args) {
   if (custom_builtins::functions.client.map.contains(canonId)) {
     const BuiltinFunctionDef *def =
         &custom_builtins::functions.client.map[canonId];
@@ -110,8 +111,8 @@ BuiltinFunction CScr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
 
 utils::hook::detour CScr_GetMethod_hook;
 BuiltinMethod CScr_GetMethod_SearchCustom(ScrVarCanonicalName_t canonId,
-                                          BuiltinType *type, int32_t *min_args,
-                                          int32_t *max_args) {
+                                          BuiltinType *type, uint32_t *min_args,
+                                          uint32_t *max_args) {
   if (custom_builtins::methods.client.map.contains(canonId)) {
     const BuiltinMethodDef *def = &custom_builtins::methods.client.map[canonId];
 
@@ -148,7 +149,7 @@ void PlayerCmd_IsHost_DelegateToFirstClient(scriptInstance_t inst,
                                             scr_entref_t *entref) {
   if (entref->classnum == 0) {
     const level::gentity_t *ent = level::entity(entref->u.entnum);
-    if (ent && ent->client) {
+    if (ent != nullptr && ent->client != nullptr) {
       push(inst, ent->client->sess.cs.clientIndex == game::CLIENT_INDEX_0);
     } else {
       Scr_ObjectError(
@@ -174,14 +175,21 @@ void apply_bgb_hooks() {
       ->__protected__GetBGBUnlocked.actionFunc = &Scr_Return<true>;
 }
 
+constexpr frozen::string CHEAT_PROTECTED_DVAR_NAME_ARRAY[] = {
+    "cg_thirdPersonAngle"};
+constexpr frozen::unordered_set<frozen::string,
+                                std::size(CHEAT_PROTECTED_DVAR_NAME_ARRAY)>
+    CHEAT_PROTECTED_DVAR_NAMES =
+        frozen::make_unordered_set(CHEAT_PROTECTED_DVAR_NAME_ARRAY);
+
 BuiltinFunction GScr_SetDvar_orig;
 void GScr_SetDvar_SkipStockCheatDvar(const scriptInstance_t inst) {
-  if (Scr_GetNumParam(inst) > 0 && *game::dvar_cheats &&
-      !game::dvar_cheats->get_bool() &&
-      _stricmp(Scr_GetString(inst, 0), "cg_thirdPersonAngle") == 0) {
-    return;
+  if (Scr_GetNumParam(inst) == 0 || *game::dvar_cheats == nullptr ||
+      game::dvar_cheats->get_bool() ||
+      !CHEAT_PROTECTED_DVAR_NAMES.contains(
+          std::string_view(Scr_GetString(inst, 0)))) {
+    GScr_SetDvar_orig(inst);
   }
-  GScr_SetDvar_orig(inst);
 }
 
 void apply_set_dvar_hook() {
@@ -191,36 +199,52 @@ void apply_set_dvar_hook() {
       GScr_SetDvar_SkipStockCheatDvar;
 }
 
+/*
+  Patches to allow `assert` and `assertmsg` function execution outside of
+  devblock.
+
+  For whatever reason, Black Ops 3 script decompilations do not place these
+  functions within devblocks, so this is changed as a QoL improvement to ensure
+  these decompiled scripts can be used without having to manually wrap
+  assertions in devblocks.
+*/
+void apply_assertion_patches() {
+  game::scr::builtin::table::bg::util_functions->AssertMsg.type.devblockOnly =
+      false;
+  game::scr::builtin::table::bg::util_functions->Assert.type.devblockOnly =
+      false;
+}
+
 struct component final : generic_component {
   DEFINE_COMPONENT_NAME("gsc/func");
 
   void post_unpack() override {
 
     Scr_GetFunctionReverseLookup_hook.create(
-        game::scr::builtin::Scr_GetFunctionReverseLookup.get(),
+        game::scr::builtin::Scr_GetFunctionReverseLookup,
         Scr_GetFunctionReverseLookup_SearchCustom);
     Scr_GetMethodReverseLookup_hook.create(
-        game::scr::builtin::Scr_GetMethodReverseLookup.get(),
+        game::scr::builtin::Scr_GetMethodReverseLookup,
         Scr_GetMethodReverseLookup_SearchCustom);
 
-    Scr_GetFunction_hook.create(game::scr::builtin::Scr_GetFunction.get(),
+    Scr_GetFunction_hook.create(game::scr::builtin::Scr_GetFunction,
                                 Scr_GetFunction_SearchCustom);
-    Scr_GetMethod_hook.create(game::scr::builtin::Scr_GetMethod.get(),
+    Scr_GetMethod_hook.create(game::scr::builtin::Scr_GetMethod,
                               Scr_GetMethod_SearchCustom);
 
     CScr_GetFunctionReverseLookup_hook.create(
-        game::scr::builtin::cscr::CScr_GetFunctionReverseLookup.get(),
+        game::scr::builtin::cscr::CScr_GetFunctionReverseLookup,
         CScr_GetFunctionReverseLookup_SearchCustom);
     CScr_GetMethodReverseLookup_hook.create(
-        game::scr::builtin::cscr::CScr_GetMethodReverseLookup.get(),
+        game::scr::builtin::cscr::CScr_GetMethodReverseLookup,
         CScr_GetMethodReverseLookup_SearchCustom);
 
-    CScr_GetFunction_hook.create(
-        game::scr::builtin::cscr::CScr_GetFunction.get(),
-        CScr_GetFunction_SearchCustom);
-    CScr_GetMethod_hook.create(game::scr::builtin::cscr::CScr_GetMethod.get(),
+    CScr_GetFunction_hook.create(game::scr::builtin::cscr::CScr_GetFunction,
+                                 CScr_GetFunction_SearchCustom);
+    CScr_GetMethod_hook.create(game::scr::builtin::cscr::CScr_GetMethod,
                                CScr_GetMethod_SearchCustom);
 
+    apply_assertion_patches();
     apply_bgb_hooks();
     apply_set_dvar_hook();
 

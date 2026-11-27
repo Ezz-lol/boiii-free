@@ -52,9 +52,9 @@ enum class BuiltinTypeFlags : uint32_t {
   DEFAULT = 0x0,
   DEVBLOCK_ONLY = 0x1,
 };
+IMPL_ENUM_OPERATORS(BuiltinTypeFlags);
 
-#pragma pack(push, 1)
-union BuiltinType {
+PACKED(union BuiltinType {
   uint32_t raw;
 
   struct {
@@ -95,10 +95,10 @@ union BuiltinType {
   BuiltinTypeFlags flag;
 
   inline constexpr explicit operator bool() const noexcept { return raw != 0; }
-  inline constexpr bool has(BuiltinType mask) const noexcept {
+  [[nodiscard]] inline constexpr bool has(BuiltinType mask) const noexcept {
     return (raw & mask.raw) == mask.raw;
   }
-  inline constexpr bool has_any(BuiltinType mask) const noexcept {
+  [[nodiscard]] inline constexpr bool has_any(BuiltinType mask) const noexcept {
     return (raw & mask.raw) != 0;
   }
 
@@ -140,24 +140,24 @@ union BuiltinType {
   friend inline constexpr BuiltinType operator~(BuiltinType val) noexcept {
     return BuiltinType{~val.raw};
   }
-};
+});
 constexpr BuiltinType DEFAULT_BUILTIN_TYPE =
     BuiltinType{.flag = BuiltinTypeFlags::DEFAULT};
 ASSERT_SIZE(BuiltinType, sizeof(uint32_t));
-#pragma pack(pop)
+ASSERT_CPP03_POD(BuiltinType);
 
 constexpr uint32_t MIN_BUILTIN_ARGS = 0;
 constexpr uint32_t MAX_BUILTIN_ARGS = 0x7FFFFFFF;
 
 #pragma pack(push, 1)
 template <typename ActionFunc> struct BuiltinDef {
-  ScrVarCanonicalName_t canonId;
-  uint32_t min_args;
-  uint32_t max_args;
-  DEF_PAD(0C, 4);
-  ActionFunc actionFunc;
-  BuiltinType type;
-  DEF_PAD(1C, 4);
+  ScrVarCanonicalName_t canonId = 0;
+  uint32_t min_args = 0;
+  uint32_t max_args = 0;
+  DEF_PAD(0C, 4) = { 0 };
+  ActionFunc actionFunc = nullptr;
+  BuiltinType type = {.raw = 0};
+  DEF_PAD(1C, 4) = { 0 };
 };
 #pragma pack(pop)
 
