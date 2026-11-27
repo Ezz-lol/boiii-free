@@ -20,7 +20,9 @@ function portaudio.defines()
     "PAWIN_USE_DIRECTSOUNDFULLDUPLEXCREATE=1",
     "PA_USE_WMME=1",
     "PA_USE_WASAPI=1",
-    "PA_USE_WDMKS=0",
+    "PA_USE_WDMKS=1",
+    "PAWIN_USE_WDMKS_DEVICE_INFO=1",
+    "PA_USE_WDMKS_DEVICE_INFO=1",
     -- Linux-specific
     "PA_ALSA_DYNAMIC=0",
   })
@@ -80,6 +82,8 @@ function portaudio.project()
     path.join(portaudio.source, "hostapi/dsound/**.c"),
     -- WASAPI
     path.join(portaudio.source, "hostapi/wasapi/**.c"),
+    -- WDMKS
+    path.join(portaudio.source, "hostapi/wdmks/**.c"),
     -- WMME
     path.join(portaudio.source, "hostapi/wmme/**.c"),
   })
