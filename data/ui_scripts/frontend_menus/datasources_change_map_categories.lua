@@ -41,6 +41,50 @@ local GetMapDlcPackCategory = function(mapName)
   end
 end
 
+local ZM_EASTER_EGG_MAPS = {
+  zm_zod = true,
+  zm_castle = true,
+  zm_island = true,
+  zm_stalingrad = true,
+  zm_genesis = true,
+  zm_tomb = true,
+  zm_moon = true,
+  zm_temple = true,
+  zm_cosmodrome = true,
+}
+
+local function zombiesMapsTable()
+  local maps = {}
+  for mapName, mapData in pairs(Engine.GetGDTMapsTable()) do
+    if mapData.session_mode == Enum.eModes.MODE_ZOMBIES then
+      local copy = {}
+      for key, value in pairs(mapData) do
+        copy[key] = value
+      end
+      copy.dlc_pack = ZM_EASTER_EGG_MAPS[mapName] and CoD.CONTENT_ORIGINAL_MAP_INDEX or 1
+      mapData = copy
+    end
+    maps[mapName] = mapData
+  end
+  return maps
+end
+
+if DataSources.ChangeMapMaps then
+  local prepareMaps = DataSources.ChangeMapMaps.prepare
+  DataSources.ChangeMapMaps.prepare = function(...)
+    if CoD.gameModeEnum ~= Enum.eModes.MODE_ZOMBIES then
+      return prepareMaps(...)
+    end
+    local mapsTable = CoD.mapsTable
+    CoD.mapsTable = zombiesMapsTable()
+    local ok, err = pcall(prepareMaps, ...)
+    CoD.mapsTable = mapsTable
+    if not ok then
+      error(err)
+    end
+  end
+end
+
 DataSources.ChangeMapCategories = DataSourceHelpers.ListSetup("ChangeMapCategories", function(controller)
   local categories = {}
   local currentMapDlcPack =
@@ -76,17 +120,45 @@ DataSources.ChangeMapCategories = DataSourceHelpers.ListSetup("ChangeMapCategori
     return false
   end
 
-  if CoD.isCampaign == true then
+  local CreateZombiesCategoryEntry = function(text, description, packIndex)
+    local entry = CreateCategoryEntry("standard", packIndex)
+    entry.models.text = text
+    entry.models.buttonText = text
+    entry.models.description = description
+    entry.properties.selectIndex = (
+      ZM_EASTER_EGG_MAPS[Engine.DvarString(nil, "ui_mapname")] and CoD.CONTENT_ORIGINAL_MAP_INDEX or DLC_PACK_INDEX
+    ) == packIndex
+    return entry
+  end
+
+  if CoD.gameModeEnum == Enum.eModes.MODE_ZOMBIES then
+    table.insert(
+      categories,
+      CreateZombiesCategoryEntry(
+        "MAIN QUEST MAPS",
+        "Maps with a main Easter Egg quest.",
+        CoD.CONTENT_ORIGINAL_MAP_INDEX
+      )
+    )
+    table.insert(
+      categories,
+      CreateZombiesCategoryEntry("SURVIVAL MAPS", "Maps without a main Easter Egg quest.", DLC_PACK_INDEX)
+    )
+  elseif CoD.isCampaign == true then
     table.insert(categories, CreateCategoryEntry("missions", CoD.CONTENT_ORIGINAL_MAP_INDEX))
     table.insert(categories, CreateCategoryEntry("dev", CoD.CONTENT_DEV_MAP_INDEX))
   else
     table.insert(categories, CreateCategoryEntry("standard", CoD.CONTENT_ORIGINAL_MAP_INDEX))
+  end
+  if CoD.isCampaign ~= true and CoD.gameModeEnum ~= Enum.eModes.MODE_ZOMBIES then
     if not Dvar.ui_execdemo:get() and HasMapsInPack(DLC_PACK_INDEX) then
       table.insert(categories, CreateCategoryEntry("dlc", DLC_PACK_INDEX))
     end
     if not Dvar.ui_execdemo:get() and HasMapsInPack(DLC_BONUS_PACK_INDEX) then
       table.insert(categories, CreateCategoryEntry("dlc_bonus", DLC_BONUS_PACK_INDEX))
     end
+  end
+  if CoD.isCampaign ~= true then
     if Mods_Enabled() then --and Engine.Mods_Lists_GetInfoEntries( LuaEnums.USERMAP_BASE_PATH, 0, Engine.Mods_Lists_GetInfoEntriesCount( LuaEnums.USERMAP_BASE_PATH ) ) ~= nil then
       local modEntries = Engine.Mods_Lists_GetInfoEntries(
         LuaEnums.USERMAP_BASE_PATH,
