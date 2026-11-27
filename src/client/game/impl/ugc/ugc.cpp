@@ -161,7 +161,7 @@ void UGC_LoadPool_Impl(ExtendedUGCPool *pool, ZoneType zoneType) {
   fs::FS_FreeFileList(fileList);
   if (game::is_client()) {
     for (ControllerIndex_t controllerIndex = game::CONTROLLER_INDEX_0;
-         controllerIndex <= game::CONTROLLER_INDEX_COUNT; ++controllerIndex) {
+         controllerIndex < game::CONTROLLER_INDEX_COUNT; ++controllerIndex) {
 
       ui::UI_Model_ForceNotify(pool->listModels[controllerIndex]);
     }
