@@ -22,7 +22,8 @@ std::vector<std::string> get_command_line_args() {
     if (character == '"') {
       in_quotes = !in_quotes;
       has_arg = true;
-    } else if (!in_quotes && std::isspace(static_cast<unsigned char>(character))) {
+    } else if (!in_quotes &&
+               std::isspace(static_cast<unsigned char>(character))) {
       if (has_arg) {
         args.emplace_back(std::move(current));
         current.clear();
@@ -58,7 +59,8 @@ void apply_command_line_dvars() {
 
     std::string value{};
     auto end = i + 2;
-    for (; end < args.size() && !args[end].starts_with('+') && !is_flag(args[end]);
+    for (; end < args.size() && !args[end].starts_with('+') &&
+           !is_flag(args[end]);
          ++end) {
       if (!value.empty()) {
         value.push_back(' ');
@@ -66,7 +68,8 @@ void apply_command_line_dvars() {
       value.append(args[end]);
     }
 
-    buffer.append(std::format("{} {} \"{}\"\n", command.substr(1), args[i + 1], value));
+    buffer.append(
+        std::format("{} {} \"{}\"\n", command.substr(1), args[i + 1], value));
     i = end - 1;
   }
 

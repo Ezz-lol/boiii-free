@@ -20,7 +20,9 @@ alwaysinline uintptr_t UINT_PPEB() {
 }
 #endif
 
-alwaysinline uint32_t UINT_PPEB32() { return static_cast<uint32_t>(UINT_PPEB()); }
+alwaysinline uint32_t UINT_PPEB32() {
+  return static_cast<uint32_t>(UINT_PPEB());
+}
 
 // Without ASLR
 constexpr uintptr_t ENGINE_MODULE_BASE = 0x140000000;

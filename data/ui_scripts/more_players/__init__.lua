@@ -150,7 +150,8 @@ if CoD.ScoreboardWidgetCP then
     if scores and scores.Team1 then
       scores.Team1:setVerticalCount(MAX_PLAYERS)
     end
-    local inventoryBarMaps = { zm_zod = true, zm_castle = true, zm_stalingrad = true, zm_genesis = true, zm_tomb = true }
+    local inventoryBarMaps =
+      { zm_zod = true, zm_castle = true, zm_stalingrad = true, zm_genesis = true, zm_tomb = true }
     local bottom = inventoryBarMaps[Engine.GetCurrentMap()] and 570 or 710
     local countModel = Engine.CreateModel(Engine.GetGlobalModel(), "scoreboard.team1.count")
     local function fit()
@@ -172,7 +173,10 @@ if CoD.ScoreboardWidgetCP then
     end
     widget:subscribeToModel(countModel, fit, false)
     widget:subscribeToModel(
-      Engine.CreateModel(Engine.GetModelForController(controller), "UIVisibilityBit." .. Enum.UIVisibilityBit.BIT_SCOREBOARD_OPEN),
+      Engine.CreateModel(
+        Engine.GetModelForController(controller),
+        "UIVisibilityBit." .. Enum.UIVisibilityBit.BIT_SCOREBOARD_OPEN
+      ),
       fit,
       false
     )
