@@ -359,8 +359,7 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
           ++line_idx;
         }
 
-        // If we advanced at least once, the previous entry is the desired line.
-        *line_num = (line_idx > 0) ? (line_idx - 1) : -1;
+        *line_num = line_idx;
       } else {
         *line_num = -1;
       }

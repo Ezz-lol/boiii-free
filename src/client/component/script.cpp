@@ -1548,8 +1548,8 @@ std::vector<script_frame> get_script_frames(scriptInstance_t inst,
   }
 
   std::vector<uint8_t *> positions;
-  positions.emplace_back(pos ? const_cast<uint8_t *>(pos)
-                             : vm::gFs->instance[inst].pos);
+  positions.emplace_back(pos == nullptr ? vm::gFs->instance[inst].pos
+                                        : const_cast<uint8_t *>(pos));
   for (int32_t stack_idx = vm::gScrVmPub->instance[inst].function_count - 1;
        stack_idx > -1; --stack_idx) {
     positions.emplace_back(
