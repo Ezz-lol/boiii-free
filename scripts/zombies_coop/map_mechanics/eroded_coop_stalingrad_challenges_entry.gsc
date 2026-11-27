@@ -226,21 +226,31 @@ function ensure_seed(state)
             origins[tier][6 + extra] = index;
         }
     }
-    // Revalidate exact input arrays, records and ownership after allocating all
-    // copies. There is no wait/thread/notification before the three writebacks.
+    // Revalidate ordered stock task identities against replacement's independent
+    // six-entry snapshot. GSC arrays cannot be compared with ==
+    // or !=; a captured pool container would also not pin later replacements.
+    // There is no wait/thread/notification before the three writebacks.
     if (!identity_current(state) || !stock_system_owned() || !preassignment_players(state.capacity) ||
-        level._challenges.challenge_1 != pools[0] || level._challenges.challenge_2 != pools[1] ||
-        level._challenges.challenge_3 != pools[2])
+        !isdefined(level._challenges))
     {
         withdraw_readiness(state, "precommit_context_changed");
         return false;
     }
+    current_pools = array(level._challenges.challenge_1, level._challenges.challenge_2, level._challenges.challenge_3);
     for (tier = 1; tier <= 3; tier++)
     {
-        if (!valid_pool(pools[tier - 1], tier))
+        if (!valid_pool(current_pools[tier - 1], tier) || !valid_pool(pools[tier - 1], tier))
         {
             withdraw_readiness(state, "precommit_catalog_changed");
             return false;
+        }
+        for (index = 0; index < 6; index++)
+        {
+            if (current_pools[tier - 1][index] != replacement[tier][index])
+            {
+                withdraw_readiness(state, "precommit_catalog_changed");
+                return false;
+            }
         }
         for (index = 0; index < replacement[tier].size; index++)
         {
@@ -454,6 +464,28 @@ function disconnect()
     record.detached = true;
 }
 
+// Validate only the immutable catalog's bounded content. No GSC array
+// container equality is used or claimed. Task structs come from the pinned
+// stock constructor or our five-field spawnstruct copies.
+function valid_catalog(state, tier)
+{
+    if (!isint(tier) || tier < 1 || tier > 3 ||
+        !isdefined(state.catalog_size) || !isint(state.catalog_size) || state.catalog_size < 6 || state.catalog_size > 8 ||
+        !isdefined(state.catalogs) || !isarray(state.catalogs) || state.catalogs.size != 3 ||
+        !isdefined(state.origins) || !isarray(state.origins) || state.origins.size != 3 ||
+        !isdefined(state.catalogs[tier]) || !dense_pool(state.catalogs[tier], state.catalog_size) ||
+        state.catalogs[tier].size != state.catalog_size || !isdefined(state.origins[tier]) ||
+        !dense_pool(state.origins[tier], state.catalog_size) || state.origins[tier].size != state.catalog_size) return false;
+    for (index = 0; index < state.catalog_size; index++)
+    {
+        origin = state.origins[tier][index];
+        if (!isint(origin) || origin < 0 || origin > 5 || !valid_task(state.catalogs[tier][index], tier, origin)) return false;
+        for (previous = 0; previous < index; previous++)
+            if (state.catalogs[tier][previous] == state.catalogs[tier][index]) return false;
+    }
+    return true;
+}
+
 function cleanup_context_valid(state)
 {
     if (!lifecycle_current(state) || !stock_post_complete() || !callbacks_owned() ||
@@ -467,17 +499,7 @@ function cleanup_context_valid(state)
     pools = array(level._challenges.challenge_1, level._challenges.challenge_2, level._challenges.challenge_3);
     for (tier = 1; tier <= 3; tier++)
     {
-        if (!isdefined(state.catalogs[tier]) || !dense_pool(state.catalogs[tier], state.catalog_size) ||
-            state.catalogs[tier].size != state.catalog_size || !isdefined(state.origins[tier]) ||
-            !dense_pool(state.origins[tier], state.catalog_size) || state.origins[tier].size != state.catalog_size ||
-            pools[tier - 1] == state.catalogs[tier] || !dense_pool(pools[tier - 1], state.catalog_size)) return false;
-        for (index = 0; index < state.catalog_size; index++)
-        {
-            origin = state.origins[tier][index];
-            if (!isint(origin) || origin < 0 || origin > 5 || !valid_task(state.catalogs[tier][index], tier, origin)) return false;
-            for (previous = 0; previous < index; previous++)
-                if (state.catalogs[tier][previous] == state.catalogs[tier][index]) return false;
-        }
+        if (!valid_catalog(state, tier) || !dense_pool(pools[tier - 1], state.catalog_size)) return false;
         seen = array();
         for (index = 0; index < pools[tier - 1].size; index++)
         {
@@ -548,12 +570,10 @@ function observation(state)
     if (state.catalog_size != expected_size) return result;
     for (tier = 1; tier <= 3; tier++)
     {
-        if (!isdefined(state.catalogs[tier]) || !dense_pool(state.catalogs[tier], state.catalog_size) ||
-            state.catalogs[tier].size != state.catalog_size || !isdefined(state.origins[tier]) ||
-            !dense_pool(state.origins[tier], state.catalog_size) || state.origins[tier].size != state.catalog_size)
-            return result;
-        for (index = 0; index < state.catalog_size; index++)
-            if (!isint(state.origins[tier][index]) || state.origins[tier][index] < 0 || state.origins[tier][index] > 5) return result;
+        // Constructor-built catalogs are independent from mutable free pools.
+        // Their fixed shape, exact unique task identities and free+owned
+        // membership prove conservation without unsupported array equality.
+        if (!valid_catalog(state, tier)) return result;
     }
     actual = getplayers();
     if (!isarray(actual) || actual.size > state.capacity) return result;
@@ -606,11 +626,6 @@ function observation(state)
     pools = array(level._challenges.challenge_1, level._challenges.challenge_2, level._challenges.challenge_3);
     for (tier = 1; tier <= 3; tier++)
     {
-        if (pools[tier - 1] == state.catalogs[tier])
-        {
-            result.reason = "aliased_catalog_container";
-            return result;
-        }
         if (!dense_pool(pools[tier - 1], state.catalog_size))
         {
             result.reason = "free_pool_not_dense";

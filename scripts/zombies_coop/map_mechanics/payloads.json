@@ -8,7 +8,7 @@
   "compiler": "ACTS 3.3.0",
   "compiler_sha256": "d6db380930717a5d434a68c84155f152fb44efe87e9a59e133299b3bd978b4cf",
   "generated_header": "src/client/component/zombies/map_mechanics_payloads.hpp",
-  "generated_header_sha256": "dc4e55e0c0618885fe3d4bf958786e0790663e5ac42f01417f366a11744484c6",
+  "generated_header_sha256": "6394d70f9f4efba33ded90d9960677b414a7ff973b43cfa562c972ae0fee4363",
   "entries": [
     {
       "index": 0,
@@ -716,186 +716,191 @@
     {
       "index": 7,
       "source": "scripts/zombies_coop/map_mechanics/eroded_coop_stalingrad_challenges_entry.gsc",
-      "source_sha256": "3708b4b3ba21bf981390505f141ded2400cdc65ec2941d271b0619f488ece930",
-      "compiled_sha256": "7847680eaaf70bc514dea65b6a9e8092d240a04a53a4594755fa1fc8e4911cab",
-      "compiled_bytes": 28203,
+      "source_sha256": "dfce71c6995b1d810ab5b6de363fef197804b96086165c7974f88a94d53a7099",
+      "compiled_sha256": "f9020a1e37ee35d1fede06c4679a44a5594b0ab0d0b1f2c5c829677d6d90855e",
+      "compiled_bytes": 28301,
       "logical_name": "custom_scripts/zm/eroded_coop_stalingrad_challenges_entry.gsc",
       "namespace": "eroded_coop_stalingrad_challenges",
-      "export_count": 34,
+      "export_count": 35,
       "exports": {
         "a73d2db0": {
           "params": 0,
           "flags": 0,
-          "checksum": 1972682789
+          "checksum": 1950224477
         },
         "57e7e8d1": {
           "params": 1,
           "flags": 0,
-          "checksum": 2116174348
+          "checksum": 198727492
         },
         "0e3e7db8": {
           "params": 3,
           "flags": 0,
-          "checksum": 2291502334
+          "checksum": 995026444
         },
         "37164850": {
           "params": 1,
           "flags": 0,
-          "checksum": 2387221887
+          "checksum": 1408596939
         },
         "41445997": {
           "params": 2,
           "flags": 0,
-          "checksum": 2022739087
+          "checksum": 389331313
         },
         "7cda3581": {
           "params": 1,
           "flags": 0,
-          "checksum": 2480727213
+          "checksum": 551548643
         },
         "f25824b6": {
           "params": 1,
           "flags": 0,
-          "checksum": 798602763
+          "checksum": 3421605130
         },
         "b403416d": {
           "params": 0,
           "flags": 0,
-          "checksum": 573143785
+          "checksum": 931689803
         },
         "9ad7c829": {
           "params": 0,
           "flags": 0,
-          "checksum": 1216959939
+          "checksum": 919643501
         },
         "1ff6f64d": {
           "params": 2,
           "flags": 0,
-          "checksum": 4272991718
+          "checksum": 2493849782
         },
         "d1fc7a01": {
           "params": 3,
           "flags": 0,
-          "checksum": 27191549
+          "checksum": 3022576735
         },
         "1123004b": {
           "params": 3,
           "flags": 0,
-          "checksum": 2065311004
+          "checksum": 3439751760
         },
         "a4d2a8f7": {
           "params": 3,
           "flags": 0,
-          "checksum": 4216013
+          "checksum": 3218559782
         },
         "f48b8071": {
           "params": 1,
           "flags": 0,
-          "checksum": 2478394256
+          "checksum": 748408145
         },
         "81496a86": {
           "params": 2,
           "flags": 0,
-          "checksum": 1734668032
+          "checksum": 31076060
         },
         "8eaa7c30": {
           "params": 1,
           "flags": 0,
-          "checksum": 216039637
+          "checksum": 609440282
         },
         "2084a1a5": {
           "params": 1,
           "flags": 0,
-          "checksum": 1651374684
+          "checksum": 1630580439
         },
         "69a508f0": {
           "params": 0,
           "flags": 0,
-          "checksum": 2964640304
+          "checksum": 2149514814
         },
         "2d4432db": {
           "params": 3,
           "flags": 0,
-          "checksum": 275929985
+          "checksum": 1722174018
         },
         "3ba37349": {
           "params": 0,
           "flags": 0,
-          "checksum": 1308405273
+          "checksum": 3985880583
         },
         "643a7daf": {
           "params": 0,
           "flags": 0,
-          "checksum": 2415217976
+          "checksum": 2733667833
+        },
+        "c32696e9": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 1930825050
         },
         "cd544a38": {
           "params": 1,
           "flags": 0,
-          "checksum": 829058907
+          "checksum": 1207568529
         },
         "fdced91a": {
           "params": 3,
           "flags": 0,
-          "checksum": 3399683131
+          "checksum": 379862284
         },
         "43d863e3": {
           "params": 2,
           "flags": 0,
-          "checksum": 3842786351
+          "checksum": 2882344697
         },
         "64384a27": {
           "params": 3,
           "flags": 0,
-          "checksum": 3426782366
+          "checksum": 2289245381
         },
         "4adba605": {
           "params": 1,
           "flags": 0,
-          "checksum": 2451848729
+          "checksum": 3799164409
         },
         "e65fd8d5": {
           "params": 0,
           "flags": 0,
-          "checksum": 575499855
+          "checksum": 3014432213
         },
         "baadf007": {
           "params": 1,
           "flags": 0,
-          "checksum": 175861289
+          "checksum": 425975952
         },
         "bfe80904": {
           "params": 1,
           "flags": 0,
-          "checksum": 3310559493
+          "checksum": 2945830369
         },
         "e4e498bc": {
           "params": 2,
           "flags": 0,
-          "checksum": 3499035361
+          "checksum": 2694549158
         },
         "e2ebe56c": {
           "params": 1,
           "flags": 0,
-          "checksum": 487758493
+          "checksum": 2045387341
         },
         "be5ca444": {
           "params": 1,
           "flags": 0,
-          "checksum": 1978654248
+          "checksum": 4124549692
         },
         "49871fa8": {
           "params": 1,
           "flags": 0,
-          "checksum": 1441993067
+          "checksum": 3012821880
         },
         "e672d0b6": {
           "params": 2,
           "flags": 0,
-          "checksum": 739423182
+          "checksum": 3454398074
         }
       },
-      "code_offset": 823,
-      "code_bytes": 22163
+      "code_offset": 843,
+      "code_bytes": 22239
     }
   ]
 }
