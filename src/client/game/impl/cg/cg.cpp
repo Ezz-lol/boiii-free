@@ -155,6 +155,19 @@ const ClientViewParams *CG_GetLocalClientViewParams_Impl(
     return &layouts.oneView[0];
   }
 
+  if (viewCount > 2) {
+    static constexpr ClientViewParams fourViews[] = {
+        {.x = 0.0f, .y = 0.0f, .width = 0.5f, .height = 0.5f},
+        {.x = 0.5f, .y = 0.0f, .width = 0.5f, .height = 0.5f},
+        {.x = 0.0f, .y = 0.5f, .width = 0.5f, .height = 0.5f},
+        {.x = 0.5f, .y = 0.5f, .width = 0.5f, .height = 0.5f}};
+    static constexpr ClientViewParams thirdView[] = {
+        {.x = 0.0f, .y = 0.5f, .width = 1.0f, .height = 0.5f},
+        {.x = 0.25f, .y = 0.5f, .width = 0.5f, .height = 0.5f}};
+    return viewCount == 3 && viewIndex == 2 ? &thirdView[isWidescreen]
+                                            : &fourViews[viewIndex & 3];
+  }
+
   if (isWidescreen && viewCount == 2) {
     for (ClientViewParams &view : layouts.twoViews) {
       view.x = letterbox ? SPLITSCREEN_LETTERBOX_OFFSET : 0.0f;
