@@ -120,6 +120,7 @@ if not modded and LUI.createMenu.GameSettings_Bots then
     local menu = createBotsMenu(controller)
     if isZombies() then
       require("ui.uieditor.widgets.Scrollbars.verticalScrollbar")
+      menu.Options.ButtonList:setVerticalCount(13)
       menu.Options.ButtonList:setVerticalScrollbar(CoD.verticalScrollbar)
       menu.Options.Title.DescTitle:setText("BOTS")
       menu.GameSettingsBackground.GameSettingsSelectedItemInfo:setAlpha(0)
