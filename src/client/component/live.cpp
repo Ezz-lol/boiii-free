@@ -50,7 +50,7 @@ XUID LiveUser_GetLocalXuid_UseAuthGuid(const userData_t *userdata) {
 
 const char *
 LiveUser_GetClientName_GetOrInit(const ControllerIndex_t controllerIndex) {
-  const userDataRef data = s_userDataForControllerMap->data[controllerIndex];
+  const userDataRef data = LiveUser_GetUserDataForController(controllerIndex);
   if (!data->gamertag[0]) {
     LiveUser_UserGetName_ConsoleSuffix(controllerIndex, data->gamertag,
                                        std::size(data->gamertag));
