@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "scheduler.hpp"
+#include "zombies/coop_runtime.hpp"
 #include <loader/component_loader.hpp>
 
 #include <utils/concurrency.hpp>
@@ -95,6 +96,7 @@ void server_frame_stub() {
 void main_frame_stub() {
   main_frame_hook.invoke<void>();
   execute(pipeline::main);
+  zombies::coop::check_startup();
 }
 } // namespace
 

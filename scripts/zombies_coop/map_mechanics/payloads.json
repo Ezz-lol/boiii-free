@@ -1,0 +1,906 @@
+{
+  "vm": "bo3-pc-1c",
+  "wire_schema_revision": 4,
+  "wire_schema_changed": false,
+  "server_only": true,
+  "capacity_min": 5,
+  "capacity_max": 8,
+  "compiler": "ACTS 3.3.0",
+  "compiler_sha256": "d6db380930717a5d434a68c84155f152fb44efe87e9a59e133299b3bd978b4cf",
+  "generated_header": "src/client/component/zombies/map_mechanics_payloads.hpp",
+  "generated_header_sha256": "6394d70f9f4efba33ded90d9960677b414a7ff973b43cfa562c972ae0fee4363",
+  "entries": [
+    {
+      "index": 0,
+      "source": "scripts/zombies_coop/map_mechanics/eroded_coop_map_readiness.gsc",
+      "source_sha256": "1ba65f1ec88c334b7356f13a1728fc81efb37b59b3884d69e41adaa4dc9569a3",
+      "compiled_sha256": "8f183b6e5fbac3e41103120c2fc0559635e21848fd4cc6bcb8616d98554bf249",
+      "compiled_bytes": 5760,
+      "logical_name": "custom_scripts/zm/eroded_coop_map_readiness.gsc",
+      "namespace": "eroded_coop_map_readiness",
+      "export_count": 9,
+      "exports": {
+        "33109005": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3267245453
+        },
+        "2901b99d": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 3943588440
+        },
+        "18620159": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1180748173
+        },
+        "7b93c4f6": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3042388001
+        },
+        "40b5af80": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2528463478
+        },
+        "bcd6658d": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3780325018
+        },
+        "7deff7ba": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 1343249745
+        },
+        "d53f531e": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 825417829
+        },
+        "27048611": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 812257108
+        }
+      },
+      "code_offset": 286,
+      "code_bytes": 4500
+    },
+    {
+      "index": 1,
+      "source": "scripts/zombies_coop/map_mechanics/eroded_coop_temple_readiness_entry.gsc",
+      "source_sha256": "6917f93845c430c68bd74e0a3f01e494676a95918c4c6f2af3c46a982b1b6933",
+      "compiled_sha256": "d016f1aca9ba536ae3aed8048ea87452344aa5caee2c02d38fe9464356770977",
+      "compiled_bytes": 5333,
+      "logical_name": "custom_scripts/zm/eroded_coop_temple_readiness_entry.gsc",
+      "namespace": "eroded_coop_temple_readiness_entry",
+      "export_count": 7,
+      "exports": {
+        "3f8df75a": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2777802514
+        },
+        "378191a0": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 895039535
+        },
+        "7b8d91ed": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 19231703
+        },
+        "d49861d1": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2331031364
+        },
+        "b4751776": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2598163536
+        },
+        "3e019e7f": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2780808344
+        },
+        "1f0fc798": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 760901409
+        }
+      },
+      "code_offset": 426,
+      "code_bytes": 3730
+    },
+    {
+      "index": 2,
+      "source": "scripts/zombies_coop/map_mechanics/eroded_coop_castle_readiness_entry.gsc",
+      "source_sha256": "b47e859c9c5aacbe847aecbb525a30d538813f5235da95205ee3b2814120fa97",
+      "compiled_sha256": "3ee9ff2a4415a37d51d2fb714360469eb06d68940c0a9e8c0630602117a0a356",
+      "compiled_bytes": 2748,
+      "logical_name": "custom_scripts/zm/eroded_coop_castle_readiness_entry.gsc",
+      "namespace": "eroded_coop_castle_readiness_entry",
+      "export_count": 5,
+      "exports": {
+        "3f8df75a": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 4048373027
+        },
+        "378191a0": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 4110886849
+        },
+        "b4751776": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2751898263
+        },
+        "1f0fc798": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3659661967
+        },
+        "6f831a91": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 3349411920
+        }
+      },
+      "code_offset": 323,
+      "code_bytes": 1793
+    },
+    {
+      "index": 3,
+      "source": "scripts/zombies_coop/map_mechanics/eroded_coop_factory_teleport_entry.gsc",
+      "source_sha256": "f0c910395a886578f05e9c1fb7bf706475abfe0dbf54d3012aef29878c172890",
+      "compiled_sha256": "8764d17230df0a110cb98b3d3d88c6de573d63cceef71b75029e2a417e7dce7f",
+      "compiled_bytes": 12252,
+      "logical_name": "custom_scripts/zm/eroded_coop_factory_teleport_entry.gsc",
+      "namespace": "eroded_coop_factory",
+      "export_count": 21,
+      "exports": {
+        "2d11f419": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3010951366
+        },
+        "73a793d4": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3665412114
+        },
+        "33109005": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3013022100
+        },
+        "3365f238": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1744309662
+        },
+        "40b5af80": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 115314966
+        },
+        "0914ac6c": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1003430486
+        },
+        "f80627b8": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 63311071
+        },
+        "69854819": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 1482306605
+        },
+        "0ecb3107": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2445200546
+        },
+        "fcc99a8d": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1669551848
+        },
+        "aeb6219e": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 858516166
+        },
+        "986e12a8": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2581510797
+        },
+        "622a5138": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1418367106
+        },
+        "d74c9094": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2789879833
+        },
+        "68f715ad": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 1730058413
+        },
+        "b9288073": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3091897693
+        },
+        "bd9f0165": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1688802349
+        },
+        "24133c88": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 1982951292
+        },
+        "2837d78b": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 4022761013
+        },
+        "5580f0a6": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 955914751
+        },
+        "552e05fb": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2804786212
+        }
+      },
+      "code_offset": 669,
+      "code_bytes": 9535
+    },
+    {
+      "index": 4,
+      "source": "scripts/zombies_coop/map_mechanics/eroded_coop_theater_teleport_entry.gsc",
+      "source_sha256": "9ab1a3f12fbef674b863b4719103a0073991a92ee744c6db143d9109de010f24",
+      "compiled_sha256": "1a8382fb8c266ae339be4a53e2a275dfd5b7772e06cb07f8cd0a1dd301e1d714",
+      "compiled_bytes": 16212,
+      "logical_name": "custom_scripts/zm/eroded_coop_theater_teleport_entry.gsc",
+      "namespace": "eroded_coop_theater",
+      "export_count": 25,
+      "exports": {
+        "2d11f419": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 4123946775
+        },
+        "73a793d4": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 552312516
+        },
+        "33109005": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2501756026
+        },
+        "3365f238": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 454016464
+        },
+        "784ee767": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 946683226
+        },
+        "40b5af80": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 235274776
+        },
+        "0914ac6c": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1013421453
+        },
+        "f80627b8": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2744821830
+        },
+        "69854819": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3130294718
+        },
+        "0ecb3107": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 265946211
+        },
+        "fcc99a8d": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1010916452
+        },
+        "aeb6219e": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 1460701053
+        },
+        "986e12a8": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 788961458
+        },
+        "f8375cba": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 2372746951
+        },
+        "552e05fb": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2533217903
+        },
+        "ca722c71": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2774259157
+        },
+        "622a5138": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 204169246
+        },
+        "d74c9094": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 811397362
+        },
+        "68f715ad": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 4055629639
+        },
+        "7e0ed731": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 435947845
+        },
+        "b9288073": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 1033523342
+        },
+        "bd9f0165": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2860738476
+        },
+        "24133c88": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3956962720
+        },
+        "2837d78b": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3402137125
+        },
+        "5580f0a6": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2005855216
+        }
+      },
+      "code_offset": 882,
+      "code_bytes": 12524
+    },
+    {
+      "index": 5,
+      "source": "scripts/zombies_coop/map_mechanics/eroded_coop_stalingrad_transport_entry.gsc",
+      "source_sha256": "0fbd419a321d8da00fd1dbcb2d32623f9463f907f644f1cafa41d9c50a249648",
+      "compiled_sha256": "6b794459fb884e643985551b8e1a21c426f7503460074f571e3af17226d200ba",
+      "compiled_bytes": 30008,
+      "logical_name": "custom_scripts/zm/eroded_coop_stalingrad_transport_entry.gsc",
+      "namespace": "eroded_coop_stalingrad_transport",
+      "export_count": 39,
+      "exports": {
+        "09f2e062": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2806520972
+        },
+        "37164850": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2488497465
+        },
+        "9681656e": {
+          "params": 4,
+          "flags": 0,
+          "checksum": 3213942192
+        },
+        "b7ff398f": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 174005223
+        },
+        "04fe985c": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3819869135
+        },
+        "f34b1ee0": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2311920344
+        },
+        "986e12a8": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 936331022
+        },
+        "2aaa7261": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3830134557
+        },
+        "92bbd234": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1478179368
+        },
+        "17804585": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 2624250079
+        },
+        "019ae252": {
+          "params": 6,
+          "flags": 0,
+          "checksum": 897722644
+        },
+        "992abff8": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2934354676
+        },
+        "52742fc4": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2819665211
+        },
+        "f9c179cc": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2278186520
+        },
+        "c29f5317": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2317383295
+        },
+        "dc242acf": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 729505233
+        },
+        "6a4e0fa2": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 3256863789
+        },
+        "fe251614": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3432179089
+        },
+        "33c88ed5": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 927242560
+        },
+        "631079bc": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2844483959
+        },
+        "a8238190": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 160260898
+        },
+        "59525c8d": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 871390144
+        },
+        "54a5a71a": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 1465007430
+        },
+        "c9dc1e32": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 4283628374
+        },
+        "2ded2b55": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2537165938
+        },
+        "0fda1c39": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 149712141
+        },
+        "a0468810": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3647375664
+        },
+        "6835d2f9": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 3550251967
+        },
+        "9181eda1": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 1847839552
+        },
+        "91878583": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2157910019
+        },
+        "e7c3b93d": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 576475452
+        },
+        "5d60d570": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3730470632
+        },
+        "276fcdf9": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2613435920
+        },
+        "6bdf3c6e": {
+          "params": 4,
+          "flags": 0,
+          "checksum": 2212901343
+        },
+        "b405f52a": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2742181420
+        },
+        "b33c5038": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 3907878915
+        },
+        "2358ba64": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3343925038
+        },
+        "9d08cfc8": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 1877519125
+        },
+        "4e760fca": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 652857844
+        }
+      },
+      "code_offset": 1403,
+      "code_bytes": 23993
+    },
+    {
+      "index": 6,
+      "source": "scripts/zombies_coop/map_mechanics/eroded_coop_bgb_transport_entry.gsc",
+      "source_sha256": "58b41e88d1ea4244f5d0b3bf6b575596f69647b8042125272891fa8a12cbe90e",
+      "compiled_sha256": "5877823ac35295f7e09e3d61a4c905dcf109e621fc1d5093692e22e44e285243",
+      "compiled_bytes": 11474,
+      "logical_name": "custom_scripts/zm/eroded_coop_bgb_transport_entry.gsc",
+      "namespace": "eroded_coop_bgb_transport",
+      "export_count": 15,
+      "exports": {
+        "9681656e": {
+          "params": 5,
+          "flags": 0,
+          "checksum": 3507566257
+        },
+        "b7ff398f": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 452786402
+        },
+        "04fe985c": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 1086782264
+        },
+        "52742fc4": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2619382739
+        },
+        "17804585": {
+          "params": 4,
+          "flags": 0,
+          "checksum": 461048264
+        },
+        "37164850": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2599271292
+        },
+        "f9c179cc": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 4051553143
+        },
+        "67599f0c": {
+          "params": 4,
+          "flags": 0,
+          "checksum": 718559110
+        },
+        "351a70f5": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 3693833688
+        },
+        "fe60cae3": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2907556633
+        },
+        "c6f43d63": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 4270468555
+        },
+        "52e9167f": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3488152824
+        },
+        "c0aeaf56": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 12007564
+        },
+        "0e4776d0": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2872870902
+        },
+        "7afbf7cd": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2165158495
+        }
+      },
+      "code_offset": 625,
+      "code_bytes": 8827
+    },
+    {
+      "index": 7,
+      "source": "scripts/zombies_coop/map_mechanics/eroded_coop_stalingrad_challenges_entry.gsc",
+      "source_sha256": "dfce71c6995b1d810ab5b6de363fef197804b96086165c7974f88a94d53a7099",
+      "compiled_sha256": "f9020a1e37ee35d1fede06c4679a44a5594b0ab0d0b1f2c5c829677d6d90855e",
+      "compiled_bytes": 28301,
+      "logical_name": "custom_scripts/zm/eroded_coop_stalingrad_challenges_entry.gsc",
+      "namespace": "eroded_coop_stalingrad_challenges",
+      "export_count": 35,
+      "exports": {
+        "a73d2db0": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 1950224477
+        },
+        "57e7e8d1": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 198727492
+        },
+        "0e3e7db8": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 995026444
+        },
+        "37164850": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1408596939
+        },
+        "41445997": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 389331313
+        },
+        "7cda3581": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 551548643
+        },
+        "f25824b6": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3421605130
+        },
+        "b403416d": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 931689803
+        },
+        "9ad7c829": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 919643501
+        },
+        "1ff6f64d": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2493849782
+        },
+        "d1fc7a01": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 3022576735
+        },
+        "1123004b": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 3439751760
+        },
+        "a4d2a8f7": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 3218559782
+        },
+        "f48b8071": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 748408145
+        },
+        "81496a86": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 31076060
+        },
+        "8eaa7c30": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 609440282
+        },
+        "2084a1a5": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1630580439
+        },
+        "69a508f0": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2149514814
+        },
+        "2d4432db": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 1722174018
+        },
+        "3ba37349": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 3985880583
+        },
+        "643a7daf": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 2733667833
+        },
+        "c32696e9": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 1930825050
+        },
+        "cd544a38": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 1207568529
+        },
+        "fdced91a": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 379862284
+        },
+        "43d863e3": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2882344697
+        },
+        "64384a27": {
+          "params": 3,
+          "flags": 0,
+          "checksum": 2289245381
+        },
+        "4adba605": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3799164409
+        },
+        "e65fd8d5": {
+          "params": 0,
+          "flags": 0,
+          "checksum": 3014432213
+        },
+        "baadf007": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 425975952
+        },
+        "bfe80904": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2945830369
+        },
+        "e4e498bc": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 2694549158
+        },
+        "e2ebe56c": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 2045387341
+        },
+        "be5ca444": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 4124549692
+        },
+        "49871fa8": {
+          "params": 1,
+          "flags": 0,
+          "checksum": 3012821880
+        },
+        "e672d0b6": {
+          "params": 2,
+          "flags": 0,
+          "checksum": 3454398074
+        }
+      },
+      "code_offset": 843,
+      "code_bytes": 22239
+    }
+  ]
+}

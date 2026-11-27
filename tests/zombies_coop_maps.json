@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "stock_repository": "ate47/bo3-source",
+  "stock_commit": "fe040b1187b4850fe8da3c78b703c986c87d1028",
+  "runtime_verification": "pending; static source identities only",
+  "special_round_scope": {
+    "dog_total": "stock_intro_roster_snapshot",
+    "dog_pacing": "stock_local_count_and_max",
+    "live_dog_quota_resize_implemented": false
+  },
+  "maps": [
+    {
+      "map": "zm_zod",
+      "name": "Shadows of Evil",
+      "pack": "Base",
+      "source": "zm_zod",
+      "chars": "givecustomcharacters",
+      "radio": false,
+      "delay": "function_59804866",
+      "spawn": "zm_zod::function_33aa4940"
+    },
+    {
+      "map": "zm_factory",
+      "name": "The Giant",
+      "pack": "Bonus",
+      "source": "zm_factory",
+      "chars": "givecustomcharacters",
+      "radio": true,
+      "spawn": "zm_factory::function_33aa4940"
+    },
+    {
+      "map": "zm_castle",
+      "name": "Der Eisendrache",
+      "pack": "Awakening",
+      "source": "zm_castle_characters",
+      "chars": "givecustomcharacters",
+      "radio": true,
+      "spawn": "zm_castle_dogs::function_33aa4940"
+    },
+    {
+      "map": "zm_island",
+      "name": "Zetsubou No Shima",
+      "pack": "Eclipse",
+      "source": "zm_island",
+      "chars": "givecustomcharacters",
+      "radio": false,
+      "spawn": "zm_island_spiders::function_33aa4940"
+    },
+    {
+      "map": "zm_stalingrad",
+      "name": "Gorod Krovi",
+      "pack": "Descent",
+      "source": "zm_stalingrad",
+      "chars": "givecustomcharacters",
+      "radio": false,
+      "spawn": "zm_stalingrad::function_33aa4940"
+    },
+    {
+      "map": "zm_genesis",
+      "name": "Revelations",
+      "pack": "Salvation",
+      "source": "zm_genesis",
+      "chars": "givecustomcharacters",
+      "radio": false
+    },
+    {
+      "map": "zm_prototype",
+      "name": "Nacht der Untoten",
+      "pack": "Chronicles",
+      "source": "zm_prototype",
+      "chars": "givecustomcharacters",
+      "radio": true
+    },
+    {
+      "map": "zm_asylum",
+      "name": "Verruckt",
+      "pack": "Chronicles",
+      "source": "zm_asylum",
+      "chars": "givecustomcharacters",
+      "radio": true
+    },
+    {
+      "map": "zm_sumpf",
+      "name": "Shi No Numa",
+      "pack": "Chronicles",
+      "source": "zm_sumpf",
+      "chars": "givecustomcharacters",
+      "radio": true
+    },
+    {
+      "map": "zm_theater",
+      "name": "Kino der Toten",
+      "pack": "Chronicles",
+      "source": "zm_theater",
+      "chars": "givecustomcharacters",
+      "radio": true
+    },
+    {
+      "map": "zm_cosmodrome",
+      "name": "Ascension",
+      "pack": "Chronicles",
+      "source": "zm_cosmodrome",
+      "chars": "givecustomcharacters",
+      "radio": true
+    },
+    {
+      "map": "zm_temple",
+      "name": "Shangri-La",
+      "pack": "Chronicles",
+      "source": "zm_temple",
+      "chars": "givecustomcharacters",
+      "radio": true,
+      "total": "zm_temple::function_f10deff8"
+    },
+    {
+      "map": "zm_moon",
+      "name": "Moon",
+      "pack": "Chronicles",
+      "source": "zm_moon",
+      "chars": "givecustomcharacters",
+      "radio": true,
+      "think": "zm_moon::moon_round_think_func"
+    },
+    {
+      "map": "zm_tomb",
+      "name": "Origins",
+      "pack": "Chronicles",
+      "source": "zm_tomb",
+      "chars": "give_personality_characters",
+      "radio": true
+    }
+  ]
+}

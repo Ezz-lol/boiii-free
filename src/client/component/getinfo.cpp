@@ -9,6 +9,8 @@
 #include "network.hpp"
 #include "network_password.hpp"
 #include "scheduler.hpp"
+#include "zombies_lobby.hpp"
+#include "zombies/schema_peer.hpp"
 #include "workshop/workshop.hpp"
 
 #include <utils/info_string.hpp>
@@ -130,6 +132,21 @@ struct component final : generic_component {
                std::to_string(*game::level::level_rounds_played));
       info.set("shortversion", SHORTVERSION);
 
+      const auto lobby = zombies::coop::get_lobby_advertisement();
+      if (lobby.enabled) info.set("coopListed", lobby.advertise ? "1" : "0");
+      if (lobby.active) {
+        // Show the selected game rather than the frontend map. Native lobby
+        // routing still performs the normal content/privacy/reservation checks.
+        info.set("coopLobby", "1");
+        info.set("lobbyNetworkMode", lobby.lan ? "lan" : "live");
+        info.set("sv_maxclients", std::to_string(lobby.capacity));
+        info.set("clients", std::to_string(lobby.clients));
+        if (!lobby.in_match) info.set("bots", "0");
+        info.set("mapname", lobby.map);
+        info.set("gametype", lobby.gametype);
+        info.set("lobby", "game");
+      }
+
       info.set("sv_wwwBaseURL", game::fastdl_uri().value_or(""));
       info.set("sv_wwwBaseUrl", game::fastdl_uri().value_or(""));
       const std::string_view usermapId = game::ugc::active_usermap->publisherId;
@@ -141,6 +158,15 @@ struct component final : generic_component {
                  network_password::get_password_hash_string());
       }
 
+
+      const auto schema_capacity = zombies::coop::expanded_descriptor_capacity(info.get("sv_maxclients"));
+      std::string schema_error;
+      if (schema_capacity && info.get("playmode") == std::to_string(static_cast<int32_t>(game::eModes::ZOMBIES)) &&
+          zombies::coop::companion_files_ready(schema_error)) {
+        info.set("coopSchema", std::to_string(zombies::coop::companion_revision));
+        info.set("coopContract", std::string(zombies::coop::companion_contract));
+        info.set("coopBundle", zombies::coop::payloads::bundle_sha256);
+      }
       network::send(target, "infoResponse", info.build(), '\n');
     });
   }

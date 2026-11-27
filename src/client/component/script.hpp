@@ -52,6 +52,10 @@ struct script_frame {
   int32_t line{-1};
   std::string source;
   std::string function;
+  uintptr_t next_pc{}, fault_pc{};
+  uint32_t script_offset{}, code_offset{}, function_offset{};
+  bool bytecode_position{}, script_offset_available{}, function_offset_available{};
+  bool invalid_stack{}, frames_truncated{};
 };
 
 uint8_t *find_export_address(const std::string &script_name,

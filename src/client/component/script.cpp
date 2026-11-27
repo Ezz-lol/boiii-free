@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "script.hpp"
+#include "command.hpp"
 
 #include <component/dump.hpp>
 #include <component/game_event.hpp>
@@ -8,6 +9,10 @@
 #include <component/gsc/func/replacefunc.hpp>
 #include <component/mod_previews.hpp>
 #include <component/scheduler.hpp>
+#include <component/zombies/coop_runtime.hpp>
+#include <component/zombies/schema_assets.hpp>
+#include <component/zombies/builtin_snapshot_windows.hpp>
+#include <utils/flags.hpp>
 #include <loader/component_loader.hpp>
 
 #include <game/utils.hpp>
@@ -57,6 +62,31 @@ template <> struct hash<TreeDirectory> {
 
 namespace script {
 
+// BEGIN READONLY SCRIPT LOGGING STATUS
+bool script_error_logging_enabled() noexcept {
+  return game::log_script_errors();
+}
+void print_script_logging_status() {
+  const bool status_server = game::is_server();
+  const bool status_supported = status_server || game::is_client();
+  const bool status_bound = status_supported && static_cast<bool>(game::log_script_errors_flag.dvar);
+  const bool status_flag = utils::flags::has_flag("log-script-errors");
+  printf("COOP_SCRIPT_LOGGING|{\"version\":1,\"family\":\"ezz\",\"role\":\"%s\",\"supported\":%s,\"enabled\":%s,\"binding\":\"%s\",\"dvar_bound\":%s,\"flag_present\":%s}\n",
+      status_server ? "dedicated" : "client", status_supported ? "true" : "false",
+      status_supported && script_error_logging_enabled() ? "true" : "false",
+      !status_supported ? "unsupported" : status_bound ? "dvar" : "command_line",
+      status_bound ? "true" : "false", status_flag ? "true" : "false");
+  fflush(stdout);
+}
+// END READONLY SCRIPT LOGGING STATUS
+
+// BEGIN READONLY CONNECTED BUILTIN CAPTURE
+void capture_connected_builtin_snapshot() noexcept {
+  const bool dedicated = game::is_server();
+  zombies::coop::builtin_snapshot::capture_and_write("ezz", dedicated, dedicated ? game::get_base() : 0);
+}
+// END READONLY CONNECTED BUILTIN CAPTURE
+
 void print_script_log(const char *message) {
   game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", message);
@@ -68,6 +98,10 @@ void print_script_log(const char *message) {
 utils::hook::detour db_find_x_asset_header_hook;
 
 static utils::memory::allocator allocator;
+static std::mutex common_binding_mutex;
+static std::unordered_map<const ScriptParseTree *,
+                          zombies::coop::schema_assets::common_binding>
+    common_bindings;
 
 static loadedScriptMap_t loaded_scripts;
 static loadedRawFileMap_t loaded_rawfiles;
@@ -207,6 +241,26 @@ std::string normalize_path(std::string path) {
 static std::mutex db_mutex;
 const GSC_OBJ *get_linked_obj(const std::string &name) {
   const std::string normalized_name = normalize_script_name(name);
+  if (auto *mapped = zombies::coop::schema_assets::current_map_backing(
+          normalized_name.c_str()))
+    return mapped->buffer;
+  if (auto *mapped = zombies::coop::schema_assets::current_map_backing(
+          (normalized_name + ".gsc").c_str()))
+    return mapped->buffer;
+
+  if (auto *power = zombies::coop::schema_assets::powerup_backing(
+          normalized_name.c_str()))
+    return power->buffer;
+  if (auto *power = zombies::coop::schema_assets::powerup_backing(
+          (normalized_name + ".gsc").c_str()))
+    return power->buffer;
+
+  if (auto *common =
+          zombies::coop::schema_assets::common_backing(normalized_name.c_str()))
+    return common->buffer;
+  if (auto *common = zombies::coop::schema_assets::common_backing(
+          (normalized_name + ".gsc").c_str()))
+    return common->buffer;
 
   // Try with extension first, then without
   std::string with_ext = normalized_name;
@@ -438,7 +492,9 @@ void print_loading_script(const std::string &name) {
   print_script_log(log);
 }
 
-void load_script(const std::string &name, const std::string &data) {
+void load_script(const std::string &name, const std::string &data,
+                 const std::string *common_readable = nullptr,
+                 const std::string *common_cleaned = nullptr) {
 
   const bool is_csc = utils::string::ends_with(name, ".csc");
   const bool is_gsc = utils::string::ends_with(name, ".gsc");
@@ -461,11 +517,40 @@ void load_script(const std::string &name, const std::string &data) {
       return;
     }
 
+    if (name == "custom_scripts/zm/eroded_coop.gsc") {
+      const auto span = [](const std::string &value) {
+        return std::span(reinterpret_cast<const std::uint8_t *>(value.data()),
+                         value.size());
+      };
+      zombies::coop::schema_assets::observe_common_replacement(
+          name.c_str(), span(data),
+          common_readable ? span(*common_readable)
+                          : std::span<const std::uint8_t>{},
+          common_cleaned ? span(*common_cleaned)
+                         : std::span<const std::uint8_t>{},
+          common_readable && common_cleaned);
+    }
     ScriptParseTree *parse_tree = allocator.allocate<ScriptParseTree>();
     parse_tree->name = allocator.duplicate_string(name);
     parse_tree->buffer =
         reinterpret_cast<GSC_OBJ *>(allocator.duplicate_string(data));
     parse_tree->len = data.length();
+
+    if (name == "custom_scripts/zm/eroded_coop.gsc" && common_readable &&
+        common_cleaned) {
+      const auto span = [](const std::string &value) {
+        return std::span(reinterpret_cast<const std::uint8_t *>(value.data()),
+                         value.size());
+      };
+      auto bound = zombies::coop::schema_assets::bind_common_loader(
+          parse_tree, span(data), span(*common_readable), span(*common_cleaned),
+          true);
+      if (bound) {
+        std::lock_guard common_lock(common_binding_mutex);
+        if (common_bindings.size() < 64)
+          common_bindings.emplace(parse_tree, std::move(*bound));
+      }
+    }
 
     while (loaded_scripts.try_emplace_l(
         name,
@@ -545,7 +630,7 @@ void load_script_file(std::string &data,
 
           print_loading_script(name);
           std::string bytecode(result.bytecode.begin(), result.bytecode.end());
-          load_script(name, bytecode);
+          load_script(name, bytecode, &data, &cleaned_source);
           add_gdb(name, result.gdb);
 
           // Register replacefunc entries as pending detours
@@ -663,7 +748,10 @@ std::optional<std::string> find_missing_include(const queued_script &script) {
   return std::nullopt;
 }
 
-void execute_queued_script(const queued_script &script) {
+void execute_queued_script(
+    const queued_script &script,
+    const std::optional<zombies::coop::schema_assets::common_request>
+        &common_request) {
   if (const std::optional<std::string> missing = find_missing_include(script)) {
     print_script_log(utils::string::va(
         "Skipped script '%s' because it needs '%s', which this game mode does "
@@ -673,6 +761,9 @@ void execute_queued_script(const queued_script &script) {
   }
 
   scr::Scr_LoadScript(script.inst, script.base_name.data());
+  if (common_request && script.inst == SCRIPTINSTANCE_SERVER &&
+      script.name == "custom_scripts/zm/eroded_coop.gsc")
+    zombies::coop::schema_assets::common_load_returned(*common_request);
 
   print_script_log(utils::string::va("Loaded script '%s' into the VM",
                                      script_path(script.name).c_str()));
@@ -1232,7 +1323,19 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
   if (name != nullptr && name[0] != NULL) {
     switch (type) {
     case XAssetType::SCRIPTPARSETREE: {
-      result.scriptParseTree = get_loaded_script(name);
+      if (zombies::coop::schema_assets::handles_map_helper(name)) {
+        result.scriptParseTree = zombies::coop::schema_assets::lookup_map_helper(name);
+        return result;
+      }
+      if (zombies::coop::schema_assets::handles_companion(name)) {
+        result.scriptParseTree = zombies::coop::schema_assets::lookup_companion(name);
+        return result;
+      }
+      result.scriptParseTree = zombies::coop::schema_assets::current_map_backing(name);
+      if (!result.scriptParseTree)
+        result.scriptParseTree = zombies::coop::schema_assets::common_backing(name);
+      if (!result.scriptParseTree)
+        result.scriptParseTree = get_loaded_script(name);
       break;
     }
     case XAssetType::RAWFILE: {
@@ -1253,6 +1356,10 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
         type, name, error_if_missing, wait_time);
   }
 
+  if (type == XAssetType::SCRIPTPARSETREE && name) {
+    result.scriptParseTree = zombies::coop::schema_assets::transform(name, result.scriptParseTree);
+  }
+
   if (nonnull(result.rawfile)) {
     dump::dump_requested_assets(type, name, result);
   }
@@ -1261,9 +1368,14 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
 }
 
 void clear_script_memory() {
+  zombies::coop::shutdown_map();
   std::scoped_lock lock(script_load_mutex);
 
   execution_queue.clear();
+  {
+    std::lock_guard common_lock(common_binding_mutex);
+    common_bindings.clear();
+  }
   loaded_scripts.clear();
   script_gdbs.clear();
   script_hash_names.clear();
@@ -1274,27 +1386,40 @@ void clear_script_memory() {
 }
 
 void rebuild_script_gdb() {
-  const std::filesystem::path scriptgdb_archive_path =
-      get_game_path() / "zone" / "scriptgdb.zip";
+  // GDB data helps diagnostics; inability to persist it must not prevent the
+  // already compiled game scripts from loading on a read-only installation.
+  try {
+    const std::filesystem::path scriptgdb_archive_path =
+        get_game_path() / "zone" / "scriptgdb.zip";
 
-  if (std::filesystem::exists(scriptgdb_archive_path)) {
-    const std::string data = utils::io::read_file(scriptgdb_archive_path);
-    try {
-      const std::unordered_map<std::string, std::vector<uint8_t>>
-          existing_entries = utils::compression::zip::extract(data);
-      for (const auto &[key, value] : existing_entries) {
-        if (!script_gdbs.contains(key)) {
-          script_gdbs[key] = std::move(value);
+    if (std::filesystem::exists(scriptgdb_archive_path)) {
+      const std::string data = utils::io::read_file(scriptgdb_archive_path);
+      try {
+        const std::unordered_map<std::string, std::vector<uint8_t>>
+            existing_entries = utils::compression::zip::extract(data);
+        for (const auto &[key, value] : existing_entries) {
+          if (!script_gdbs.contains(key)) {
+            script_gdbs[key] = std::move(value);
+          }
         }
+      } catch (...) {
       }
-    } catch (...) {
     }
-    std::filesystem::remove(scriptgdb_archive_path);
-  }
 
-  utils::compression::zip::write_file(
-      scriptgdb_archive_path,
-      std::vector(script_gdbs.begin(), script_gdbs.end()));
+    // APPEND_STATUS_CREATE already replaces the archive after a successful
+    // open. Do not delete existing stock debug data before that open succeeds.
+    utils::compression::zip::write_file(
+        scriptgdb_archive_path,
+        std::vector(script_gdbs.begin(), script_gdbs.end()));
+  } catch (const std::exception &error) {
+    static std::atomic_flag warning_reported = ATOMIC_FLAG_INIT;
+    if (!warning_reported.test_and_set(std::memory_order_relaxed)) {
+      print_script_log(
+          utils::string::va("Script debug archive was not updated; gameplay "
+                            "scripts remain loaded: %.512s",
+                            error.what()));
+    }
+  }
 }
 
 int32_t CG_TestServerScriptChecksum_AlwaysMatch() { return 1; }
@@ -1346,8 +1471,20 @@ void load_global_hash_table() {
 }
 
 void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
+  zombies::coop::schema_assets::begin_vm_generation(inst == SCRIPTINSTANCE_CLIENT);
   load_global_hash_table();
 
+  if (inst == SCRIPTINSTANCE_SERVER && com::Com_IsInGame() &&
+      !com::Com_IsRunningUILevel()) {
+    zombies::coop::validate_startup();
+  }
+
+  const bool require_common = inst == SCRIPTINSTANCE_SERVER &&
+                              zombies::coop::schema_assets::common_required();
+  auto common_request = require_common
+                            ? zombies::coop::schema_assets::common_begin_load()
+                            : std::nullopt;
+  std::optional<zombies::coop::schema_assets::common_seal> common_sealed;
   scr::Scr_BeginLoadScripts(inst, user);
 
   if (!com::Com_IsInGame() || com::Com_IsRunningUILevel()) {
@@ -1357,19 +1494,47 @@ void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
   {
     std::scoped_lock lock(script_load_mutex);
     execution_queue.clear();
+    {
+      std::lock_guard common_lock(common_binding_mutex);
+      common_bindings.clear();
+    }
     load_scripts();
     rebuild_script_gdb();
+    if (common_request) {
+      auto *selected = get_loaded_script("custom_scripts/zm/eroded_coop.gsc");
+      std::optional<zombies::coop::schema_assets::common_binding> bound;
+      {
+        std::lock_guard common_lock(common_binding_mutex);
+        auto found = common_bindings.find(selected);
+        if (found != common_bindings.end())
+          bound = found->second;
+      }
+      if (bound && selected)
+        common_sealed =
+            zombies::coop::schema_assets::seal_common_loader(*bound, selected);
+    }
   }
 
+  if (require_common && (!common_request || !common_sealed ||
+                         !zombies::coop::schema_assets::preregister_common(
+                             *common_request, *common_sealed))) {
+    if (common_request)
+      zombies::coop::schema_assets::common_load_failed(*common_request);
+    return;
+  }
   for (const queued_script &script : execution_queue) {
-    execute_queued_script(script);
+    execute_queued_script(script, common_request);
   }
 
-  std::scoped_lock lock(script_load_mutex);
-  if (!pending_detours.access<bool>(
-          [](auto &pending_detours) { return pending_detours.empty(); })) {
-    apply_pending_detours();
+  {
+    std::scoped_lock lock(script_load_mutex);
+    if (!pending_detours.access<bool>(
+            [](auto &pending_detours) { return pending_detours.empty(); })) {
+      apply_pending_detours();
+    }
   }
+  if (common_request)
+    zombies::coop::schema_assets::common_finish_load(*common_request);
 }
 
 std::string resolve_hash(ScrVarCanonicalName_t hash) {
@@ -1428,23 +1593,69 @@ std::string get_source_line(const std::string &file, int32_t line_num) {
 }
 
 namespace {
+bool supported_frame_instance(const scriptInstance_t inst) noexcept {
+  return inst == SCRIPTINSTANCE_SERVER || inst == SCRIPTINSTANCE_CLIENT;
+}
+
+const objFileInfo_t *frame_object(const scriptInstance_t inst,
+                                 const uint8_t *pos) {
+  if (!supported_frame_instance(inst) || pos == nullptr ||
+      pos == reinterpret_cast<uint8_t *>(vm::g_endPos.get())) {
+    return nullptr;
+  }
+  const uint32_t count = gObjFileInfoCount->instance[inst];
+  if (count > 500) return nullptr;
+  // The same known object pool used by Scr_FindObjFileInfo_Impl, with a hard
+  // pool/header/range bound before any offset arithmetic. No DB/asset loading.
+  const auto fault = reinterpret_cast<uintptr_t>(pos) - 1;
+  for (uint32_t i = 0; i < count; ++i) {
+    const auto *info = &gObjFileInfo->instance[inst][i];
+    const auto *obj = info->activeVersion;
+    if (!obj || !obj->hasMagic(GSC_OBJ::T7_MAGIC)) continue;
+    const uint32_t code = obj->cseg_offset, code_size = obj->cseg_size;
+    if (code < sizeof(GSC_OBJ) || code > 64 * 1024 * 1024 || !code_size ||
+        code_size > 64 * 1024 * 1024 - code) continue;
+    const auto base = reinterpret_cast<uintptr_t>(obj);
+    if (base > UINTPTR_MAX - code - code_size) continue;
+    if (fault >= base + code && fault < base + code + code_size) return info;
+  }
+  return nullptr;
+}
+
 const GSC_EXPORT_ITEM *containing_export(const scriptInstance_t inst,
                                          const uint8_t *pos) {
   if (pos != nullptr) {
-    const objFileInfo_t *info =
-        Scr_FindObjFileInfo_Impl(inst, const_cast<uint8_t *>(pos - 1));
+    const objFileInfo_t *info = frame_object(inst, pos);
     if (info != nullptr) {
       const GSC_OBJ *obj = info->activeVersion;
-      const uint8_t *base = reinterpret_cast<const uint8_t *>(obj);
-      const uint32_t offset = static_cast<uint32_t>(pos - 1 - base);
+      if (!obj || !obj->hasMagic(GSC_OBJ::T7_MAGIC)) return nullptr;
+      const uint32_t code = obj->cseg_offset, code_size = obj->cseg_size;
+      const uint32_t count = obj->exports_count, table_offset = obj->exports_offset;
+      if (code < sizeof(GSC_OBJ) || code > 64 * 1024 * 1024 || !code_size ||
+          code_size > 64 * 1024 * 1024 - code || count > 4096 ||
+          table_offset < sizeof(GSC_OBJ) || table_offset > 64 * 1024 * 1024 ||
+          count > (64 * 1024 * 1024 - table_offset) / sizeof(GSC_EXPORT_ITEM)) return nullptr;
+      const auto base = reinterpret_cast<uintptr_t>(obj);
+      const auto fault = reinterpret_cast<uintptr_t>(pos) - 1;
+      if (base > UINTPTR_MAX - code - code_size || base > UINTPTR_MAX - table_offset - count * sizeof(GSC_EXPORT_ITEM) ||
+          fault < base + code || fault >= base + code + code_size) return nullptr;
+      const uint32_t offset = static_cast<uint32_t>(fault - base);
       const GSC_EXPORT_ITEM *found = nullptr;
-      for (const GSC_EXPORT_ITEM &item : obj->exports()) {
+      bool ambiguous = false;
+      const auto *table = reinterpret_cast<const GSC_EXPORT_ITEM *>(base + table_offset);
+      for (uint32_t i = 0; i < count; ++i) {
+        const auto &item = table[i];
+        if (item.address < code || item.address >= code + code_size) return nullptr;
         if (item.address <= offset &&
             (found == nullptr || item.address > found->address)) {
           found = &item;
+          ambiguous = false;
+        } else if (found && item.address == found->address &&
+                   (item.name != found->name || item.name_space != found->name_space)) {
+          ambiguous = true;
         }
       }
-      return found;
+      return ambiguous ? nullptr : found;
     }
   }
 
@@ -1457,21 +1668,25 @@ const uint8_t *containing_function(const scriptInstance_t inst,
   if (item == nullptr) {
     return nullptr;
   }
-  const objFileInfo_t *info =
-      Scr_FindObjFileInfo_Impl(inst, const_cast<uint8_t *>(pos - 1));
+  const objFileInfo_t *info = frame_object(inst, pos);
+  if (!info) return nullptr;
   return reinterpret_cast<const uint8_t *>(info->activeVersion) + item->address;
 }
 
 std::string function_name(const scriptInstance_t inst, const uint8_t *pos) {
   const GSC_EXPORT_ITEM *item = containing_export(inst, pos);
-  return item == nullptr ? std::string{}
-                         : std::format("{}::{}", resolve_hash(item->name_space),
-                                       resolve_hash(item->name));
+  if (!item) return {};
+  const auto name_space = resolve_hash(item->name_space);
+  const auto name = resolve_hash(item->name);
+  return std::format("{}::{}",
+      name_space.empty() ? std::format("namespace_0x{:08X}", item->name_space) : name_space.substr(0, 96),
+      name.empty() ? std::format("function_0x{:08X}", item->name) : name.substr(0, 96));
 }
 } // namespace
 
 std::vector<script_frame> get_script_frames(scriptInstance_t inst,
                                             const uint8_t *pos) {
+  if (!supported_frame_instance(inst)) return {};
   if (is_server()) {
     sv_detailedScriptErrors->set(true);
   }
@@ -1479,13 +1694,15 @@ std::vector<script_frame> get_script_frames(scriptInstance_t inst,
   std::vector<uint8_t *> positions;
   positions.emplace_back(pos ? const_cast<uint8_t *>(pos)
                              : vm::gFs->instance[inst].pos);
-  for (int32_t stack_idx = vm::gScrVmPub->instance[inst].function_count - 1;
-       stack_idx > -1; --stack_idx) {
+  const auto count = vm::gScrVmPub->instance[inst].function_count;
+  const bool invalid_stack = count < 0 || count > 64;
+  for (int32_t stack_idx = invalid_stack ? -1 : count - 1;
+       stack_idx > -1 && positions.size() <= 16; --stack_idx) {
     positions.emplace_back(
         vm::gScrVmPub->instance[inst].function_frame_start[stack_idx].fs.pos);
   }
 
-  if (positions.size() > 1) {
+  if (!invalid_stack && count <= 16 && positions.size() > 1) {
     const uint8_t *root = containing_function(inst, positions.back());
     if (root != nullptr &&
         root == containing_function(inst, positions[positions.size() - 2])) {
@@ -1496,20 +1713,40 @@ std::vector<script_frame> get_script_frames(scriptInstance_t inst,
   std::vector<script_frame> frames;
   for (uint8_t *position : positions) {
     script_frame &frame = frames.emplace_back();
+    frame.next_pc = reinterpret_cast<uintptr_t>(position);
+    frame.invalid_stack = invalid_stack;
+    frame.frames_truncated = !invalid_stack && count > 16;
     if (position != nullptr &&
         position != reinterpret_cast<uint8_t *>(vm::g_endPos.get())) {
       const char *file = nullptr;
       const char *source = nullptr;
-      Scr_GetFileAndLineNum_Impl(inst, position - 1, &file, &frame.line,
-                                 &source);
-      frame.file = file == nullptr ? "" : file;
+      frame.bytecode_position = true;
+      frame.fault_pc = frame.next_pc - 1;
+      const auto *info = frame_object(inst, position);
+      if (info && info->activeVersion) {
+        const auto base = reinterpret_cast<uintptr_t>(info->activeVersion);
+        if (frame.fault_pc >= base && frame.fault_pc - base <= UINT32_MAX) {
+          frame.script_offset_available = true;
+          frame.script_offset = static_cast<uint32_t>(frame.fault_pc - base);
+          frame.code_offset = frame.script_offset - info->activeVersion->cseg_offset;
+        }
+        if (const auto *item = containing_export(inst, position); item && frame.script_offset_available) {
+          frame.function_offset_available = true;
+          frame.function_offset = frame.script_offset - item->address;
+        }
+      }
+      // This preserves the existing optional GDB lookup only for a verified
+      // live object. New offset/function diagnostics never load an asset.
+      if (info) Scr_GetFileAndLineNum_Impl(inst, reinterpret_cast<uint8_t *>(frame.fault_pc), &file, &frame.line,
+                                         &source);
+      frame.file = file == nullptr ? "" : std::string(file, strnlen(file, 192));
       frame.function = function_name(inst, position);
-      if (frame.line >= 0) {
+      if (frame.line >= 0 && frame.line < INT32_MAX) {
         ++frame.line;
         for (; source != nullptr && (source[0] == ' ' || source[0] == '\t');
              ++source) {
         }
-        frame.source = source == nullptr ? "" : source;
+        frame.source = source == nullptr ? "" : std::string(source, strnlen(source, 256));
       }
     }
   }
@@ -1519,18 +1756,26 @@ std::vector<script_frame> get_script_frames(scriptInstance_t inst,
 std::vector<std::string> get_script_callstack(scriptInstance_t inst,
                                               const uint8_t *pos) {
   std::vector<std::string> callstack;
+  if (!supported_frame_instance(inst)) {
+    callstack.push_back(std::format("invalid script instance {}; supplied next_pc=0x{:X}; VM metadata not accessed", static_cast<int>(inst), reinterpret_cast<uintptr_t>(pos)));
+    return callstack;
+  }
   for (const script_frame &frame : get_script_frames(inst, pos)) {
+    std::string entry = std::format("next_pc=0x{:X}", frame.next_pc);
+    entry += frame.bytecode_position ? std::format(" fault_pc=0x{:X}", frame.fault_pc) : " fault_pc=unavailable";
+    if (frame.script_offset_available) entry += std::format(" script_offset=0x{:X} code_offset=0x{:X}", frame.script_offset, frame.code_offset);
+    if (!frame.function.empty()) entry += std::format(" function={}", frame.function);
+    if (frame.function_offset_available) entry += std::format(" function_offset=0x{:X}", frame.function_offset);
+    if (frame.invalid_stack) entry += " stack_frames=unavailable_invalid_count";
+    else if (frame.frames_truncated) entry += " stack_frames=bounded_to_16";
     if (frame.file.empty()) {
-      callstack.emplace_back(
-          "Missing file and line information - not currently executing "
-          "script bytecode or reached end of executed script bytecode.");
+      entry += " file/line=unavailable";
     } else if (frame.line < 0) {
-      callstack.push_back(
-          std::format("\tfile '{}' - missing line information\n", frame.file));
+      entry += std::format(" file='{}' line=unavailable", frame.file);
     } else {
-      callstack.push_back(std::format("\tfile '{}', line {} :: {}\n",
-                                      frame.file, frame.line, frame.source));
+      entry += std::format(" file='{}' line={} :: {}", frame.file, frame.line, frame.source);
     }
+    callstack.push_back(entry + "\n");
   }
   return callstack;
 }
@@ -1538,7 +1783,7 @@ std::vector<std::string> get_script_callstack(scriptInstance_t inst,
 utils::hook::detour Scr_Error_hook;
 
 void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
-  if (game::log_script_errors()) {
+  if (supported_frame_instance(inst) && script_error_logging_enabled()) {
     void *caller_addr = _ReturnAddress();
     if (is_server()) {
       sv_detailedScriptErrors->set(true);
@@ -1552,7 +1797,7 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
     std::string prev_code_positions_string{};
     if (!callstack.empty()) {
       prev_code_positions_string = std::format("[0] {}", callstack[0]);
-      for (size_t i = 0; i < callstack.size(); ++i) {
+      for (size_t i = 1; i < callstack.size(); ++i) {
         prev_code_positions_string += std::format("\n[{}] {}", i, callstack[i]);
       }
     }
@@ -1591,6 +1836,8 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("script");
 
   void post_unpack() override {
+    command::add("coopScriptErrorStatus", print_script_logging_status);
+    command::add("coopDumpConnectedPlayersBuiltin", capture_connected_builtin_snapshot);
     // Return custom or overrided scripts if found
     db_find_x_asset_header_hook.create(DB_FindXAssetHeader,
                                        DB_FindXAssetHeader_TryOverride);
@@ -1616,6 +1863,7 @@ struct component final : generic_component {
                                     Scr_FindObjFileInfo_Impl);
     Scr_GetFileAndLineNum_hook.create(Scr_GetFileAndLineNum,
                                       Scr_GetFileAndLineNum_Impl);
+    if (game::is_server() && utils::flags::has_flag("coop-debug")) capture_connected_builtin_snapshot();
   }
 };
 } // namespace script

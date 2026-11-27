@@ -1,5 +1,6 @@
 #include "flags.hpp"
 #include <unordered_map>
+#include <regex>
 
 namespace utils::flags {
 
@@ -80,8 +81,102 @@ std::vector<std::string> remove_engine_args(int32_t argc, char *argv[]) {
   return result;
 }
 
+// argparse's implicit_value intentionally makes this a zero-argument flag.
+// Consume only extraction's optional explicit pattern here, so no spelling can
+// silently turn a supplied regex into the broad implicit default.
+struct extract_assets_arguments {
+  std::vector<std::string> arguments;
+  std::optional<std::string> pattern;
+};
+
+bool is_extract_assets_alias(std::string_view name) {
+  return name == "-e" || name == "-extract-assets" ||
+         name == "--extract-assets";
+}
+
+bool is_known_option(argparse::ArgumentParser &parser, std::string_view token) {
+  // ArgumentParser::operator[] also resolves names without a hyphen. Such a
+  // token is an explicit regex value here, never an option boundary.
+  if (token.empty() || token.front() != '-')
+    return false;
+  auto name = token;
+  // The bundled parser only supports assignment preprocessing for long --
+  // options. Do not misclassify unsupported -short=value as another option.
+  if (token.starts_with("--"))
+    name = token.substr(0, token.find('='));
+  try {
+    (void)parser[std::string(name)];
+    return true;
+  } catch (const std::exception &) {
+    return false;
+  }
+}
+
+extract_assets_arguments
+normalize_extract_assets_arguments(const std::vector<std::string> &input,
+                                   argparse::ArgumentParser &parser) {
+  extract_assets_arguments result;
+  result.arguments.reserve(input.size());
+  bool positional = false;
+  for (std::size_t index = 0; index < input.size(); ++index) {
+    const std::string_view token = input[index];
+    if (index == 0 || positional) {
+      result.arguments.push_back(input[index]);
+      continue;
+    }
+    if (token == "--") {
+      positional = true;
+      result.arguments.push_back(input[index]);
+      continue;
+    }
+    // Match the original engine filtering, but only outside a consumed explicit
+    // extraction value. Otherwise literal patterns such as "nosnd" or "set"
+    // would be removed before extraction and silently turn into a broad flag.
+    const auto engine_arg = ARG_SKIPS.find(token);
+    const auto engine_alias = ARG_SKIPS.find("+" + std::string(token));
+    if (engine_arg != ARG_SKIPS.end() || engine_alias != ARG_SKIPS.end()) {
+      const auto skipped = engine_arg != ARG_SKIPS.end() ? engine_arg->second
+                                                         : engine_alias->second;
+      index += static_cast<std::size_t>(skipped);
+      continue;
+    }
+    const auto assignment = token.find('=');
+    const auto name = token.substr(0, assignment);
+    if (!is_extract_assets_alias(name)) {
+      result.arguments.push_back(input[index]);
+      continue;
+    }
+    if (result.pattern)
+      throw std::runtime_error("extract-assets may be supplied only once");
+    std::string pattern = "^.*$";
+    if (assignment != std::string_view::npos) {
+      pattern = token.substr(assignment + 1);
+    } else if (index + 1 < input.size()) {
+      const std::string_view next = input[index + 1];
+      // A known option/engine command ends a bare flag. Use alias=value to
+      // express a literal pattern that is itself the name of a known option.
+      if (next != "--" && !next.starts_with("+") &&
+          !is_extract_assets_alias(next.substr(0, next.find('='))) &&
+          !is_known_option(parser, next)) {
+        pattern = input[++index];
+      }
+    }
+    if (pattern.empty())
+      throw std::runtime_error("extract-assets pattern must not be empty");
+    try {
+      (void)std::regex(pattern);
+    } catch (const std::regex_error &) {
+      throw std::runtime_error(
+          "extract-assets pattern is not a valid regular expression");
+    }
+    result.pattern = std::move(pattern);
+    result.arguments.emplace_back("-extract-assets");
+  }
+  return result;
+}
+
 int32_t parse_flags(int argc, char *argv[]) {
-  const std::vector<std::string> filtered_args = remove_engine_args(argc, argv);
+  const std::vector<std::string> arguments(argv, argv + argc);
   program.add_argument("-unsafe-lua", "--unsafe-lua")
       .help("Allow mods to use unsafe Lua functions (required for some mods "
             "like All-Around Enhancement)")
@@ -89,6 +184,16 @@ int32_t parse_flags(int argc, char *argv[]) {
       .implicit_value(true);
   program.add_argument("-dedicated", "--dedicated")
       .help("Launch as a dedicated server")
+      .default_value(false)
+      .implicit_value(true);
+  program
+      .add_argument("-experimental-zombies-coop", "--experimental-zombies-coop")
+      .help("Allow experimental Zombies lobby limits above four; requires "
+            "matching gameplay scripts and clients")
+      .default_value(false)
+      .implicit_value(true);
+  program.add_argument("-coop-debug", "--coop-debug")
+      .help("Log experimental Zombies co-op lifecycle snapshots and events")
       .default_value(false)
       .implicit_value(true);
   program.add_argument("-beta", "--beta")
@@ -283,7 +388,11 @@ int32_t parse_flags(int argc, char *argv[]) {
 #endif
 
   try {
-    program.parse_known_args(filtered_args);
+    auto extraction = normalize_extract_assets_arguments(arguments, program);
+    if (extraction.pattern) {
+      program["-extract-assets"].implicit_value(*extraction.pattern);
+    }
+    program.parse_known_args(extraction.arguments);
   } catch (const std::runtime_error &err) {
     std::cerr << err.what() << std::endl;
     std::cerr << program;

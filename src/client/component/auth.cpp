@@ -8,6 +8,10 @@
 #include "party.hpp"
 #include "profile_infos.hpp"
 #include "scheduler.hpp"
+#include "zombies/coop_runtime.hpp"
+#include "zombies/schema_peer.hpp"
+#include "zombies/diagnostics.hpp"
+#include "zombies/listen_admission_policy.hpp"
 
 #include <game/utils.hpp>
 
@@ -267,7 +271,16 @@ std::string serialize_connect_data(game::ControllerIndex_t controllerIndex,
       .value_or(profile_infos::profile_info{})
       .serialize(buffer);
 
-  buffer.write_string(data);
+  buffer.write_string(data, static_cast<size_t>(length));
+  if (zombies::coop::frozen_schema_capacity() >= 5 && !zombies::coop::schema_assets_failed()) {
+    const auto token = zombies::coop::schema_token();
+    buffer.write_string(token);
+    buffer.write_string(utils::cryptography::ecc::sign_message(get_key(controllerIndex),
+        zombies::coop::schema_proof_message(challenge,
+            std::string_view(data, static_cast<size_t>(length)), token)));
+    zombies::coop::diagnostic_event("peer_proof_sent");
+  }
+
 
   return buffer.move_buffer();
 }
@@ -499,6 +512,15 @@ void evict_stale_challenges() {
   }
 }
 
+bool authenticated_game_lobby_member(const game::XUID xuid) {
+  if (!game::lobby::LobbyHost_IsHost(game::lobby::LobbyType::GAME)) return false;
+  auto *session = game::lobby::LobbyHostData_GetSession(game::lobby::LobbyType::GAME);
+  if (!session) return false;
+  const auto *member = game::lobby::session::LobbySession_GetClientByXuid(session, xuid);
+  return member && zombies::coop::authenticated_member_matches(
+      xuid, member->xuid, member->activeClient != nullptr);
+}
+
 void dispatch_connect_packet(const game::net::netadr_t &target,
                              const std::string &data,
                              game::LocalClientNum_t client_num) {
@@ -525,13 +547,42 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
     return;
   }
 
-  const std::unique_lock<std::recursive_mutex> _ =
-      profile_infos::acquire_profile_lock();
+  // A real engine loopback client can bootstrap a listen host. An IP
+  // address in 127/8 is not that transport and must wait for map validation.
+  if (target.type != game::net::netadrtype_t::LOOPBACK &&
+      !zombies::coop::admission_ready()) {
+    network::send(target, "error", "Expanded Zombies adapter is not ready");
+    return;
+  }
 
-  const utils::info_string info_string(params[1]);
+
+  if (zombies::coop::expanded_host() && target.type != game::net::netadrtype_t::LOOPBACK) {
+    std::string token, proof;
+    const auto& issued = get_challenge(target);
+    const std::string challenge(reinterpret_cast<const char*>(issued), CHALLENGE_LENGTH);
+    const bool bounded = buffer.get_remaining_size() <= 512;
+    if (!bounded || !zombies::coop::decode_schema_proof(buffer.get_remaining_data(), token, proof) ||
+        !utils::cryptography::ecc::verify_message(key,
+            zombies::coop::schema_proof_message(challenge, connect_data, token), proof)) {
+      zombies::coop::diagnostic_event("peer_schema_rejected");
+      network::send(target, "error", "Matching expanded Zombies schema and signed capability required");
+      return;
+    }
+    zombies::coop::diagnostic_event("peer_schema_verified");
+  }
+
+const utils::info_string info_string(params[1]);
   const game::XUID xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
   if (xuid != key.get_hash()) {
     network::send(target, "error", "Bad XUID");
+    return;
+  }
+
+  if (zombies::coop::requires_game_lobby_membership(game::is_client(),
+          zombies::coop::expanded_host(),
+          target.type == game::net::netadrtype_t::LOOPBACK) &&
+      !authenticated_game_lobby_member(xuid)) {
+    network::send(target, "error", "Join this expanded Zombies host through its game lobby first");
     return;
   }
 
@@ -541,6 +592,9 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
     network::send(target, "error", "Bad name");
     return;
   }
+
+  const std::unique_lock<std::recursive_mutex> _ =
+      profile_infos::acquire_profile_lock();
 
   profile_infos::add_and_distribute_profile_info(target, xuid, info);
 

@@ -5,6 +5,8 @@
 namespace game {
 namespace lobby {
 namespace msg {
+// Effective host-side policy shared by native and replacement join checks.
+LobbyNetworkMode JoinRequestNetworkMode();
 LobbyMsg_MsgHandleCallback HandleAgreementResponse;
 LobbyMsg_MsgHandleCallback LobbyPeerToPeer_HandleConnectivityTest;
 LobbyMsg_MsgHandleCallback HandleDemoState;

@@ -15,6 +15,7 @@
 #include <component/scheduler.hpp>
 #include <component/server_list.hpp>
 #include <component/toast.hpp>
+#include <component/zombies_lobby.hpp>
 #include <component/workshop/workshop.hpp>
 #include <loader/component_loader.hpp>
 
@@ -636,6 +637,17 @@ luaReturnCount_e isserverlistrefreshing(lua_State *luaVM) {
               []() -> bool { return steam::is_server_list_refreshing(); });
 }
 
+luaReturnCount_e cooplobbyinfo(lua_State *luaVM) {
+  return call(luaVM, []() -> table {
+    const auto lobby = zombies::coop::get_lobby_advertisement();
+    table result;
+    result.set("enabled", lobby.enabled);
+    result.set("canAdvertise", lobby.can_advertise);
+    result.set("advertise", lobby.advertise);
+    return result;
+  });
+}
+
 // The custom server browser tabs index the raw server list, which the engine's
 // favorite and history functions can't look up
 luaReturnCount_e addrawserverfavorite(lua_State *luaVM) {
@@ -802,6 +814,7 @@ public:
                                   getrawservercount>(),
         lua_state::luaL_LoggedReg<"game", "isserverlistrefreshing",
                                   isserverlistrefreshing>(),
+        lua_state::luaL_LoggedReg<"game", "cooplobbyinfo", cooplobbyinfo>(),
         lua_state::luaL_LoggedReg<"game", "getrawserverinfo",
                                   getrawserverinfo>(),
         lua_state::luaL_LoggedReg<"game", "addrawserverfavorite",

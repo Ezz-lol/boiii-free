@@ -20,6 +20,7 @@
 #include <component/script.hpp>
 #include <component/toast.hpp>
 #include <component/workshop/workshop.hpp>
+#include <component/zombies/ui_schema.hpp>
 
 #include "utils/pe.hpp"
 #include <utils/flags.hpp>
@@ -493,8 +494,7 @@ std::string get_current_script(lua_State *state) {
   return info.short_src;
 }
 
-int load_buffer(const std::string &name, const std::string &data) {
-  lua_State *state = *primary_luaVM;
+int load_buffer(lua_State* state, const std::string &name, const std::string &data) {
   const HksBytecodeSharingMode sharing_mode =
       state->m_global->m_bytecodeSharingMode;
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
@@ -903,12 +903,14 @@ hksInt32 hks_load_stub(lua_State *state, HksCompilerSettings *compiler_options,
   if (globals.load_raw_script) {
     globals.load_raw_script = false;
     globals.loaded_scripts[globals.raw_script_name] = globals.in_require_script;
-    return load_buffer(globals.raw_script_name,
+    const auto result = load_buffer(state, globals.raw_script_name,
                        utils::io::read_file(globals.raw_script_name));
+    return zombies::coop::wrap_score_model_chunk(state, chunk_name, result);
   }
 
-  return Compiler(state, compiler_options, reader, reader_data, debug_reader,
+  const auto result = Compiler(state, compiler_options, reader, reader_data, debug_reader,
                   debug_reader_data, chunk_name);
+  return zombies::coop::wrap_score_model_chunk(state, chunk_name, result);
 }
 
 xasset::XAssetHeader lua_cod_getrawfile_stub(char *filename) {

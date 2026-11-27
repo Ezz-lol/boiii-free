@@ -11,7 +11,30 @@ Lobby.Process.CreateDedicatedModsLobby = function(controller, toTarget)
   local lobby_mode = Engine.DvarString(nil, "sv_lobby_mode")
   if lobby_mode ~= "" then
     if lobby_mode == "zm" then
-      toTarget = LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME
+      -- Actions accept an ordinary target table. Keep the shared UI target
+      -- unchanged across solo hosting, retries and subsequent mode changes.
+      local requestedMode = type(toTarget) == "table" and toTarget.networkMode or nil
+      if requestedMode == nil and type(Engine.GetLobbyNetworkMode) == "function" then
+        requestedMode = Engine.GetLobbyNetworkMode()
+      end
+      local stockTarget = requestedMode ~= nil
+          and requestedMode == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LAN
+          and LobbyData.UITargets.UI_ZMLOBBYLANGAME
+        or LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME
+      toTarget = {}
+      for key, value in pairs(stockTarget) do
+        toTarget[key] = value
+      end
+      local cap = stockTarget.maxClients
+      if type(cap) == "number" and cap == math.floor(cap) and cap >= 2 and cap <= 8 then
+        local limit = Engine.DvarInt(nil, "zm_coopPlayerLimit")
+        if type(limit) ~= "number" or limit ~= math.floor(limit) or limit < 1 or limit > 8 then
+          limit = 4
+        end
+        toTarget.maxClients = limit
+        Engine.SetDvar("party_maxplayers", limit)
+        Engine.SetDvar("com_maxclients", limit)
+      end
     elseif lobby_mode == "cp" then
       toTarget = LobbyData.UITargets.UI_CPLOBBYONLINECUSTOMGAME
     elseif lobby_mode == "cpzm" then
@@ -32,7 +55,18 @@ Lobby.Process.CreateDedicatedModsLobby = function(controller, toTarget)
   local lobbyInit = Lobby.Actions.ExecuteScript(function()
     Lobby.ProcessNavigate.SetupLobbyMapAndGameType(controller, toTarget)
   end)
-  local setNetworkMode = Lobby.Actions.SetNetworkMode(controller, Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE)
+  local networkMode = Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE
+  if
+    toTarget.mainMode == Enum.LobbyMainMode.LOBBY_MAINMODE_ZM
+    and toTarget.networkMode ~= nil
+    and (
+      toTarget.networkMode == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LIVE
+      or toTarget.networkMode == Enum.LobbyNetworkMode.LOBBY_NETWORKMODE_LAN
+    )
+  then
+    networkMode = toTarget.networkMode
+  end
+  local setNetworkMode = Lobby.Actions.SetNetworkMode(controller, networkMode)
   local lobbySettings = Lobby.Actions.LobbySettings(controller, toTarget)
   local updateUI = Lobby.Actions.UpdateUI(controller, toTarget)
   local createGameHost = Lobby.Actions.LobbyHostStart(

@@ -4,6 +4,7 @@
 #include "component/exception.hpp"
 #include "component/game_event.hpp"
 #include "component/path.hpp"
+#include "component/zombies/connected_players.hpp"
 
 #include <loader/component_loader.hpp>
 
@@ -107,6 +108,15 @@ void scr_get_num_expected_players() {
       expected_players = min_players;
     }
   }
+
+  // BEGIN EXPANDED ZOMBIES EXPECTED FLOOR
+  const auto coop_context = zombies::coop::connected_players_context();
+  expected_players = zombies::coop::connected_players_policy::expected_floor(
+      expected_players, coop_context, [&coop_context] {
+        return zombies::coop::connected_players_policy::native_connected_count(
+            coop_context, *game::sv::svs_clients, game::net::clientState_t::CONNECTED);
+      });
+  // END EXPANDED ZOMBIES EXPECTED FLOOR
 
   const int32_t num_expected_players = std::max(1, expected_players);
   game::scr::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, num_expected_players);
