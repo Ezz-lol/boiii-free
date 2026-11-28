@@ -148,17 +148,13 @@ int32_t hosted_zombies_lobby_limit() {
 
 void dvar_set_variant_stub(game::EngineDependentDvar dvar,
                            game::DvarValue *value, game::DvarSetSource source) {
+  int32_t raise_to = 0;
   if (dvar.type() == game::dvarType_t::INT && dvar.debugName() &&
       (std::string_view(dvar.debugName()) == "com_maxclients" ||
        std::string_view(dvar.debugName()) == "party_maxplayers")) {
     const int32_t limit = hosted_zombies_lobby_limit();
     if (value->integer() < limit) {
-      scheduler::once(
-          [name = std::string(dvar.debugName()), limit] {
-            game::Dvar_SetFromStringByName(
-                name.c_str(), std::to_string(limit).c_str(), false);
-          },
-          scheduler::pipeline::main);
+      raise_to = limit;
     }
   }
 
@@ -170,6 +166,11 @@ void dvar_set_variant_stub(game::EngineDependentDvar dvar,
   }
 
   dvar_set_variant_hook.invoke(dvar, value, source);
+
+  if (raise_to > 0) {
+    game::Dvar_SetFromStringByName(dvar.debugName(),
+                                   std::to_string(raise_to).c_str(), false);
+  }
 
   if (initial_config_read && is_archive_dvar(dvar)) {
     schedule_dvar_write();
