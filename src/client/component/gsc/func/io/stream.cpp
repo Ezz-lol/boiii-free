@@ -35,12 +35,6 @@ void gscr_println(scriptInstance_t inst) {
     }
   }
   game::println(game::PrintOutput::STDOUT, "[Scr] {}", out);
-  game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s\n", out.c_str());
-
-#ifndef NDEBUG
-  trace("[Scr] {}", out);
-#endif
 }
 
 #ifdef NDEBUG
