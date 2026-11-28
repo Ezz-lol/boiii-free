@@ -3,7 +3,10 @@
 #include "ai.hpp"
 #include "asm.hpp"
 #include "core.hpp"
+#include "game/structs/db/xasset/world.hpp"
+#include "game/structs/hk/core.hpp"
 #include "weapon.hpp"
+
 #include <cstdint>
 namespace game {
 namespace user {
@@ -52,29 +55,22 @@ inline constexpr const char *serialize(const bot_goal_state goalState) {
   }
 }
 
+// Verified
 PACKED(struct bot_look_t {
-  vec2_t anglesDesired;
-  vec2_t anglesCurrent;
-  vec3_t lookPoint;
-  BotLookType lookType;
+  vec3_t anglesDesired;
+  vec3_t anglesCurrent;
+  vec_t dot;
   vec3_t kickAngles;
   vec3_t kickAVel;
-  weapon::Weapon grenadeWeapon;
-  vec3_t grenadeOrigin;
-  int32_t grenadeTime;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format(
-        "{{ \"anglesDesired\": {}, \"anglesCurrent\": {}, \"lookPoint\": {}, "
-        "\"lookType\": {}, \"kickAngles\": {}, \"kickAVel\": {}, "
-        "\"grenadeWeapon\": {}, \"grenadeOrigin\": {}, \"grenadeTime\": {} }}",
-        anglesDesired.serialize(), anglesCurrent.serialize(),
-        lookPoint.serialize(), game::user::serialize(lookType),
-        kickAngles.serialize(), kickAVel.serialize(), grenadeWeapon.serialize(),
-        grenadeOrigin.serialize(), grenadeTime);
+    return std::format("{{ \"anglesDesired\": {}, \"anglesCurrent\": {}, "
+                       "\"dot\": {}, \"kickAngles\": {}, \"kickAVel\": {} }}",
+                       anglesDesired.serialize(), anglesCurrent.serialize(),
+                       dot, kickAngles.serialize(), kickAVel.serialize());
   }
 });
-ASSERT_SIZE(bot_look_t, 0x50);
+ASSERT_SIZE(bot_look_t, 0x34);
 
 PACKED(struct bot_move_t {
   vec_t angleDesired;
@@ -112,28 +108,54 @@ ASSERT_SIZE(bot_goal_t, 0x14);
 typedef vec4_t hkVector4f;
 
 typedef hkVector4f hkVector4;
+
+struct bot_settings_t {
+  vec2_t lookSensitivity;
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return std::format("{{ \"lookSensitivity\": {} }}",
+                       lookSensitivity.serialize());
+  }
+};
+
+// Verified
 PACKED(struct bot_t {
   bot_look_t look;
   bot_move_t move;
-  bot_goal_t goal;
-  DEF_PAD(6C, 4);
-  hkVector4 lastCorner;
+  vec3_t predictedCornerEntry;
   game_button_bits_t tapButtons;
   game_button_bits_t buttons;
   weapon::Weapon weapon;
-  int32_t lastMoveTime;
-  char goal_callStack[1025];
-  DEF_PAD(4A5, 11);
+  bool spawned;
+  DEF_PAD(69, 7);
+  hk::hkArray<vec3_t, hk::hkContainerHeapAllocator> path;
+  int pathFailedCause;
+  vec3_t pathFailedGoal;
+  const db::xasset::world::pathnode_t *traversalStartNode;
+  const db::xasset::world::pathnode_t *traversalEndNode;
+  vec3_t traversalEnterPos;
+  vec3_t traversalEndPos;
+  bot_settings_t settings;
+
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"look\": {}, \"move\": {}, \"goal\": {}, "
-                       "\"lastCorner\": {}, \"tapButtons\": {}, \"buttons\": "
-                       "{}, \"weapon\": {}, \"lastMoveTime\": {} }}",
-                       look.serialize(), move.serialize(), goal.serialize(),
-                       lastCorner.serialize(), tapButtons.serialize(),
-                       buttons.serialize(), weapon.serialize(), lastMoveTime);
+    return std::format(
+        "{{ \"look\": {}, \"move\": {}, \"predictedCornerEntry\": {}, "
+        "\"tapButtons\": {}, \"buttons\": {}, \"weapon\": {}, \"spawned\": {}, "
+        "\"path\": {}, \"pathFailedCause\": {}, \"pathFailedGoal\": {}, "
+        "\"traversalStartNode\": {:p}, \"traversalEndNode\": {:p}, "
+        "\"traversalEnterPos\": {}, \"traversalEndPos\": {}, \"settings\": {} "
+        "}}",
+        look.serialize(), move.serialize(), predictedCornerEntry.serialize(),
+        tapButtons.serialize(), buttons.serialize(), weapon.serialize(),
+        ::serialize(spawned), path.serialize(), pathFailedCause,
+        pathFailedGoal.serialize(),
+        static_cast<const void *>(traversalStartNode),
+        static_cast<const void *>(traversalEndNode),
+        traversalEnterPos.serialize(), traversalEndPos.serialize(),
+        settings.serialize());
   }
 });
-ASSERT_SIZE(bot_t, 0x4B0);
+ASSERT_SIZE(bot_t, 0xC0);
 
 typedef bitarray<32> serverFieldBits_t;
 PACKED(struct usercmd_s {
@@ -167,8 +189,10 @@ PACKED(struct usercmd_s {
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
         "{{ \"serverTime\": {}, \"button_bits\": {}, \"serverFields\": {}, "
-        "\"angles\": {}, \"level\": {}, \"weapon\": {}, \"offHandWeapon\": {}, "
-        "\"lastWeaponAltModeSwitch\": {}, \"forwardmove\": {}, \"rightmove\": "
+        "\"angles\": {}, \"level\": {}, \"weapon\": {}, \"offHandWeapon\": "
+        "{}, "
+        "\"lastWeaponAltModeSwitch\": {}, \"forwardmove\": {}, "
+        "\"rightmove\": "
         "{}, "
         "\"upmove\": {}, \"pitchmove\": {}, \"yawmove\": {}, "
         "\"meleeChargeEnt\": {}, "

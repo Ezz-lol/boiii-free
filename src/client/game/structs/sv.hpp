@@ -535,6 +535,7 @@ PACKED(struct serverStatic_t {
 });
 ASSERT_SIZE(serverStatic_t, 0x1500);
 
+// Verified
 PACKED(struct flashbackState_t {
   vec3_t position;
   vec3_t angles;
@@ -544,11 +545,14 @@ PACKED(struct flashbackState_t {
   bool valid;
   DEF_PAD(2A, 2);
 });
+ASSERT_SIZE(flashbackState_t, 0x2C);
 
+// Verified
 struct clientsFlashbackArchive_t {
   lobby::LobbyClientPool<flashbackState_t> clientsFlashbackStates;
   int32_t time;
 };
+ASSERT_SIZE(clientsFlashbackArchive_t, 0x31C);
 
 enum class serverState_t : uint32_t {
   DEAD = 0x0,
@@ -561,21 +565,14 @@ struct recentFrame {
 };
 ASSERT_SIZE(recentFrame, 0x1);
 
+// Verified
 PACKED(struct playerAnimState_t {
+  animationNumber_t legsAnim;
+  animationNumber_t torsoAnim;
   float fTorsoPitch;
   float fWaistPitch;
-  animationNumber_t animNum[3];
-  union {
-    int8_t flags;
-    struct {
-      uint8_t motionMatchingEnabled : 1;
-      uint8_t mmTransitionBoost : 1;
-      uint8_t unused_slots : 6;
-    };
-  };
-  DEF_PAD(0F, 1);
 });
-ASSERT_SIZE(playerAnimState_t, 0x10);
+ASSERT_SIZE(playerAnimState_t, 0xC);
 
 PACKED(struct AntilagPlayerAnimState {
   uint16_t notifyChild;
@@ -599,7 +596,10 @@ struct clientControllers_t {
 };
 ASSERT_SIZE(clientControllers_t, 0x60);
 
+// Verified
 struct clientsPositionArchive_t {
+  static constexpr size_t ANIM_STATE_COUNT = 200;
+
   int32_t time;
   lobby::LobbyClientPool<bool> valid;
   lobby::LobbyClientPool<uint8_t> flags;
@@ -610,14 +610,15 @@ struct clientsPositionArchive_t {
   lobby::LobbyClientPool<int32_t> lerpFlags;
   lobby::LobbyClientPool<int32_t> lerpFlags2;
   lobby::LobbyClientPool<int32_t> locBlendTime;
-  AntilagPlayerAnimState animStates[200];
+  AntilagPlayerAnimState animStates[ANIM_STATE_COUNT];
   lobby::LobbyClientPool<int32_t> animStatesPos;
   lobby::LobbyClientPool<int32_t> animStatesCount;
   int32_t animStatesUsed;
   lobby::LobbyClientPool<clientControllers_t> controllers;
 };
-ASSERT_SIZE(clientsPositionArchive_t, 0x1B9C);
+ASSERT_SIZE(clientsPositionArchive_t, 0x1B54);
 
+// Verified
 PACKED(struct server_t {
   volatile serverState_t state;
   int32_t physicsTime;
@@ -634,7 +635,7 @@ PACKED(struct server_t {
   int32_t checksumFeed;
   qboolean wroteConfigStrings;
   scr::ScrString_t emptyConfigString;
-  volatile scr::ScrString_t configstrings[0xdf0];
+  volatile scr::ScrString_t configstrings[0xE2E];
   svEntity_t svEntities[0x800];
   level::gentity_t *gentities;
   int32_t gentitySize;
@@ -656,29 +657,52 @@ PACKED(struct server_t {
   int32_t ubpsMaxBytes;
   float ucompAve;
   int32_t ucompNum;
-  volatile int32_t serverFrameTime;
-  volatile int32_t serverFrameTimeMin;
-  volatile int32_t serverFrameTimeMax;
-  recentFrame recentFrameInfo[0xc8];
-  DEF_UNK(139B8, 0x24);
-  char gametype[0x40];
-  qboolean killServer;
+  str64_t gametype;
+  bool killServer;
+  DEF_PAD(13A1D, 3);
   const char *killReason;
+  recentFrame recentFrameInfo[0xc8];
   int32_t currentFrameNum;
   int32_t nextClientsPositionArchive;
   clientsPositionArchive_t clientsPositionArchive[40];
   int32_t nextClientsFlashbackArchive;
   clientsFlashbackArchive_t clientsFlashBackArchive[0x200];
   clientsFlashbackArchive_t clientsLatestFlashBack;
+
   // Each field XORed with client XUID to generate client gamestate security
   // checksum
   scr::scrChecksum_t securityChecksum;
-  DEF_PAD(7BEFC, 4);
+  DEF_PAD(BBB44, 4);
   inline constexpr bool running() volatile noexcept {
     return this->state == serverState_t::GAME || this->restarting;
   }
 });
-ASSERT_SIZE(server_t, 0xBC5C0);
+ASSERT_OFFSET(server_t, state, 0x0);
+ASSERT_OFFSET(server_t, physicsTime, 0x4);
+ASSERT_OFFSET(server_t, timeResidual, 0x8);
+ASSERT_OFFSET(server_t, lastTickMS, 0xC);
+ASSERT_OFFSET(server_t, lastMainTickMS, 0x10);
+ASSERT_OFFSET(server_t, levelTime, 0x14);
+ASSERT_OFFSET(server_t, isUILevel, 0x18);
+ASSERT_OFFSET(server_t, isRunnable, 0x19);
+ASSERT_OFFSET(server_t, allowSelfTick, 0x1A);
+ASSERT_OFFSET(server_t, allowNetPackets, 0x1B);
+ASSERT_OFFSET(server_t, restarting, 0x1C);
+ASSERT_OFFSET(server_t, checksumFeed, 0x24);
+ASSERT_OFFSET(server_t, emptyConfigString, 0x2C);
+ASSERT_OFFSET(server_t, start_frameTime, 0x20);
+ASSERT_OFFSET(server_t, configstrings, 0x30);
+ASSERT_OFFSET(server_t, gameActors, 0x13908);
+ASSERT_OFFSET(server_t, bpsTotalBytes, 0x13974);
+ASSERT_OFFSET(server_t, ubpsTotalBytes, 0x139CC);
+ASSERT_OFFSET(server_t, gametype, 0x139DC);
+ASSERT_OFFSET(server_t, killServer, 0x13A1C);
+ASSERT_OFFSET(server_t, killReason, 0x13A20);
+ASSERT_OFFSET(server_t, nextClientsPositionArchive, 0x13AF4);
+ASSERT_OFFSET(server_t, clientsPositionArchive, 0x13AF8);
+ASSERT_OFFSET(server_t, clientsLatestFlashBack, 0xBB81C);
+ASSERT_OFFSET(server_t, securityChecksum, 0xBBB38);
+ASSERT_SIZE(server_t, 0xBBB48);
 
 enum class SwimStateType : int32_t {
   SWIM_STATE_NONE = 0x0,

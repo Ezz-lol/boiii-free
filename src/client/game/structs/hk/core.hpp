@@ -9,6 +9,10 @@ public:
   T *m_data;
   int32_t m_size;
   int32_t m_capacityAndFlags;
+
+  [[nodiscard]] inline std::string serialize() const noexcept {
+    return ::serialize(m_data, m_size);
+  }
 };
 
 template <typename T, typename Allocator = void>

@@ -50,6 +50,9 @@ Checks:
   - "-performance-no-int-to-ptr"
   - "-readability-identifier-length"
   - "-readability-redundant-inline-specifier"
+  # https://github.com/llvm/llvm-project/issues/233463, https://github.com/clang-tidy-infra/triage-agent/issues/413, and https://github.com/llvm/llvm-project/issues/224705.
+  # This issue was fixed on October 19, 2026, but the fix has not yet been released, so we will disable this lint for now until this bug is fixed.
+  - "-readability-redundant-parentheses"
   - "-readability-static-accessed-through-instance"
   - "-readability-static-definition-in-anonymous-namespace"
   - "-readability-trailing-comma"
@@ -66,6 +69,8 @@ CheckOptions:
     value: "lower_case"
   - key: readability-identifier-naming.ConstexprVariableCase
     value: "UPPER_CASE"
+  - key: readability-identifier-naming.VariableIgnoredRegexp
+    value: "^.*_hook$"
   - key: readability-identifier-naming.ConstexprVariableStyle
     value: ""
   - key: modernize-loop-convert.NamingStyle

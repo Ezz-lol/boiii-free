@@ -3178,6 +3178,8 @@ PACKED(struct vehicle_t {
   }
 });
 ASSERT_OFFSET(vehicle_t, nitrousVehicle, 0x7B8);
+// TODO: correct size is 0x21A0. Correct this struct and adjust this assertion.
+// ASSERT_SIZE(vehicle_t, 0x21A0);
 ASSERT_SIZE(vehicle_t, 0x22B8);
 
 PACKED(struct vehicleAntilagFrame_t {
