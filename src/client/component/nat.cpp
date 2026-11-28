@@ -17,7 +17,6 @@
 #include "server_list.hpp"
 #include "toast.hpp"
 #include "upnp.hpp"
-#include "weapon_kits.hpp"
 #include "workshop/workshop.hpp"
 
 #include <utils/hook.hpp>
@@ -464,14 +463,6 @@ void join_lobby(const game::net::netadr_t &host,
                                             : game::lobby::LobbyType::PRIVATE;
   std::vector<std::string> content{"", "", "", ""};
   size_t name_index = 6;
-  if (parts[6].starts_with("c:")) {
-    content = utils::string::split(parts[6].substr(2), ':');
-    weapon_kits::set_server_support(content.size() >= 5 && content[4] == "1");
-    content.resize(4);
-    name_index = 7;
-  } else {
-    weapon_kits::set_server_support(false);
-  }
   std::string name;
   for (size_t i = name_index; i < parts.size(); ++i)
     name.append(name.empty() ? "" : " ").append(parts[i]);

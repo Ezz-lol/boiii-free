@@ -15,7 +15,6 @@
 #include "profile_infos.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"
-#include "weapon_kits.hpp"
 #include "workshop/workshop.hpp"
 
 #include <utils/concurrency.hpp>
@@ -524,7 +523,6 @@ void handle_connect_query_response(const bool success,
   }
 
   is_connecting_to_dedi = info.get("dedicated") == "1";
-  weapon_kits::set_server_support(info.get("weaponkits") == "1");
   update_dedi_dvar(is_connecting_to_dedi.load());
 
   {

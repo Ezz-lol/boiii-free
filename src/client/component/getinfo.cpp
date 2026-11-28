@@ -128,7 +128,6 @@ struct component final : generic_component {
       info.set("modName", workshop::get_mod_resized_name());
       info.set("modId", workshop::get_mod_publisher_id());
       info.set("modStack", mod_stack::serialize());
-      info.set("weaponkits", "1");
       info.set("rounds_played",
                std::to_string(*game::level::level_rounds_played));
       info.set("shortversion", SHORTVERSION);
