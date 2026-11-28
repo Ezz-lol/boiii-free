@@ -2,6 +2,8 @@
 
 #include "func.hpp"
 
+#include "hook.hpp"
+
 #include <game/impl/scr/scr.hpp>
 #include <game/impl/scr/var.hpp>
 #include <game/impl/sv/sv.hpp>
@@ -28,10 +30,6 @@ namespace func {
 
 using namespace gsc;
 namespace {
-
-// =====================================================
-// Core builtins
-// =====================================================
 
 utils::hook::detour Scr_GetFunction_hook;
 BuiltinFunction Scr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
@@ -182,31 +180,33 @@ constexpr frozen::unordered_set<frozen::string,
     CHEAT_PROTECTED_DVAR_NAMES =
         frozen::make_unordered_set(CHEAT_PROTECTED_DVAR_NAME_ARRAY);
 
-BuiltinFunction GScr_SetDvar_orig;
+template <const BuiltinFunction &Orig>
 void GScr_SetDvar_SkipStockCheatDvar(const scriptInstance_t inst) {
   if (Scr_GetNumParam(inst) == 0 || *game::dvar_cheats == nullptr ||
       game::dvar_cheats->get_bool() ||
       !CHEAT_PROTECTED_DVAR_NAMES.contains(
           std::string_view(Scr_GetString(inst, 0)))) {
-    GScr_SetDvar_orig(inst);
+
+    Orig(inst);
   }
 }
 
 void apply_set_dvar_hook() {
-  GScr_SetDvar_orig =
-      game::scr::builtin::table::common_functions->SetDvar.actionFunc;
-  game::scr::builtin::table::common_functions->SetDvar.actionFunc =
-      GScr_SetDvar_SkipStockCheatDvar;
+  HOOK_SCR_BUILTIN(
+      game::scr::builtin::table::common_functions->SetDvar.actionFunc,
+      GScr_SetDvar_SkipStockCheatDvar);
 }
 
 /*
   Patches to allow `assert` and `assertmsg` function execution outside of
   devblock.
 
-  For whatever reason, Black Ops 3 script decompilations do not place these
-  functions within devblocks, so this is changed as a QoL improvement to ensure
-  these decompiled scripts can be used without having to manually wrap
-  assertions in devblocks.
+  For whatever reason, Black Ops 3 script decompilations (e.g. the bo3-source
+  Github repository) usually do not place these functions within devblocks.
+
+  As such, we allow execution of these functions outside a devblock as a QoL
+  improvement to ensure these decompiled scripts can be used without having to
+  manually wrap all assertions in devblocks.
 */
 void apply_assertion_patches() {
   game::scr::builtin::table::bg::util_functions->AssertMsg.type.devblockOnly =
@@ -251,15 +251,16 @@ struct component final : generic_component {
     /*
       In dedicated server, there is no host player.
 
-      This breaks custom maps and mods that require the host player to configure
-      the game using an options menu before any clients are permitted to leave
-      the menu and begin the game.
+      This breaks custom maps and mods that require the host player to
+      configure the game using an options menu before any clients are
+      permitted to leave the menu and begin the game.
 
       This is generally fixed via map-specific GSC scripts that automatically
       configure the game and close configuration menus.
 
-      To ensure these maps allow game configuration by _one_ player by default,
-      the following hook modifies the `ishost` builtin function to return
+      To ensure these maps allow game configuration by _one_ player by
+      default, the following hook modifies the `ishost` builtin function to
+      return
       \`true\` if the player has `clientIndex` `0`, and false otherwise.
     */
     if (game::is_server()) {
