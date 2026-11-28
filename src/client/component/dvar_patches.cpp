@@ -300,13 +300,15 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
   }
 }
 
-float GetXPScale_Server([[maybe_unused]] ClientNum_t clientNum) {
+// The game's versions only scale XP for players in its double XP groups, and
+// nobody is in them while a mod is loaded
+float GetXPScale_Stub([[maybe_unused]] ClientNum_t clientNum) {
   return xp_scale();
 }
 
 ddl::statValue_t
-GScr_GetGunXPScaled_Server([[maybe_unused]] ClientNum_t clientNum,
-                           ddl::statValue_t value) {
+GScr_GetGunXPScaled_Stub([[maybe_unused]] ClientNum_t clientNum,
+                         ddl::statValue_t value) {
   value.intValue = lround(static_cast<float>(value.intValue) * gun_xp_scale());
   return value;
 }
@@ -376,6 +378,9 @@ public:
         game::Dvar_GetSessionModeSpecificDvarInternal.get(),
         Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault);
     utils::hook::jump(game::Dvar_CanSetConfigDvar.get(), return_true);
+    utils::hook::jump(game::scr::gscr::GetXPScale.get(), GetXPScale_Stub);
+    utils::hook::jump(game::scr::gscr::GScr_GetGunXPScaled.get(),
+                      GScr_GetGunXPScaled_Stub);
 
     if (game::is_client()) {
       patch_client();
@@ -420,9 +425,6 @@ public:
     // Disable `sv_pure`
     utils::hook::call(0x140534DF2_g, Dvar_RegisterBool_Force<false>);
 
-    utils::hook::jump(game::scr::gscr::GetXPScale.get(), GetXPScale_Server);
-    utils::hook::jump(game::scr::gscr::GScr_GetGunXPScaled.get(),
-                      GScr_GetGunXPScaled_Server);
     cmd_exec_f_hook.create(game::cmd::Cmd_Exec_f.get(), Cmd_Exec_f_Server);
 
     // Enable or disable both (??) sv_cheats dvars immediately after

@@ -874,11 +874,16 @@ std::optional<float> dedicated_server_scale(const std::optional<float> &scale) {
 }
 
 // The HUD's 2XP badges check the player's own XP scale dvars, not the scale the
-// dedicated server gives out
+// dedicated server gives out. A hosted match gives out the scale dvars no
+// matter which double XP groups the game puts the player in (none while a mod
+// is loaded).
 float live_get_xp_scale_stub(const game::ControllerIndex_t controller_index) {
   if (const std::optional<float> scale =
           dedicated_server_scale(cached_server_xp_scale)) {
     return *scale;
+  }
+  if (game::server_running()) {
+    return game::xp_scale();
   }
   return live_get_xp_scale_hook.invoke<float>(controller_index);
 }
@@ -888,6 +893,9 @@ float live_get_gun_xp_scale_stub(
   if (const std::optional<float> scale =
           dedicated_server_scale(cached_server_gun_xp_scale)) {
     return *scale;
+  }
+  if (game::server_running()) {
+    return game::gun_xp_scale();
   }
   return live_get_gun_xp_scale_hook.invoke<float>(controller_index);
 }
