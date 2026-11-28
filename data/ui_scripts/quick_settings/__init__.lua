@@ -259,6 +259,18 @@ DataSources.BoiiiQuickSettingsGame = DataSourceHelpers.ListSetup("BoiiiQuickSett
     table.insert(optionsTable, toggle(controller, "boiii_advancedBots", "Advanced Bots", ADVANCED_BOTS_DESC))
   end
 
+  if Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
+    table.insert(
+      optionsTable,
+      toggle(
+        controller,
+        "zm_character_select_mods",
+        "Character Select With Mods",
+        "Keep the character select while a mod is loaded. Mods with their own character select may break. Applies after the mod is loaded again."
+      )
+    )
+  end
+
   -- Max clients for custom games (MP only)
   if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
     local maxClientOptions = {}
