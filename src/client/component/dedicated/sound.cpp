@@ -110,7 +110,7 @@ void snd_bank_load_error_stub(SndBankLoad *load) {
 
   game::println(
       game::PrintOutput::STDERR,
-      "^3[Sound] A sound bank for zone {} could not be loaded. If its "
+      "[Sound] A sound bank for zone {} could not be loaded. If its "
       "files are missing, copy them to '{}'. Dedicated-server sound "
       "files are optional; restart with '-nosnd' to run without them.",
       zone.data(), sound_path);

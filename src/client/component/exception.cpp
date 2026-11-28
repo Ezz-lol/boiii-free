@@ -740,19 +740,21 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
   // Detailed console crash report
   game::println(game::PrintOutput::STDERR,
                 "========== CRASH DETECTED ==========");
-  game::println(game::PrintOutput::STDERR, "  Exception:  %s (0x%08lX)",
+  game::println(game::PrintOutput::STDERR, "  Exception:  {} (0x{:08X})",
                 exception_name, exceptioninfo->ExceptionRecord->ExceptionCode);
-  game::println(game::PrintOutput::STDERR, "  Module:     %s + 0x%llX",
-                crash_frame.module_name.c_str(), crash_frame.rva);
-  if (!crash_frame.function_name.empty())
-    game::println(game::PrintOutput::STDERR, "  Function:   %s",
-                  crash_frame.function_name.c_str());
-  if (!crash_frame.file_name.empty() && crash_frame.line_number > 0)
-    game::println(game::PrintOutput::STDERR, "  Source:     %s:%u",
+  game::println(game::PrintOutput::STDERR, "  Module:     {} + 0x{:X}",
+                crash_frame.module_name, crash_frame.rva);
+  if (!crash_frame.function_name.empty()) {
+    game::println(game::PrintOutput::STDERR, "  Function:   {}",
+                  crash_frame.function_name);
+  }
+  if (!crash_frame.file_name.empty() && crash_frame.line_number > 0) {
+    game::println(game::PrintOutput::STDERR, "  Source:     {}:{}",
                   crash_frame.file_name.c_str(), crash_frame.line_number);
-  game::println(game::PrintOutput::STDERR, "  Address:    0x%llX",
+  }
+  game::println(game::PrintOutput::STDERR, "  Address:    0x{:X}",
                 crash_frame.address);
-  game::println(game::PrintOutput::STDERR, "  Thread:     %lu (%s)",
+  game::println(game::PrintOutput::STDERR, "  Thread:     {} ({})",
                 GetCurrentThreadId(), thread_role());
 
   if (exceptioninfo->ExceptionRecord->ExceptionCode ==
@@ -764,7 +766,7 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
     const uintptr_t target =
         exceptioninfo->ExceptionRecord->ExceptionInformation[1];
     game::println(game::PrintOutput::STDERR,
-                  "  Details:    Attempted to %s 0x%012llX%s", op, target,
+                  "  Details:    Attempted to {} 0x{:012X}{}", op, target,
                   target < 0x10000 ? " (NULL pointer dereference)" : "");
   }
 
@@ -776,12 +778,12 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
       const resolved_frame *f = &frames[i];
 
       if (!f->function_name.empty()) {
-        game::println(game::PrintOutput::STDERR, "    [%zu] 0x%llX - %s!%s", i,
+        game::println(game::PrintOutput::STDERR, "    [{}] 0x{:X} - {}!{}", i,
                       f->address, f->module_name.c_str(),
                       f->function_name.c_str());
       } else {
         game::println(game::PrintOutput::STDERR,
-                      "    [%zu] 0x%llX - %s + 0x%llX", i, f->address,
+                      "    [{}] 0x{:X} - {} + 0x{:X}", i, f->address,
                       f->module_name.c_str(), f->rva);
       }
     }
@@ -852,8 +854,8 @@ void report_freeze() {
           format_frame(resolve_address(reinterpret_cast<void *>(frames[i])), i);
     }
 
-    game::println(game::PrintOutput::STDERR, "[Freeze] %s", text.c_str());
-    console::print("^1[Freeze] " + text + "\n");
+    game::println(game::PrintOutput::STDERR, "[Freeze] {}", text.c_str());
+    console::print(utils::string::va("^1[Freeze] %s\n", text.c_str()));
     utils::io::write_file((game::get_appdata_path() / "minidumps" /
                            ("freeze-" + get_timestamp() + ".txt"))
                               .string(),

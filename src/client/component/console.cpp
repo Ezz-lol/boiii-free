@@ -454,7 +454,8 @@ std::string get_window_text_safe(const HWND hwnd) {
 }
 
 void restore_input_caret() {
-  if (!*game::s_wcd::hwndInputLine || !IsWindow(*game::s_wcd::hwndInputLine)) {
+  if (*game::s_wcd::hwndInputLine == nullptr ||
+      IsWindow(*game::s_wcd::hwndInputLine) == 0) {
     return;
   }
 
@@ -903,24 +904,13 @@ bool try_autocomplete_dvar(const HWND input_hwnd) {
   return true;
 }
 
-constexpr std::string_view DEVELOPER_ONLY_MESSAGES[] = {
-    "failed to find path to goal", " unknown weapon '"};
-
-bool is_hidden_developer_message(const std::string_view message) {
-  return std::ranges::any_of(DEVELOPER_ONLY_MESSAGES,
-                             [&](const std::string_view text) {
-                               return message.contains(text);
-                             }) &&
-         game::get_dvar_int("developer").value_or(0) < 1;
-}
-
 void queue_message(const char *message) {
-  if (message != nullptr && message[0] != NULL &&
-      !is_hidden_developer_message(message)) {
+  if (message != nullptr && message[0] != NULL) {
     if (interceptor_set.load(std::memory_order_acquire)) {
       const std::string msg(message);
       interceptor.access(
-          [&msg](const std::function<void(const std::string &)> &callback) {
+          [&msg](
+              const std::function<void(const std::string_view &)> &callback) {
             if (callback) {
               callback(msg);
             }
@@ -1442,7 +1432,7 @@ void print_stderr(const std::string_view &message) {
   }
 }
 
-void print(const std::string_view &message) { queue_message(message.data()); }
+void print(const char *message) { queue_message(message); }
 
 void set_interceptor(
     std::function<void(const std::string_view &message)> callback) {

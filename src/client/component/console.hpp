@@ -70,7 +70,7 @@ constexpr COLORREF get_cod_color(const ColorCode code) {
 }
 
 void set_title(const std::string_view &title);
-void print(const std::string_view &message);
+void print(const char *message);
 void print_stdout(const std::string_view &message);
 void print_stderr(const std::string_view &message);
 void set_interceptor(
