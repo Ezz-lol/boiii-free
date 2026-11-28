@@ -11,6 +11,7 @@
 #using scripts\zm\_zm_score;
 #using scripts\zm\_zm_utility;
 #using scripts\zm\_zm_weapons;
+#using scripts\zm\gametypes\_zm_gametype;
 
 #insert scripts\shared\shared.gsh;
 
@@ -40,28 +41,86 @@ function __init__()
 
 function start()
 {
-	level flag::wait_till("initial_blackscreen_passed");
+	level flag::wait_till("initial_players_connected");
 	callback::remove_on_connect(&bot::on_player_connect);
 	callback::remove_on_spawned(&bot::on_player_spawned);
 	callback::remove_on_player_killed(&bot::on_player_killed);
 	init_settings();
-	level thread track_doors();
-	count = min(GetDvarInt("zm_bots"), GetDvarInt("com_maxclients") - GetPlayers().size);
+	existing = 0;
+	foreach (player in GetPlayers())
+	{
+		if (player IsTestClient())
+			existing++;
+	}
+	count = min(GetDvarInt("zm_bots") - existing, GetDvarInt("com_maxclients") - GetPlayers().size);
+	if (count > 0)
+		callback::remove_on_connect(&zm_gametype::onPlayerConnect_check_for_hotjoin);
+	bots = [];
 	for (i = 0; i < count; i++)
 	{
-		if (!isdefined(AddTestClient()))
+		bot = AddTestClient();
+		if (!isdefined(bot))
 			break;
+		bots[bots.size] = bot;
 		wait 0.1;
 	}
+	for (i = 0; i < 50 && !all_connected(bots); i++)
+		wait 0.1;
+	if (count > 0)
+		callback::on_connect(&zm_gametype::onPlayerConnect_check_for_hotjoin);
+	if (existing + count > 0 && level flag::exists("solo_game"))
+		level flag::clear("solo_game");
+	level thread track_doors();
+}
+
+function all_connected(bots)
+{
+	foreach (bot in bots)
+	{
+		if (isdefined(bot) && !isdefined(bot.bot))
+			return false;
+	}
+	return true;
+}
+
+function unstick_spawn()
+{
+	self endon("disconnect");
+	wait 0.05;
+	if (!self overlaps_player(self.origin))
+		return;
+	query = PositionQuery_Source_Navigation(self.origin, 48, 300, 64, 32, self);
+	foreach (point in query.data)
+	{
+		if (zm_utility::check_point_in_enabled_zone(point.origin) && !self overlaps_player(point.origin))
+		{
+			self SetOrigin(point.origin);
+			return;
+		}
+	}
+}
+
+function overlaps_player(origin)
+{
+	foreach (player in GetPlayers())
+	{
+		if (player != self && player.sessionstate == "playing" && DistanceSquared(player.origin, origin) < 48 * 48)
+			return true;
+	}
+	return false;
 }
 
 function init_settings()
 {
 	level.zm_bot_melee_range = GetDvarInt("player_meleeRangeDefault");
+	SetDvar("bot_maxMantleHeight", 0);
+	SetDvar("bot_maxJumpDistance", 0);
+	SetDvar("bot_maxWaterMantleHeight", 0);
+	SetDvar("bot_enableWallrun", 0);
 	SetDvar("bot_AllowMelee", 1);
 	SetDvar("bot_AllowGrenades", 1);
 	SetDvar("bot_AllowKillstreaks", 0);
-	SetDvar("bot_AllowHeroGadgets", 0);
+	SetDvar("bot_AllowHeroGadgets", 1);
 	SetDvar("bot_Fov", 120);
 	SetDvar("bot_FovAds", 80);
 	SetDvar("bot_PitchSensitivity", 1.2);
@@ -95,6 +154,8 @@ function on_player_spawned()
 	self endon("zm_bot_spawned");
 	self endon("disconnect");
 
+	self thread unstick_spawn();
+	self AllowJump(false);
 	self apply_rank();
 	if (!isdefined(self.num_perks))
 		self.num_perks = 0;
@@ -156,7 +217,7 @@ function roam_near(center, radius_min, radius_max)
 	query = PositionQuery_Source_Navigation(center, radius_min, radius_max, 100, 48, self);
 	foreach (point in array::randomize(query.data))
 	{
-		if (self CanPath(self.origin, point.origin))
+		if (self path_ok(point.origin))
 		{
 			self BotSetGoal(point.origin, 24);
 			self.bot.roam_time = GetTime() + RandomIntRange(2500, 5000);
@@ -202,7 +263,7 @@ function task_loop()
 	for (;;)
 	{
 		self task_think();
-		wait THINK_INTERVAL;
+		wait 0.25;
 	}
 }
 
@@ -304,9 +365,16 @@ function check_stuck_position()
 	if (GetTime() < self.bot.check_position_time)
 		return;
 	self.bot.check_position_time = GetTime() + 500;
+	goal = self BotGetGoalPosition();
+	if (!isdefined(goal) || Distance2DSquared(goal, self.origin) < 160 * 160)
+	{
+		self.bot.position_history = [];
+		self.bot.position_index = 0;
+		return;
+	}
 	self.bot.position_history[self.bot.position_index] = self.origin;
-	self.bot.position_index = (self.bot.position_index + 1) % 5;
-	if (self.bot.position_history.size < 5)
+	self.bot.position_index = (self.bot.position_index + 1) % 3;
+	if (self.bot.position_history.size < 3)
 		return;
 	for (i = 0; i < self.bot.position_history.size; i++)
 	{
@@ -321,19 +389,25 @@ function check_stuck_position()
 
 function stuck_resolution(direction)
 {
-	self endon("death");
-	self endon("bled_out");
-	level endon("end_game");
 	self clear_stuck();
-	self BotTakeManualControl();
+	goal = self BotGetGoalPosition();
+	if (!isdefined(direction) && isdefined(goal) && DistanceSquared(goal, self.origin) > 64 * 64)
+		self give_up_on(goal);
+	fwd = undefined;
 	if (isdefined(direction))
-		angle = direction[1] + RandomIntRange(-30, 30);
-	else
-		angle = self GetAngles()[1] + 180 + RandomIntRange(-45, 45);
-	self BotSetMoveAngle(AnglesToForward((0, angle, 0)));
-	self BotSetMoveMagnitude(1);
-	wait 1;
-	self BotReleaseManualControl();
+		fwd = AnglesToForward((0, direction[1], 0));
+	query = PositionQuery_Source_Navigation(self.origin, 64, 256, 64, 32, self);
+	foreach (point in array::randomize(query.data))
+	{
+		if (isdefined(fwd) && VectorDot(fwd, VectorNormalize(point.origin - self.origin)) < 0.5)
+			continue;
+		if (self path_ok(point.origin))
+		{
+			self BotSetGoal(point.origin, 24);
+			self.bot.roam_time = GetTime() + RandomIntRange(1500, 3000);
+			return;
+		}
+	}
 	self BotSetGoal(self.origin);
 }
 
@@ -391,7 +465,38 @@ function fwd_dot(point)
 
 function can_reach(point)
 {
-	return isdefined(point) && self CanPath(self.origin, point) && zm_utility::check_point_in_enabled_zone(point);
+	if (!isdefined(point) || DistanceSquared(self.origin, point) > 3000 * 3000)
+		return false;
+	return zm_utility::check_point_in_enabled_zone(point) && self path_ok(point);
+}
+
+function path_ok(point)
+{
+	key = int(point[0]) + "_" + int(point[1]) + "_" + int(point[2]);
+	if (!isdefined(level.zm_bot_unreachable) || level.zm_bot_unreachable.size > 128)
+		level.zm_bot_unreachable = [];
+	if (isdefined(level.zm_bot_unreachable[key]) && GetTime() < level.zm_bot_unreachable[key])
+		return false;
+	if (isdefined(self.bot.given_up) && isdefined(self.bot.given_up[key]) && GetTime() < self.bot.given_up[key])
+		return false;
+	if (!isdefined(self.bot.paths) || self.bot.paths.size > 64)
+		self.bot.paths = [];
+	if (isdefined(self.bot.paths[key]) && GetTime() < self.bot.paths[key])
+		return true;
+	if (self CanPath(self.origin, point))
+	{
+		self.bot.paths[key] = GetTime() + 2000;
+		return true;
+	}
+	level.zm_bot_unreachable[key] = GetTime() + 15000;
+	return false;
+}
+
+function give_up_on(point)
+{
+	if (!isdefined(self.bot.given_up) || self.bot.given_up.size > 32)
+		self.bot.given_up = [];
+	self.bot.given_up[int(point[0]) + "_" + int(point[1]) + "_" + int(point[2])] = GetTime() + 15000;
 }
 
 function can_see(target, from)
@@ -515,8 +620,7 @@ function follow()
 		trace = leader eye_trace(200);
 		if (trace["entity"] === self && leader IsMeleeing())
 		{
-			if (!self BotUnderManualControl())
-				self thread stuck_resolution(leader GetAngles());
+			self stuck_resolution(leader GetAngles());
 		}
 		else if (!self has_threat() && self BotGoalReached() && GetTime() > self.bot.roam_time)
 		{
@@ -534,7 +638,7 @@ function follow_player(player)
 	goal = self BotGetGoalPosition();
 	if (!isdefined(goal) || Distance(goal, player.origin) > 600)
 	{
-		if (!self roam_near(player.origin, 150, 400))
+		if (!self roam_near(player.origin, 150, 400) && self path_ok(player.origin))
 			self BotSetGoal(player.origin, 128);
 	}
 	if (Distance(self.origin, player.origin) > 900)
@@ -736,9 +840,12 @@ function revive()
 	guard = undefined;
 	foreach (player in self downed_players())
 	{
-		if (!self can_reach(player.origin))
+		if (!(self.bot.revive_target === player && self.bot.revive_state == "revive") && !self can_reach(player.origin))
 			continue;
-		if (isdefined(self reviver_of(player)))
+		reviver = self reviver_of(player);
+		if (isdefined(reviver) && reviver.bot.revive_state != "revive" && Distance(self.origin, player.origin) + 150 < Distance(reviver.origin, player.origin))
+			reviver = undefined;
+		if (isdefined(reviver))
 		{
 			if (!isdefined(guard))
 				guard = player;
@@ -750,10 +857,11 @@ function revive()
 		return true;
 	}
 	self.bot.revive_target = undefined;
+	self.bot.revive_player = undefined;
 	if (isdefined(guard))
 	{
 		self.bot.revive_state = "guard";
-		if (Distance(self.origin, guard.origin) > 200)
+		if (Distance(self.origin, guard.origin) > 200 && self path_ok(guard.origin))
 		{
 			self BotSetGoal(guard.origin, 160);
 			self sprint_to_goal();
@@ -774,11 +882,28 @@ function revive_player(player)
 	if (Distance(player.origin, self.origin) > 72 || !BulletTracePassed(self GetEye(), player GetCentroid(), false, self, player))
 	{
 		self.bot.revive_state = "reach";
+		d = Distance(player.origin, self.origin);
+		if (self.bot.revive_player !== player || d < self.bot.revive_best - 32)
+		{
+			self.bot.revive_player = player;
+			self.bot.revive_best = d;
+			self.bot.revive_progress = GetTime();
+		}
+		else if (GetTime() - self.bot.revive_progress > 3000)
+		{
+			self give_up_on(player.origin);
+			self.bot.revive_player = undefined;
+			self.bot.revive_target = undefined;
+			player.bot_reviver = undefined;
+			self BotSetGoal(self.origin);
+			return;
+		}
 		self BotSetGoal(player.origin);
 		self sprint_to_goal();
 		return;
 	}
 	self.bot.revive_state = "revive";
+	self.bot.revive_player = undefined;
 	self BotSetGoal(self.origin);
 	self BotSetLookAnglesFromPoint(player GetCentroid());
 	self BotPressButton(3);
@@ -1459,7 +1584,7 @@ function open_doors()
 			continue;
 		if (self.bot.mode == MODE_FOLLOW && !IS_TRUE(self.bot.door_urge) && Distance(trigger.origin, self.bot.anchor) > FOLLOW_RANGE)
 			continue;
-		foreach (point in trigger.nodes)
+		foreach (point in ArraySortClosest(trigger.nodes, self.origin))
 		{
 			if (self can_reach(point.origin))
 			{
@@ -1634,7 +1759,7 @@ function weakest_weapon(candidate)
 			continue;
 		if (self zm_utility::has_powerup_weapon() && weapon == self GetCurrentWeapon())
 			continue;
-		if (IsSubStr(weapon.name, "ray_gun") || IsSubStr(weapon.name, "raygun_mark2"))
+		if (IsSubStr(weapon.name, "ray_gun") || IsSubStr(weapon.name, "raygun_mark2") || zm_weapons::is_wonder_weapon(weapon))
 			score = 9999;
 		else
 			score = self weapon_score(weapon);
@@ -1884,7 +2009,11 @@ function update_threat_goal()
 		return;
 	}
 	self.bot.strafing = 0;
-	self BotSetGoal(self.bot.threat.last_position, radius);
+	goal = GetClosestPointOnNavMesh(self.bot.threat.last_position, 96, 32);
+	if (isdefined(goal) && self path_ok(goal))
+		self BotSetGoal(goal, radius);
+	else
+		self combat_strafe();
 }
 
 function threat_goal_radius()

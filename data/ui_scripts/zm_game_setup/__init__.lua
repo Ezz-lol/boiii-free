@@ -6,9 +6,7 @@ local modded = type(Engine.IsUsingMods) == "function"
   and Engine.IsUsingMods()
   and (type(Engine.UsingModsUgcName) ~= "function" or Engine.UsingModsUgcName() ~= "usermaps")
 
-if modded and not Engine.DvarBool(nil, "zm_character_select_mods") then
-  return
-end
+pcall(require, "ui.uieditor.menus.GameSettings.GameSettings_Bots")
 
 local function isZombies()
   return Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES
@@ -32,7 +30,7 @@ if not modded and DataSources.ChangeMapMaps then
   end
 end
 
-if not modded and DataSources.BotSettings then
+if DataSources.BotSettings then
   local stockBotSettings = DataSources.BotSettings
   local function setBotDvar(_, item, _, dvar)
     UpdateInfoModels(item)
@@ -114,7 +112,7 @@ if not modded and DataSources.BotSettings then
   })
 end
 
-if not modded and LUI.createMenu.GameSettings_Bots then
+if LUI.createMenu.GameSettings_Bots then
   local createBotsMenu = LUI.createMenu.GameSettings_Bots
   LUI.createMenu.GameSettings_Bots = function(controller)
     local menu = createBotsMenu(controller)
@@ -132,6 +130,16 @@ end
 local function openGameSetup(_, _, controller, _, menu)
   SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
   OpenPopup(menu, "GameSettingsFlyoutMPCustom", controller)
+end
+
+local function openChangeMap(_, _, controller, _, menu)
+  SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
+  CoD.LobbyBase.OpenChangeMap(menu, controller)
+end
+
+local function openBotSettings(_, _, controller, _, menu)
+  SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
+  CoD.LobbyBase.OpenBotSettings(menu, controller)
 end
 
 local function openCharacterSelect(_, _, controller, _, menu)
@@ -173,19 +181,6 @@ CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
   if not result or (id ~= targets.UI_ZMLOBBYONLINECUSTOMGAME.id and id ~= targets.UI_ZMLOBBYLANGAME.id) then
     return result
   end
-  if modded then
-    if CoD.ZMMapHasCharacterSelect and CoD.ZMMapHasCharacterSelect() then
-      local index = #result + 1
-      for buttonIndex, button in ipairs(result) do
-        if button.optionDisplay == CoD.LobbyButtons.ZM_CHANGE_MAP.stringRef then
-          index = buttonIndex + 1
-          break
-        end
-      end
-      table.insert(result, index, newButton("CHOOSE CHARACTER", openCharacterSelect, "btnZMCharacterSelect"))
-    end
-    return result
-  end
   swapButtons(
     result,
     CoD.LobbyButtons.ZM_CHANGE_RANKED_SETTTINGS.stringRef,
@@ -193,9 +188,25 @@ CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
   )
   for index, button in ipairs(result) do
     if button.optionDisplay == CoD.LobbyButtons.ZM_CHANGE_MAP.stringRef then
-      local setup = newButton("MPUI_SETUP_GAME_CAPS", openGameSetup, "btnZMGameSetup")
-      setup.isLastButtonInGroup = button.isLastButtonInGroup
-      result[index] = setup
+      local added = {}
+      if modded then
+        if CoD.ZMMapHasCharacterSelect and CoD.ZMMapHasCharacterSelect() then
+          table.insert(added, newButton("CHOOSE CHARACTER", openCharacterSelect, "btnZMCharacterSelect"))
+        end
+        if LUI.createMenu.GameSettings_Bots then
+          table.insert(added, newButton("MENU_SETUP_BOTS_CAPS", openBotSettings, "btnZMSetupBots"))
+        end
+      else
+        button.action = openChangeMap
+        table.insert(added, newButton("MPUI_SETUP_GAME_CAPS", openGameSetup, "btnZMGameSetup"))
+      end
+      if #added > 0 then
+        added[#added].isLastButtonInGroup = button.isLastButtonInGroup
+        button.isLastButtonInGroup = false
+      end
+      for offset, extra in ipairs(added) do
+        table.insert(result, index + offset, extra)
+      end
       return result
     end
   end
