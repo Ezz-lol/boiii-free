@@ -35,10 +35,10 @@ download_with_steamcmd(const download_job &job,
   if (!steamcmd::ensure_installed(
           dir, wine,
           [&](const std::string_view &status) {
-            report({std::string(status)});
+            report({.message = std::string(status)});
           },
           error)) {
-    printf("[ Workshop ] %s\n", error.c_str());
+    game::println("[ Workshop ] {}", error);
     return download_result::setup_failed;
   }
 
@@ -92,9 +92,9 @@ download_with_steamcmd(const download_job &job,
         break;
       }
       tracker.update(steamcmd);
-      download_status status{tracker.committing()
-                                 ? "Finishing download..."
-                                 : "Downloading (SteamCMD)..."};
+      download_status status{.message = tracker.committing()
+                                            ? "Finishing download..."
+                                            : "Downloading (SteamCMD)..."};
       if (tracker.started()) {
         status.downloaded = tracker.installed_bytes();
         status.total = tracker.install_total();
@@ -134,7 +134,11 @@ download_result run_download(const std::string_view &id, game::ZoneType type,
   const std::string title =
       info.title.empty() ? std::format("Workshop item {}", id) : info.title;
 
-  download_job job{std::string(id), type, &cancel_requested, nullptr, {}};
+  download_job job{.id = std::string(id),
+                   .type = type,
+                   .cancel = &cancel_requested,
+                   .pause = nullptr,
+                   .report = {}};
   job.report = [&](const download_status &status) {
     imgui_overlay::download_state state;
     state.active = true;
@@ -154,7 +158,7 @@ download_result run_download(const std::string_view &id, game::ZoneType type,
     }
     imgui_overlay::update(state);
   };
-  job.report({"Connecting to Steam..."});
+  job.report({.message = "Connecting to Steam..."});
 
   const download_result result = download_item(job);
   imgui_overlay::clear();
@@ -187,10 +191,11 @@ download_result run_download(const std::string_view &id, game::ZoneType type,
   } else {
     scheduler::once(
         [result] {
-          if (result == download_result::cancelled)
+          if (result == download_result::cancelled) {
             toast::info("Workshop", describe(result));
-          else
+          } else {
             toast::error("Workshop", describe(result));
+          }
         },
         scheduler::pipeline::main);
   }
@@ -275,23 +280,26 @@ download_result download_item(const download_job &job,
   reporter.join();
 
   if (result != download_result::success && !cancelled(job)) {
-    printf("[ Workshop ] Falling back to SteamCMD for %s\n", job.id.c_str());
+    game::println("[ Workshop ] Falling back to SteamCMD for {}", job.id);
     std::filesystem::remove_all(staging, ec);
     result = download_with_steamcmd(job, staging);
   }
 
-  if (cancelled(job))
+  if (cancelled(job)) {
     result = download_result::cancelled;
+  }
 
   if (result == download_result::success) {
-    if (job.report)
-      job.report({"Installing..."});
+    if (job.report) {
+      job.report({.message = "Installing..."});
+    }
     const std::filesystem::path target =
         install_folder(staging, job.id, job.type);
-    if (target.empty())
+    if (target.empty()) {
       result = download_result::install_failed;
-    else if (installed)
+    } else if (installed != nullptr) {
       *installed = target;
+    }
   }
 
   std::filesystem::remove_all(staging, ec);
@@ -303,10 +311,12 @@ void start_download(const std::string_view &id, game::ZoneType type) {
 }
 
 bool cancel_download() {
-  if (!downloading_workshop_item.load())
-    return false;
-  cancel_requested = true;
-  return true;
+  if (downloading_workshop_item.load()) {
+    cancel_requested = true;
+    return true;
+  }
+
+  return false;
 }
 
 namespace queue {
@@ -330,8 +340,9 @@ void worker() {
     {
       std::unique_lock lock(mutex);
       cv.wait_for(lock, 1s, [] { return !pending.empty(); });
-      if (pending.empty() || is_any_download_active())
+      if (pending.empty() || is_any_download_active()) {
         continue;
+      }
       next = pending.front();
       pending.pop_front();
       next.state = item_state::downloading;
@@ -342,14 +353,15 @@ void worker() {
     const download_result result =
         run_download(next.id, next.type, next.show_overlay);
 
-    std::lock_guard lock(mutex);
+    std::scoped_lock lock(mutex);
     next.state = result == download_result::success     ? item_state::done
                  : result == download_result::cancelled ? item_state::cancelled
                                                         : item_state::failed;
     std::erase_if(history, by_id(next.id));
     history.push_front(next);
-    if (history.size() > MAX_HISTORY)
+    if (history.size() > MAX_HISTORY) {
       history.pop_back();
+    }
     current.reset();
     ++generation_counter;
   }
@@ -374,20 +386,27 @@ const char *state_name(const item_state state) {
 bool add(const std::string_view &id, game::ZoneType type,
          const std::string_view &title, const uint64_t file_size,
          const bool show_overlay) {
-  if (id.empty() || !utils::string::is_numeric(id))
+  if (id.empty() || !utils::string::is_numeric(id)) {
     return false;
+  }
 
   static std::once_flag started;
   std::call_once(started, [] { std::thread(worker).detach(); });
 
   {
-    std::lock_guard lock(mutex);
+    std::scoped_lock lock(mutex);
     if ((current && current->id == id) ||
-        std::ranges::any_of(pending, by_id(id)))
+        std::ranges::any_of(pending, by_id(id))) {
       return false;
-    pending.push_back({std::string(id), type,
-                       title.empty() ? std::string(id) : std::string(title),
-                       file_size, item_state::queued, -1, show_overlay});
+    }
+    pending.push_back(
+        {.id = std::string(id),
+         .type = type,
+         .title = title.empty() ? std::string(id) : std::string(title),
+         .file_size = file_size,
+         .state = item_state::queued,
+         .position = -1,
+         .show_overlay = show_overlay});
     std::erase_if(history, by_id(id));
     ++generation_counter;
   }
@@ -396,24 +415,27 @@ bool add(const std::string_view &id, game::ZoneType type,
 }
 
 bool remove(const std::string_view &id) {
-  std::lock_guard lock(mutex);
-  if (!std::erase_if(pending, by_id(id)))
+  std::scoped_lock lock(mutex);
+  if (std::erase_if(pending, by_id(id)) == 0) {
     return false;
+  }
   ++generation_counter;
   return true;
 }
 
 bool move(const std::string_view &id, const int32_t delta) {
-  std::lock_guard lock(mutex);
+  std::scoped_lock lock(mutex);
   const std::ranges::borrowed_iterator_t<decltype(pending) &> it =
       std::ranges::find_if(pending, by_id(id));
-  if (it == pending.end())
+  if (it == pending.end()) {
     return false;
+  }
   const int32_t from = static_cast<int>(it - pending.begin());
   const int32_t to =
       std::clamp(from + delta, 0, static_cast<int>(pending.size()) - 1);
-  if (from == to)
+  if (from == to) {
     return false;
+  }
   std::remove_reference_t<entry &> item = std::move(*it);
   pending.erase(it);
   pending.insert(pending.begin() + to, std::move(item));
@@ -422,14 +444,14 @@ bool move(const std::string_view &id, const int32_t delta) {
 }
 
 void clear() {
-  std::lock_guard lock(mutex);
+  std::scoped_lock lock(mutex);
   pending.clear();
   history.clear();
   ++generation_counter;
 }
 
 std::vector<entry> list() {
-  std::lock_guard lock(mutex);
+  std::scoped_lock lock(mutex);
   std::vector<entry> out;
   if (current) {
     out.push_back(*current);
@@ -447,16 +469,17 @@ std::vector<entry> list() {
 }
 
 int position(const std::string_view &id) {
-  std::lock_guard lock(mutex);
-  if (current && current->id == id)
+  std::scoped_lock lock(mutex);
+  if (current && current->id == id) {
     return 0;
+  }
   const std::ranges::borrowed_iterator_t<decltype(pending) &> it =
       std::ranges::find_if(pending, by_id(id));
   return it == pending.end() ? -1 : static_cast<int>(it - pending.begin()) + 1;
 }
 
 std::string current_id() {
-  std::lock_guard lock(mutex);
+  std::scoped_lock lock(mutex);
   return current ? current->id : std::string{};
 }
 

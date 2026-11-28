@@ -4,7 +4,6 @@
 #include "emitter.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
-#include <algorithm>
 #include <filesystem>
 #include <fstream>
 
@@ -357,19 +356,17 @@ std::string preprocess_impl(const std::string &source,
                          '/');
             const std::filesystem::path manual_path =
                 game::get_data_path() / normalized_path;
-            std::println(
-                std::cerr,
+            game::println(
+                game::PrintOutput::STDERR,
                 "^3[GSC] Missing #insert file '{}'. Download or create the "
                 ".gsh file and place it manually at:\n^3  {}",
                 insert_path, manual_path.string());
-            std::cerr.flush();
           } catch (...) {
-            std::println(
-                std::cerr,
+            game::println(
+                game::PrintOutput::STDERR,
                 "^3[GSC] Missing #insert file '{}'. Place the .gsh file under "
                 "'%LOCALAPPDATA%/boiii/data' using the same relative path.",
                 insert_path);
-            std::cerr.flush();
           }
           output += '\n';
         }

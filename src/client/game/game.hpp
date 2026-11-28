@@ -9,6 +9,7 @@
 #include <game/base.hpp>  // IWYU pragma: export
 #include <game/flags.hpp> // IWYU pragma: export
 #include <game/log.hpp>   // IWYU pragma: export
+#include <game/print.hpp> // IWYU pragma: export
 #include <game/ptr.hpp>   // IWYU pragma: export
 #include <game/tac.hpp>   // IWYU pragma: export
 

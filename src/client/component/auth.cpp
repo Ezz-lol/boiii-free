@@ -163,7 +163,7 @@ load_or_generate_key(game::ControllerIndex_t controllerIndex) {
     if (!load_key(backup_path, backup_key) ||
         backup_key.get_hash() != key.get_hash()) {
       if (!write_key(backup_path, key)) {
-        printf("Failed to back up cryptographic key!\n");
+        game::println("Failed to back up cryptographic key!");
       }
     }
 
@@ -171,9 +171,9 @@ load_or_generate_key(game::ControllerIndex_t controllerIndex) {
   }
 
   if (load_key(backup_path, key)) {
-    printf("Restoring cryptographic key from backup.\n");
+    game::println("Restoring cryptographic key from backup.");
     if (!write_key(key_path, key)) {
-      printf("Failed to restore cryptographic key!\n");
+      game::println("Failed to restore cryptographic key!");
     }
 
     return key;
@@ -186,9 +186,9 @@ load_or_generate_key(game::ControllerIndex_t controllerIndex) {
   }
 
   if (!write_key(key_path, key)) {
-    printf("Failed to write cryptographic key!\n");
+    game::println("Failed to write cryptographic key!");
   } else if (!write_key(backup_path, key)) {
-    printf("Failed to back up cryptographic key!\n");
+    game::println("Failed to back up cryptographic key!");
   }
 
   return key;
@@ -201,7 +201,7 @@ get_key_internal(game::ControllerIndex_t controllerIndex) {
 
   std::filesystem::path key_path = key_file_path(controllerIndex, true);
   if (!utils::io::write_file(key_path.generic_string(), key.get_public_key())) {
-    printf("Failed to write public key!\n");
+    game::println("Failed to write public key!");
   }
 
   return key;

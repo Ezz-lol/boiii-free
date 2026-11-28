@@ -577,7 +577,7 @@ public:
         return true;
       close();
     }
-    printf("[ Workshop ] Could not connect to Steam\n");
+    game::println("[ Workshop ] Could not connect to Steam");
     return false;
   }
 
@@ -905,7 +905,7 @@ private:
       return true;
     });
     if (eresult != 1) {
-      printf("[ Workshop ] Anonymous Steam logon failed (%d)\n", eresult);
+      game::println("[ Workshop ] Anonymous Steam logon failed ({})", eresult);
       return false;
     }
     session_id_ = pkt.session_id ? pkt.session_id : session_id_;
@@ -1022,7 +1022,7 @@ bool write_file(const context &ctx, const file_mapping &file,
                 const std::vector<std::string> &hosts, uint32_t depot,
                 const std::string_view &token) {
   if (!is_safe_relative(file.filename)) {
-    printf("[ Workshop ] Rejected unsafe path %s\n", file.filename.c_str());
+    game::println("[ Workshop ] Rejected unsafe path {}", file.filename);
     return false;
   }
   const std::filesystem::path path = root / file.filename;
@@ -1036,8 +1036,9 @@ bool write_file(const context &ctx, const file_mapping &file,
   HANDLE created = CreateFileW(path.c_str(), GENERIC_WRITE,
                                FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
                                CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-  if (created == INVALID_HANDLE_VALUE)
+  if (created == INVALID_HANDLE_VALUE) {
     return false;
+  }
   DWORD ignored = 0;
   DeviceIoControl(created, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &ignored,
                   nullptr);
@@ -1046,13 +1047,15 @@ bool write_file(const context &ctx, const file_mapping &file,
   const bool reserved = SetFilePointerEx(created, end, nullptr, FILE_BEGIN) &&
                         SetEndOfFile(created);
   CloseHandle(created);
-  if (!reserved)
+  if (!reserved) {
     return false;
+  }
 
   std::atomic<size_t> next{0};
   std::atomic<bool> failed{false};
   std::vector<std::thread> workers;
   const uint64_t count = std::clamp<size_t>(file.chunks.size(), 1, MAX_WORKERS);
+  workers.reserve(count);
   for (size_t i = 0; i < count; ++i) {
     workers.emplace_back([&] {
       HANDLE handle = CreateFileW(
@@ -1061,8 +1064,9 @@ bool write_file(const context &ctx, const file_mapping &file,
       CURL *curl = new_binary_session();
       while (!failed && !ctx.cancelled()) {
         const size_t index = next++;
-        if (index >= file.chunks.size())
+        if (index >= file.chunks.size()) {
           break;
+        }
         const chunk_info &chunk = file.chunks[index];
         std::string plain;
         LARGE_INTEGER pos{};
@@ -1080,14 +1084,17 @@ bool write_file(const context &ctx, const file_mapping &file,
         }
         ctx.progress.written += plain.size();
       }
-      if (curl)
+      if (curl) {
         curl_easy_cleanup(curl);
-      if (handle != INVALID_HANDLE_VALUE)
+      }
+      if (handle != INVALID_HANDLE_VALUE) {
         CloseHandle(handle);
+      }
     });
   }
-  for (auto &worker : workers)
+  for (auto &worker : workers) {
     worker.join();
+  }
   return !failed && !ctx.cancelled();
 }
 
@@ -1095,8 +1102,9 @@ std::string unwrap_manifest(std::string blob, const std::string_view &key) {
   const auto unzip = [](std::string &data) {
     if (is_zip(reinterpret_cast<const uint8_t *>(data.data()), data.size())) {
       std::string unzipped = unzip_first_entry(data);
-      if (!unzipped.empty())
+      if (!unzipped.empty()) {
         data = std::move(unzipped);
+      }
     }
   };
   unzip(blob);
@@ -1116,44 +1124,51 @@ bool download_content(steam3 &steam, const context &ctx, uint64_t hcontent,
                       const std::filesystem::path &destination) {
   std::string key;
   uint32_t depot = game::APP_ID;
-  if (!steam.get_depot_key(depot, key) && !steam.get_depot_key(++depot, key)) {
-    printf("[ Workshop ] Could not get the depot key\n");
-    return false;
+  if (!steam.get_depot_key(depot, key)) {
+    ++depot;
+    if (!steam.get_depot_key(depot, key)) {
+      game::println("[ Workshop ] Could not get the depot key");
+      return false;
+    }
   }
 
   const uint64_t code = steam.get_manifest_code(depot, hcontent);
   const std::vector<std::string> hosts = cdn_hosts();
   if (hosts.empty()) {
-    printf("[ Workshop ] No Steam content servers available\n");
+    game::println("[ Workshop ] No Steam content servers available");
     return false;
   }
   const std::string token = steam.get_cdn_token(depot, hosts.front());
 
   std::optional<std::string> manifest;
   for (const std::string &host : hosts) {
-    if (ctx.cancelled())
+    if (ctx.cancelled()) {
       return false;
+    }
     std::string url = "https://" + host + "/depot/" + std::to_string(depot) +
                       "/manifest/" + std::to_string(hcontent) + "/5";
-    if (code)
+    if (code != 0u) {
       url += "/" + std::to_string(code);
+    }
     manifest = get_binary(with_token(url, token));
-    if (manifest && manifest->size() > 16)
+    if (manifest && manifest->size() > 16) {
       break;
+    }
     manifest.reset();
   }
 
   std::vector<file_mapping> files;
   if (!manifest ||
       !parse_manifest(unwrap_manifest(*manifest, key), key, files)) {
-    printf("[ Workshop ] Could not read the workshop manifest\n");
+    game::println("[ Workshop ] Could not read the workshop manifest");
     return false;
   }
 
   uint64_t total = 0;
   for (const file_mapping &file : files) {
-    if (!(file.flags & DIR_FLAG))
+    if (!(file.flags & DIR_FLAG)) {
       total += file.size;
+    }
   }
   ctx.progress.total += total;
 
@@ -1163,7 +1178,7 @@ bool download_content(steam3 &steam, const context &ctx, uint64_t hcontent,
   for (const file_mapping &file : files) {
     if (!write_file(ctx, file, destination, key, hosts, depot, token)) {
       if (!ctx.cancelled())
-        printf("[ Workshop ] Failed to download %s\n", file.filename.c_str());
+        game::println("[ Workshop ] Failed to download {}", file.filename);
       return false;
     }
   }
@@ -1174,8 +1189,8 @@ bool download_pubfile(steam3 &steam, const context &ctx, uint64_t id,
                       const std::filesystem::path &destination) {
   pubfile_info info{};
   if (!steam.get_details(id, info)) {
-    printf("[ Workshop ] Item %llu has no downloadable content\n",
-           static_cast<unsigned long long>(id));
+    game::println("[ Workshop ] Item {} has no downloadable content",
+                  static_cast<unsigned long long>(id));
     return false;
   }
 
@@ -1185,7 +1200,7 @@ bool download_pubfile(steam3 &steam, const context &ctx, uint64_t id,
     });
   }
 
-  if (info.hcontent) {
+  if (info.hcontent != 0u) {
     return download_content(steam, ctx, info.hcontent, destination);
   }
 
@@ -1201,13 +1216,13 @@ bool download_from_steam(const std::string_view &workshop_id,
                          const std::filesystem::path &destination,
                          const download_job &job, cdn_progress &progress) {
   const uint64_t id = std::strtoull(workshop_id.data(), nullptr, 10);
-  if (id) {
+  if (id != 0u) {
     try {
-      const context ctx{job, progress};
+      const context ctx{.job = job, .progress = progress};
       steam3 steam(ctx);
       return steam.connect() && download_pubfile(steam, ctx, id, destination);
     } catch (const std::exception &ex) {
-      printf("[ Workshop ] Steam download failed: %s\n", ex.what());
+      game::println("[ Workshop ] Steam download failed: {}", ex.what());
     }
   }
 

@@ -62,8 +62,7 @@ namespace script {
 void print_asset_log(const std::string_view &message) {
   game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", message.data());
-  std::println(std::cerr, "{}", message);
-  std::cerr.flush();
+  game::println(game::PrintOutput::STDERR, "{}", message);
   game::trace("{}", message);
 }
 

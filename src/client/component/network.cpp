@@ -53,8 +53,8 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
     try {
       callbacks[cmd_string](*address, data, localClientNum);
     } catch (const std::exception &e) {
-      std::println(std::cerr, "[Network] handle_command error: {}", e.what());
-      std::cerr.flush();
+      game::println(game::PrintOutput::STDERR,
+                    "[Network] handle_command error: {}", e.what());
 #ifndef NDEBUG
       game::trace("[Network] handle_command error: {}", e.what());
 #endif
@@ -124,11 +124,11 @@ uint16_t first_free_client_port() { return first_free_port(27017); }
 
 void print_port_in_use_warning(const uint16_t wanted_port,
                                const uint16_t port) {
-  printf("[WARNING] Port %u is already in use, so the server is running on "
-         "port %u instead. Players, port forwarding and admin tools set to "
-         "port %u won't reach it.\n",
-         static_cast<uint32_t>(wanted_port), static_cast<uint32_t>(port),
-         static_cast<uint32_t>(wanted_port));
+  game::println("[WARNING] Port {} is already in use, so the server is running "
+                "on port {} instead. Players, port forwarding and admin tools "
+                "set to port {} won't reach it.",
+                static_cast<uint32_t>(wanted_port), static_cast<uint32_t>(port),
+                static_cast<uint32_t>(wanted_port));
 }
 
 // Demonware takes the server's own address from net_port when it starts,
@@ -176,9 +176,9 @@ void create_ip_socket() {
       server_addr.sin_port = htons(port++);
       if (++retries > MAX_SOCK_BIND_RETRIES) {
         if (game::is_server()) {
-          printf(
-              "[WARNING] Ports %u to %u are all in use, so the server can't "
-              "accept players. Close the other program or change net_port.\n",
+          game::println(
+              "[WARNING] Ports {} to {} are all in use, so the server can't "
+              "accept players. Close the other program or change net_port.",
               static_cast<uint32_t>(wanted_port),
               static_cast<uint32_t>(port - 2));
         }
@@ -188,7 +188,8 @@ void create_ip_socket() {
                   sizeof(server_addr)) == SOCKET_ERROR);
 
     bound_port = port - 1;
-    printf("[NET] Socket bound on port %u\n", static_cast<uint32_t>(port - 1));
+    game::println("[NET] Socket bound on port {}",
+                  static_cast<uint32_t>(port - 1));
     if (game::is_server()) {
       if (bound_port != wanted_port) {
         print_port_in_use_warning(wanted_port, bound_port);
@@ -264,9 +265,7 @@ void com_error_oob_stub(const char *file, int32_t line, game::errorParm code,
                         "line: %d, code: %d,  message: \"%s\"\n",
                         caller_addr, file_str.c_str(), line,
                         static_cast<int32_t>(code), buffer, code);
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s", log_str.c_str());
-  printf("%s", log_str.c_str());
+  game::print("{}", log_str);
   game::com::Com_Error_(file, line, code, "%s", buffer);
 }
 } // namespace
@@ -364,8 +363,9 @@ bool is_connectable_address(const game::net::netadr_t &addr) {
 uint16_t get_bound_port() { return bound_port; }
 
 std::string address_to_string(const game::net::netadr_t &addr) {
-  if (!is_ip_address(addr))
+  if (!is_ip_address(addr)) {
     return {};
+  }
   return utils::string::va("%u.%u.%u.%u:%hu", addr.ipv4.a, addr.ipv4.b,
                            addr.ipv4.c, addr.ipv4.d, addr.port);
 }
@@ -373,10 +373,8 @@ std::string address_to_string(const game::net::netadr_t &addr) {
 int32_t net_sendpacket_stub(const game::net::netsrc_t sock,
                             const int32_t length, const char *data,
                             const game::net::netadr_t *to) {
-  // printf("Sending packet of size: %X\n", length);
-
   if (to->type != game::net::netadrtype_t::RAWIP) {
-    printf("NET_SendPacket: bad address type\n");
+    game::println("NET_SendPacket: bad address type");
     return 0;
   }
 
@@ -431,19 +429,11 @@ void client_listing_command(const command::params &params) {
     if (curr_chunk_size) {
       const std::string_view chunk =
           complete_listing_view.substr(i, curr_chunk_size);
-      std::print(stdout, "{}", chunk.data());
-      std::cout.flush();
-
-      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
-                            game::consoleLabel::DEFAULT, "%s", chunk.data());
+      game::print("{}", chunk.data());
     }
   }
 
-  std::println(std::cout, "");
-  std::cout.flush();
-
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_INFO,
-                        game::consoleLabel::DEFAULT, "\n");
+  game::println(game::PrintOutput::STDOUT, "");
 }
 
 struct component final : generic_component {

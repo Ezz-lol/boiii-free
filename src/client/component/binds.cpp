@@ -59,7 +59,7 @@ void save_binds() {
     buffer += utils::string::va("bind %s \"%s\"\n", key.c_str(), cmd.c_str());
   }
   utils::io::write_file(BINDS_PATH, buffer);
-  printf("[Binds] Saved %zu custom bind(s)\n", custom_binds.size());
+  game::println("[Binds] Saved {} custom bind(s)", custom_binds.size());
 }
 
 void schedule_save() {
@@ -88,15 +88,15 @@ void flush_pending() {
   const bool show_toasts = static_cast<int>(ops.size()) <= BATCH_THRESHOLD;
 
   bool changed = false;
-  std::lock_guard lock(binds_mutex);
+  std::scoped_lock lock(binds_mutex);
   for (const pending_op &op : ops) {
     switch (op.type) {
     case pending_op::BIND: {
       const std::map<std::string, std::string>::iterator it =
           custom_binds.find(op.key);
       if (it != custom_binds.end() && it->second != op.cmd) {
-        printf("[Binds] Rebind: %s -> %s (was: %s)\n", op.key.c_str(),
-               op.cmd.c_str(), it->second.c_str());
+        game::println("[Binds] Rebind: {} -> {} (was: {})", op.key, op.cmd,
+                      it->second);
         it->second = op.cmd;
         if (show_toasts)
           toast::show("Bind Updated", op.key + " -> " + op.cmd,
@@ -105,7 +105,7 @@ void flush_pending() {
       } else if (it == custom_binds.end()) {
         custom_binds[op.key] = op.cmd;
         changed = true;
-        printf("[Binds] Bind: %s -> %s\n", op.key.c_str(), op.cmd.c_str());
+        game::println("[Binds] Bind: {} -> {}", op.key, op.cmd);
         if (show_toasts)
           toast::show("Bind Saved", op.key + " -> " + op.cmd,
                       "t7_icon_save_overlays");
@@ -114,7 +114,7 @@ void flush_pending() {
     }
     case pending_op::UNBIND:
       if (custom_binds.erase(op.key)) {
-        printf("[Binds] Unbind: %s\n", op.key.c_str());
+        game::println("[Binds] Unbind: {}", op.key);
         if (show_toasts)
           toast::info("Bind Removed", op.key);
         changed = true;
@@ -122,8 +122,8 @@ void flush_pending() {
       break;
     case pending_op::UNBINDALL:
       if (!custom_binds.empty()) {
-        printf("[Binds] Unbindall: cleared %zu custom bind(s)\n",
-               custom_binds.size());
+        game::println("[Binds] Unbindall: cleared {} custom bind(s)",
+                      custom_binds.size());
         custom_binds.clear();
         changed = true;
       }
@@ -213,7 +213,7 @@ bool patch_command(const char *name, game::cmd::xcommand_t wrapper,
                    game::cmd::xcommand_t *original_out) {
   game::cmd::cmd_function_s *cmd = find_command(name);
   if (!cmd || !cmd->function) {
-    printf("[Binds] WARNING: Could not find engine command '%s'\n", name);
+    game::println("[Binds] WARNING: Could not find engine command '{}'", name);
     return false;
   }
 
@@ -254,22 +254,22 @@ void init_hooks_and_load() {
   patch_command("unbind", unbind_wrapper, &original_unbind_fn);
   patch_command("unbindall", unbindall_wrapper, &original_unbindall_fn);
 
-  if (!original_bind_fn) {
-    printf("[Binds] FATAL: Could not hook 'bind' command — custom binds "
-           "disabled\n");
+  if (original_bind_fn == nullptr) {
+    game::println(
+        "[Binds] FATAL: Could not hook 'bind' command — custom binds disabled");
     current_phase = phase::ready;
     return;
   }
 
   std::string data;
   if (!utils::io::read_file(BINDS_PATH, &data) || data.empty()) {
-    printf("[Binds] No custom binds file found\n");
+    game::println("[Binds] No custom binds file found");
     current_phase = phase::ready;
     return;
   }
 
   parse_binds_file(data);
-  printf("[Binds] Loading %zu custom bind(s)...\n", custom_binds.size());
+  game::println("[Binds] Loading {} custom bind(s)...", custom_binds.size());
 
   current_phase = phase::loading;
   game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, data.c_str());
@@ -283,22 +283,23 @@ struct component final : client_component {
   void post_unpack() override {
     command::add("binds_loaded", [] {
       current_phase = phase::ready;
-      std::lock_guard lock(binds_mutex);
-      printf("[Binds] Ready (%zu custom binds active)\n", custom_binds.size());
+      std::scoped_lock lock(binds_mutex);
+      game::println("[Binds] Ready ({} custom binds active)",
+                    custom_binds.size());
     });
 
     // List current custom binds
     command::add("bindlist_custom", [](const command::params &params) {
       std::lock_guard lock(binds_mutex);
       if (custom_binds.empty()) {
-        printf("[Binds] No custom binds saved.\n");
+        game::println("[Binds] No custom binds saved.");
         return;
       }
-      printf("--- Custom Binds (%zu) ---\n", custom_binds.size());
+      game::println("--- Custom Binds ({}) ---", custom_binds.size());
       for (const auto &[key, cmd] : custom_binds) {
-        printf("  %s -> %s\n", key.c_str(), cmd.c_str());
+        game::println("  {} -> {}", key, cmd);
       }
-      printf("--- End ---\n");
+      game::println("--- End ---");
     });
 
     scheduler::once(

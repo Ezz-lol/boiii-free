@@ -79,7 +79,7 @@ bool steam_bgetcallback_stub(int32_t pipe, callback_msg_t *msg) {
             msg->data);
     std::string connect_str(join->connect);
     if (!connect_str.empty()) {
-      std::lock_guard lock(pending_connect_mutex);
+      std::scoped_lock lock(pending_connect_mutex);
       pending_connect_addr = connect_str;
       pending_connect_friend_id = join->steam_id_friend;
     }

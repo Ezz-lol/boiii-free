@@ -654,12 +654,12 @@ void write_manifest(const std::filesystem::path &folder,
   const std::filesystem::path manifest =
       (folder / "manifest.json").make_preferred();
   if (!utils::io::write_file(manifest, buffer.GetString(), false)) {
-    printf("FastDL: failed to write %s\n", manifest.string().c_str());
+    game::println("FastDL: failed to write {}", manifest.string());
     return;
   }
-  printf("FastDL: wrote %s (%zu files)\nUpload that folder so it is reachable "
-         "at <sv_wwwBaseURL>/%s/\n",
-         manifest.string().c_str(), count, url_path.c_str());
+  game::println("FastDL: wrote {} ({} files)\nUpload that folder so it is "
+                "reachable at <sv_wwwBaseURL>/{}/",
+                manifest.string(), count, url_path);
 }
 
 void generate_manifests() {
@@ -691,7 +691,7 @@ void generate_manifests() {
   }
 
   if (!wrote) {
-    printf("FastDL: no mod or custom map is loaded\n");
+    game::println("FastDL: no mod or custom map is loaded");
   }
 }
 } // namespace

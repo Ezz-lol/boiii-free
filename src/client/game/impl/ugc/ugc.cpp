@@ -1,8 +1,6 @@
 #include <std_include.hpp>
 
 #include <rapidjson/document.h>
-
-#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>

@@ -27,7 +27,7 @@ bool contains(const auto &list, const std::string_view value) {
 }
 
 void warn(const std::string &message) {
-  printf("[WARNING] %s\n", message.c_str());
+  game::println("[WARNING] {}", message);
 }
 
 bool path_exists(const std::filesystem::path &path) {

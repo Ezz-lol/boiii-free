@@ -36,9 +36,9 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
   if (msg == nullptr || msg[0] == '\0') {
     msg = "No message provided!";
   }
-  std::println(std::cerr, "[Sys_Error] Called from 0x{:p} with message: \"{}\"",
-               game::derelocate(callerAddr), msg);
-  std::cerr.flush();
+  game::println(game::PrintOutput::STDERR,
+                "[Sys_Error] Called from 0x{:p} with message: \"{}\"",
+                game::derelocate(callerAddr), msg);
   game::trace("[Sys_Error] Called from {:p} with message: \"{}\"",
               game::derelocate(callerAddr), msg);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
@@ -76,13 +76,9 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
     const char *log = utils::string::va(
         "[Com][Error] Called from 0x%p with message: \"%s\", code: %d\n",
         game::derelocate(callerAddr),
-        buffer[0] ? buffer : "No message provided!",
+        buffer[0] != NULL ? buffer : "No message provided!",
         static_cast<int32_t>(code));
-    fprintf(stderr, "%s\n", log);
-    std::cerr.flush();
-    game::trace("{}", log);
-    game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                          game::consoleLabel_e::DEFAULT, "%s\n", log);
+    game::println(game::PrintOutput::STDERR, "{}\n", log);
 
     if (!game::is_server() && code == game::errorParm::FATAL) {
       exception::show_fatal_error(buffer);
@@ -270,9 +266,7 @@ void PhysPrint_AllOutputs(const char *fmt, ...) {
   const char *formatted_msg =
       utils::string::va("[Phys][Print(0x%p)]%s%s", game::derelocate(callerAddr),
                         msg[0] != NULL ? " " : "", msg);
-  std::println(std::cout, "{}", formatted_msg);
-  std::cout.flush();
-
+  game::println(game::PrintOutput::STDOUT, "{}", formatted_msg);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", formatted_msg);
   game::trace("{}", formatted_msg);

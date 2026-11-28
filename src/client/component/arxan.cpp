@@ -770,11 +770,11 @@ void dump_executable(const std::string_view &stage) {
     const std::string &base_file_name = exe_basename();
 
     if (successful) {
-      std::println(std::cout, "{} dumped to {} successfully", base_file_name,
-                   output_file_path.string());
+      game::println(game::PrintOutput::STDOUT, "{} dumped to {} successfully",
+                    base_file_name, output_file_path.string());
     } else {
-      std::println(std::cout, "Failed to dump {} to {}", base_file_name,
-                   output_file_path.string());
+      game::println(game::PrintOutput::STDOUT, "Failed to dump {} to {}",
+                    base_file_name, output_file_path.string());
     }
   }
 }

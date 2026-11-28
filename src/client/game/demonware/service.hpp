@@ -2,6 +2,7 @@
 #include "servers/service_server.hpp"
 
 #include <functional>
+
 namespace demonware {
 class service {
   using callback_t = std::function<void(service_server *, byte_buffer *)>;
@@ -9,7 +10,7 @@ class service {
   uint8_t id_;
   std::string name_;
   std::mutex mutex_;
-  uint8_t task_id_;
+  uint8_t task_id_{0};
   std::map<uint8_t, callback_t> tasks_;
 
 public:
@@ -19,16 +20,16 @@ public:
   service &operator=(const service &) = delete;
 
   service(const uint8_t id, std::string name)
-      : id_(id), name_(std::move(name)), task_id_(0) {}
+      : id_(id), name_(std::move(name)) {}
 
-  uint8_t id() const { return this->id_; }
+  [[nodiscard]] uint8_t id() const { return this->id_; }
 
-  const std::string &name() const { return this->name_; }
+  [[nodiscard]] const std::string &name() const { return this->name_; }
 
-  uint8_t task_id() const { return this->task_id_; }
+  [[nodiscard]] uint8_t task_id() const { return this->task_id_; }
 
   virtual void exec_task(service_server *server, const std::string &data) {
-    std::lock_guard<std::mutex> _(this->mutex_);
+    std::scoped_lock<std::mutex> _(this->mutex_);
 
     byte_buffer buffer(data);
 
@@ -38,13 +39,13 @@ public:
 
     if (it != this->tasks_.end()) {
 #ifndef NDEBUG
-      printf("[DW] %s: executing task '%d'\n", name_.data(), this->task_id_);
+      game::println("[DW] {}: executing task '{}'", name_, this->task_id_);
 #endif
 
       it->second(server, &buffer);
     } else {
 #ifndef NDEBUG
-      printf("[DW] %s: missing task '%d'\n", name_.data(), this->task_id_);
+      game::println("[DW] {}: missing task '{}'", name_, this->task_id_);
 #endif
 
       // return no error

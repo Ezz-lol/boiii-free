@@ -51,11 +51,10 @@ bool rate_limited(const game::net::netadr_t &adr) {
                 attempt.last_attempt = now;
 
                 if (attempt.attempts > MAX_CONNECT_ATTEMPTS) {
-                  std::println(std::cerr,
-                               "[Security] Rate limited connection from IP "
-                               "0x{:08X} ({} attempts)",
-                               adr.addr, attempt.attempts);
-                  std::cerr.flush();
+                  game::println(game::PrintOutput::STDERR,
+                                "[Security] Rate limited connection from IP "
+                                "0x{:08X} ({} attempts)",
+                                adr.addr, attempt.attempts);
                   result = true;
                 }
               }
@@ -141,7 +140,8 @@ void G_Say_Sanitize(game::level::gentity_s *ent, game::level::gentity_s *target,
 utils::hook::detour SV_DirectConnect_hook;
 void SV_DirectConnect_RateLimited(game::net::netadr_t adr) {
   if (rate_limited(adr)) {
-    fprintf(stderr, "[Security] Rejected connection from rate-limited IP\n");
+    game::println(game::PrintOutput::STDERR,
+                  "[Security] Rejected connection from rate-limited IP\n");
   } else {
     SV_DirectConnect_hook.invoke(adr);
   }

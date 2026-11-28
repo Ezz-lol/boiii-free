@@ -28,8 +28,7 @@ void deprecate(scriptInstance_t inst) {
       "Warning: %s has been deprecated, and will be removed in the next minor "
       "version - update your scripts to use %s instead. %s %s",
       APIName, ReplacementAPIName, ReplacementAPIName, InfoMsg);
-  std::println(std::cerr, "{}", deprecation_warning);
-  std::cerr.flush();
+  game::println(game::PrintOutput::STDERR, "{}", deprecation_warning);
   game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n",
                         deprecation_warning);

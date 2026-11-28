@@ -200,14 +200,8 @@ void snd_queue_add_stub(game::snd::SndQueue *queue,
 utils::hook::detour live_delayed_com_error_hook;
 void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
   void *return_address = _ReturnAddress();
-  // Log caller and error message
-  game::com::Com_Printf(
-      game::consoleChannel_e::CHANNEL_DONT_FILTER,
-      game::consoleLabel_e::DEFAULT,
-      "Live_DelayedComError called from 0x%p with message: %s and code: %d\n",
-      return_address, comErrorString, code);
-  printf(
-      "Live_DelayedComError called from 0x%p with message: %s and code: %d\n",
+  game::println(
+      "Live_DelayedComError called from 0x{} with message: {} and code: {}",
       return_address, comErrorString, code);
 
   live_delayed_com_error_hook.invoke(comErrorString, code);

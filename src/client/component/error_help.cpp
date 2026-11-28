@@ -290,7 +290,7 @@ std::string explain_server_timeout() {
     const auto hottest = std::ranges::max_element(
         seen, {}, [](const auto &entry) { return entry.second; });
     for (const auto &[chain, count] : seen) {
-      printf("Server script samples %d/40:%s\n", count, chain.c_str());
+      game::println("Server script samples {}/40:{}", count, chain);
     }
     return std::format(
         "^1Your game's server froze while running a script, so it "
@@ -406,7 +406,7 @@ void ui_error_popup_stub(const game::LocalClientNum_t local_client,
                          const game::errorCode error_code,
                          const char *message) {
   if (message && *message) {
-    printf("[Popup] %s\n", message);
+    game::println("[Popup] {}", message);
   }
   ui_error_popup_hook.invoke<void>(local_client, error_code, message);
 }
@@ -466,7 +466,8 @@ void Com_Error_MissingBsp(const char *file, const int32_t line,
     return;
   }
 
-  printf("[Com][Error] %s\n", utils::string::va(unprefixed(fmt).c_str(), map));
+  game::println("[Com][Error] {}",
+                utils::string::va(unprefixed(fmt).c_str(), map));
   scheduler::once(
       [] {
         game::ui::UI_OpenErrorPopupWithMessage(

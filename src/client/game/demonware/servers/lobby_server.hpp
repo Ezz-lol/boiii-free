@@ -13,7 +13,7 @@ public:
     static_assert(std::is_base_of_v<service, T>,
                   "service must inherit from service");
 
-    auto service = std::make_unique<T>();
+    std::unique_ptr<T> service = std::make_unique<T>();
     const uint8_t id = service->id();
 
     this->services_[id] = std::move(service);

@@ -590,7 +590,7 @@ void update_punching() {
 
   if (joining.active) {
     if (now >= joining.expires && !joining.retried) {
-      printf("[Friends] Could not reach your friend yet, retrying\n");
+      game::println("[Friends] Could not reach your friend yet, retrying");
       joining.retried = true;
       joining.candidates.clear();
       joining.expires = now + JOIN_TIMEOUT;
@@ -600,12 +600,12 @@ void update_punching() {
           network::address_from_string(joining.fallback);
       joining.active = false;
       if (joining.candidates.empty())
-        printf("[Friends] The master server did not send your friend's "
-               "address\n");
+        game::println(
+            "[Friends] The master server did not send your friend's address");
       else
-        printf("[Friends] Could not reach your friend directly (%zu "
-               "addresses tried)\n",
-               joining.candidates.size());
+        game::println("[Friends] Could not reach your friend directly ({} "
+                      "addresses tried)",
+                      joining.candidates.size());
       if (network::is_connectable_address(fallback))
         request_lobby(fallback, joining.token);
       else
@@ -626,7 +626,7 @@ void update_punching() {
             std::exchange(lobby_joining.fallback, {})) {
       fallback();
     } else {
-      printf("[Friends] Your friend's game did not answer\n");
+      game::println("[Friends] Your friend's game did not answer");
       show_join_failure(lobby_joining.host.port);
     }
   }
@@ -858,23 +858,27 @@ void receive_peer(const game::net::netadr_t &sender,
         network::address_from_string(parts[i]);
     if (!network::is_connectable_address(candidate))
       continue;
-    const bool duplicate = std::any_of(host_probes.begin(), host_probes.end(),
-                                       [&candidate](const host_probe &probe) {
-                                         return network::are_addresses_equal(
-                                             probe.candidate, candidate);
-                                       });
-    if (!duplicate)
+    const bool duplicate = std::ranges::any_of(
+        host_probes.begin(), host_probes.end(),
+        [&candidate](const host_probe &probe) {
+          return network::are_addresses_equal(probe.candidate, candidate);
+        });
+    if (!duplicate) {
       host_probes.push_back(
-          {token, candidate, std::chrono::steady_clock::now() + 10s});
+          {.token = token,
+           .candidate = candidate,
+           .expires = std::chrono::steady_clock::now() + 10s});
+    }
   }
 }
 
 void receive_rejection(const game::net::netadr_t &sender,
                        const network::data_view &, game::LocalClientNum_t) {
-  if (!is_rendezvous(sender) || !joining.active)
+  if (!is_rendezvous(sender) || !joining.active) {
     return;
-  printf("[Friends] Your friend's party is no longer open on the master "
-         "server\n");
+  }
+  game::println(
+      "[Friends] Your friend's party is no longer open on the master server");
   joining.expires = std::chrono::steady_clock::now();
 }
 

@@ -1,7 +1,4 @@
 #pragma once
-
-#include <algorithm>
-
 #include "memory.hpp"
 #include "str.hpp"
 

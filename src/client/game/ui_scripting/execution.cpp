@@ -52,15 +52,15 @@ script_value get_return_value(std::int64_t offset) {
 
 arguments get_return_values() {
   lua_State *state = *primary_luaVM;
-  const auto count = state->m_apistack.top - state->m_apistack.base;
+  const ptrdiff_t count = state->m_apistack.top - state->m_apistack.base;
   arguments values;
 
-  for (auto i = count - 1; i >= 0; i--) {
+  for (ptrdiff_t i = count - 1; i >= 0; i--) {
     values.push_back(get_return_value(i));
   }
 
   if (values.empty()) {
-    values.push_back({});
+    values.emplace_back();
   }
 
   return values;
@@ -68,15 +68,15 @@ arguments get_return_values() {
 
 arguments get_return_values(HksObject *base) {
   lua_State *state = *primary_luaVM;
-  const auto count = state->m_apistack.top - base;
+  const ptrdiff_t count = state->m_apistack.top - base;
   arguments values;
 
-  for (auto i = count - 1; i >= 0; i--) {
+  for (ptrdiff_t i = count - 1; i >= 0; i--) {
     values.push_back(get_return_value(i));
   }
 
   if (values.empty()) {
-    values.push_back({});
+    values.emplace_back();
   }
 
   return values;
@@ -92,10 +92,10 @@ bool notify(const std::string &name, const event_arguments &arguments) {
   // game::LUI_EnterCriticalSection();
 
   try {
-    const auto globals = table((*primary_luaVM)->globals.v.table);
-    const auto engine = globals.get("Engine").as<table>();
-    const auto root = engine.get("GetLuiRoot")()[0].as<userdata>();
-    const auto process_event = root.get("processEvent");
+    const table globals = table((*primary_luaVM)->globals.v.table);
+    const table engine = globals.get("Engine").as<table>();
+    const userdata root = engine.get("GetLuiRoot")()[0].as<userdata>();
+    const script_value process_event = root.get("processEvent");
 
     table event{};
     event.set("name", name);
@@ -108,7 +108,7 @@ bool notify(const std::string &name, const event_arguments &arguments) {
     process_event(root, event);
     return true;
   } catch (const std::exception &ex) {
-    printf("Error processing event '%s' %s\n", name.data(), ex.what());
+    game::println("Error processing event '{}' {}", name, ex.what());
   }
 
   return false;
@@ -120,7 +120,8 @@ arguments call_script_function(const function &function,
   const detail::api_stack_guard stack_guard{state};
 
   push_value(function);
-  for (auto i = arguments.begin(); i != arguments.end(); ++i) {
+  for (arguments::const_iterator i = arguments.begin(); i != arguments.end();
+       ++i) {
     push_value(*i);
   }
 

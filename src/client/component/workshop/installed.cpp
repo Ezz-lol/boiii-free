@@ -148,7 +148,7 @@ void recover_misplaced() {
 }
 
 void invalidate_cache() {
-  std::lock_guard lock(cache_mutex);
+  std::scoped_lock lock(cache_mutex);
   cache_valid = false;
 }
 
@@ -184,7 +184,7 @@ std::optional<game::ZoneType> normalize_kind(const std::string_view &kind) {
 }
 
 std::vector<installed_item> list_installed() {
-  std::lock_guard lock(cache_mutex);
+  std::scoped_lock lock(cache_mutex);
   if (!cache_valid ||
       std::chrono::steady_clock::now() - cache_time > CACHE_TTL) {
     cache.clear();
@@ -247,15 +247,17 @@ std::filesystem::path install_folder(const std::filesystem::path &download,
       replaces_map || existing.parent_path() == root_for(game::ZoneType::MOD);
 
   std::optional<game::ZoneType> kind;
-  if (type == game::ZoneType::MOD || type == game::ZoneType::USERMAP)
+  if (type == game::ZoneType::MOD || type == game::ZoneType::USERMAP) {
     kind = type;
-  else if (const std::optional<game::ZoneType> detected = detect_kind(download))
+  } else if (const std::optional<game::ZoneType> detected =
+                 detect_kind(download)) {
     kind = detected;
-  else if (replaces)
+  } else if (replaces) {
     kind = replaces_map ? game::ZoneType::USERMAP : game::ZoneType::MOD;
+  }
   if (!kind) {
-    printf("[ Workshop ] Could not tell whether %s is a mod or a map\n",
-           id.data());
+    game::println("[ Workshop ] Could not tell whether {} is a mod or a map",
+                  id.data());
     return {};
   }
 
@@ -271,7 +273,8 @@ std::filesystem::path install_folder(const std::filesystem::path &download,
   std::filesystem::rename(previous, backup, ec);
   const bool backed_up = !ec;
   if (!backed_up && std::filesystem::exists(previous, ec)) {
-    printf("[ Workshop ] Could not replace %s: files are in use\n", id.data());
+    game::println("[ Workshop ] Could not replace {}: files are in use",
+                  id.data());
     return {};
   }
 
@@ -283,8 +286,8 @@ std::filesystem::path install_folder(const std::filesystem::path &download,
     std::filesystem::copy(download, target,
                           std::filesystem::copy_options::recursive, ec);
     if (ec) {
-      printf("[ Workshop ] Could not install %s: %s\n", id.data(),
-             ec.message().c_str());
+      game::println("[ Workshop ] Could not install {}: {}", id.data(),
+                    ec.message());
       std::error_code restore_ec;
       std::filesystem::remove_all(target, restore_ec);
       if (backed_up)
@@ -350,7 +353,7 @@ void request_content_reload(const std::string_view &finished_title) {
           reload_now();
           return;
         }
-        std::lock_guard lock(reload_mutex);
+        std::scoped_lock lock(reload_mutex);
         finished_in_match.push_back(std::string(finished_title));
       },
       scheduler::pipeline::main);
@@ -367,7 +370,7 @@ public:
             return;
           std::vector<std::string> titles;
           {
-            std::lock_guard lock(reload_mutex);
+            std::scoped_lock lock(reload_mutex);
             titles.swap(finished_in_match);
           }
           if (titles.empty())

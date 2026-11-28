@@ -158,8 +158,7 @@ void hook_opcode(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
               op::serialize(opcode), bytecode, game::derelocate(handler),
               game::derelocate(*out_orig), game::derelocate(*handler));
           game::trace("{}", err_msg);
-          std::println(std::cerr, "{}", err_msg);
-          std::cerr.flush();
+          game::println(game::PrintOutput::STDERR, "{}", err_msg);
         }
       }
     }
@@ -169,8 +168,7 @@ void hook_opcode(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
         "%s. Hook will not be applied.",
         op::serialize(opcode));
     game::trace("{}", err_msg);
-    std::println(std::cerr, "{}", err_msg);
-    std::cerr.flush();
+    game::println(game::PrintOutput::STDERR, "{}", err_msg);
   }
 }
 
@@ -197,8 +195,7 @@ void hook_opcode_err(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
               op::serialize(opcode), bytecode, game::derelocate(handler),
               game::derelocate(*out_orig), game::derelocate(*handler));
           game::trace("{}", err_msg);
-          std::println(std::cerr, "{}", err_msg);
-          std::cerr.flush();
+          game::println(game::PrintOutput::STDERR, "{}", err_msg);
         }
       }
     }
@@ -208,8 +205,7 @@ void hook_opcode_err(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
         "%s. Hook will not be applied.",
         op::serialize(opcode));
     game::trace("{}", err_msg);
-    std::println(std::cerr, "{}", err_msg);
-    std::cerr.flush();
+    game::println(game::PrintOutput::STDERR, "{}", err_msg);
   }
 }
 

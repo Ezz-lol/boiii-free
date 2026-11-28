@@ -780,8 +780,8 @@ std::vector<std::pair<std::string, std::string>> script_copies() {
     if (std::optional<std::string> data = rename_script(copy.data, name, tag)) {
       result.emplace_back(name, std::move(*data));
     } else {
-      printf("[mod_stack] could not load %s from %s\n", copy.name.c_str(),
-             copy.zone.c_str());
+      game::println("[mod_stack] could not load {} from {}", copy.name,
+                    copy.zone);
     }
   }
   return result;

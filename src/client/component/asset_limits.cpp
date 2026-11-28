@@ -440,7 +440,7 @@ void apply_asset_limits() {
       pool::reallocate_asset_pool(cfg.type, size);
     }
   } else {
-    printf("Asset pool expansion disabled by user settings\n");
+    game::println("Asset pool expansion disabled by user settings");
   }
 }
 

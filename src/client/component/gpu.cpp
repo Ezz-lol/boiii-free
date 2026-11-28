@@ -160,7 +160,7 @@ void check_device(ID3D11Device *device) {
 
   message += "[GPU] Fix: Settings > Graphics > Graphics Card > High "
              "Performance. Still slow? Update your graphics drivers.\n";
-  printf("%s", message.c_str());
+  game::print("{}", message);
   warning_pending = true;
 }
 

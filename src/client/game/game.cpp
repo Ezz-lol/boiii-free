@@ -12,13 +12,7 @@
 namespace game {
 void show_error(const std::string &text, const std::string &title) {
   if (quiet_crash()) {
-    std::cout.flush();
-    std::cerr.flush();
-
-    std::println(std::cerr, "{}\n{}", title, text);
-
-    std::cerr.flush();
-
+    game::println(game::PrintOutput::STDERR, "{}\n{}", title, text);
     trace("[Error]{}\n{}\n", title, text);
   } else if (is_headless()) {
     puts(text.data());

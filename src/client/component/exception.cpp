@@ -43,26 +43,6 @@ namespace exception {
 static std::atomic_size_t known_blocking_call = 0;
 
 namespace {
-void exception_log(bool err, const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  va_list measure;
-  va_copy(measure, args);
-  std::string buffer(std::max(vsnprintf(nullptr, 0, fmt, measure), 0), '\0');
-  va_end(measure);
-  vsnprintf(buffer.data(), buffer.size() + 1, fmt, args);
-  va_end(args);
-
-  std::ostream &io = err ? std::cerr : std::cout;
-  std::println(io, "{}", buffer);
-  io.flush();
-
-  if (err) {
-    console::print("^1" + buffer + "\n");
-  }
-
-  game::trace("{}{}", err ? "[Error] " : "", buffer.c_str());
-}
 static uint32_t main_thread_id{};
 static std::once_flag sym_init_flag{};
 
@@ -304,7 +284,7 @@ const char *thread_role() {
   if (is_game_thread()) {
     return "main";
   }
-  if (game::sys::Sys_IsServerThread.get() && game::sys::Sys_IsServerThread()) {
+  if (game::sys::Sys_IsServerThread()) {
     return "server";
   }
   return "auxiliary";
@@ -333,7 +313,8 @@ std::string describe_scripts() {
           "\nThe {} script{} was running when the game crashed, so a script "
           "(often from a mod or custom map) may have triggered it.",
           name,
-          state.running ? std::format(" '{}'", state.running) : std::string{});
+          state.running != nullptr ? std::format(" '{}'", state.running)
+                                   : std::string{});
     }
     if (state.variables_corrupt || state.stack_corrupt ||
         state.frames_corrupt) {
@@ -357,7 +338,7 @@ const char *get_exception_string(uint32_t exception);
 
 std::string describe_crash() {
   if (exception_data.code == EXCEPTION_ACCESS_VIOLATION) {
-    if (exception_data.caller) {
+    if (exception_data.caller != nullptr) {
       return std::format("called an invalid function pointer 0x{:X}{} from {}",
                          exception_data.target,
                          exception_data.target < 0x10000 ? " (null pointer)"
@@ -757,19 +738,22 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
       get_exception_string(exceptioninfo->ExceptionRecord->ExceptionCode);
 
   // Detailed console crash report
-  exception_log(true, "========== CRASH DETECTED ==========");
-  exception_log(true, "  Exception:  %s (0x%08lX)", exception_name,
-                exceptioninfo->ExceptionRecord->ExceptionCode);
-  exception_log(true, "  Module:     %s + 0x%llX",
+  game::println(game::PrintOutput::STDERR,
+                "========== CRASH DETECTED ==========");
+  game::println(game::PrintOutput::STDERR, "  Exception:  %s (0x%08lX)",
+                exception_name, exceptioninfo->ExceptionRecord->ExceptionCode);
+  game::println(game::PrintOutput::STDERR, "  Module:     %s + 0x%llX",
                 crash_frame.module_name.c_str(), crash_frame.rva);
   if (!crash_frame.function_name.empty())
-    exception_log(true, "  Function:   %s", crash_frame.function_name.c_str());
+    game::println(game::PrintOutput::STDERR, "  Function:   %s",
+                  crash_frame.function_name.c_str());
   if (!crash_frame.file_name.empty() && crash_frame.line_number > 0)
-    exception_log(true, "  Source:     %s:%u", crash_frame.file_name.c_str(),
-                  crash_frame.line_number);
-  exception_log(true, "  Address:    0x%llX", crash_frame.address);
-  exception_log(true, "  Thread:     %lu (%s)", GetCurrentThreadId(),
-                thread_role());
+    game::println(game::PrintOutput::STDERR, "  Source:     %s:%u",
+                  crash_frame.file_name.c_str(), crash_frame.line_number);
+  game::println(game::PrintOutput::STDERR, "  Address:    0x%llX",
+                crash_frame.address);
+  game::println(game::PrintOutput::STDERR, "  Thread:     %lu (%s)",
+                GetCurrentThreadId(), thread_role());
 
   if (exceptioninfo->ExceptionRecord->ExceptionCode ==
       EXCEPTION_ACCESS_VIOLATION) {
@@ -779,28 +763,31 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
             : "read from";
     const uintptr_t target =
         exceptioninfo->ExceptionRecord->ExceptionInformation[1];
-    exception_log(true, "  Details:    Attempted to %s 0x%012llX%s", op, target,
+    game::println(game::PrintOutput::STDERR,
+                  "  Details:    Attempted to %s 0x%012llX%s", op, target,
                   target < 0x10000 ? " (NULL pointer dereference)" : "");
   }
 
   // Print condensed callstack to console
   std::vector<resolved_frame> frames = capture_stackwalk(exceptioninfo, 16);
   if (!frames.empty()) {
-    exception_log(true, "  Callstack:");
+    game::println(game::PrintOutput::STDERR, "  Callstack:");
     for (size_t i = 0; i < frames.size(); ++i) {
       const resolved_frame *f = &frames[i];
 
       if (!f->function_name.empty()) {
-        exception_log(true, "    [%zu] 0x%llX - %s!%s", i, f->address,
-                      f->module_name.c_str(), f->function_name.c_str());
+        game::println(game::PrintOutput::STDERR, "    [%zu] 0x%llX - %s!%s", i,
+                      f->address, f->module_name.c_str(),
+                      f->function_name.c_str());
       } else {
-        exception_log(true, "    [%zu] 0x%llX - %s + 0x%llX", i, f->address,
+        game::println(game::PrintOutput::STDERR,
+                      "    [%zu] 0x%llX - %s + 0x%llX", i, f->address,
                       f->module_name.c_str(), f->rva);
       }
-      std::cerr.flush();
     }
   }
-  exception_log(true, "=====================================");
+  game::println(game::PrintOutput::STDERR,
+                "=====================================");
 
   exception_data.code = exceptioninfo->ExceptionRecord->ExceptionCode;
   exception_data.address = exceptioninfo->ExceptionRecord->ExceptionAddress;
@@ -865,7 +852,7 @@ void report_freeze() {
           format_frame(resolve_address(reinterpret_cast<void *>(frames[i])), i);
     }
 
-    exception_log(true, "[Freeze] %s", text.c_str());
+    game::println(game::PrintOutput::STDERR, "[Freeze] %s", text.c_str());
     console::print("^1[Freeze] " + text + "\n");
     utils::io::write_file((game::get_appdata_path() / "minidumps" /
                            ("freeze-" + get_timestamp() + ".txt"))

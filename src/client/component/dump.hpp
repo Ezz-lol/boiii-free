@@ -1,7 +1,6 @@
 #pragma once
 
 #include <game/game.hpp>
-#include <utility>
 #include <utils/io.hpp>
 
 namespace dump {

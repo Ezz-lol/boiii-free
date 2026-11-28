@@ -34,8 +34,7 @@ void gscr_println(scriptInstance_t inst) {
       out += msg;
     }
   }
-  std::println(std::cout, "[Scr] {}", out);
-  std::cout.flush();
+  game::println(game::PrintOutput::STDOUT, "[Scr] {}", out);
   game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", out.c_str());
 
@@ -64,21 +63,13 @@ void gscr_trace(scriptInstance_t inst) {
 void gscr_print(scriptInstance_t inst) {
   uint32_t argc = Scr_GetNumParam(inst);
   std::string out;
-  ;
   for (uint32_t idx = 0; idx < argc; ++idx) {
     const char *msg = Scr_GetString(inst, idx);
     if (msg != nullptr && msg[0] != NULL) {
       out += msg;
     }
   }
-  std::print(std::cout, "[Scr] {}", out);
-  std::cout.flush();
-  game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s", out.c_str());
-
-#ifndef NDEBUG
-  trace("[Scr] {}", out);
-#endif
+  game::print("[Scr] {}", out);
 }
 
 void gscr_printf(scriptInstance_t inst) {
@@ -195,14 +186,7 @@ void gscr_printf(scriptInstance_t inst) {
       }
     }
 
-    game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
-                          game::consoleLabel_e::DEFAULT, "%s", buffer.data());
-    std::print(std::cout, "{}", buffer);
-    std::cout.flush();
-
-#ifndef NDEBUG
-    trace("[Scr] {}", buffer);
-#endif
+    game::print("[Scr] {}", buffer);
   }
 }
 struct component final : generic_component {

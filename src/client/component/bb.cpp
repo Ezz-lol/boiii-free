@@ -160,8 +160,7 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
 
     const char *out = utils::string::va("[BB][0] %s: %s", event_name,
                                         message_stream.str().c_str());
-    std::println(std::cout, "{}", out);
-    std::cout.flush();
+    game::println(game::PrintOutput::STDOUT, "{}", out);
     game::trace("{}", out);
   }
 #endif
@@ -189,14 +188,12 @@ void BB_Print_StdoutRedirect(game::ControllerIndex_t controllerIndex,
     const char *out = utils::string::va("[BB][%d] %s: %s",
                                         static_cast<int32_t>(controllerIndex),
                                         name, buffer.c_str());
-    std::println(std::cout, "{}", out);
-    std::cout.flush();
+    game::println(game::PrintOutput::STDOUT, "{}", out);
     game::trace("{}", out);
   } else {
     const char *out = utils::string::va(
         "[BB][%d]: %s", static_cast<int32_t>(controllerIndex), buffer.c_str());
-    std::println(std::cout, "{}", out);
-    std::cout.flush();
+    game::println(game::PrintOutput::STDOUT, "{}", out);
     game::trace("{}", out);
   }
 #endif

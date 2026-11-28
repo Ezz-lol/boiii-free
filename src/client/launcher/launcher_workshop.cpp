@@ -48,7 +48,7 @@ std::string format_duration(const int64_t total_seconds) {
 void try_refresh_workshop_content() {
   try {
     game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "userContentReload\n");
-    printf("Workshop items refreshed in-game.\n");
+    game::println("Workshop items refreshed in-game.\n");
   } catch (...) {
     // Game not running yet, nothing to refresh
   }

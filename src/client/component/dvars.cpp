@@ -54,7 +54,7 @@ void read_dvar_name_hashes_data(
   std::string data;
 
   if (!utils::io::read_file(path, &data)) {
-    printf("Failed to read Dvar lookup table\n");
+    game::println("Failed to read Dvar lookup table");
     return;
   }
 

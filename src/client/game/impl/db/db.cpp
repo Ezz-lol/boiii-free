@@ -295,19 +295,17 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
 
     // Skip if pool already meets or exceeds requested size
     if (!pool->isSingleton && std::cmp_less(pool->itemCount, new_size)) {
-      std::println(std::cout,
-                   "Reallocating asset pool type {}: {} -> {} entries", +type,
-                   pool->itemCount, new_size);
-      std::cout.flush();
+      game::println(game::PrintOutput::STDOUT,
+                    "Reallocating asset pool type {}: {} -> {} entries", +type,
+                    pool->itemCount, new_size);
       const bool empty = pool->itemAllocCount == 0;
       const uint32_t count =
           empty ? new_size : new_size - static_cast<uint32_t>(pool->itemCount);
       char *block = static_cast<char *>(calloc(count, entry_size));
       if (block == nullptr) {
-        std::println(std::cerr,
-                     "Failed to allocate asset pool for type {} (size: {})",
-                     static_cast<int32_t>(type), new_size);
-        std::cerr.flush();
+        game::println(game::PrintOutput::STDERR,
+                      "Failed to allocate asset pool for type {} (size: {})",
+                      static_cast<int32_t>(type), new_size);
         return;
       }
 
@@ -325,11 +323,9 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
         pool->pool = block;
       }
 
-      std::println(std::cout,
-                   "Reallocated asset pool type {}: {} -> {} entries", +type,
-                   pool->itemCount, new_size);
-      std::cout.flush();
-
+      game::println(game::PrintOutput::STDOUT,
+                    "Reallocated asset pool type {}: {} -> {} entries", +type,
+                    pool->itemCount, new_size);
       pool->itemSize = entry_size;
       pool->itemCount = static_cast<int32_t>(new_size);
     }

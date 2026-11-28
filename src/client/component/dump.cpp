@@ -156,15 +156,13 @@ void dump_requested_assets(const XAssetType type, const char *name,
             const std::string log = std::format(
                 R"([DB][XAsset][Extraction] "{}" ({} bytes) -> "{}")",
                 asset.name, asset.size, output_path.generic_string());
-            std::println(std::cout, "{}", log);
-            std::cout.flush();
+            game::println(game::PrintOutput::STDOUT, "{}", log);
             game::trace("{}", log);
           } else {
             const std::string log = std::format(
                 R"([DB][XAsset][Extraction] failed for "{}" ({} bytes))",
                 asset.name, asset.size);
-            std::println(std::cout, "{}", log);
-            std::cout.flush();
+            game::println(game::PrintOutput::STDOUT, "{}", log);
             game::trace("{}", log);
             if (std::filesystem::exists(output_path)) {
               std::filesystem::remove(output_path);

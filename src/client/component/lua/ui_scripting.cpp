@@ -451,8 +451,7 @@ arguments lua_print(variadic_args args) {
 
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", message.c_str());
-  std::println(std::cout, "{}", message);
-  std::cout.flush();
+  game::println(game::PrintOutput::STDOUT, "{}", message);
 #ifndef NDEBUG
   game::trace("[Lua] {}", message.c_str());
 #endif
@@ -483,7 +482,8 @@ void print_error(const std::string &error) {
 }
 
 void print_loading_script(const std::string_view &name) {
-  std::println(std::cout, "Loading LUI script '{}'", name.data());
+  game::println(game::PrintOutput::STDOUT, "Loading LUI script '{}'",
+                name.data());
   game::trace("Loading LUI script '{}'", name);
 }
 
@@ -691,7 +691,8 @@ void try_start() {
   try {
     start();
   } catch (const std::exception &ex) {
-    std::println(std::cout, "Failed to load LUI scripts: {}", ex.what());
+    game::println(game::PrintOutput::STDOUT, "Failed to load LUI scripts: {}",
+                  ex.what());
   }
 }
 
@@ -819,9 +820,9 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
       try {
         reload_private_game_menu_scripts();
       } catch (const std::exception &ex) {
-        std::println(std::cout,
-                     "Failed to reload private-game menu scripts: {}",
-                     ex.what());
+        game::println(game::PrintOutput::STDOUT,
+                      "Failed to reload private-game menu scripts: {}",
+                      ex.what());
       }
     }
     return;
@@ -1740,7 +1741,7 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
   const std::string log = std::format("[Lua] Not loading \"{}\" ({}): {}",     \
                                       filename ? filename : "NULL",            \
                                       func_name ? func_name : "NULL", reason); \
-  std::println(std::cout, "{}", log);                                          \
+  game::println(game::PrintOutput::STDOUT, "{}", log);                         \
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,           \
                         game::consoleLabel_e::DEFAULT, "%s\n", log.c_str());   \
   lua_pushfunction(s, lua_stub_func, func_name);                               \
@@ -2279,8 +2280,7 @@ void print_info(game::consoleLabel_e label, const std::string_view &msg) {
   const char *log = utils::string::va("[Lua][Info][%s] %s",
                                       game::serialize(label), msg.data());
   game::trace("{}", log);
-  std::println(std::cout, "{}", log);
-  std::cout.flush();
+  game::println(game::PrintOutput::STDOUT, "{}", log);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
                         "%s\n", log);
 }
@@ -2289,8 +2289,7 @@ void print_error(game::consoleLabel_e label, const std::string_view &msg) {
   const char *log = utils::string::va("[Lua][Error][%s] %s",
                                       game::serialize(label), msg.data());
   game::trace("{}", log);
-  std::println(std::cerr, "{}", log);
-  std::cerr.flush();
+  game::println(game::PrintOutput::STDERR, "{}", log);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
                         "%s\n", log);
 }
@@ -2299,8 +2298,7 @@ void print_warning(game::consoleLabel_e label, const std::string_view &msg) {
   const char *log = utils::string::va("[Lua][Warn][%s] %s",
                                       game::serialize(label), msg.data());
   game::trace("{}", log);
-  std::println(std::cout, "{}", log);
-  std::cout.flush();
+  game::println(game::PrintOutput::STDOUT, "{}", log);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
                         "%s\n", log);
 }

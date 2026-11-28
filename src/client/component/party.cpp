@@ -254,7 +254,7 @@ void launch_from_frontend(const GameModeConfiguration mode,
                   .as<int32_t>());
           globals["Engine"]["LobbyVM_CallFunc"]("StartMap", params);
         } catch (const std::exception &e) {
-          printf("[Map] Could not start %s: %s\n", mapname.c_str(), e.what());
+          game::println("[Map] Could not start {}: {}", mapname, e.what());
         }
         return scheduler::COND_END;
       },
@@ -321,7 +321,7 @@ void call_lobby_vm(const char *function) {
     lua_globals()["Engine"]["LobbyVM_CallFunc"](function,
                                                 ui_scripting::table{});
   } catch (const std::exception &e) {
-    printf("LobbyVM %s failed: %s\n", function, e.what());
+    game::println("LobbyVM {} failed: {}", function, e.what());
   }
 }
 
@@ -473,7 +473,7 @@ void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
       return;
     }
     nat::join_match_lobby(addr, lobby == "party" ? [] {
-      printf("Connect failed: Could not join their party.\n");
+      game::println("Connect failed: Could not join their party.");
       toast::show("Connect failed", "Could not join their party",
                   "t7_icon_connect_overlays");
     } : std::function<void()>(connect_direct));
@@ -497,7 +497,8 @@ void connect_in_mode(const game::net::netadr_t &addr, const game::eModes mode,
         if (std::chrono::steady_clock::now() < deadline) {
           return scheduler::COND_CONTINUE;
         }
-        printf("Connect failed: Could not switch to the server's game mode.\n");
+        game::println(
+            "Connect failed: Could not switch to the server's game mode.");
         toast::show("Connect failed", "Could not switch to the server's mode",
                     "t7_icon_connect_overlays");
         return scheduler::COND_END;
@@ -513,7 +514,7 @@ void handle_connect_query_response(const bool success,
     const std::string msg = utils::string::va(
         "No response from server %u.%u.%u.%u:%hu", target.ipv4.a, target.ipv4.b,
         target.ipv4.c, target.ipv4.d, target.port);
-    printf("Connect failed: %s\n", msg.c_str());
+    game::println("Connect failed: {}", msg);
     toast::show("Connect failed",
                 utils::string::va("No response. The match may have ended, or "
                                   "a firewall is blocking UDP port %hu.",
@@ -538,7 +539,7 @@ void handle_connect_query_response(const bool success,
 
   if (atoi(info.get("protocol").data()) != PROTOCOL) {
     const char *msg = "Invalid protocol.";
-    printf("Connect failed: %s\n", msg);
+    game::println("Connect failed: {}", msg);
     toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
@@ -546,7 +547,7 @@ void handle_connect_query_response(const bool success,
   const int32_t sub_protocol = atoi(info.get("sub_protocol").data());
   if (sub_protocol != SUB_PROTOCOL && sub_protocol != (SUB_PROTOCOL - 1)) {
     const char *msg = "Invalid sub-protocol.";
-    printf("Connect failed: %s\n", msg);
+    game::println("Connect failed: {}", msg);
     toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
@@ -554,7 +555,7 @@ void handle_connect_query_response(const bool success,
   const std::string gamename = info.get("gamename");
   if (gamename != "T7"s) {
     const char *msg = "Invalid gamename.";
-    printf("Connect failed: %s\n", msg);
+    game::println("Connect failed: {}", msg);
     toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
@@ -564,7 +565,7 @@ void handle_connect_query_response(const bool success,
   if (!server_net_hash.empty() && server_net_hash != "0") {
     if (!network_password::is_password_set()) {
       const char *msg = "Server requires a network password.";
-      printf("Connect failed: %s\n", msg);
+      game::println("Connect failed: {}", msg);
       toast::show("Connect failed", msg, "t7_icon_connect_overlays");
       return;
     }
@@ -573,13 +574,13 @@ void handle_connect_query_response(const bool success,
         network_password::get_password_hash_string();
     if (client_hash != server_net_hash) {
       const char *msg = "Network password mismatch.";
-      printf("Connect failed: %s\n", msg);
+      game::println("Connect failed: {}", msg);
       toast::show("Connect failed", msg, "t7_icon_connect_overlays");
       return;
     }
   } else if (network_password::is_password_set()) {
-    printf("Client has network password set but server does not. Allowing "
-           "connection.\n");
+    game::println("Client has network password set but server does not. "
+                  "Allowing connection.");
   }
 
   const std::string mapname = info.get("mapname");
@@ -588,7 +589,7 @@ void handle_connect_query_response(const bool success,
           ? std::string{}
           : info.get("lobby");
   if (mapname == "core_frontend" && lobby.empty()) {
-    printf("Connect failed: The host is in the menus, not in a match.\n");
+    game::println("Connect failed: The host is in the menus, not in a match.");
     toast::show("Friend in menus",
                 "They are not in a match. Ask them to open their party, then "
                 "join from your friends list.",
@@ -597,7 +598,7 @@ void handle_connect_query_response(const bool success,
   }
   if (mapname.empty()) {
     const char *msg = "Invalid map.";
-    printf("Connect failed: %s\n", msg);
+    game::println("Connect failed: {}", msg);
     toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
@@ -605,7 +606,7 @@ void handle_connect_query_response(const bool success,
   const std::string gametype = info.get("gametype");
   if (gametype.empty()) {
     const char *msg = "Invalid gametype.";
-    printf("Connect failed: %s\n", msg);
+    game::println("Connect failed: {}", msg);
     toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
@@ -649,7 +650,7 @@ void handle_connect_query_response(const bool success,
           const char *msg = utils::string::va(
               "Missing or invalid workshop/map dependencies for server %s.",
               addr_str.c_str());
-          printf("Connect failed: %s\n", msg);
+          game::println("Connect failed: {}", msg);
           toast::show("Connect failed", "Missing workshop/map dependencies",
                       "t7_icon_connect_overlays");
           // Save download reconnect
@@ -672,7 +673,7 @@ void connect_stub(const char *address) {
     const std::string address_copy = normalize_connect_address(address);
 
     const auto friend_unavailable = [](const char *reason) {
-      printf("Connect failed: %s\n", reason);
+      game::println("Connect failed: {}", reason);
       toast::show("Friend unavailable", reason, "t7_icon_connect_overlays");
     };
 
@@ -697,8 +698,8 @@ void connect_stub(const char *address) {
       scheduler::once(
           [address_copy, target] {
             if (target.type == game::net::netadrtype_t::BAD) {
-              printf("Connect failed: invalid address \"%s\"\n",
-                     address_copy.c_str());
+              game::println("Connect failed: invalid address \"{}\"",
+                            address_copy);
               toast::show("Connect failed", "Invalid address",
                           "t7_icon_connect_overlays");
               return;
@@ -706,8 +707,8 @@ void connect_stub(const char *address) {
 
             if (network::is_ip_address(target) &&
                 (target.addr == 0 || target.port == 0)) {
-              printf("Connect failed: Friend is offline or their party is "
-                     "closed\n");
+              game::println(
+                  "Connect failed: Friend is offline or their party is closed");
               toast::show("Friend unavailable",
                           "Friend is offline or their party is closed",
                           "t7_icon_connect_overlays");

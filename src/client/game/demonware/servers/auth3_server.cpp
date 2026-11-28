@@ -36,7 +36,7 @@ void auth3_server::send_reply(reply *data) {
 void auth3_server::handle(const std::string &packet) {
   if (packet.starts_with("POST /auth/")) {
 #ifndef NDEBUG
-    printf("[DW]: [auth]: user requested authentication.\n");
+    game::println("[DW]: [auth]: user requested authentication.");
 #endif
     return;
   }
@@ -75,7 +75,7 @@ void auth3_server::handle(const std::string &packet) {
   }
 
 #ifndef NDEBUG
-  printf("[DW]: [auth]: authenticating user %s\n", token.data() + 64);
+  game::println("[DW]: [auth]: authenticating user {}", token.data() + 64);
 #endif
 
   std::string auth_key(token.data() + 32, 24);
@@ -181,7 +181,7 @@ void auth3_server::handle(const std::string &packet) {
   this->send_reply(&reply);
 
 #ifndef NDEBUG
-  printf("[DW]: [auth]: user successfully authenticated.\n");
+  game::println("[DW]: [auth]: user successfully authenticated.");
 #endif
 }
 } // namespace demonware

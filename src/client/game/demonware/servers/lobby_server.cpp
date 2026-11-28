@@ -65,7 +65,7 @@ void lobby_server::handle(const std::string &packet) {
       }
       if (size == 0xC8) {
 #ifndef NDEBUG
-        printf("[DW]: [lobby]: received client_header_ack.\n");
+        game::println("[DW]: [lobby]: received client_header_ack.");
 #endif
 
         int c8;
@@ -82,7 +82,7 @@ void lobby_server::handle(const std::string &packet) {
         raw_reply reply(packet_2);
         this->send_reply(&reply);
 #ifndef NDEBUG
-        printf("[DW]: [lobby]: sending server_header_ack.\n");
+        game::println("[DW]: [lobby]: sending server_header_ack.");
 #endif
         return;
       }
@@ -98,7 +98,7 @@ void lobby_server::handle(const std::string &packet) {
 
         if (type == 0x82) {
 #ifndef NDEBUG
-          printf("[DW]: [lobby]: received client_auth.\n");
+          game::println("[DW]: [lobby]: received client_auth.");
 #endif
           std::string packet_3(packet.data(),
                                packet.size() -
@@ -115,7 +115,7 @@ void lobby_server::handle(const std::string &packet) {
           this->send_reply(&reply);
 
 #ifndef NDEBUG
-          printf("[DW]: [lobby]: sending server_auth_done.\n");
+          game::println("[DW]: [lobby]: sending server_auth_done.");
 #endif
           return;
         }
@@ -153,7 +153,7 @@ void lobby_server::handle(const std::string &packet) {
         }
       }
 
-      printf("[DW]: [lobby]: ERROR! received unk message.\n");
+      game::println("[DW]: [lobby]: ERROR! received unk message.");
       return;
     }
   } catch (...) {
@@ -167,8 +167,8 @@ void lobby_server::call_service(const uint8_t id, const std::string &data) {
     it->second->exec_task(this, data);
   } else {
 #ifndef NDEBUG
-    printf("[DW]: [lobby]: missing service '%s'\n",
-           utils::string::va("%d", id));
+    game::println("[DW]: [lobby]: missing service '{}'",
+                  utils::string::va("%d", id));
 #endif
 
     // return no error

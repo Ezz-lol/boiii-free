@@ -68,8 +68,9 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info,
     }
 
     if (strings.size() != header->stringtable_count) {
-      std::println(std::cerr, "Invalid GDB string table for script '{}'",
-                   debug->filename == nullptr ? "<unknown>" : debug->filename);
+      game::println(game::PrintOutput::STDERR,
+                    "Invalid GDB string table for script '{}'",
+                    debug->filename == nullptr ? "<unknown>" : debug->filename);
       debug->free_gdb();
     } else {
 
@@ -98,12 +99,11 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info,
         const ScrVarCanonicalName_t hash = builtin::fnv1a(name);
         const char *existing = sl::SL_LookupCanonicalString(hash);
         if (existing != nullptr && strcmp(existing, name) != 0) {
-          std::println(
-              std::cerr,
+          game::println(
+              game::PrintOutput::STDERR,
               "Canonical name hash collision in script '{}': '{}' and '{}'",
               debug->filename == nullptr ? "<unknown>" : debug->filename,
               existing, name);
-          std::cerr.flush();
         }
         sl::SL_GenerateCanonicalString(name);
       }

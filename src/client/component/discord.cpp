@@ -174,27 +174,33 @@ static const std::unordered_map<std::string_view, const char *> gametype_names =
 };
 
 const char *get_mode_name(bool is_mp, bool is_zm, bool is_cp) {
-  if (is_mp)
+  if (is_mp) {
     return "Multiplayer";
-  if (is_zm)
+  }
+  if (is_zm) {
     return "Zombies";
-  if (is_cp)
+  }
+  if (is_cp) {
     return "Campaign";
+  }
   return "Playing";
 }
 
 std::string get_display_map(const std::string_view &raw, bool is_mp, bool is_zm,
                             bool is_cp) {
-  if (map_names.contains(raw))
+  if (map_names.contains(raw)) {
     return map_names.at(raw);
-  if (raw.empty())
+  }
+  if (raw.empty()) {
     return get_mode_name(is_mp, is_zm, is_cp);
+  }
   return std::string(raw);
 }
 
 std::string get_display_gametype(const std::string_view &raw) {
-  if (gametype_names.contains(raw))
+  if (gametype_names.contains(raw)) {
     return gametype_names.at(raw);
+  }
   return raw.empty() ? "" : std::string(raw);
 }
 
@@ -215,13 +221,14 @@ std::string strip_colors(const std::string &src) {
 }
 
 std::string truncate(const std::string &s, size_t max_len) {
-  if (s.size() <= max_len)
+  if (s.size() <= max_len) {
     return s;
+  }
   return s.substr(0, max_len - 3) + "...";
 }
 
 std::string safe_dvar_string(const char *name) {
-  char buf[128] = {};
+  str128_t buf = {};
   seh_dvar_string(name, buf, sizeof(buf));
   return buf;
 }
@@ -271,20 +278,24 @@ void update_discord() {
 
     dp.startTimestamp = match_time;
 
-    bool is_mp = false, is_zm = false, is_cp = false;
+    bool is_mp = false;
+    bool is_zm = false;
+    bool is_cp = false;
     seh_SessionMode_IsMode(game::eModes::MULTIPLAYER, &is_mp);
     seh_SessionMode_IsMode(game::eModes::ZOMBIES, &is_zm);
     seh_SessionMode_IsMode(game::eModes::CAMPAIGN, &is_cp);
 
     std::string mapname = safe_dvar_string("mapname");
-    if (mapname == "core_frontend")
+    if (mapname == "core_frontend") {
       mapname.clear();
+    }
     const std::string display_map =
         get_display_map(mapname, is_mp, is_zm, is_cp);
 
     std::string gametype = safe_dvar_string("g_gametype");
-    if (gametype.empty() || gametype == "frontend")
+    if (gametype.empty() || gametype == "frontend") {
       gametype = safe_dvar_string("ui_gametype");
+    }
     const std::string display_type = get_display_gametype(gametype);
 
     std::string server_name;
@@ -292,8 +303,9 @@ void update_discord() {
       server_name = party::get_server_hostname();
     } catch (...) {
     }
-    if (!server_name.empty())
+    if (!server_name.empty()) {
       server_name = truncate(strip_colors(server_name), 32);
+    }
 
     const bool is_private = server_name.empty();
 
@@ -351,14 +363,15 @@ void update_discord() {
       max_clients = party::get_server_max_clients();
     } catch (...) {
     }
-    if (max_clients <= 0)
+    if (max_clients <= 0) {
       seh_dvar_int("com_maxclients", &max_clients);
+    }
 
     int party_size = 1;
-    if (max_clients > 0)
+    if (max_clients > 0) {
       seh_get_client_count(max_clients, &party_size);
-    if (party_size < 1)
-      party_size = 1;
+    }
+    party_size = std::max(party_size, 1);
 
     if (max_clients > 0) {
       dp.partySize = party_size;
@@ -372,11 +385,11 @@ void update_discord() {
 
 void ready(const DiscordUser *request) {
   SetEnvironmentVariableA("discord_user", request->userId);
-  printf("Discord: Ready: %s - %s\n", request->userId, request->username);
+  game::println("Discord: Ready: {} - {}", request->userId, request->username);
 }
 
 void errored(const int error_code, const char *message) {
-  printf("Discord: Error (%i): %s\n", error_code, message);
+  game::println("Discord: Error ({}): {}", error_code, message);
 }
 } // namespace
 
@@ -400,7 +413,7 @@ luaReturnCount_e lua_return_empty_string(lua_State *s) {
 }
 void register_lua_libs() {
   // All functions stubbed - lua discord RPC control by mods is disabled.
-  static constexpr const luaL_Reg DiscordRPC_Library[] = {
+  static constexpr const luaL_Reg DISCORD_RPC_LIBRARY[] = {
       lua_state::luaL_LoggedReg<"DiscordRPC", "ClearPresence",
                                 lua_returntrue>(),
       lua_state::luaL_LoggedReg<"DiscordRPC", "Enable", lua_returntrue>(),
@@ -412,7 +425,7 @@ void register_lua_libs() {
       lua_state::luaL_LoggedReg<"DiscordRPC", "Shutdown", lua_returntrue>(),
       {nullptr, nullptr},
   };
-  lua_state::register_library("DiscordRPC", DiscordRPC_Library);
+  lua_state::register_library("DiscordRPC", DISCORD_RPC_LIBRARY);
 }
 } // namespace lua
 

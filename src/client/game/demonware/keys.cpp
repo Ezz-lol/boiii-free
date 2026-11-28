@@ -91,15 +91,15 @@ void derive_keys_s1() {
   std::memcpy(data.m_enc_key, &out_3[56], 16);
 
 #ifndef NDEBUG
-  printf("[DW] Response id: %s\n",
-         utils::string::dump_hex(std::string(&out_2[8], 8)).data());
-  printf("[DW] Hash verify: %s\n",
-         utils::string::dump_hex(std::string(&out_3[20], 20)).data());
-  printf("[DW] AES dec key: %s\n",
-         utils::string::dump_hex(std::string(&out_3[40], 16)).data());
-  printf("[DW] AES enc key: %s\n",
-         utils::string::dump_hex(std::string(&out_3[56], 16)).data());
-  printf("[DW] Bravo 6, going dark.\n");
+  game::println("[DW] Response id: {}",
+                utils::string::dump_hex(std::string(&out_2[8], 8)));
+  game::println("[DW] Hash verify: {}",
+                utils::string::dump_hex(std::string(&out_3[20], 20)));
+  game::println("[DW] AES dec key: {}",
+                utils::string::dump_hex(std::string(&out_3[40], 16)));
+  game::println("[DW] AES enc key: {}",
+                utils::string::dump_hex(std::string(&out_3[56], 16)));
+  game::println("[DW] Bravo 6, going dark.");
 #endif
 }
 

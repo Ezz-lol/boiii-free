@@ -79,7 +79,7 @@ bool bdStorage::load_publisher_resource(const std::string &name,
   }
 
 #ifndef NDEBUG
-  printf("[DW][bdStorage]: missing publisher file: %s\n", name.data());
+  game::println("[DW][bdStorage]: missing publisher file: {}", name);
 #endif
 
   return false;
@@ -98,7 +98,7 @@ void bdStorage::list_publisher_files(service_server *server,
   buffer->read_string(&filename);
 
 #ifndef NDEBUG
-  printf("[DW][bdStorage]: list publisher files: %s\n", filename.data());
+  game::println("[DW][bdStorage]: list publisher files: {}", filename);
 #endif
 
   service_reply reply = server->create_reply(this->task_id());
@@ -123,20 +123,21 @@ void bdStorage::list_publisher_files(service_server *server,
 
 void bdStorage::get_publisher_file(service_server *server,
                                    byte_buffer *buffer) {
-  std::string unk, filename;
+  std::string unk;
+  std::string filename;
   buffer->read_string(&unk);
   buffer->read_string(&filename);
 
 #ifndef NDEBUG
-  printf("[DW][bdStorage]: loading publisher file: %s\n", filename.data());
+  game::println("[DW][bdStorage]: loading publisher file: {}", filename);
 #endif
 
   std::string data;
 
   if (this->load_publisher_resource(filename, data)) {
 #ifndef NDEBUG
-    printf("[DW][bdStorage]: sending publisher file: %s, size: %lld\n",
-           filename.data(), data.size());
+    game::println("[DW][bdStorage]: sending publisher file: {}, size: {}",
+                  filename, data.size());
 #endif
 
     service_reply reply = server->create_reply(this->task_id());
@@ -218,7 +219,7 @@ void bdStorage::upload_files(service_server *server,
     info->data = data;
 
 #ifndef NDEBUG
-    printf("[DW][bdStorage]: set user file: %s\n", filename.data());
+    game::println("[DW][bdStorage]: set user file: {}", filename);
 #endif
 
     reply.add(info);
@@ -264,7 +265,7 @@ void bdStorage::upload_files_new(service_server *server,
     info->filename = filename;
 
 #ifndef NDEBUG
-    printf("[DW][bdStorage]: set user file: %s\n", filename.data());
+    game::println("[DW][bdStorage]: set user file: {}", filename);
 #endif
 
     reply.add(info);
@@ -315,12 +316,12 @@ void bdStorage::get_files(service_server *server, byte_buffer *buffer) const {
     if (utils::io::read_file(get_user_file_path(name), &filedata)) {
       entry->filedata = filedata;
 #ifndef NDEBUG
-      printf("[DW][bdStorage]: get user file: %s\n", name.data());
+      game::println("[DW][bdStorage]: get user file: {}", name);
 #endif
     } else {
       entry->errorcode = game::dw::bdLobbyErrorCode::NO_FILE;
 #ifndef NDEBUG
-      printf("[DW][bdStorage]: missing user file: %s\n", name.data());
+      game::println("[DW][bdStorage]: missing user file: {}", name);
 #endif
     }
 

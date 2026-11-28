@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <std_include.hpp>
 
 #include <loader/component_loader.hpp>
@@ -94,7 +93,7 @@ namespace io {
 int getaddrinfo_stub(const char *name, const char *service,
                      const addrinfo *hints, addrinfo **res) {
 #ifndef NDEBUG
-  printf("[ network ]: [getaddrinfo]: \"%s\" \"%s\"\n", name, service);
+  game::println(R"([ network ]: [getaddrinfo]: "{}" "{}")", name, service);
 #endif
 
   base_server *server = tcp_servers.find(name);
@@ -106,10 +105,11 @@ int getaddrinfo_stub(const char *name, const char *service,
     return getaddrinfo(name, service, hints, res);
   }
 
-  const auto address = utils::memory::get_allocator()->allocate<sockaddr>();
-  const auto ai = utils::memory::get_allocator()->allocate<addrinfo>();
+  sockaddr *const address =
+      utils::memory::get_allocator()->allocate<sockaddr>();
+  addrinfo *const ai = utils::memory::get_allocator()->allocate<addrinfo>();
 
-  auto in_addr = reinterpret_cast<sockaddr_in *>(address);
+  sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(address);
   in_addr->sin_addr.s_addr = server->get_address();
   in_addr->sin_family = AF_INET;
 
@@ -140,7 +140,7 @@ int getpeername_stub(const SOCKET s, sockaddr *addr, socklen_t *addrlen) {
   auto *server = find_server(s);
 
   if (server) {
-    auto in_addr = reinterpret_cast<sockaddr_in *>(addr);
+    sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(addr);
     in_addr->sin_addr.s_addr = server->get_address();
     in_addr->sin_family = AF_INET;
     *addrlen = sizeof(sockaddr);
@@ -155,7 +155,7 @@ int getsockname_stub(const SOCKET s, sockaddr *addr, socklen_t *addrlen) {
   auto *server = find_server(s);
 
   if (server) {
-    auto in_addr = reinterpret_cast<sockaddr_in *>(addr);
+    sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(addr);
     in_addr->sin_addr.s_addr = server->get_address();
     in_addr->sin_family = AF_INET;
     *addrlen = sizeof(sockaddr);
@@ -168,13 +168,13 @@ int getsockname_stub(const SOCKET s, sockaddr *addr, socklen_t *addrlen) {
 
 hostent *gethostbyname_stub(const char *name) {
 #ifndef NDEBUG
-  if (name) {
+  if (name != nullptr) {
     game::trace("[DW][network][gethostbyname] {}", name);
   }
 #endif
 
   base_server *server = tcp_servers.find(name);
-  if (!server) {
+  if (server == nullptr) {
     server = udp_servers.find(name);
   }
 
@@ -291,34 +291,35 @@ int select_stub(const int nfds, fd_set *readfds, fd_set *writefds,
   std::vector<SOCKET> read_sockets;
   std::vector<SOCKET> write_sockets;
 
-  socket_map.access([&](std::unordered_map<SOCKET, tcp_server *> &sockets) {
-    for (auto &s : sockets) {
-      if (readfds) {
-        if (FD_ISSET(s.first, readfds)) {
-          if (s.second->pending_data()) {
-            read_sockets.push_back(s.first);
-            FD_CLR(s.first, readfds);
+  socket_map.access(
+      [&](std::unordered_map<const SOCKET, tcp_server *> &sockets) {
+        for (const std::pair<const SOCKET, tcp_server *> &s : sockets) {
+          if (readfds) {
+            if (FD_ISSET(s.first, readfds)) {
+              if (s.second->pending_data()) {
+                read_sockets.push_back(s.first);
+                FD_CLR(s.first, readfds);
+              }
+            }
+          }
+
+          if (writefds) {
+            if (FD_ISSET(s.first, writefds)) {
+              write_sockets.push_back(s.first);
+              FD_CLR(s.first, writefds);
+            }
+          }
+
+          if (exceptfds) {
+            if (FD_ISSET(s.first, exceptfds)) {
+              FD_CLR(s.first, exceptfds);
+            }
           }
         }
-      }
+      });
 
-      if (writefds) {
-        if (FD_ISSET(s.first, writefds)) {
-          write_sockets.push_back(s.first);
-          FD_CLR(s.first, writefds);
-        }
-      }
-
-      if (exceptfds) {
-        if (FD_ISSET(s.first, exceptfds)) {
-          FD_CLR(s.first, exceptfds);
-        }
-      }
-    }
-  });
-
-  if ((!readfds || readfds->fd_count == 0) &&
-      (!writefds || writefds->fd_count == 0)) {
+  if ((readfds == nullptr || readfds->fd_count == 0) &&
+      (writefds == nullptr || writefds->fd_count == 0)) {
     timeout->tv_sec = 0;
     timeout->tv_usec = 0;
   }
@@ -456,7 +457,9 @@ struct component final : generic_component {
       server_thread.join();
     }
 
-    for (const auto &import : original_imports) {
+    // Ordering is of no consequence here
+    // NOLINTNEXTLINE(bugprone-nondeterministic-pointer-iteration-order)
+    for (const std::pair<void *const, void *> &import : original_imports) {
       utils::hook::set(import.first, import.second);
     }
   }

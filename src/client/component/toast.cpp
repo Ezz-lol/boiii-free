@@ -46,23 +46,24 @@ bool execute_lua(const std::string &code) {
     const ui_scripting::table lua{globals};
 
     state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
-    const auto load_results = lua["loadstring"](code, "toast");
+    const ui_scripting::arguments load_results =
+        lua["loadstring"](code, "toast");
     state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::SECURE;
 
     if (load_results[0].is<ui_scripting::function>()) {
-      const auto results = lua["pcall"](load_results);
+      const ui_scripting::arguments results = lua["pcall"](load_results);
       if (!results[0].as<bool>()) {
-        const auto err = results[1].as<std::string>();
-        printf("[Toast] Lua error: %s\n", err.c_str());
+        const std::string err = results[1].as<std::string>();
+        game::println("[Toast] Lua error: {}", err);
         return false;
       }
       return true;
     } else if (load_results[1].is<std::string>()) {
-      const auto err = load_results[1].as<std::string>();
-      printf("[Toast] Lua compile error: %s\n", err.c_str());
+      const std::string err = load_results[1].as<std::string>();
+      game::println("[Toast] Lua compile error: {}", err);
     }
   } catch (const std::exception &ex) {
-    printf("[Toast] Exception: %s\n", ex.what());
+    game::println("[Toast] Exception: {}", ex.what());
   }
 
   return false;
@@ -70,24 +71,24 @@ bool execute_lua(const std::string &code) {
 
 void show_as(const std::string &state, const std::string &title,
              const std::string &description, const std::string &icon) {
-  if (game::is_server())
-    return;
+  if (!game::is_server()) {
+    const auto escaped_state = escape_lua_string(state);
+    const auto escaped_title = escape_lua_string(title);
+    const auto escaped_description = escape_lua_string(description);
+    const auto escaped_icon = escape_lua_string(icon);
 
-  const auto escaped_state = escape_lua_string(state);
-  const auto escaped_title = escape_lua_string(title);
-  const auto escaped_description = escape_lua_string(description);
-  const auto escaped_icon = escape_lua_string(icon);
+    const std::string code = utils::string::va(
+        "pcall(function()\n"
+        "  if CoD and CoD.OverlayUtility and CoD.OverlayUtility.ShowToast "
+        "then\n"
+        "    CoD.OverlayUtility.ShowToast(\"%s\", \"%s\", \"%s\", \"%s\")\n"
+        "  end\n"
+        "end)\n",
+        escaped_state.c_str(), escaped_title.c_str(),
+        escaped_description.c_str(), escaped_icon.c_str());
 
-  const std::string code = utils::string::va(
-      "pcall(function()\n"
-      "  if CoD and CoD.OverlayUtility and CoD.OverlayUtility.ShowToast then\n"
-      "    CoD.OverlayUtility.ShowToast(\"%s\", \"%s\", \"%s\", \"%s\")\n"
-      "  end\n"
-      "end)\n",
-      escaped_state.c_str(), escaped_title.c_str(), escaped_description.c_str(),
-      escaped_icon.c_str());
-
-  scheduler::once([code] { execute_lua(code); }, scheduler::pipeline::main);
+    scheduler::once([code] { execute_lua(code); }, scheduler::pipeline::main);
+  }
 }
 
 const char *zombie_toast_patch = R"lua(

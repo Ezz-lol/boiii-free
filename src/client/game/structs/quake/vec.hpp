@@ -1,6 +1,4 @@
 #pragma once
-
-#include <algorithm>
 #include <cmath>
 #include <format>
 #include <numbers>

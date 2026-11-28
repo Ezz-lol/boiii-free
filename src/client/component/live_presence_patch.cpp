@@ -17,15 +17,16 @@ void live_presence_party_stub(void *context_array, void *data_buffer) {
   if (context_array) {
     int32_t *ptr =
         *reinterpret_cast<int32_t **>(static_cast<char *>(context_array) + 16);
-    if (ptr) {
+    if (ptr != nullptr) {
       const game::ClientNum_t party_count =
           static_cast<game::ClientNum_t>((*ptr >> 2) & 0x1F);
       if (!game::validate(party_count)) {
         // Zero the party count bits [6:2] to kill the overflow loop
         *ptr &= ~(0x1F << 2);
-        printf("[Live][Presence] Blocked malicious party_count: %d (max %d)\n",
-               static_cast<int32_t>(party_count),
-               static_cast<int32_t>(game::lobby::MAX_PLAYERS));
+        game::println(
+            "[Live][Presence] Blocked malicious party_count: {} (max {})",
+            static_cast<int32_t>(party_count),
+            static_cast<int32_t>(game::lobby::MAX_PLAYERS));
         return;
       }
     }

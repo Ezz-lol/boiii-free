@@ -53,28 +53,28 @@ template <const bool Toggle> void toggle_mute(const command::params &params) {
   constexpr const char *COMMAND_NAME = Toggle ? "muteclient" : "unmuteclient";
   constexpr const char *STATUS_STR = Toggle ? "muted" : "unmuted";
   if (params.size() != 2) {
-    printf("Usage: %s <client number>\n", COMMAND_NAME);
+    game::println("Usage: {} <client number>", COMMAND_NAME);
     return;
   }
 
   const std::optional<game::ClientNum_t> client_num =
       parse_client_num(params[1]);
   if (!client_num.has_value() || !game::validate(client_num.value())) {
-    printf("Invalid client number. Expected a value from 0 to %d.\n",
-           game::CLIENT_INDEX_COUNT - 1);
+    game::println("Invalid client number. Expected a value from 0 to {}.",
+                  game::CLIENT_INDEX_COUNT - 1);
     return;
   }
 
   if constexpr (Toggle) {
     if (!game::access_connected_client(*client_num,
                                        [](game::sv::client_s &) {})) {
-      printf("Client %d is not connected.\n", *client_num);
+      game::println("Client {} is not connected.", +*client_num);
       return;
     }
   }
 
   muted_clients[*client_num].store(Toggle, std::memory_order_relaxed);
-  printf("Client %d is now %s.\n", *client_num, STATUS_STR);
+  game::println("Client {} is now {}.", +*client_num, STATUS_STR);
 }
 
 void notify_chat(game::level::gentity_s *ent, const char *text) {
@@ -175,7 +175,7 @@ void g_say_to_stub(utils::hook::assembler &a) {
 
 void cl_handle_chat(char *dest, size_t dest_size, const char *src) {
   game::I_strcpy(dest, dest_size, src);
-  printf("%s\n", dest);
+  game::println("{}", dest);
 }
 
 inline const char *sv_sayname_val() {
@@ -221,7 +221,7 @@ public:
       utils::hook::jump(
           0x14052A6C0_g, +[] {
             if (!game::server_running()) {
-              printf("Server is not running\n");
+              game::println("Server is not running");
               return;
             }
 
@@ -232,14 +232,14 @@ public:
 
             const char *val = sv_sayname_val();
             const char *say_prefix = val ?: "Server";
-            printf("%s: %s\n", say_prefix, text.data());
+            game::println("{}: {}", say_prefix, text);
           });
 
       // Overwrite tell command
       utils::hook::jump(
           0x14052A7E0_g, +[] {
             if (!game::server_running()) {
-              printf("Server is not running\n");
+              game::println("Server is not running");
               return;
             }
 
@@ -253,7 +253,7 @@ public:
             const std::string text = params.join(2);
 
             send_chat_message(client, text);
-            printf("Server -> %i: %s\n", client, text.data());
+            game::println("Server -> {}: {}", +client, text);
           });
 
       // Kill say fallback

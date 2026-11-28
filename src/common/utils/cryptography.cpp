@@ -100,7 +100,7 @@ private:
        `decltype(i_ptr)` is to workaround warning "suspiscious usage of sizeof()
        on pointer type", which is intentional.
     */
-    this->add_entropy(&i_ptr, sizeof(decltype(i_ptr)));
+    this->add_entropy(static_cast<void *>(&i_ptr), sizeof(decltype(i_ptr)));
 
     std::time_t t = time(nullptr);
     this->add_entropy(&t, sizeof(t));
@@ -196,9 +196,9 @@ std::string ecc::key::serialize(const int type) const {
   if (result == CRYPT_OK) {
     return {cs(buffer), length};
   } else {
-    printf("cryptography: ecc::key::serialize - ecc_export failed with error "
-           "code: %d\n",
-           result);
+    game::println("cryptography: ecc::key::serialize - ecc_export failed with "
+                 "error code: {}",
+                 result);
   }
 
   return {};
@@ -266,28 +266,30 @@ ecc::key ecc::generate_key(const int bits, const std::string &entropy) {
 
 #define BASE_ECC_ANSIX962_BUFFER_LEN 256
 std::string ecc::sign_message(const key &key, const std::string &message) {
-  if (!key.is_valid())
-    return {};
+  if (key.is_valid()) {
+    unsigned long length = BASE_ECC_ANSIX962_BUFFER_LEN;
+    uint8_t buffer[BASE_ECC_ANSIX962_BUFFER_LEN];
 
-  unsigned long length = BASE_ECC_ANSIX962_BUFFER_LEN;
-  uint8_t buffer[BASE_ECC_ANSIX962_BUFFER_LEN];
+    const std::string hash = sha512::compute(message);
 
-  const std::string hash = sha512::compute(message);
+    ltc_ecc_sig_opts sig_opts = {.type = LTC_ECCSIG_ANSIX962,
+                                 .prng = prng_.get_state(),
+                                 .wprng = prng_.get_id(),
+                                 .enable_recovery_id =
+                                     static_cast<uint8_t>(false),
+                                 .recovery_id = 0,
+                                 .rfc6979_hash_alg = nullptr};
+    int err = ecc_sign_hash_v2(cs(hash.data()), ul(hash.size()), buffer,
+                               &length, &sig_opts, &key.get());
 
-  ltc_ecc_sig_opts sig_opts = {.type = LTC_ECCSIG_ANSIX962,
-                               .prng = prng_.get_state(),
-                               .wprng = prng_.get_id(),
-                               .enable_recovery_id = false,
-                               .recovery_id = 0,
-                               .rfc6979_hash_alg = nullptr};
-  int err = ecc_sign_hash_v2(cs(hash.data()), ul(hash.size()), buffer, &length,
-                             &sig_opts, &key.get());
+    if (err == CRYPT_OK) {
+      return {cs(buffer), length};
+    }
 
-  if (err != CRYPT_OK) {
-    printf("Signature generation failed with error code: %d\n", err);
-    return {};
+    game::println("Signature generation failed with error code: {}", err);
   }
-  return std::string(cs(buffer), length);
+
+  return {};
 }
 
 bool ecc::verify_message(const key &key, const uint8_t *message,
@@ -303,7 +305,7 @@ bool ecc::verify_message(const key &key, const uint8_t *message,
   ltc_ecc_sig_opts opts = {.type = LTC_ECCSIG_ANSIX962,
                            .prng = prng_.get_state(),
                            .wprng = prng_.get_id(),
-                           .enable_recovery_id = false,
+                           .enable_recovery_id = static_cast<uint8_t>(false),
                            .recovery_id = 0,
                            .rfc6979_hash_alg = nullptr
 
@@ -456,10 +458,8 @@ std::string tiger::compute(const uint8_t *data, const size_t length,
   tiger_done(&state, buffer);
 
   std::string hash(cs(buffer), sizeof(buffer));
-  if (!hex)
-    return hash;
 
-  return string::dump_hex(hash, "");
+  return hex ? string::dump_hex(hash, "") : hash;
 }
 
 std::string aes::encrypt(const std::string &data, const std::string &iv,
@@ -524,10 +524,8 @@ std::string sha1::compute(const uint8_t *data, const size_t length,
   sha1_done(&state, buffer);
 
   std::string hash(cs(buffer), sizeof(buffer));
-  if (!hex)
-    return hash;
 
-  return string::dump_hex(hash, "");
+  return hex ? string::dump_hex(hash, "") : hash;
 }
 
 std::string sha1::compute(std::ifstream &stream, const bool hex) {

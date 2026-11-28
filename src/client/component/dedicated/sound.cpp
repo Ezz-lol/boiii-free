@@ -108,12 +108,12 @@ void snd_bank_load_error_stub(SndBankLoad *load) {
           ? load->bank->zone
           : "UNKNOWN";
 
-  std::println(std::cerr,
-               "^3[Sound] A sound bank for zone {} could not be loaded. If its "
-               "files are missing, copy them to '{}'. Dedicated-server sound "
-               "files are optional; restart with '-nosnd' to run without them.",
-               zone.data(), sound_path);
-  std::cerr.flush();
+  game::println(
+      game::PrintOutput::STDERR,
+      "^3[Sound] A sound bank for zone {} could not be loaded. If its "
+      "files are missing, copy them to '{}'. Dedicated-server sound "
+      "files are optional; restart with '-nosnd' to run without them.",
+      zone.data(), sound_path);
   snd_bank_load_error_hook.invoke(load);
 }
 

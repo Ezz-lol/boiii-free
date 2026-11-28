@@ -1,7 +1,6 @@
 #include <std_include.hpp>
 
 #include "emitter.hpp"
-#include <algorithm>
 #include <cstring>
 
 #include "component/gsc/func/func.hpp"
@@ -66,11 +65,10 @@ inline OP_TYPE map_opcode(Opcode op) {
     return OPCODE_BYTECODE_MAP.at(op)[0];
   }
 
-  std::println(std::cerr,
-               "Warning: could not find valid bytecode value for opcode: "
-               "0x{:02X}. Emitting a no-op opcode.",
-               static_cast<uint8_t>(op));
-  std::cerr.flush();
+  game::println(game::PrintOutput::STDERR,
+                "Warning: could not find valid bytecode value for opcode: "
+                "0x{:02X}. Emitting a no-op opcode.",
+                static_cast<uint8_t>(op));
   return OPCODE_BYTECODE_MAP.at(Opcode::UnknownOrInvalid)[0];
 }
 

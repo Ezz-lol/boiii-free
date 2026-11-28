@@ -445,14 +445,14 @@ void load_workshop_data(game::ugc::UGCItem *item) {
   const rapidjson::ParseResult parse_result = doc.Parse(json_str.data());
 
   if (parse_result.IsError() || !doc.IsObject()) {
-    printf("[ Workshop ] Unable to parse workshop.json from folder:\n%s\n",
-           path);
+    game::println("[ Workshop ] Unable to parse workshop.json from folder:\n{}",
+                  path);
     return;
   }
 
   if (!doc.HasMember("Title") || !doc.HasMember("Description") ||
       !doc.HasMember("FolderName") || !doc.HasMember("PublisherID")) {
-    printf("[ Workshop ] workshop.json is invalid:\n%s\n", path);
+    game::println("[ Workshop ] workshop.json is invalid:\n{}", path);
     return;
   }
 
@@ -519,9 +519,10 @@ void supplement_mods_from_disk() {
     ++count;
   }
 
-  if (count) {
+  if (count != 0u) {
     game::ugc::modsPool.count = count;
-    printf("[ Workshop ] Supplemented %u mods from disk fallback\n", count);
+    game::println("[ Workshop ] Supplemented {} mods from disk fallback",
+                  count);
   }
 }
 
@@ -556,8 +557,8 @@ void supplement_usermaps_from_disk() {
   }
 
   if (count != game::ugc::usermapsPool.count) {
-    printf("[ Workshop ] Supplemented %u usermaps from disk fallback\n",
-           count - game::ugc::usermapsPool.count);
+    game::println("[ Workshop ] Supplemented {} usermaps from disk fallback",
+                  count - game::ugc::usermapsPool.count);
     game::ugc::usermapsPool.count = count;
   }
 }
@@ -666,22 +667,22 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
   }
 
   const uint32_t added = count - pool->count;
-  if (added) {
+  if (added != 0u) {
     pool->count = count;
-    printf("[ Workshop ] Supplemented %u %s from Steam workshop\n", added,
-           ugc_dirname);
+    game::println("[ Workshop ] Supplemented {} {} from Steam workshop", added,
+                  ugc_dirname);
   }
 }
 
 utils::hook::detour UGC_LoadUsermapByPublisherId_hook;
 game::ugc::UGCItem *
 UGC_LoadUsermapByPublisherId_HandleInternalName(const char *maybePublisherId) {
-  std::string publisherId = maybePublisherId;
+  std::string publisher_id = maybePublisherId;
   if (!utils::string::is_numeric(maybePublisherId)) {
     const game::ugc::OptionalUGCItemRef item =
         game::ugc::UGC_GetUsermapByInternalName(maybePublisherId);
     if (item.has_value()) {
-      publisherId = item->get().publisherId;
+      publisher_id = item->get().publisherId;
     } else {
       // Not a usermap, e.g. a stock map after a custom one. Clear the active
       // usermap as the load does when it finds none, so the previous custom
@@ -691,25 +692,25 @@ UGC_LoadUsermapByPublisherId_HandleInternalName(const char *maybePublisherId) {
     }
   }
 
-  return game::ugc::UGC_LoadUsermapByPublisherId_Impl(publisherId.data());
+  return game::ugc::UGC_LoadUsermapByPublisherId_Impl(publisher_id.data());
 }
 
 utils::hook::detour UGC_VerifyVersion_hook;
 bool UGC_VerifyVersion_HandleInternalName(game::ZoneType type,
                                           const char *maybePublisherId,
                                           uint32_t version) {
-  std::string publisherId = maybePublisherId;
+  std::string publisher_id = maybePublisherId;
   if (!utils::string::is_numeric(maybePublisherId) &&
       type == game::ZoneType::USERMAP) {
     const game::ugc::OptionalUGCItemRef item =
         game::ugc::UGC_GetUsermapByInternalName(maybePublisherId);
     if (item.has_value()) {
-      publisherId = item->get().publisherId;
+      publisher_id = item->get().publisherId;
     } else {
       return false;
     }
   }
-  return game::ugc::UGC_VerifyVersion_Impl(type, publisherId.c_str(), version);
+  return game::ugc::UGC_VerifyVersion_Impl(type, publisher_id.c_str(), version);
 }
 
 const char *va_mods_path(const char *fmt, const char *root_dir,
@@ -737,7 +738,7 @@ const char *va_user_content_path(const char *fmt, const char *root_dir,
 }
 
 std::string get_mod_resized_name() {
-  const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
+  std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
 
   if (loaded_mod_id == "usermaps" || loaded_mod_id.empty()) {
     return loaded_mod_id;
@@ -973,41 +974,42 @@ uint64_t scrape_workshop_file_size_bytes(const std::string_view &workshop_id) {
           "https://steamcommunity.com/sharedfiles/filedetails/?id={}&l=english",
           workshop_id),
       h, {}, 10);
-  if (!resp)
-    return 0;
+  if (resp) {
+    const auto column = [&](const std::string_view &cls) {
+      std::vector<std::string> out;
+      const std::string needle = std::format("class=\"{}\"", cls);
+      for (size_t pos = resp->find(needle); pos != std::string::npos;
+           pos = resp->find(needle, pos + 1)) {
+        const size_t gt = resp->find('>', pos);
+        const size_t lt = resp->find('<', gt);
+        if (gt == std::string::npos || lt == std::string::npos) {
+          break;
+        }
+        std::string text = resp->substr(gt + 1, lt - gt - 1);
+        utils::string::trim(text);
+        out.push_back(utils::string::to_lower(text));
+      }
+      return out;
+    };
 
-  const auto column = [&](const std::string_view &cls) {
-    std::vector<std::string> out;
-    const std::string needle = std::format("class=\"{}\"", cls);
-    for (size_t pos = resp->find(needle); pos != std::string::npos;
-         pos = resp->find(needle, pos + 1)) {
-      const size_t gt = resp->find('>', pos);
-      const size_t lt = resp->find('<', gt);
-      if (gt == std::string::npos || lt == std::string::npos)
-        break;
-      std::string text = resp->substr(gt + 1, lt - gt - 1);
-      utils::string::trim(text);
-      out.push_back(utils::string::to_lower(text));
+    const std::vector<std::string> labels = column("detailsStatLeft");
+    const std::vector<std::string> values = column("detailsStatRight");
+    for (size_t i = 0; i < std::min(labels.size(), values.size()); ++i) {
+      if (labels[i].contains("size") || labels[i].contains("tamanho") ||
+          labels[i].contains("taille") || labels[i].contains("tama") ||
+          labels[i].contains("gr")) {
+        std::basic_string<char> text = values[i];
+        if (!text.contains('.')) {
+          std::ranges::replace(text.begin(), text.end(), ',', '.');
+        } else {
+          std::erase(text, ',');
+        }
+        const uint64_t bytes = parse_human_size_to_bytes(text);
+        if (bytes != 0) {
+          return bytes;
+        }
+      }
     }
-    return out;
-  };
-
-  const std::vector<std::string> labels = column("detailsStatLeft");
-  const std::vector<std::string> values = column("detailsStatRight");
-  for (size_t i = 0; i < std::min(labels.size(), values.size()); ++i) {
-    if (labels[i].find("size") == std::string::npos &&
-        labels[i].find("tamanho") == std::string::npos &&
-        labels[i].find("taille") == std::string::npos &&
-        labels[i].find("tama") == std::string::npos &&
-        labels[i].find("gr") == std::string::npos)
-      continue;
-    std::basic_string<char> text = values[i];
-    if (text.find('.') == std::string::npos)
-      std::replace(text.begin(), text.end(), ',', '.');
-    else
-      std::erase(text, ',');
-    if (const uint64_t bytes = parse_human_size_to_bytes(text))
-      return bytes;
   }
   return 0;
 }
@@ -1018,75 +1020,78 @@ std::vector<item_details> get_details(const std::vector<std::string> &ids) {
   for (size_t start = 0; start < ids.size(); start += BATCH) {
     const size_t count = std::min(BATCH, ids.size() - start);
     std::string body = "itemcount=" + std::to_string(count);
-    for (size_t i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; ++i) {
       body += "&publishedfileids[" + std::to_string(i) + "]=" + ids[start + i];
+    }
 
     const std::optional<std::string> resp = utils::http::post_data(
         "https://api.steampowered.com/ISteamRemoteStorage/"
         "GetPublishedFileDetails/v1/",
         body, 15);
     rapidjson::Document doc;
-    if (!resp || doc.Parse(resp->c_str()).HasParseError() || !doc.IsObject() ||
-        !doc.HasMember("response") ||
-        !doc["response"].HasMember("publishedfiledetails") ||
-        !doc["response"]["publishedfiledetails"].IsArray())
-      continue;
+    if (resp && !doc.Parse(resp->c_str()).HasParseError() && doc.IsObject() &&
+        doc.HasMember("response") &&
+        doc["response"].HasMember("publishedfiledetails") &&
+        doc["response"]["publishedfiledetails"].IsArray()) {
+      for (const rapidjson::Document::Array::ValueType &entry :
+           doc["response"]["publishedfiledetails"].GetArray()) {
+        const auto string_of = [&](const char *key) {
+          const rapidjson::Document::Array::ValueType::ConstMemberIterator it =
+              entry.FindMember(key);
+          return it != entry.MemberEnd() && it->value.IsString()
+                     ? std::string(it->value.GetString())
+                     : std::string();
+        };
+        const auto number_of = [&](const char *key) -> uint64_t {
+          const rapidjson::Document::Array::ValueType::ConstMemberIterator it =
+              entry.FindMember(key);
+          if (it != entry.MemberEnd()) {
+            if (it->value.IsString()) {
+              return std::strtoull(it->value.GetString(), nullptr, 10);
+            }
+            if (it->value.IsNumber()) {
+              return static_cast<uint64_t>(it->value.GetDouble());
+            }
+          }
 
-    for (const rapidjson::Document::Array::ValueType &entry :
-         doc["response"]["publishedfiledetails"].GetArray()) {
-      const auto string_of = [&](const char *key) {
-        const rapidjson::Document::Array::ValueType::ConstMemberIterator it =
-            entry.FindMember(key);
-        return it != entry.MemberEnd() && it->value.IsString()
-                   ? std::string(it->value.GetString())
-                   : std::string();
-      };
-      const auto number_of = [&](const char *key) -> uint64_t {
-        const rapidjson::Document::Array::ValueType::ConstMemberIterator it =
-            entry.FindMember(key);
-        if (it == entry.MemberEnd())
           return 0;
-        if (it->value.IsString())
-          return std::strtoull(it->value.GetString(), nullptr, 10);
-        return it->value.IsNumber()
-                   ? static_cast<uint64_t>(it->value.GetDouble())
-                   : 0;
-      };
+        };
 
-      if (entry.IsObject()) {
-        const uint64_t app_id = number_of("consumer_app_id");
-        if (!app_id || app_id == game::APP_ID) {
-          item_details item{};
-          item.id = string_of("publishedfileid");
-          if (!item.id.empty()) {
-            item.title = string_of("title");
-            item.description = clean_description(string_of("description"));
-            item.preview_url = string_of("preview_url");
-            item.file_size = number_of("file_size");
-            item.time_updated = number_of("time_updated");
-            item.subs = static_cast<std::int64_t>(
-                number_of("lifetime_subscriptions")
-                    ? number_of("lifetime_subscriptions")
-                    : number_of("subscriptions"));
-            item.favorites =
-                static_cast<std::int64_t>(number_of("lifetime_favorited")
-                                              ? number_of("lifetime_favorited")
-                                              : number_of("favorited"));
+        if (entry.IsObject()) {
+          const uint64_t app_id = number_of("consumer_app_id");
+          if (app_id == 0 || app_id == game::APP_ID) {
+            item_details item{};
+            item.id = string_of("publishedfileid");
+            if (!item.id.empty()) {
+              item.title = string_of("title");
+              item.description = clean_description(string_of("description"));
+              item.preview_url = string_of("preview_url");
+              item.file_size = number_of("file_size");
+              item.time_updated = number_of("time_updated");
+              item.subs = static_cast<std::int64_t>(
+                  (number_of("lifetime_subscriptions") != 0u)
+                      ? number_of("lifetime_subscriptions")
+                      : number_of("subscriptions"));
+              item.favorites = static_cast<std::int64_t>(
+                  (number_of("lifetime_favorited") != 0u)
+                      ? number_of("lifetime_favorited")
+                      : number_of("favorited"));
 
-            game::ZoneType type = game::ZoneType::USERMAP;
-            if (entry.HasMember("tags") && entry["tags"].IsArray()) {
-              for (const rapidjson::GenericValue<rapidjson::UTF8<>> &tag :
-                   entry["tags"].GetArray()) {
-                if (tag.IsObject() && tag.HasMember("tag") &&
-                    tag["tag"].IsString()) {
-                  item.tags.emplace_back(tag["tag"].GetString());
-                  type = normalize_kind(item.tags.back())
-                             .value_or(game::ZoneType::USERMAP);
+              game::ZoneType type = game::ZoneType::USERMAP;
+              if (entry.HasMember("tags") && entry["tags"].IsArray()) {
+                for (const rapidjson::GenericValue<rapidjson::UTF8<>> &tag :
+                     entry["tags"].GetArray()) {
+                  if (tag.IsObject() && tag.HasMember("tag") &&
+                      tag["tag"].IsString()) {
+                    item.tags.emplace_back(tag["tag"].GetString());
+                    type = normalize_kind(item.tags.back())
+                               .value_or(game::ZoneType::USERMAP);
+                  }
                 }
               }
+              item.type = type;
+              result.push_back(std::move(item));
             }
-            item.type = type;
-            result.push_back(std::move(item));
           }
         }
       }
@@ -1163,7 +1168,7 @@ void warn_if_outdated(const std::string &id, const std::string &title,
     const std::vector<item_details> details = get_details({id});
     const std::uint64_t local = newest_write_time(folder);
     if (!details.empty() && local && local < details[0].time_updated) {
-      std::println(
+      game::println(
           "[ Workshop ] WARNING: '{}' ({}) is older than the version on the "
           "Steam Workshop. Players who download it can't join until the server "
           "is updated. Use fastdl if you want players to use this version.",
@@ -1194,18 +1199,20 @@ void watch_server_content() {
 std::string command_line_mod() {
   int32_t count = 0;
   LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &count);
-  if (!argv) {
-    return {};
-  }
-  std::string mod;
-  for (int32_t i = 0; i + 2 < count; ++i) {
-    if ((_wcsicmp(argv[i], L"+set") == 0 || _wcsicmp(argv[i], L"+seta") == 0) &&
-        _wcsicmp(argv[i + 1], L"fs_game") == 0) {
-      mod = utils::string::convert(argv[i + 2]);
+  if (argv != nullptr) {
+    std::string mod;
+    for (int32_t i = 0; i + 2 < count; ++i) {
+      if ((_wcsicmp(argv[i], L"+set") == 0 ||
+           _wcsicmp(argv[i], L"+seta") == 0) &&
+          _wcsicmp(argv[i + 1], L"fs_game") == 0) {
+        mod = utils::string::convert(argv[i + 2]);
+      }
     }
+    LocalFree(static_cast<void *>(argv));
+    return mod;
   }
-  LocalFree(argv);
-  return mod;
+
+  return {};
 }
 
 void update_server_mod() {
@@ -1226,10 +1233,15 @@ void update_server_mod() {
     return;
   }
 
-  printf("[ Workshop ] Updating mod '%s' (%s) from the Steam Workshop...\n",
-         details[0].title.c_str(), mod.c_str());
+  game::println(
+      "[ Workshop ] Updating mod '{}' ({}) from the Steam Workshop...",
+      details[0].title, mod);
   int32_t last_percent = -1;
-  download_job job{mod, game::ZoneType::MOD, nullptr, nullptr, {}};
+  download_job job{.id = mod,
+                   .type = game::ZoneType::MOD,
+                   .cancel = nullptr,
+                   .pause = nullptr,
+                   .report = {}};
   job.report = [&](const download_status &status) {
     if (!status.total) {
       return;
@@ -1238,10 +1250,10 @@ void update_server_mod() {
         static_cast<int32_t>(status.downloaded * 100 / status.total);
     if (percent / 10 != last_percent / 10) {
       last_percent = percent;
-      printf("[ Workshop ] %d%%\n", percent);
+      game::println("[ Workshop ] {}%", percent);
     }
   };
-  printf("[ Workshop ] %s\n", describe(download_item(job)));
+  game::println("[ Workshop ] {}", describe(download_item(job)));
 }
 
 workshop_info get_steam_workshop_info(const std::string_view &workshop_id) {
@@ -1431,9 +1443,9 @@ bool start_fastdl(game::ZoneType zoneType, const std::string_view &name,
           },
           scheduler::pipeline::main);
     };
-    printf("[ Workshop ] Server has FastDL, attempting download for %s from "
-           "%s\n",
-           context->item_name.c_str(), context->content_tree_uri.c_str());
+    game::println(
+        "[ Workshop ] Server has FastDL, attempting download for {} from {}",
+        context->item_name, context->content_tree_uri);
     return fastdl::start_download(context);
   }
   failure_callback();
@@ -1712,6 +1724,7 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
 static std::mutex reconnect_guard_mutex;
 static std::string last_auto_reconnect_target;
 
+// NOLINTNEXTLINE(modernize-avoid-variadic-functions)
 void com_error_missing_map_stub(const char *file, int line,
                                 game::errorParm code, const char *fmt, ...) {
   const game::net::netadr_t target = party::get_connected_server();
@@ -1731,9 +1744,9 @@ void com_error_missing_map_stub(const char *file, int line,
     }
 
     const std::string addr_copy(addr_str);
-    printf("[ Workshop ] Missing map/mod detected, reconnecting to %s for "
-           "download\n",
-           addr_copy.c_str());
+    game::println("[ Workshop ] Missing map/mod detected, reconnecting to {} "
+                  "for download",
+                  addr_copy);
 
     scheduler::once(
         [addr_copy] {
@@ -1756,12 +1769,12 @@ void com_error_missing_map_stub(const char *file, int line,
 utils::hook::detour UGC_LoadMod_hook;
 void UGC_LoadMod_LogFirst(game::LocalClientNum_t localClientNum,
                           game::ugc::UGCItem *mod, bool reloadFS) {
-  const std::string mod_str = mod ? mod->serialize() : "NULL";
+  const std::string mod_str = mod == nullptr ? "NULL" : mod->serialize();
   game::trace(
-      "UGC_LoadMod called with localClientNum: {}, mod: {}, reloadFS: {}",
+      "[UGC] UGC_LoadMod called with localClientNum: {}, mod: {}, reloadFS: {}",
       serialize(localClientNum), mod_str.data(), reloadFS ? "true" : "false");
 
-  return UGC_LoadMod_hook.invoke(localClientNum, mod, reloadFS);
+  UGC_LoadMod_hook.invoke(localClientNum, mod, reloadFS);
 }
 #endif
 
@@ -1844,27 +1857,27 @@ public:
         }
       });
       command::add("workshop_config", [](const command::params &params) {
-        printf("[ Workshop ] workshop_retry_attempts: %d (set in game or "
-               "config)\n",
-               get_workshop_retry_attempts());
-        printf("[ Workshop ] workshop_timeout: %d\n",
-               workshop_timeout.get_int());
+        game::println(
+            "[ Workshop ] workshop_retry_attempts: {} (set in game or config)",
+            get_workshop_retry_attempts());
+        game::println("[ Workshop ] workshop_timeout: {}",
+                      workshop_timeout.get_int());
       });
       command::add("workshop_download", [](const command::params &params) {
         if (params.size() < 2) {
-          printf("[ Workshop ] Usage: workshop_download <id> [Map|Mod]\n");
+          game::println("[ Workshop ] Usage: workshop_download <id> [Map|Mod]");
           return;
         }
         const std::string id = params.get(1);
         if (!id.empty()) {
 
-          game::ZoneType zoneType =
+          game::ZoneType zone_type =
               params.size() >= 3 &&
                       utils::string::to_lower(params.get(2)).find("mod") !=
                           std::string::npos
                   ? game::ZoneType::MOD
                   : game::ZoneType::USERMAP;
-          start_download(id, zoneType);
+          start_download(id, zone_type);
         }
       });
       command::add("loadmod", [](const command::params &params) {
@@ -1891,13 +1904,7 @@ public:
 
       command::add("printmod", [](const command::params &params) {
         const auto print = [](const std::string_view &msg) -> void {
-          std::println(std::cout, "{}", msg.data());
-          std::cout.flush();
-
-          game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                                game::consoleLabel_e::DEFAULT, "%s\n",
-                                msg.data());
-          game::trace("[printmod] {}", msg.data());
+          game::println(game::PrintOutput::STDOUT, "[printmod] {}", msg.data());
         };
 
         if (params.size() > 0) {
@@ -1939,8 +1946,9 @@ public:
       cancel_download();
       dlc_thread_shutdown = true;
       dlc_cv.notify_one();
-      if (dlc_popup_thread_obj.joinable())
+      if (dlc_popup_thread_obj.joinable()) {
         dlc_popup_thread_obj.join();
+      }
     }
   }
 };
