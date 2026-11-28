@@ -1,10 +1,10 @@
 #include <std_include.hpp>
 
-#include <rapidjson/document.h>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <rapidjson/document.h>
 
 #include <hash.hpp>
 

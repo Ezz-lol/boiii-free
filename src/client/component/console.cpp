@@ -29,12 +29,12 @@
 #include <utils/io.hpp>
 #include <utils/nt.hpp>
 
-#include <dwmapi.h>
-#include <richedit.h>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <dwmapi.h>
 #include <filesystem>
+#include <richedit.h>
 #include <sstream>
 #include <unordered_set>
 #include <vector>
