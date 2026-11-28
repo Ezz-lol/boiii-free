@@ -25,7 +25,7 @@ constexpr ScrVarCanonicalName_t EMPTY_NAMESPACE = builtin::fnv1a("");
 constexpr ScrVarCanonicalName_t SYS_NAMESPACE = builtin::SYS_NS_HASH;
 constexpr int32_t BUILTIN_DEV_ONLY = 1;
 
-thread_local scriptInstance_t active_instance = SCRIPTINSTANCE_SERVER;
+thread_local scriptInstance_t active_instance = scriptInstance_t::SERVER;
 
 class instance_scope {
 public:
@@ -120,7 +120,7 @@ std::vector<std::string> object_includes(const GSC_OBJ *obj) {
 
 std::vector<known_script> collect_scripts(const scriptInstance_t inst) {
   const std::string_view extension =
-      inst == SCRIPTINSTANCE_CLIENT ? ".csc" : ".gsc";
+      inst == scriptInstance_t::CLIENT ? ".csc" : ".gsc";
   std::vector<known_script> scripts;
   std::unordered_set<std::string> seen;
 
@@ -164,7 +164,7 @@ builtin_info find_builtin(const scriptInstance_t inst,
                           const ScrVarCanonicalName_t name, const bool method) {
   builtin_info info{};
   const void *handler = nullptr;
-  if (inst == SCRIPTINSTANCE_SERVER) {
+  if (inst == scriptInstance_t::SERVER) {
     handler = method ? reinterpret_cast<const void *>(builtin::Scr_GetMethod(
                            name, &info.type, &info.min_args, &info.max_args))
                      : reinterpret_cast<const void *>(builtin::Scr_GetFunction(
@@ -519,8 +519,8 @@ constexpr std::string_view FOOTER =
 
 report build_link_report(const scriptInstance_t inst, const char *failures) {
   report result{};
-  result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC LINK ERROR"
-                                                     : "GSC LINK ERROR") +
+  result.text = header(inst == scriptInstance_t::CLIENT ? "CSC LINK ERROR"
+                                                        : "GSC LINK ERROR") +
                 failures;
   return result;
 }
@@ -528,8 +528,8 @@ report build_link_report(const scriptInstance_t inst, const char *failures) {
 report build_missing_script_report(const scriptInstance_t inst,
                                    const std::string &missing) {
   report result{};
-  result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC LOAD ERROR"
-                                                     : "GSC LOAD ERROR");
+  result.text = header(inst == scriptInstance_t::CLIENT ? "CSC LOAD ERROR"
+                                                        : "GSC LOAD ERROR");
   append_field(result.text, "Script", "^5", missing);
   append_field(result.text, "Error", "^1", "Script file not found");
 
@@ -616,8 +616,8 @@ report build_runtime_report(const scriptInstance_t inst, const char *message,
                             const char *detail, const char *extra,
                             const char *source_file) {
   report result{};
-  result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC RUNTIME ERROR"
-                                                     : "GSC RUNTIME ERROR");
+  result.text = header(inst == scriptInstance_t::CLIENT ? "CSC RUNTIME ERROR"
+                                                        : "GSC RUNTIME ERROR");
 
   const std::vector<std::string> lines =
       message_lines({message, detail, extra});
@@ -650,14 +650,14 @@ void print_report(const report &report, const std::string &outcome) {
 void report_runaway_loop(const game::scr::scriptInstance_t inst,
                          const uint8_t *pos, const uint32_t elapsed_ms) {
   report result{};
-  result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC INFINITE LOOP"
-                                                     : "GSC INFINITE LOOP");
+  result.text = header(inst == scriptInstance_t::CLIENT ? "CSC INFINITE LOOP"
+                                                        : "GSC INFINITE LOOP");
   append_field(result.text, "Error", "^1",
                std::format("a loop ran for {} ms without a wait", elapsed_ms));
   append_callstack(result.text, inst, pos);
   append_field(
       result.text, "Cause", "^7",
-      inst == SCRIPTINSTANCE_CLIENT
+      inst == scriptInstance_t::CLIENT
           ? "the loop never yields, so the client freezes until it ends"
           : "the loop never yields, so the server frame never ends and "
             "the whole server freezes");

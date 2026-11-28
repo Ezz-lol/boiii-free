@@ -271,10 +271,10 @@ std::string explain_server_timeout() {
   using namespace game::scr;
   std::unordered_map<std::string, int32_t> seen;
   for (int32_t sample = 0; sample < 40; ++sample) {
-    if (vm::gScrVmPub->instance[SCRIPTINSTANCE_SERVER].function_count > 0) {
+    if (vm::gScrVmPub->server.function_count > 0) {
       std::string chain;
       for (const script::script_frame &frame :
-           script::get_script_frames(SCRIPTINSTANCE_SERVER)) {
+           script::get_script_frames(scriptInstance_t::SERVER)) {
         if (!frame.file.empty()) {
           chain += std::format("\n  {} ({}:{})", frame.function, frame.file,
                                frame.line);

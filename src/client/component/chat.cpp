@@ -81,7 +81,7 @@ void notify_chat(game::level::gentity_s *ent, const char *text) {
   if (static_cast<unsigned char>(text[0]) < 0x20 && text[0] != '\0') {
     ++text;
   }
-  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, text);
+  game::scr::Scr_AddString(game::scr::scriptInstance_t::SERVER, text);
   game::scr::Scr_Notify_Canon(ent, game::CanonHash("chat"), 1);
 }
 
@@ -126,7 +126,7 @@ void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
 
   // Not a mistake! + 2 is necessary for the GSC script to receive only the
   // actual chat text
-  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, p.data() + 2);
+  game::scr::Scr_AddString(game::scr::scriptInstance_t::SERVER, p.data() + 2);
   game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
 
   if (!is_muted(ent)) {

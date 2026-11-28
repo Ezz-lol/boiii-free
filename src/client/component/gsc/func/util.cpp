@@ -166,7 +166,7 @@ void GScr_ExitLevel_RespectRestriction(scriptInstance_t inst) {
 }
 
 void apply_exitlevel_hooks() {
-  register_builtin(SCRIPTINSTANCE_SERVER, "exitlevel_togglerestrict",
+  register_builtin(scriptInstance_t::SERVER, "exitlevel_togglerestrict",
                    gscr_exitlevel_togglerestrict, 0, 1);
   static const BuiltinFunction GScr_ExitLevel_orig =
       game::scr::builtin::table::gscr::builtin_functions->ExitLevel.actionFunc;
@@ -184,9 +184,9 @@ struct component final : generic_component {
     register_builtin("typename", gscr_typename, 1);
     register_builtin("ismenucached", gscr_ismenucached, 1);
     register_builtin("vector", gscr_vector, 0, 3);
-    register_builtin(SCRIPTINSTANCE_SERVER, "clientindex",
+    register_builtin(scriptInstance_t::SERVER, "clientindex",
                      gscr_clientindex::func, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "clientindex",
+    register_builtin(scriptInstance_t::SERVER, "clientindex",
                      gscr_clientindex::method, 0);
     apply_exitlevel_hooks();
   }

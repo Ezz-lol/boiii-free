@@ -109,7 +109,8 @@ void scr_get_num_expected_players() {
   }
 
   const int32_t num_expected_players = std::max(1, expected_players);
-  game::scr::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, num_expected_players);
+  game::scr::Scr_AddInt(game::scr::scriptInstance_t::SERVER,
+                        num_expected_players);
 }
 
 void sv_execute_client_messages_stub(game::sv::client_s *client,

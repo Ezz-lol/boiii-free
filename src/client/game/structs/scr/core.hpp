@@ -34,7 +34,7 @@ union ScrPool;
 // constraints
 template <typename T, template <typename Element, size_t N> typename T_Array>
 union ScrPool<T, T_Array, true> {
-  T_Array<T, SCRIPTINSTANCE_MAX> instance;
+  T_Array<T, +scriptInstance_t::COUNT> instance;
   struct {
     T server;
     T client;
@@ -44,8 +44,8 @@ union ScrPool<T, T_Array, true> {
 
   inline constexpr void assert_range(index_t index) const {
     assert(index < static_cast<index_t>(std::size(instance)) &&
-           "index to ScrPool must be within range SCRIPTINSTANCE_SERVER <= "
-           "index < SCRIPTINSTANCE_MAX");
+           "index to ScrPool must be within range scriptInstance_t::SERVER <= "
+           "index < scriptInstance_t::COUNT");
   }
 
   template <IntegralLike<index_t> Index>
@@ -72,13 +72,30 @@ union ScrPool<T, T_Array, true> {
     return get(index);
   }
 
-  inline constexpr auto size() const noexcept { return std::size(instance); }
+  [[nodiscard]] inline constexpr auto size() const noexcept {
+    return std::size(instance);
+  }
+
+  inline constexpr T *begin() noexcept { return &instance[0]; }
+  inline constexpr T *end() noexcept { return &instance[0] + size(); }
+  [[nodiscard]] inline constexpr const T *begin() const noexcept {
+    return &instance[0];
+  }
+  [[nodiscard]] inline constexpr const T *end() const noexcept {
+    return &instance[0] + size();
+  }
+  [[nodiscard]] inline constexpr const T *cbegin() const noexcept {
+    return begin();
+  }
+  [[nodiscard]] inline constexpr const T *cend() const noexcept {
+    return end();
+  }
 };
 
 //  Specialization for non-trivially constructible types
 template <typename T, template <typename Element, size_t N> typename T_Array>
 union ScrPool<T, T_Array, false> {
-  T_Array<T, SCRIPTINSTANCE_MAX> instance;
+  T_Array<T, +scriptInstance_t::COUNT> instance;
   struct {
     T server;
     T client;
@@ -88,8 +105,8 @@ union ScrPool<T, T_Array, false> {
 
   inline constexpr void assert_range(index_t index) const {
     assert(index < static_cast<index_t>(std::size(instance)) &&
-           "index to ScrPool must be within range SCRIPTINSTANCE_SERVER <= "
-           "index < SCRIPTINSTANCE_MAX");
+           "index to ScrPool must be within range scriptInstance_t::SERVER <= "
+           "index < scriptInstance_t::COUNT");
   }
 
   template <IntegralLike<index_t> Index>
@@ -117,6 +134,15 @@ union ScrPool<T, T_Array, false> {
   }
 
   inline constexpr auto size() const noexcept { return std::size(instance); }
+
+  inline constexpr T *begin() noexcept { return &instance[0]; }
+  inline constexpr T *end() noexcept { return &instance[0] + size(); }
+  inline constexpr const T *begin() const noexcept { return &instance[0]; }
+  inline constexpr const T *end() const noexcept {
+    return &instance[0] + size();
+  }
+  inline constexpr const T *cbegin() const noexcept { return begin(); }
+  inline constexpr const T *cend() const noexcept { return end(); }
 
   // Constructors and Destructors permitted here - `T` already makes this
   // non-conformant to CPP03 PoD.

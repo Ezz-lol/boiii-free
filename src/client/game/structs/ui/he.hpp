@@ -167,20 +167,7 @@ struct AtomicOptionalHudElementPool
   }
 };
 
-union hudelem_color_t {
-  struct {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
-  };
-  int32_t rgba;
-
-  [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"r\": {}, \"g\": {}, \"b\": {}, \"a\": {} }}", r, g,
-                       b, a);
-  }
-};
+typedef vec4<uint8_t> hudelem_color_t;
 ASSERT_SIZE(hudelem_color_t, 0x4);
 
 template <IntegralLike Underlying> struct HEType : public Enum<Underlying> {
@@ -277,17 +264,17 @@ PACKED(struct hudelem_s {
   hudelem_color_t glowColor;
   int32_t fxBirthTime;
   uint32_t flags;
-  short targetEntNum;
-  short fontScaleTime;
-  short fadeTime;
-  short label;
-  short width;
-  short height;
-  short fromWidth;
-  short fromHeight;
-  short scaleTime;
-  short moveTime;
-  short text;
+  int16_t targetEntNum;
+  int16_t fontScaleTime;
+  int16_t fadeTime;
+  int16_t label;
+  int16_t width;
+  int16_t height;
+  int16_t fromWidth;
+  int16_t fromHeight;
+  int16_t scaleTime;
+  int16_t moveTime;
+  int16_t text;
   uint16_t fxLetterTime;
   uint16_t fxDecayStartTime;
   uint16_t fxDecayDuration;
@@ -302,7 +289,7 @@ PACKED(struct hudelem_s {
   uint8_t fromAlignOrg;
   uint8_t fromAlignScreen;
   uint8_t soundID;
-  uint8_t _padding[1];
+  uint8_t _padding7B[1];
 
   inline constexpr void reset_value() volatile noexcept {
     width = 0;
@@ -316,7 +303,7 @@ PACKED(struct hudelem_s {
     fromAlignScreen = 0;
     soundID = 0;
     // TODO: Is this needed? Added for now in case this is a new field
-    _padding[0] = 0;
+    _padding7B[0] = 0;
     scaleStartTime = 0;
     scaleTime = 0;
     time = 0;
@@ -376,7 +363,7 @@ struct game_hudelem_s {
 
   [[nodiscard]] inline std::string serialize() const noexcept {
     return std::format(
-        "{{ \"elem\": {}, \"clientNum\": {}, \"team\": {}, \"archived\": {} }}",
+        R"({{ "elem": {}, "clientNum": {}, "team": {}, "archived": {} }})",
         elem.serialize(), game::serialize(clientNum), game::serialize(team),
         archived.serialize());
   }
@@ -392,10 +379,10 @@ struct serverHudMenu_t {
   bool persistent;
   DEF_PAD(145, 11);
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"modelData\": {}, \"menuNameIndex\": {}, "
-                       "\"modelNames\": {}, \"persistent\": {} }}",
-                       ::serialize(modelData), menuNameIndex,
-                       ::serialize(modelNames), ::serialize(persistent));
+    return std::format(
+        R"({{ "modelData": {}, "menuNameIndex": {}, "modelNames": {}, "persistent": {} }})",
+        ::serialize(modelData), menuNameIndex, ::serialize(modelNames),
+        ::serialize(persistent));
   }
 };
 ASSERT_SIZE(serverHudMenu_t, 0x150);
@@ -405,7 +392,7 @@ struct hudElemSoundInfo_t {
   int lastPlayedTime;
 
   [[nodiscard]] inline std::string serialize() const noexcept {
-    return std::format("{{ \"lastPlayedTime\": {} }}", lastPlayedTime);
+    return std::format(R"({{ "lastPlayedTime": {} }})", lastPlayedTime);
   }
 };
 } // namespace he

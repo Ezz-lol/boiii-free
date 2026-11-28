@@ -18,30 +18,32 @@ constexpr uint32_t LOOP_CHECK_INTERVAL = 1024;
 struct loop_watch {
   uint32_t time{};
   var::ScrVarIndex_t thread{};
-  std::chrono::steady_clock::time_point start{};
+  std::chrono::steady_clock::time_point start;
   uint32_t back_jumps{};
 };
 
 op::VM_OP_FUNC_PTR Jump_original{};
-std::array<loop_watch, SCRIPTINSTANCE_MAX> loop_watches{};
-std::array<std::unordered_set<const uint8_t *>, SCRIPTINSTANCE_MAX>
-    reported_loops{};
+game::scr::ScrPool<loop_watch> loop_watches{};
+game::scr::ScrPool<std::unordered_set<const uint8_t *>> reported_loops{};
 
 void Jump_DetectInfiniteLoop(const scriptInstance_t inst,
                              volatile function_stack_t *fs,
                              volatile ScrVmContext_t *vmc,
                              volatile bool *terminate) {
   const uintptr_t operand = (reinterpret_cast<uintptr_t>(fs->pos) + 1) & ~1ull;
-  if (inst < SCRIPTINSTANCE_MAX &&
+  if (inst < scriptInstance_t::COUNT &&
       *reinterpret_cast<const int16_t *>(operand) < 0) {
-    loop_watch &watch = loop_watches[inst];
-    const uint32_t time = gScrVarPub->instance[inst].time;
+    loop_watch &watch = loop_watches[+inst];
+    const uint32_t time = gScrVarPub->instance[+inst].time;
     if (watch.time != time || watch.thread != fs->threadId) {
-      watch = {time, fs->threadId, std::chrono::steady_clock::now(), 0};
+      watch = {.time = time,
+               .thread = fs->threadId,
+               .start = std::chrono::steady_clock::now(),
+               .back_jumps = 0};
     } else if (++watch.back_jumps % LOOP_CHECK_INTERVAL == 0) {
       const auto elapsed = std::chrono::steady_clock::now() - watch.start;
       if (elapsed >= LOOP_TIME_LIMIT &&
-          reported_loops[inst].insert(fs->pos - sizeof(op::OP_TYPE)).second) {
+          reported_loops[+inst].insert(fs->pos - sizeof(op::OP_TYPE)).second) {
         script_error::report_runaway_loop(
             inst, fs->pos,
             static_cast<uint32_t>(

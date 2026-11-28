@@ -137,9 +137,9 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("gsc/func/dvar");
 
   void post_unpack() override {
-    register_builtin(SCRIPTINSTANCE_SERVER, "setclientdvar",
+    register_builtin(scriptInstance_t::SERVER, "setclientdvar",
                      gscr_setclientdvar::func, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "setclientdvar",
+    register_builtin(scriptInstance_t::SERVER, "setclientdvar",
                      gscr_setclientdvar::method, 1);
     if (game::is_client()) {
       utils::hook::call(

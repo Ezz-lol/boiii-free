@@ -205,11 +205,11 @@ WEAK symbol<ScrPool<uint32_t>> gObjFileInfoCount{0x145070B60, 0x1425F0300};
 
 inline objFileInfo_t *get_obj_by_name(scriptInstance_t inst,
                                       const std::string_view &script) {
-  for (size_t i = 0; i < gObjFileInfoCount->instance[inst]; ++i) {
+  for (size_t i = 0; i < gObjFileInfoCount->instance[+inst]; ++i) {
     if (std::string_view(
-            gObjFileInfo->instance[inst][i].activeVersion->get_name()) ==
+            gObjFileInfo->instance[+inst][i].activeVersion->get_name()) ==
         script) {
-      return &gObjFileInfo->instance[inst][i];
+      return &gObjFileInfo->instance[+inst][i];
     }
   }
 

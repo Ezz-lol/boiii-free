@@ -62,9 +62,11 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("gsc/func/replacefunc");
 
   void post_unpack() override {
-    register_builtin(SCRIPTINSTANCE_SERVER, "replacefunc", gscr_replacefunc, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "getfunction", gscr_getfunction, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "clearreplacefuncs",
+    register_builtin(scriptInstance_t::SERVER, "replacefunc", gscr_replacefunc,
+                     2);
+    register_builtin(scriptInstance_t::SERVER, "getfunction", gscr_getfunction,
+                     2);
+    register_builtin(scriptInstance_t::SERVER, "clearreplacefuncs",
                      gscr_clearreplacefuncs, 0);
 
     game_event::on_g_shutdown_game([] {

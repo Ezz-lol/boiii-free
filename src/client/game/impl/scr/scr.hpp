@@ -9,13 +9,13 @@ inline level::gentity_t *GetEntity_Impl(const scr_entref_t *entref) {
   if (entref->classnum == 0) {
     return level::entity(entref->u.entnum);
   }
-  Scr_ObjectError(SCRIPTINSTANCE_SERVER, "not an entity");
+  Scr_ObjectError(scriptInstance_t::SERVER, "not an entity");
   return nullptr;
 }
 
 inline level::gentity_t *Scr_GetEntity_Impl(uint32_t index) {
   scr_entref_t entref;
-  Scr_GetEntityRef(&entref, SCRIPTINSTANCE_SERVER, index);
+  Scr_GetEntityRef(&entref, scriptInstance_t::SERVER, index);
   return GetEntity_Impl(&entref);
 }
 

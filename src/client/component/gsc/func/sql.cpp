@@ -579,11 +579,11 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("gsc/func/sql");
 
   void post_unpack() override {
-    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "sqlite_query",
+    register_variadic_builtin(scriptInstance_t::SERVER, "sqlite_query",
                               sqlite::gscr_query, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "mysql_setconfig",
+    register_builtin(scriptInstance_t::SERVER, "mysql_setconfig",
                      mysql::gscr_set_config, 1);
-    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "mysql_query",
+    register_variadic_builtin(scriptInstance_t::SERVER, "mysql_query",
                               mysql::gscr_query, 1);
   }
 };

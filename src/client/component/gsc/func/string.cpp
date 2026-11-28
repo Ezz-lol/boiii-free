@@ -163,7 +163,7 @@ void gscr_va(scriptInstance_t inst) {
 template <typename... Args>
 void register_missing(const char *name, BuiltinFunction func, Args... args) {
   for (const scriptInstance_t inst :
-       {SCRIPTINSTANCE_SERVER, SCRIPTINSTANCE_CLIENT}) {
+       {scriptInstance_t::SERVER, scriptInstance_t::CLIENT}) {
     if (!builtin_function(inst, name)) {
       register_builtin(inst, name, func, args...);
     }

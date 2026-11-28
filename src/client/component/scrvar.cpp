@@ -176,7 +176,7 @@ void ScrVar_AddArrayKeys_ObjectKeys(const scriptInstance_t inst,
                                     const ScrVarIndex_t parentId) {
   Scr_MakeArray(inst);
 
-  volatile ScrVar_t *vars = vm::gScrVarGlob->instance[inst].scriptVariables;
+  volatile ScrVar_t *vars = vm::gScrVarGlob->instance[+inst].scriptVariables;
   const ScrVarType type = vars[parentId].value.type;
   if (type < ScrVarType::THREAD || type > ScrVarType::REMOVED_THREAD) {
     return;

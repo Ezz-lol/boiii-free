@@ -200,13 +200,13 @@ WEAK symbol<ScrVarTypePool<const char *>> var_typename{0x143267240,
                                                        0x14107C040};
 inline constexpr bool valid_scrvar_index(scriptInstance_t inst,
                                          ScrVarIndex_t index) {
-  return index < SCRIPTVARIABLE_POOL_SIZE.instance[inst];
+  return index < SCRIPTVARIABLE_POOL_SIZE.instance[+inst];
 }
 
 inline ScrVarIndex_t scrvar_index(scriptInstance_t inst,
                                   volatile ScrVar_t *var) {
   uintptr_t scriptVariablesPtr = reinterpret_cast<uintptr_t>(
-      vm::gScrVarGlob->instance[inst].scriptVariables);
+      vm::gScrVarGlob->instance[+inst].scriptVariables);
   uintptr_t varPtr = reinterpret_cast<uintptr_t>(var);
   return static_cast<ScrVarIndex_t>((varPtr - scriptVariablesPtr) /
                                     sizeof(ScrVar_t));
@@ -256,7 +256,7 @@ inline volatile ScrVar_t *ScrVar_t::deref(scriptInstance_t inst) volatile {
   switch (value.type) {
   case ScrVarType::POINTER:
     if (valid_scrvar_index(inst, value.u.pointerValue)) {
-      return &vm::gScrVarGlob->instance[inst]
+      return &vm::gScrVarGlob->instance[+inst]
                   .scriptVariables[value.u.pointerValue];
     }
     break;
@@ -291,7 +291,7 @@ inline bool ScrVarValue_t::array_like(scriptInstance_t inst) volatile {
 inline volatile ScrVar_t *
 ScrVar_t::next_sibling(scriptInstance_t inst) volatile {
   if (valid_scrvar_index(inst, nextSibling)) {
-    return &vm::gScrVarGlob->instance[inst].scriptVariables[nextSibling];
+    return &vm::gScrVarGlob->instance[+inst].scriptVariables[nextSibling];
   }
 
   return nullptr;

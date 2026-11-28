@@ -131,10 +131,10 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
     // Disable streaming while we hold the ZIP open and modify global data.
     r::StreamGuard streamGuard;
 
-    const uint32_t objCount = gObjFileInfoCount->instance[inst];
+    const uint32_t objCount = gObjFileInfoCount->instance[+inst];
 
     for (uint32_t idx = 0; idx < objCount; ++idx) {
-      objFileInfo_t *const info = &gObjFileInfo->instance[inst][idx];
+      objFileInfo_t *const info = &gObjFileInfo->instance[+inst][idx];
 
       // Build the expected filename inside the ZIP: "<original>.gdb"
       scr_path_t gdbFileName;
@@ -175,13 +175,13 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
 
   // If a mod is active, also try to load from per‑zone GDB files
   if (ugc::active_mod->publisherId[0] != NULL) {
-    const uint32_t objCount = gObjFileInfoCount->instance[inst];
+    const uint32_t objCount = gObjFileInfoCount->instance[+inst];
 
     for (ZoneType zoneType = ZoneType::MOD; zoneType < ZoneType::COUNT;
          ++zoneType) {
 
       for (uint32_t idx = 0; idx < objCount; ++idx) {
-        objFileInfo_t *const info = &gObjFileInfo->instance[inst][idx];
+        objFileInfo_t *const info = &gObjFileInfo->instance[+inst][idx];
 
         // Build the virtual path: "all/scriptgdb/<filename>"
         scr_path_t relPath;
@@ -304,8 +304,8 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
 /// Returns nullptr if no match is found.
 objFileInfo_t *Scr_FindObjFileInfo_Impl(const scriptInstance_t inst,
                                         void *const addr) {
-  for (uint32_t i = 0; i < gObjFileInfoCount->instance[inst]; ++i) {
-    objFileInfo_t *const info = &gObjFileInfo->instance[inst][i];
+  for (uint32_t i = 0; i < gObjFileInfoCount->instance[+inst]; ++i) {
+    objFileInfo_t *const info = &gObjFileInfo->instance[+inst][i];
     const GSC_OBJ *const obj = info->activeVersion;
     if (obj != nullptr && contains(obj->cseg(), addr)) {
       return info;

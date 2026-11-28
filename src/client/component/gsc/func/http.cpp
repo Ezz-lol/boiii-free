@@ -15,7 +15,7 @@ namespace http {
 namespace {
 utils::http::headers read_headers(const rapidjson::Value *value) {
   utils::http::headers headers;
-  if (value && value->IsObject()) {
+  if (value != nullptr && value->IsObject()) {
     for (const auto &member : value->GetObject()) {
       headers[member.name.GetString()] = script_value::to_string(member.value);
     }
@@ -23,7 +23,7 @@ utils::http::headers read_headers(const rapidjson::Value *value) {
   return headers;
 }
 
-constexpr size_t MAX_RESPONSE_SIZE = 1024 * 1024;
+constexpr size_t MAX_RESPONSE_SIZE = 1024ull * 1024ull;
 
 void start_request(scriptInstance_t inst, std::string url,
                    utils::http::request_options options) {
@@ -111,10 +111,10 @@ struct component final : generic_component {
   DEFINE_COMPONENT_NAME("gsc/func/http");
 
   void post_unpack() override {
-    register_builtin(SCRIPTINSTANCE_SERVER, "httpget", gscr_httpget, 1, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "httppost", gscr_httppost, 2, 3);
-    register_builtin(SCRIPTINSTANCE_SERVER, "httprequest", gscr_httprequest, 1,
-                     2);
+    register_builtin(scriptInstance_t::SERVER, "httpget", gscr_httpget, 1, 2);
+    register_builtin(scriptInstance_t::SERVER, "httppost", gscr_httppost, 2, 3);
+    register_builtin(scriptInstance_t::SERVER, "httprequest", gscr_httprequest,
+                     1, 2);
   }
 };
 } // namespace http

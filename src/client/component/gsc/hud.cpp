@@ -35,20 +35,20 @@ namespace {
 using namespace game::bg::cache;
 using namespace game::ui::he;
 using namespace game::scr::he;
-constexpr char hudelem_cfgstr_pool_entry_name_prefix[] =
+constexpr char HUDELEM_CFGSTR_POOL_ENTRY_NAME_PREFIX[] =
     "__HUDELEM_CFGSTR_POOL_ENTRY_";
-constexpr uint8_t hudelem_cfgstr_pool_entry_name_number_max_suffix_len =
+constexpr uint8_t HUDELEM_CFGSTR_POOL_ENTRY_NAME_NUMBER_MAX_SUFFIX_LEN =
     sizeof(uint16_t) * 2 /* characters per byte */;
-constexpr uint8_t hudelem_cfgstr_pool_entry_name_len =
-    std::size(hudelem_cfgstr_pool_entry_name_prefix) +
-    hudelem_cfgstr_pool_entry_name_number_max_suffix_len;
-typedef str<hudelem_cfgstr_pool_entry_name_len> HudElemCfgStrPoolEntryName;
+constexpr uint8_t HUDELEM_CFGSTR_POOL_ENTRY_NAME_LEN =
+    std::size(HUDELEM_CFGSTR_POOL_ENTRY_NAME_PREFIX) +
+    HUDELEM_CFGSTR_POOL_ENTRY_NAME_NUMBER_MAX_SUFFIX_LEN;
+typedef str<HUDELEM_CFGSTR_POOL_ENTRY_NAME_LEN> HudElemCfgStrPoolEntryName;
 consteval ui::he::HudElementPool<HudElemCfgStrPoolEntryName>
 build_hudelem_cfgstr_name_pool(
     ui::he::HudElementPool<HudElemCfgStrPoolEntryName> pool = {}) {
-  for (uint16_t i = 0; i < pool.size(); ++i) {
-    append_hex<std::size(hudelem_cfgstr_pool_entry_name_prefix), uint16_t>(
-        hudelem_cfgstr_pool_entry_name_prefix, i, pool.pool[i]);
+  for (uint16_t i = 0; i < static_cast<uint16_t>(pool.size()); ++i) {
+    append_hex<std::size(HUDELEM_CFGSTR_POOL_ENTRY_NAME_PREFIX), uint16_t>(
+        HUDELEM_CFGSTR_POOL_ENTRY_NAME_PREFIX, i, pool.pool[i]);
   }
   return pool;
 }
@@ -74,12 +74,12 @@ struct RegisteredCfgString {
     idx.store(loc_cfgstr_idx, std::memory_order_release);
   }
 
-  inline bool has_value() volatile {
+  inline bool has_value() const volatile {
     return idx.load(std::memory_order_acquire).has_value();
   }
 
   // Caller needs to have checked if idx has value prior to call
-  inline int32_t get_idx() volatile {
+  inline int32_t get_idx() const volatile {
     return idx.load(std::memory_order_acquire).value();
   }
 
@@ -89,19 +89,17 @@ struct RegisteredCfgString {
 
      Safety: Caller needs to have checked if `idx` has value prior to call
   */
-  inline int32_t abs_idx() volatile {
+  inline int32_t abs_idx() const volatile {
     return s_bgCacheTypeInfo->get(CACHE_TYPE).configStringStart + get_idx();
   }
 };
 struct HudElemCfgStringPool
     : public ui::he::HudElementPool<RegisteredCfgString> {
-  inline bool contains(int32_t loc_cfgstr_idx) volatile {
-    for (volatile RegisteredCfgString &cfgstr : pool) {
-      if (cfgstr.has_value() && cfgstr.get_idx() == loc_cfgstr_idx) {
-        return true;
-      }
-    }
-    return false;
+  inline bool contains(const int32_t loc_cfgstr_idx) {
+    return std::ranges::any_of(
+        pool, [loc_cfgstr_idx](volatile RegisteredCfgString &cfgstr) {
+          return cfgstr.has_value() && cfgstr.get_idx() == loc_cfgstr_idx;
+        });
   }
 
   inline void clear() volatile noexcept {
@@ -120,9 +118,9 @@ void clear_hudelem_cfgstr(uint16_t hudElemIdx) {
     // TAC-protected on client, so we use a re-implementation to circumvent.
     sv::SV_SetConfigString_Impl(entry.abs_idx(), "");
 
-    volatile bgCachedGenericData &localizedString =
+    volatile bgCachedGenericData &localized_string =
         s_bgCache->server.dataSet.localizedStrings[entry.get_idx()];
-    localizedString.setName("");
+    localized_string.setName("");
 
     s_bgCache->server.checksum.set_dirty();
   }
@@ -137,11 +135,11 @@ inline void clear_message_bufs() {
 }
 
 inline void ensure_message_bufs_clear() {
-  if (message_buf[0]) {
+  if (message_buf[0] != NULL) {
     memset(message_buf, NULL, std::size(message_buf));
   }
 
-  if (cleaned_message_buf[0]) {
+  if (cleaned_message_buf[0] != NULL) {
     memset(cleaned_message_buf, NULL, std::size(cleaned_message_buf));
   }
 }
@@ -149,12 +147,13 @@ inline void ensure_message_bufs_clear() {
 void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
   if (entref->is_hudelem()) [[likely]] {
     ensure_message_bufs_clear();
-    const uint16_t hudElemIdx = entref->u.hudElemIndex;
-    volatile game_hudelem_t *elem = &g_hudelems->get(hudElemIdx);
+    const uint16_t hud_elem_idx = entref->u.hudElemIndex;
+    volatile game_hudelem_t *elem = &g_hudelems->get(hud_elem_idx);
 
     elem->reset_value();
     const uint32_t argc = Scr_GetNumParam(inst);
-    Scr_ConstructMessageString(0, argc - 1, "Hud Elem String", message_buf,
+    Scr_ConstructMessageString(0, static_cast<int32_t>(argc - 1),
+                               "Hud Elem String", message_buf,
                                std::size(message_buf));
     com::Com_CleanStringForNetwork(message_buf, cleaned_message_buf,
                                    std::size(cleaned_message_buf));
@@ -164,14 +163,15 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
     // C++-03 PoD constraints :(.
     elem->elem.type.underlying = he_type_field_t::TEXT;
 
-    volatile RegisteredCfgString *pool_entry = &hudelem_cfgstr_pool[hudElemIdx];
+    volatile RegisteredCfgString *pool_entry =
+        &hudelem_cfgstr_pool[hud_elem_idx];
 
     const bgCacheInstance cache_inst = static_cast<bgCacheInstance>(inst);
     const int32_t localized_cfgstring_index =
         BG_Cache_GetLocStringIndex(cache_inst, cleaned_message_buf);
     if (localized_cfgstring_index > 0 &&
         !hudelem_cfgstr_pool.contains(localized_cfgstring_index)) {
-      elem->elem.text = localized_cfgstring_index;
+      elem->elem.text = static_cast<int16_t>(localized_cfgstring_index);
     }
     // Not a localized string. Need to register and/or modify the config string
     // value.
@@ -181,13 +181,13 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
         pool_entry->set(
             s_bgCacheTypeInfo->get(BGCacheTypes::LOCSTRING)
                 .registerFunc(cache_inst,
-                              HUDELEM_CFGSTR_POOL_ENTRY_NAMES[hudElemIdx]));
+                              HUDELEM_CFGSTR_POOL_ENTRY_NAMES[hud_elem_idx]));
 #ifndef NDEBUG
         trace("[Scr][HECmd_SetText] Registered localized string "
               "configstring for "
               "hudelement 0x{:03X} with "
               "index 0x{:X}",
-              hudElemIdx, pool_entry->get_idx());
+              hud_elem_idx, pool_entry->get_idx());
 #endif
       }
 
@@ -215,7 +215,7 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 #endif
       // TAC-protected on client, so we use a re-implementation to circumvent.
       sv::SV_SetConfigString_Impl(pool_entry->abs_idx(), cleaned_message_buf);
-      elem->elem.text = pool_entry->get_idx();
+      elem->elem.text = static_cast<int16_t>(pool_entry->get_idx());
     }
     clear_message_bufs();
   } else [[unlikely]] {
@@ -231,7 +231,7 @@ void clear_hudelem_cfgstr_pool() { hudelem_cfgstr_pool.clear(); }
 
 void HudElem_DestroyAll_ClearCfgStrEntry_Invoke() {
   clear_hudelem_cfgstr_pool();
-  return HudElem_DestroyAll_hook.invoke();
+  HudElem_DestroyAll_hook.invoke();
 }
 
 utils::hook::detour BG_Cache_HandleConfigStringChange_hook;
@@ -251,10 +251,10 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
                       std::size(s_bgCache->client.dataSet.localizedStrings));
 
   if (localized_string) {
-    const uint32_t relativeIdx =
+    const uint32_t relative_idx =
         index - s_bgCacheTypeInfo->locstring.configStringStart;
     volatile bgCachedGenericData &data =
-        s_bgCache->client.dataSet.localizedStrings[relativeIdx];
+        s_bgCache->client.dataSet.localizedStrings[relative_idx];
 
     data.setName(name);
     data.ensure_ref();

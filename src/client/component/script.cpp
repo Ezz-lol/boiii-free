@@ -510,7 +510,7 @@ void load_script_file(std::string &data,
             "Compiling %s script '%s'", script_type, script_path(name).c_str());
         print_asset_log(log);
         const scriptInstance_t inst =
-            is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
+            is_csc ? scriptInstance_t::CLIENT : scriptInstance_t::SERVER;
         gsc::compiler::compile_result result =
             gsc::compiler::compile(inst, cleaned_source, name);
         if (result.success) {
@@ -644,14 +644,14 @@ void queue_script_execution(const std::string &name) {
   execution_queue.push_back(
       {.name = name,
        .base_name = name.substr(0, name.size() - 4),
-       .inst = is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER});
+       .inst = is_csc ? scriptInstance_t::CLIENT : scriptInstance_t::SERVER});
 }
 
 std::optional<std::string> find_missing_include(const queued_script &script) {
   const ScriptParseTree *tree = get_loaded_script(script.name);
   if (tree != nullptr && tree->buffer != nullptr) {
     const std::string_view &extension =
-        script.inst == SCRIPTINSTANCE_CLIENT ? CSC_EXT : GSC_EXT;
+        script.inst == scriptInstance_t::CLIENT ? CSC_EXT : GSC_EXT;
     const char *base = reinterpret_cast<const char *>(tree->buffer);
     for (const uint32_t offset : tree->buffer->includes()) {
       if (offset < tree->len) {
@@ -1548,12 +1548,12 @@ std::vector<script_frame> get_script_frames(scriptInstance_t inst,
   }
 
   std::vector<uint8_t *> positions;
-  positions.emplace_back(pos == nullptr ? vm::gFs->instance[inst].pos
+  positions.emplace_back(pos == nullptr ? vm::gFs->instance[+inst].pos
                                         : const_cast<uint8_t *>(pos));
-  for (int32_t stack_idx = vm::gScrVmPub->instance[inst].function_count - 1;
+  for (int32_t stack_idx = vm::gScrVmPub->instance[+inst].function_count - 1;
        stack_idx > -1; --stack_idx) {
     positions.emplace_back(
-        vm::gScrVmPub->instance[inst].function_frame_start[stack_idx].fs.pos);
+        vm::gScrVmPub->instance[+inst].function_frame_start[stack_idx].fs.pos);
   }
 
   if (positions.size() > 1) {
@@ -1615,8 +1615,8 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
       sv_detailedScriptErrors->set(true);
     }
     if (terminal) {
-      vm::gScrVarPub->instance[inst].developer = true;
-      vm::gScrVmPub->instance[inst].debugCode = true;
+      vm::gScrVarPub->instance[+inst].developer = true;
+      vm::gScrVmPub->instance[+inst].debugCode = true;
     }
 
     const std::vector<std::string> callstack = get_script_callstack(inst);
@@ -1638,10 +1638,11 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
         "error: \"%s\", terminal: %s, callstack:\n%s",
         derelocate(caller_addr), serialize(inst),
 #ifndef NDEBUG
-        vm::gFs->instance[inst].pos,
-        game::derelocate(vm::gFs->instance[inst].top),
-        game::derelocate(vm::gFs->instance[inst].startTop),
-        vm::gFs->instance[inst].threadId, vm::gFs->instance[inst].localVarCount,
+        vm::gFs->instance[+inst].pos,
+        game::derelocate(vm::gFs->instance[+inst].top),
+        game::derelocate(vm::gFs->instance[+inst].startTop),
+        vm::gFs->instance[+inst].threadId,
+        vm::gFs->instance[+inst].localVarCount,
 #endif
         error == nullptr ? "NULL" : error, terminal ? "true" : "false",
         prev_code_positions_string.c_str());

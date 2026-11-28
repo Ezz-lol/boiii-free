@@ -132,18 +132,22 @@ struct component final : generic_component {
 
   void post_unpack() override {
     // Player name/tag overrides (server-only)
-    register_builtin(SCRIPTINSTANCE_SERVER, "setname", gscr_setname::func, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "setname", gscr_setname::method, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "noclip", gscr_noclip, 0);
-    register_builtin(SCRIPTINSTANCE_SERVER, "settag", gscr_settag::func, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "settag", gscr_settag::method, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "resetname", gscr_resetname::func,
+    register_builtin(scriptInstance_t::SERVER, "setname", gscr_setname::func,
+                     2);
+    register_builtin(scriptInstance_t::SERVER, "setname", gscr_setname::method,
                      1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "resetname", gscr_resetname::method,
-                     0);
-    register_builtin(SCRIPTINSTANCE_SERVER, "resettag", gscr_resettag::func, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "resettag", gscr_resettag::method,
-                     0);
+    register_builtin(scriptInstance_t::SERVER, "noclip", gscr_noclip, 0);
+    register_builtin(scriptInstance_t::SERVER, "settag", gscr_settag::func, 2);
+    register_builtin(scriptInstance_t::SERVER, "settag", gscr_settag::method,
+                     1);
+    register_builtin(scriptInstance_t::SERVER, "resetname",
+                     gscr_resetname::func, 1);
+    register_builtin(scriptInstance_t::SERVER, "resetname",
+                     gscr_resetname::method, 0);
+    register_builtin(scriptInstance_t::SERVER, "resettag", gscr_resettag::func,
+                     1);
+    register_builtin(scriptInstance_t::SERVER, "resettag",
+                     gscr_resettag::method, 0);
   }
 };
 } // namespace name

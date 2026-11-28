@@ -28,7 +28,7 @@ volatile ScrVar_t *variable(const scriptInstance_t inst,
   if (!valid_scrvar_index(inst, id)) {
     return nullptr;
   }
-  return &vm::gScrVarGlob->instance[inst].scriptVariables[id];
+  return &vm::gScrVarGlob->instance[+inst].scriptVariables[id];
 }
 
 std::string hash_key(const uint32_t hash) {

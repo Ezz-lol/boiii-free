@@ -153,11 +153,11 @@ void PlayerCmd_IsHost_DelegateToFirstClient(scriptInstance_t inst,
       push(inst, ent->client->sess.cs.clientIndex == game::CLIENT_INDEX_0);
     } else {
       Scr_ObjectError(
-          SCRIPTINSTANCE_SERVER,
+          scriptInstance_t::SERVER,
           utils::string::va("entity %i is not a player", entref->u.entnum));
     }
   } else {
-    Scr_ObjectError(SCRIPTINSTANCE_SERVER, "not an entity");
+    Scr_ObjectError(scriptInstance_t::SERVER, "not an entity");
   }
 }
 

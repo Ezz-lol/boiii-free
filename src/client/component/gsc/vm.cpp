@@ -40,19 +40,19 @@ alwaysinline void flush_stack(scriptInstance_t inst,
   _mm_mfence();
 
   _mm_clflush(const_cast<const scrVmPub_t *>(
-      &game::scr::vm::gScrVmPub->instance[inst]));
+      &game::scr::vm::gScrVmPub->instance[+inst]));
   _mm_mfence();
 
   _mm_clflush(const_cast<const scrVarGlob_t *>(
-      &game::scr::vm::gScrVarGlob->instance[inst]));
+      &game::scr::vm::gScrVarGlob->instance[+inst]));
   _mm_mfence();
 
   _mm_clflush(const_cast<const ScrVar_t *>(
-      game::scr::vm::gScrVarGlob->instance[inst].scriptVariables));
+      game::scr::vm::gScrVarGlob->instance[+inst].scriptVariables));
   _mm_mfence();
 
   _mm_clflush(const_cast<const function_stack_t *>(
-      &game::scr::vm::gFs->instance[inst]));
+      &game::scr::vm::gFs->instance[+inst]));
   _mm_mfence();
 }
 
@@ -111,7 +111,7 @@ flush_exec_err(scriptInstance_t inst, volatile vm::function_stack_t *fs,
 
 inline bool try_redirect(scriptInstance_t inst,
                          volatile vm::function_stack_t *fs) {
-  if (inst == SCRIPTINSTANCE_SERVER &&
+  if (inst == scriptInstance_t::SERVER &&
       gsc::func::replacefunc::detours_enabled.load(std::memory_order_acquire)) {
     // Step behind the opcode in bytecode. Bytecode position increments past the
     // opcode just prior to execution in `VM_Execute`.

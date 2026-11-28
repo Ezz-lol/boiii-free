@@ -16,12 +16,12 @@ void VM_OP_GetTime_Handler_Impl(scriptInstance_t inst,
   const LocalClientNum_t localClientNum =
       is_server() ? LocalClientNum_t::LOCAL_CLIENT_0 : *primaryLocalClientNum;
   switch (inst) {
-  case SCRIPTINSTANCE_SERVER: {
+  case scriptInstance_t::SERVER: {
     fs->top[1].type = var::ScrVarType::INT;
     fs->top[1].u.intValue = *level::level_time;
     break;
   }
-  case SCRIPTINSTANCE_CLIENT: {
+  case scriptInstance_t::CLIENT: {
     if (is_server() || localClientNum < *cl_maxLocalClients) {
       fs->top[1].type = var::ScrVarType::INT;
       fs->top[1].u.intValue = game::cg::cgArray[localClientNum].time;

@@ -52,7 +52,7 @@ void G_RegisterSoundWait_Impl(level::gentity_s *ent, snd::SndAliasId id,
           ent->s.number, targetClassNameStr, targetDisplayStr, x, y, z,
           notifyDisplayStr, ent->snd_wait.basetime, tempNotifyDisplayStr,
           *level::level_time);
-      scr::Scr_Error(scr::SCRIPTINSTANCE_SERVER, errorStr, 0);
+      scr::Scr_Error(scr::scriptInstance_t::SERVER, errorStr, 0);
     }
   }
   scr::Scr_SetString(&ent->snd_wait.notifyString, tempNotifyString);

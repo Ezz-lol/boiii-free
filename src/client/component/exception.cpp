@@ -245,9 +245,9 @@ thread_local struct {
 
 bool is_game_thread();
 
-constexpr std::array<uint32_t, game::scr::SCRIPTINSTANCE_MAX>
-    SCRIPT_VARIABLE_COUNT{game::scr::var::SCRIPTVARIABLE_POOL_SIZE.server,
-                          0xFDE8};
+constexpr game::scr::ScrPool<size_t> SCRIPT_VARIABLE_COUNT{
+    .server = game::scr::var::SCRIPTVARIABLE_POOL_SIZE.server,
+    .client = 0xFDE8};
 
 struct script_state {
   const char *running = nullptr;
@@ -260,10 +260,10 @@ struct script_state {
 bool read_script_state(const game::scr::scriptInstance_t inst,
                        script_state &state) {
   __try {
-    volatile auto &vm = game::scr::vm::gScrVmPub->instance[inst];
-    auto *stack = const_cast<game::scr::var::ScrVarValue_t *>(vm.stack);
-    auto *frames =
-        const_cast<game::scr::vm::function_frame_t *>(vm.function_frame_start);
+    volatile game::scr::vm::scrVmPub_t &vm =
+        game::scr::vm::gScrVmPub->instance[+inst];
+    volatile game::scr::var::ScrVarValue_t *stack = vm.stack;
+    volatile game::scr::vm::function_frame_t *frames = vm.function_frame_start;
     state.executing = vm.function_count > 0;
     state.stack_corrupt =
         vm.top < stack || vm.top >= stack + std::size(vm.stack);
@@ -272,8 +272,9 @@ bool read_script_state(const game::scr::scriptInstance_t inst,
         vm.function_frame >= frames + std::size(vm.function_frame_start);
 
     const volatile game::scr::var::ScrVar_t *variables =
-        game::scr::vm::gScrVarGlob->instance[inst].scriptVariables;
-    for (uint32_t i = 0; variables && i < SCRIPT_VARIABLE_COUNT[inst]; ++i) {
+        game::scr::vm::gScrVarGlob->instance[+inst].scriptVariables;
+    for (uint32_t i = 0;
+         variables != nullptr && i < SCRIPT_VARIABLE_COUNT[+inst]; ++i) {
       if (static_cast<uint32_t>(variables[i].value.type) >=
           static_cast<uint32_t>(game::scr::var::ScrVarType::COUNT)) {
         state.variables_corrupt = true;
@@ -281,14 +282,13 @@ bool read_script_state(const game::scr::scriptInstance_t inst,
       }
     }
 
-    const uint8_t *pos = game::scr::vm::gFs->instance[inst].pos;
+    const uint8_t *pos = game::scr::vm::gFs->instance[+inst].pos;
     for (uint32_t i = 0;
-         state.executing && i < game::scr::gObjFileInfoCount->instance[inst];
+         state.executing && i < game::scr::gObjFileInfoCount->instance[+inst];
          ++i) {
       const game::scr::GSC_OBJ *obj =
-          game::scr::gObjFileInfo->instance[inst][i].activeVersion;
-      const uint8_t *code =
-          reinterpret_cast<const uint8_t *>(obj) + obj->cseg_offset;
+          game::scr::gObjFileInfo->instance[+inst][i].activeVersion;
+      const uint8_t *code = obj->cseg().data();
       if (pos >= code && pos < code + obj->cseg_size) {
         state.running = obj->get_name();
         break;
@@ -317,13 +317,14 @@ std::string describe_scripts() {
 
   std::string report;
   for (const game::scr::scriptInstance_t inst :
-       {game::scr::SCRIPTINSTANCE_SERVER, game::scr::SCRIPTINSTANCE_CLIENT}) {
+       {game::scr::scriptInstance_t::SERVER,
+        game::scr::scriptInstance_t::CLIENT}) {
     script_state state{};
     if (!read_script_state(inst, state)) {
       continue;
     }
 
-    const bool client = inst == game::scr::SCRIPTINSTANCE_CLIENT;
+    const bool client = inst == game::scr::scriptInstance_t::CLIENT;
     const char *name = client ? "CSC" : "GSC";
     const bool crashing_thread =
         client ? role == "main" && !game::is_server() : server_thread;

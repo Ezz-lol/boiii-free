@@ -138,11 +138,11 @@ struct component final : generic_component {
 
   void post_unpack() override {
     // Console commands
-    register_builtin(SCRIPTINSTANCE_SERVER, "addcommand", gscr_addcommand, 1,
+    register_builtin(scriptInstance_t::SERVER, "addcommand", gscr_addcommand, 1,
                      2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "getcommand", gscr_getcommand, 0,
+    register_builtin(scriptInstance_t::SERVER, "getcommand", gscr_getcommand, 0,
                      1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "executecommand",
+    register_builtin(scriptInstance_t::SERVER, "executecommand",
                      gscr_executecommand, 1);
 
     game_event::on_g_shutdown_game(clear_script_commands);

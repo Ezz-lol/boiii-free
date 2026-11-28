@@ -17,10 +17,10 @@ void g_scr_log_print() {
   std::size_t i_string_len = 0;
 
   const auto i_num_parms =
-      game::scr::Scr_GetNumParam(game::scr::SCRIPTINSTANCE_SERVER);
+      game::scr::Scr_GetNumParam(game::scr::scriptInstance_t::SERVER);
   for (std::uint32_t i = 0; i < i_num_parms; ++i) {
     const auto *psz_token =
-        game::scr::Scr_GetString(game::scr::SCRIPTINSTANCE_SERVER, i);
+        game::scr::Scr_GetString(game::scr::scriptInstance_t::SERVER, i);
     const auto i_token_len = std::strlen(psz_token);
 
     i_string_len += i_token_len;
