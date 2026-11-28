@@ -45,7 +45,7 @@ static std::mutex sd_allocations_mutex;
 static std::unordered_map<std::string, sd_byte *> sd_allocations;
 
 sd_byte *SD_HeapAlloc(const char *name, uint32_t size, uint32_t align) {
-  std::lock_guard<std::mutex> lock(sd_allocations_mutex);
+  std::scoped_lock<std::mutex> lock(sd_allocations_mutex);
   sd_byte *allocation = reinterpret_cast<sd_byte *>(
       aligned_alloc(static_cast<size_t>(align), static_cast<size_t>(size)));
   if (allocation) {
@@ -61,7 +61,7 @@ sd_byte *SD_HeapAlloc(const char *name, uint32_t size, uint32_t align) {
 }
 
 void SD_HeapFree(sd_byte *ptr) {
-  std::lock_guard<std::mutex> lock(sd_allocations_mutex);
+  std::scoped_lock<std::mutex> lock(sd_allocations_mutex);
   for (auto it = sd_allocations.begin(); it != sd_allocations.end();) {
     if (it->second == ptr) {
       aligned_free(ptr);

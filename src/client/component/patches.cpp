@@ -186,7 +186,7 @@ bool is_repeated_configstring(const game::sv::client_s *client,
     return false;
   }
 
-  std::lock_guard lock(sent_configstrings_mutex);
+  std::scoped_lock lock(sent_configstrings_mutex);
   sent_configstrings &sent = sent_configstrings_by_client[client];
   if (client->reliableSequence < sent.reliable_sequence) {
     sent.values.clear();
@@ -213,7 +213,7 @@ void add_server_command_stub(game::sv::client_s *client,
 }
 
 void clear_sent_configstrings() {
-  std::lock_guard lock(sent_configstrings_mutex);
+  std::scoped_lock lock(sent_configstrings_mutex);
   sent_configstrings_by_client.clear();
 }
 

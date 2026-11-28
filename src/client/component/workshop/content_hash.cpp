@@ -100,7 +100,7 @@ content_info zone_content(const char *zone_path) {
   }
 
   const std::string key = folder.generic_string();
-  const std::lock_guard lock(cache_mutex);
+  const std::scoped_lock lock(cache_mutex);
   const auto now = std::chrono::steady_clock::now();
   const auto found = cache.find(key);
   if (found != cache.end() && now - found->second.time < CACHE_TTL) {

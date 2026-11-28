@@ -77,7 +77,7 @@ progress_ui::progress_ui(progress_ui &&other) noexcept
     : headless_(other.headless_) {
   other.destroy_ui_thread();
 
-  std::lock_guard<std::recursive_mutex> lock(other.state_mutex_);
+  std::scoped_lock<std::recursive_mutex> lock(other.state_mutex_);
   state_ = other.state_;
   cancelled_.store(other.cancelled_.load());
   other.headless_ = true;
@@ -88,7 +88,7 @@ progress_ui &progress_ui::operator=(progress_ui &&other) noexcept {
     destroy_ui_thread();
     other.destroy_ui_thread();
 
-    std::lock_guard<std::recursive_mutex> lock(other.state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(other.state_mutex_);
     headless_ = other.headless_;
     state_ = other.state_;
     cancelled_.store(other.cancelled_.load());
@@ -102,7 +102,7 @@ void progress_ui::show(const bool marquee, HWND /*parent*/) const {
     return;
 
   {
-    std::lock_guard<std::recursive_mutex> lock(state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(state_mutex_);
     state_.marquee = marquee;
     state_.visible = true;
   }
@@ -115,7 +115,7 @@ void progress_ui::set_marquee(const bool marquee) const {
     return;
 
   {
-    std::lock_guard<std::recursive_mutex> lock(state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(state_mutex_);
     state_.marquee = marquee;
   }
 
@@ -128,7 +128,7 @@ void progress_ui::set_progress(const size_t current, const size_t max) const {
     return;
 
   {
-    std::lock_guard<std::recursive_mutex> lock(state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(state_mutex_);
     state_.progress_current = current;
     state_.progress_max = max;
   }
@@ -142,7 +142,7 @@ void progress_ui::set_line(const int line, const std::string &text) const {
     return;
 
   {
-    std::lock_guard<std::recursive_mutex> lock(state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(state_mutex_);
     if (line == 1)
       state_.line1 = text;
     else if (line == 2)
@@ -158,7 +158,7 @@ void progress_ui::set_title(const std::string &title) const {
     return;
 
   {
-    std::lock_guard<std::recursive_mutex> lock(state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(state_mutex_);
     state_.title = title;
   }
 
@@ -426,7 +426,7 @@ void progress_ui::paint(HDC hdc, const RECT &rc) const {
 
   std::string title;
   {
-    std::lock_guard<std::recursive_mutex> lock(state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(state_mutex_);
     title = state_.title;
   }
 
@@ -461,7 +461,7 @@ void progress_ui::paint(HDC hdc, const RECT &rc) const {
   size_t cur = 0, max_val = 0;
   bool marquee = false;
   {
-    std::lock_guard<std::recursive_mutex> lock(state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(state_mutex_);
     line1 = state_.line1;
     line2 = state_.line2;
     cur = state_.progress_current;
@@ -569,7 +569,7 @@ void progress_ui::paint(HDC hdc, const RECT &rc) const {
   SetTextColor(hdc, COL_TEXT);
   std::string btn_text;
   {
-    std::lock_guard<std::recursive_mutex> lock(state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(state_mutex_);
     btn_text = state_.btn_text;
   }
   DrawTextA(hdc, btn_text.c_str(), -1, &cancel_rc,
@@ -585,7 +585,7 @@ void progress_ui::show_error(const std::string &title,
   ui.set_line(1, message);
   ui.set_progress(1, 1);
   {
-    std::lock_guard<std::recursive_mutex> lock(ui.state_mutex_);
+    std::scoped_lock<std::recursive_mutex> lock(ui.state_mutex_);
     ui.state_.btn_text = "OK";
   }
   ui.show(false);

@@ -71,7 +71,7 @@ int authorize(void *, const int action, const char *, const char *,
 }
 
 database *open(const std::filesystem::path &path, std::string &error) {
-  std::lock_guard lock(databases_mutex);
+  std::scoped_lock lock(databases_mutex);
   const std::string key = path.string();
   if (const auto found = databases.find(key); found != databases.end()) {
     return found->second.get();
@@ -154,7 +154,7 @@ task_result execute(const std::filesystem::path &path, const std::string &sql,
     return make_result(std::move(rows), 0, error);
   }
 
-  std::lock_guard lock(db->mutex);
+  std::scoped_lock lock(db->mutex);
   const char *tail = sql.c_str();
   const char *end = sql.c_str() + sql.size();
   int64_t affected = 0;
@@ -363,7 +363,7 @@ MYSQL *connect(const api &functions, std::string &error) {
   thread_local connection current;
   config settings;
   {
-    std::lock_guard lock(config_mutex);
+    std::scoped_lock lock(config_mutex);
     settings = current_config;
   }
   if (settings.version == 0) {
@@ -538,7 +538,7 @@ void gscr_set_config(scriptInstance_t inst) {
   rapidjson::Document document;
   const rapidjson::Value settings =
       script_value::read(inst, 0, document.GetAllocator());
-  std::lock_guard lock(config_mutex);
+  std::scoped_lock lock(config_mutex);
   config updated;
   updated.version = current_config.version + 1;
   for (const auto &[name, target] :

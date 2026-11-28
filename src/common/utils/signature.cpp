@@ -209,7 +209,7 @@ signature::signature_result signature::process_parallel() const {
       if (local_result.empty())
         return;
 
-      std::lock_guard _(mutex);
+      std::scoped_lock _(mutex);
       for (const auto &address : local_result) {
         result.push_back(address);
       }

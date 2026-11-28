@@ -7,7 +7,7 @@ memory::allocator memory::mem_allocator_;
 memory::allocator::~allocator() { this->clear(); }
 
 void memory::allocator::clear() {
-  std::lock_guard _(this->mutex_);
+  std::scoped_lock _(this->mutex_);
 
   for (const auto &data : this->pool_) {
     memory::free(data);
@@ -17,7 +17,7 @@ void memory::allocator::clear() {
 }
 
 void memory::allocator::free(void *data) {
-  std::lock_guard _(this->mutex_);
+  std::scoped_lock _(this->mutex_);
 
   const auto j = std::find(this->pool_.begin(), this->pool_.end(), data);
   if (j != this->pool_.end()) {
@@ -31,7 +31,7 @@ void memory::allocator::free(const void *data) {
 }
 
 void *memory::allocator::allocate(const size_t length) {
-  std::lock_guard _(this->mutex_);
+  std::scoped_lock _(this->mutex_);
 
   const auto data = memory::allocate(length);
   this->pool_.push_back(data);
@@ -41,7 +41,7 @@ void *memory::allocator::allocate(const size_t length) {
 bool memory::allocator::empty() const { return this->pool_.empty(); }
 
 char *memory::allocator::duplicate_string(const std::string &string) {
-  std::lock_guard _(this->mutex_);
+  std::scoped_lock _(this->mutex_);
 
   const auto data = memory::duplicate_string(string);
   this->pool_.push_back(data);
@@ -49,7 +49,7 @@ char *memory::allocator::duplicate_string(const std::string &string) {
 }
 
 bool memory::allocator::find(const void *data) {
-  std::lock_guard _(this->mutex_);
+  std::scoped_lock _(this->mutex_);
 
   const auto j = std::find(this->pool_.begin(), this->pool_.end(), data);
   return j != this->pool_.end();

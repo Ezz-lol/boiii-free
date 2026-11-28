@@ -19,7 +19,7 @@ updater_ui::~updater_ui() = default;
 void updater_ui::update_files(const std::vector<file_info> &files) {
   this->handle_cancellation();
 
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
   this->total_files_ = files;
   this->downloaded_files_.clear();
   this->downloading_files_.clear();
@@ -34,7 +34,7 @@ void updater_ui::update_files(const std::vector<file_info> &files) {
 }
 
 void updater_ui::done_update() {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   const auto total_size = this->get_total_size();
 
@@ -57,14 +57,14 @@ void updater_ui::done_update() {
 void updater_ui::begin_file(const file_info &file) {
   this->handle_cancellation();
 
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   this->file_progress(file, 0);
   this->update_file_name();
 }
 
 void updater_ui::end_file(const file_info &file) {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   this->downloaded_files_.emplace_back(file);
   const auto entry = this->downloading_files_.find(file.name);
@@ -81,7 +81,7 @@ void updater_ui::end_file(const file_info &file) {
 void updater_ui::file_progress(const file_info &file, const size_t progress) {
   this->handle_cancellation();
 
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   this->downloading_files_[file.name] = {progress, file.size};
   this->update_progress();
@@ -94,13 +94,13 @@ void updater_ui::handle_cancellation() const {
 }
 
 void updater_ui::update_progress() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
   this->progress_ui_.set_progress(this->get_downloaded_size(),
                                   this->get_total_size());
 }
 
 void updater_ui::update_file_name() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   const auto downloaded_file_count = this->get_downloaded_files();
   const auto total_file_count = this->get_total_files();
@@ -117,7 +117,7 @@ void updater_ui::update_file_name() const {
 }
 
 size_t updater_ui::get_total_size() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   size_t total_size = 0;
   for (const auto &file : this->total_files_) {
@@ -128,7 +128,7 @@ size_t updater_ui::get_total_size() const {
 }
 
 size_t updater_ui::get_downloaded_size() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   size_t downloaded_size = 0;
   for (const auto &file : this->downloaded_files_) {
@@ -143,17 +143,17 @@ size_t updater_ui::get_downloaded_size() const {
 }
 
 size_t updater_ui::get_total_files() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
   return this->total_files_.size();
 }
 
 size_t updater_ui::get_downloaded_files() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
   return this->downloaded_files_.size();
 }
 
 std::string updater_ui::get_relevant_file_name() const {
-  std::lock_guard<std::recursive_mutex> _{this->mutex_};
+  std::scoped_lock<std::recursive_mutex> _{this->mutex_};
 
   std::string name{};
   auto smallest = std::numeric_limits<size_t>::max();

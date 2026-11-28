@@ -17,19 +17,19 @@ std::vector<callbacks::result> callbacks::results_;
 std::vector<callbacks::base *> callbacks::callback_list_;
 
 uint64_t callbacks::register_call() {
-  std::lock_guard<std::recursive_mutex> _(mutex_);
+  std::scoped_lock<std::recursive_mutex> _(mutex_);
   calls_[++call_id_] = false;
   return call_id_;
 }
 
 void callbacks::register_callback(base *handler, const int32_t callback) {
-  std::lock_guard<std::recursive_mutex> _(mutex_);
+  std::scoped_lock<std::recursive_mutex> _(mutex_);
   handler->set_i_callback(callback);
   callback_list_.push_back(handler);
 }
 
 void callbacks::unregister_callback(base *handler) {
-  std::lock_guard<std::recursive_mutex> _(mutex_);
+  std::scoped_lock<std::recursive_mutex> _(mutex_);
   for (auto i = callback_list_.begin(); i != callback_list_.end();) {
     if (*i == handler) {
       i = callback_list_.erase(i);
@@ -40,12 +40,12 @@ void callbacks::unregister_callback(base *handler) {
 }
 
 void callbacks::register_call_result(const uint64_t call, base *result) {
-  std::lock_guard<std::recursive_mutex> _(mutex_);
+  std::scoped_lock<std::recursive_mutex> _(mutex_);
   result_handlers_[call] = result;
 }
 
 void callbacks::unregister_call_result(const uint64_t call, base * /*result*/) {
-  std::lock_guard<std::recursive_mutex> _(mutex_);
+  std::scoped_lock<std::recursive_mutex> _(mutex_);
   const auto i = result_handlers_.find(call);
   if (i != result_handlers_.end()) {
     result_handlers_.erase(i);
@@ -54,7 +54,7 @@ void callbacks::unregister_call_result(const uint64_t call, base * /*result*/) {
 
 void callbacks::return_call(void *data, const int32_t size, const int32_t type,
                             const uint64_t call) {
-  std::lock_guard<std::recursive_mutex> _(mutex_);
+  std::scoped_lock<std::recursive_mutex> _(mutex_);
 
   result result{};
   result.call = call;
@@ -68,7 +68,7 @@ void callbacks::return_call(void *data, const int32_t size, const int32_t type,
 }
 
 void callbacks::run_callbacks() {
-  std::lock_guard<std::recursive_mutex> _(mutex_);
+  std::scoped_lock<std::recursive_mutex> _(mutex_);
 
   for (const auto &result : results_) {
     if (result_handlers_.contains(result.call)) {

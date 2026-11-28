@@ -348,7 +348,7 @@ void start_task(const scriptInstance_t inst, task_work work) {
   });
 
   {
-    std::lock_guard lock(queue_mutex);
+    std::scoped_lock lock(queue_mutex);
     queue.push_back(task{.inst = inst,
                          .object = object,
                          .generation = generation,

@@ -1,6 +1,5 @@
 #include "cryptography.hpp"
 #include "string.hpp"
-
 #include <random>
 #include <windows.h>
 

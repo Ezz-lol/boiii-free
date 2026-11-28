@@ -120,7 +120,7 @@ void send_snapshot(const game::net::netadr_t &target) {
   uint8_t name_count = 0;
   uint8_t tag_count = 0;
   {
-    std::lock_guard lock(overrides_mutex);
+    std::scoped_lock lock(overrides_mutex);
     for (size_t i = 0; i < overrides.size(); ++i) {
       if (overrides[i].name) {
         names.write(static_cast<int32_t>(i));
@@ -181,7 +181,7 @@ void apply(const game::ClientNum_t client_num) {
   }
 
   game::level::clientState_t &cs = ent->client->sess.cs;
-  std::lock_guard lock(overrides_mutex);
+  std::scoped_lock lock(overrides_mutex);
   override_slot &entry = slot(client_num);
 
   if (entry.name && !entry.original_name)
@@ -220,7 +220,7 @@ void enforce_overrides() {
        client_num = static_cast<game::ClientNum_t>(client_num + 1)) {
     bool active;
     {
-      std::lock_guard lock(overrides_mutex);
+      std::scoped_lock lock(overrides_mutex);
       active = slot(client_num).name || slot(client_num).tag;
     }
     if (active)
@@ -233,7 +233,7 @@ void update_override(const game::ClientNum_t client_num, const bool is_tag,
   if (!game::validate(client_num))
     return;
   {
-    std::lock_guard lock(overrides_mutex);
+    std::scoped_lock lock(overrides_mutex);
     auto &field = is_tag ? slot(client_num).tag : slot(client_num).name;
     field = value;
   }
@@ -247,7 +247,7 @@ void update_override(const game::ClientNum_t client_num, const bool is_tag,
 }
 
 void clear_all() {
-  std::lock_guard lock(overrides_mutex);
+  std::scoped_lock lock(overrides_mutex);
   overrides = {};
 }
 
@@ -256,7 +256,7 @@ void store_received(const game::ClientNum_t client_num, const bool is_tag,
   if (!game::validate(client_num) ||
       (value && value->size() > max_override_length))
     return;
-  std::lock_guard lock(overrides_mutex);
+  std::scoped_lock lock(overrides_mutex);
   (is_tag ? slot(client_num).tag : slot(client_num).name) = std::move(value);
 }
 
@@ -312,7 +312,7 @@ void on_remove_client(game::sv::client_s *cl, const char *) {
   if (!game::validate(client_num))
     return;
   {
-    std::lock_guard lock(overrides_mutex);
+    std::scoped_lock lock(overrides_mutex);
     slot(client_num) = {};
   }
   broadcast(SyncMessageType::CLEAR_NAME, client_num);
@@ -357,7 +357,7 @@ void clear_clan_abbrev_override(const game::ClientNum_t client_num) {
 std::optional<std::string> get_name_override(game::ClientNum_t client_num) {
   if (!game::validate(client_num))
     return std::nullopt;
-  std::lock_guard lock(overrides_mutex);
+  std::scoped_lock lock(overrides_mutex);
   return slot(client_num).name;
 }
 
@@ -365,7 +365,7 @@ std::optional<std::string>
 get_clan_abbrev_override(game::ClientNum_t client_num) {
   if (!game::validate(client_num))
     return std::nullopt;
-  std::lock_guard lock(overrides_mutex);
+  std::scoped_lock lock(overrides_mutex);
   return slot(client_num).tag;
 }
 

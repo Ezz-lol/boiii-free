@@ -209,7 +209,7 @@ SndStringHash SND_HashName_Impl(const char *name) {
   }
 #ifndef NDEBUG
   {
-    std::lock_guard lock(aliasIdNameMapMutex);
+    std::scoped_lock lock(aliasIdNameMapMutex);
     if (!aliasIdNameMap.contains(hash)) {
       // Default value implicitly created and inserted
       strscpy(aliasIdNameMap[hash], name, sizeof(AliasName));
@@ -223,7 +223,7 @@ SndStringHash SND_HashName_Impl(const char *name) {
 const char *SND_AliasLookup(SndAliasId aliasId) {
   bool mapped_alias;
   {
-    std::lock_guard lock(aliasIdNameMapMutex);
+    std::scoped_lock lock(aliasIdNameMapMutex);
     mapped_alias = aliasIdNameMap.contains(aliasId);
   }
   if (mapped_alias) {

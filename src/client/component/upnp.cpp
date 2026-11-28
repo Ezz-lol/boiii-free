@@ -80,7 +80,7 @@ void map_port(const uint16_t port) {
       SysFreeString(external_raw);
       IN_ADDR parsed{};
       if (inet_pton(AF_INET, external, &parsed) == 1) {
-        std::lock_guard lock(state_mutex);
+        std::scoped_lock lock(state_mutex);
         mapped_port = port;
         mapped_endpoint = std::string(external) + ":" + std::to_string(port);
       }
@@ -114,7 +114,7 @@ void open_port(const uint16_t port) {
 void close_port() {
   uint16_t port{};
   {
-    std::lock_guard lock(state_mutex);
+    std::scoped_lock lock(state_mutex);
     port = mapped_port;
     mapped_port = 0;
     mapped_endpoint.clear();
@@ -124,7 +124,7 @@ void close_port() {
 }
 
 std::string external_endpoint() {
-  std::lock_guard lock(state_mutex);
+  std::scoped_lock lock(state_mutex);
   return mapped_endpoint;
 }
 

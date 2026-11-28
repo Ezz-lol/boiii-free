@@ -591,7 +591,7 @@ std::string get_pending_game_invite(uint64_t *out_friend_id) {
   }
 
   {
-    std::lock_guard lock(pending_connect_mutex);
+    std::scoped_lock lock(pending_connect_mutex);
     if (!pending_connect_addr.empty()) {
       const std::string result = std::move(pending_connect_addr);
       pending_connect_addr.clear();

@@ -253,7 +253,7 @@ void query_lan_address(const game::net::netadr_t &address,
 void finish_friend_scan(const uint64_t generation) {
   std::unordered_map<uint64_t, friend_scan_result> discovered;
   {
-    std::lock_guard lock(friend_scan_mutex);
+    std::scoped_lock lock(friend_scan_mutex);
     if (generation != friend_scan_generation)
       return;
     discovered = friend_scan_results;
@@ -387,7 +387,7 @@ void *matchmaking_servers::RequestFriendsServerList(
   ::friends::reset_master_presence();
   uint64_t generation{};
   {
-    std::lock_guard lock(friend_scan_mutex);
+    std::scoped_lock lock(friend_scan_mutex);
     generation = ++friend_scan_generation;
     friend_scan_results.clear();
   }
@@ -401,7 +401,7 @@ void *matchmaking_servers::RequestFriendsServerList(
   nat::refresh_friends(ids, [generation](
                                 std::vector<nat::friend_presence> live) {
     {
-      std::lock_guard lock(friend_scan_mutex);
+      std::scoped_lock lock(friend_scan_mutex);
       if (generation != friend_scan_generation)
         return;
       for (const auto &presence : live) {
@@ -615,7 +615,7 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
     uint64_t generation{};
     matchmaking_server_list_response *expected_response{};
     {
-      std::lock_guard lock(friend_scan_mutex);
+      std::scoped_lock lock(friend_scan_mutex);
       generation = friend_scan_generation;
       expected_response = friends_response.load();
     }
@@ -623,7 +623,7 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
         {steam_id}, [steam_id, generation, expected_response](
                         std::vector<nat::friend_presence> live) {
           {
-            std::lock_guard lock(friend_scan_mutex);
+            std::scoped_lock lock(friend_scan_mutex);
             if (generation != friend_scan_generation ||
                 expected_response != friends_response.load()) {
               return;

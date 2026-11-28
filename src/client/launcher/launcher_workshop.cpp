@@ -109,7 +109,7 @@ void begin_browse_request(const uint64_t token, const std::string &mode,
                           const std::string &source = "none") {
   workshop_browse_loading = true;
 
-  std::lock_guard lock(workshop_browse_mutex);
+  std::scoped_lock lock(workshop_browse_mutex);
   workshop_browse_state_data.items_json =
       seed_items_json.empty() ? "[]" : seed_items_json;
   workshop_browse_state_data.mode = mode;
@@ -127,7 +127,7 @@ void set_browse_request_items(const uint64_t token, std::string items_json,
     return;
   }
 
-  std::lock_guard lock(workshop_browse_mutex);
+  std::scoped_lock lock(workshop_browse_mutex);
   if (workshop_browse_state_data.request_token != token) {
     return;
   }
@@ -145,7 +145,7 @@ void set_browse_request_error(const uint64_t token, std::string error,
     return;
   }
 
-  std::lock_guard lock(workshop_browse_mutex);
+  std::scoped_lock lock(workshop_browse_mutex);
   if (workshop_browse_state_data.request_token != token) {
     return;
   }
@@ -163,7 +163,7 @@ void finish_browse_request(const uint64_t token) {
     workshop_browse_loading = false;
   }
 
-  std::lock_guard lock(workshop_browse_mutex);
+  std::scoped_lock lock(workshop_browse_mutex);
   if (workshop_browse_state_data.request_token == token) {
     workshop_browse_state_data.loading = false;
     workshop_browse_state_data.complete = true;
@@ -182,7 +182,7 @@ bool try_get_cached_workshop_search(const std::string &query,
     return false;
   }
 
-  std::lock_guard lock(workshop_search_cache_mutex);
+  std::scoped_lock lock(workshop_search_cache_mutex);
 
   const auto it = workshop_search_cache.find(normalized_query);
   if (it == workshop_search_cache.end()) {
@@ -206,7 +206,7 @@ void store_cached_workshop_search(const std::string &query,
     return;
   }
 
-  std::lock_guard lock(workshop_search_cache_mutex);
+  std::scoped_lock lock(workshop_search_cache_mutex);
 
   const auto now = std::chrono::steady_clock::now();
 
@@ -278,7 +278,7 @@ std::string extract_workshop_id(const std::string &input) {
 
 void set_workshop_status(const std::string &msg, double progress = -1.0,
                          const std::string &details = "") {
-  std::lock_guard lock(workshop_status_mutex);
+  std::scoped_lock lock(workshop_status_mutex);
   workshop_status_message = msg;
   if (progress >= 0.0)
     workshop_progress_percent = progress;
@@ -286,7 +286,7 @@ void set_workshop_status(const std::string &msg, double progress = -1.0,
 }
 
 void reset_workshop_status() {
-  std::lock_guard lock(workshop_status_mutex);
+  std::scoped_lock lock(workshop_status_mutex);
   workshop_status_message = WORKSHOP_STATUS_IDLE;
   workshop_progress_percent = 0.0;
   workshop_progress_details.clear();
@@ -758,7 +758,7 @@ void workshop_browse_fetch_thread(const std::string &sort,
     } else {
       bool has_seed_items = false;
       {
-        std::lock_guard lock(workshop_browse_mutex);
+        std::scoped_lock lock(workshop_browse_mutex);
         has_seed_items =
             workshop_browse_state_data.request_token == request_token &&
             workshop_browse_state_data.items_json != "[]";
@@ -810,7 +810,7 @@ void workshop_download_thread(const std::string &workshop_id,
       info.title.empty() ? "Workshop #" + workshop_id : info.title;
   const auto started = std::chrono::steady_clock::now();
   {
-    std::lock_guard lock(workshop_status_mutex);
+    std::scoped_lock lock(workshop_status_mutex);
     workshop_download_folder =
         (game::get_game_path() / "workshop_downloads" / workshop_id).string();
   }
@@ -919,13 +919,13 @@ void register_callbacks(html_frame *frame) {
         const std::string id = extract_workshop_id(params[0].get_string());
         if (id.empty())
           return CComVariant("0");
-        std::lock_guard lock(size_lookup_mutex);
+        std::scoped_lock lock(size_lookup_mutex);
         const auto [entry, added] = size_lookup.try_emplace(id);
         if (added) {
           std::thread([id] {
             const uint64_t size =
                 ::workshop::scrape_workshop_file_size_bytes(id);
-            std::lock_guard lock(size_lookup_mutex);
+            std::scoped_lock lock(size_lookup_mutex);
             size_lookup[id] = size;
           }).detach();
         }
@@ -937,7 +937,7 @@ void register_callbacks(html_frame *frame) {
   frame->register_callback(
       "workshopGetStatus",
       [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-        std::lock_guard lock(workshop_status_mutex);
+        std::scoped_lock lock(workshop_status_mutex);
         rapidjson::StringBuffer buf;
         rapidjson::Writer<rapidjson::StringBuffer> w(buf);
         w.StartObject();
@@ -1057,7 +1057,7 @@ void register_callbacks(html_frame *frame) {
   frame->register_callback(
       "workshopGetBrowseState",
       [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-        std::lock_guard lock(workshop_browse_mutex);
+        std::scoped_lock lock(workshop_browse_mutex);
 
         rapidjson::StringBuffer buf;
         rapidjson::Writer<rapidjson::StringBuffer> w(buf);
@@ -1095,7 +1095,7 @@ void register_callbacks(html_frame *frame) {
   frame->register_callback(
       "workshopGetBrowseData",
       [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-        std::lock_guard lock(workshop_browse_mutex);
+        std::scoped_lock lock(workshop_browse_mutex);
         return utf8_variant(workshop_browse_state_data.items_json);
       });
 

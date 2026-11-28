@@ -147,14 +147,14 @@ std::atomic<bool> remove_running{false};
 
 void set_remove_status(const std::string &msg, double pct,
                        const std::string &details = "") {
-  std::lock_guard lock(remove_status_mutex);
+  std::scoped_lock lock(remove_status_mutex);
   remove_status_message = msg;
   remove_progress_percent = pct;
   remove_progress_details = details;
 }
 
 void reset_remove_status() {
-  std::lock_guard lock(remove_status_mutex);
+  std::scoped_lock lock(remove_status_mutex);
   remove_status_message.clear();
   remove_progress_percent = 0.0;
   remove_progress_details.clear();
@@ -171,14 +171,14 @@ std::atomic<bool> verify_cancel_requested{false};
 
 void set_verify_status(const std::string &msg, double pct,
                        const std::string &details) {
-  std::lock_guard lock(verify_mutex);
+  std::scoped_lock lock(verify_mutex);
   verify_status_message = msg;
   verify_progress_percent = pct;
   verify_progress_details = details;
 }
 
 void reset_verify_status() {
-  std::lock_guard lock(verify_mutex);
+  std::scoped_lock lock(verify_mutex);
   verify_status_message.clear();
   verify_progress_percent = 0.0;
   verify_progress_details.clear();
@@ -612,7 +612,7 @@ void verify_game_thread(const std::string &modes_csv) {
     summary.EndObject();
 
     {
-      std::lock_guard lock(verify_mutex);
+      std::scoped_lock lock(verify_mutex);
       verify_changed_files = std::move(problematic_files);
       verify_summary.assign(summary_buffer.GetString(),
                             summary_buffer.GetSize());
@@ -1616,7 +1616,7 @@ bool run() {
           }
           folder_picker_done = false;
           {
-            std::lock_guard lock(folder_picker_mutex);
+            std::scoped_lock lock(folder_picker_mutex);
             folder_picker_result.clear();
           }
 
@@ -1669,7 +1669,7 @@ bool run() {
               const bool has_server = std::filesystem::exists(
                   sel / "BlackOps3_UnrankedDedicatedServer.exe");
               if (!has_client && !has_server) {
-                std::lock_guard lock(folder_picker_mutex);
+                std::scoped_lock lock(folder_picker_mutex);
                 folder_picker_result = "invalid";
               } else {
                 const std::filesystem::path path_file =
@@ -1680,11 +1680,11 @@ bool run() {
                 utils::io::write_file(path_file.string(), selected);
                 SetCurrentDirectoryA(selected.c_str());
 
-                std::lock_guard lock(folder_picker_mutex);
+                std::scoped_lock lock(folder_picker_mutex);
                 folder_picker_result = selected;
               }
             } else {
-              std::lock_guard lock(folder_picker_mutex);
+              std::scoped_lock lock(folder_picker_mutex);
               folder_picker_result = "cancelled";
             }
 
@@ -1701,7 +1701,7 @@ bool run() {
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
           if (!folder_picker_done.load())
             return CComVariant("pending");
-          std::lock_guard lock(folder_picker_mutex);
+          std::scoped_lock lock(folder_picker_mutex);
           return CComVariant(folder_picker_result.c_str());
         });
 
@@ -1718,7 +1718,7 @@ bool run() {
             set_remove_status("Removing mod...", -1.0, folder);
             workshop_remove_one(folder);
             {
-              std::lock_guard lock(library_list_mutex);
+              std::scoped_lock lock(library_list_mutex);
               library_list_cache.clear();
             }
             set_remove_status("Removal complete", 100.0);
@@ -1777,7 +1777,7 @@ bool run() {
             }
 
             {
-              std::lock_guard lock(library_list_mutex);
+              std::scoped_lock lock(library_list_mutex);
               library_list_cache.clear();
             }
             set_remove_status("Removal complete", 100.0,
@@ -1805,7 +1805,7 @@ bool run() {
             std::string error;
             const bool removed = workshop_remove_by_path(path, error);
             if (removed) {
-              std::lock_guard lock(library_list_mutex);
+              std::scoped_lock lock(library_list_mutex);
               library_list_cache.clear();
               set_remove_status("Removal complete", 100.0);
             } else {
@@ -1821,7 +1821,7 @@ bool run() {
     window.get_html_frame()->register_callback(
         "workshopList",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-          std::lock_guard lock(library_list_mutex);
+          std::scoped_lock lock(library_list_mutex);
           if (!library_list_cache.empty())
             return launcher::workshop::utf8_variant(library_list_cache);
           return CComVariant("[]");
@@ -1837,7 +1837,7 @@ bool run() {
             try {
               std::string json = workshop_list_json();
               {
-                std::lock_guard lock(library_list_mutex);
+                std::scoped_lock lock(library_list_mutex);
                 library_list_cache = std::move(json);
               }
             } catch (...) {
@@ -1889,7 +1889,7 @@ bool run() {
     window.get_html_frame()->register_callback(
         "getVerifyStatus",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-          std::lock_guard lock(verify_mutex);
+          std::scoped_lock lock(verify_mutex);
           rapidjson::StringBuffer buf;
           rapidjson::Writer<rapidjson::StringBuffer> w(buf);
           w.StartObject();
@@ -1926,7 +1926,7 @@ bool run() {
     window.get_html_frame()->register_callback(
         "getRemoveStatus",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-          std::lock_guard lock(remove_status_mutex);
+          std::scoped_lock lock(remove_status_mutex);
           rapidjson::StringBuffer buf;
           rapidjson::Writer<rapidjson::StringBuffer> w(buf);
           w.StartObject();
@@ -1959,7 +1959,7 @@ bool run() {
               set_remove_status("Removing mod...", -1.0, a);
               workshop_remove_one(a);
               {
-                std::lock_guard lock(library_list_mutex);
+                std::scoped_lock lock(library_list_mutex);
                 library_list_cache.clear();
               }
               set_remove_status("Removal complete", 100.0);
@@ -1983,7 +1983,7 @@ bool run() {
               std::string error;
               const bool removed = workshop_remove_by_path(a, error);
               if (removed) {
-                std::lock_guard lock(library_list_mutex);
+                std::scoped_lock lock(library_list_mutex);
                 library_list_cache.clear();
                 set_remove_status("Removal complete", 100.0);
               } else {

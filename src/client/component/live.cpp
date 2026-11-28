@@ -63,7 +63,7 @@ namespace storage {
 std::recursive_mutex Storage_Pump_Lock;
 utils::hook::detour Storage_Pump_hook;
 void Storage_Pump_Threadsafe(const ControllerIndex_t controllerIndex) {
-  std::lock_guard<std::recursive_mutex> lock(Storage_Pump_Lock);
+  std::scoped_lock<std::recursive_mutex> lock(Storage_Pump_Lock);
   Storage_Pump_hook.invoke(controllerIndex);
 }
 
@@ -71,7 +71,7 @@ std::recursive_mutex LiveStorage_FetchRequiredFiles_Lock;
 utils::hook::detour LiveStorage_FetchRequiredFiles_hook;
 void LiveStorage_FetchRequiredFiles_Threadsafe(
     const ControllerIndex_t controllerIndex) {
-  std::lock_guard<std::recursive_mutex> lock(
+  std::scoped_lock<std::recursive_mutex> lock(
       LiveStorage_FetchRequiredFiles_Lock);
   if (!LiveStorage_DoWeHavePlaylists() || !LiveStorage_DoWeHaveFFOTD()) {
     LiveStorage_FetchRequiredFiles_hook.invoke(controllerIndex);

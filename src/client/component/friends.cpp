@@ -301,7 +301,7 @@ void receive_invite(const game::net::netadr_t &sender,
     return;
 
   {
-    std::lock_guard lock(invites_mutex);
+    std::scoped_lock lock(invites_mutex);
     pending_invites[inviter] = std::chrono::steady_clock::now();
   }
   scheduler::once(
@@ -365,7 +365,7 @@ std::string get_known_name(const game::XUID steam_id) {
 }
 
 bool has_invited_us(const game::XUID steam_id) {
-  std::lock_guard lock(invites_mutex);
+  std::scoped_lock lock(invites_mutex);
   const auto found = pending_invites.find(steam_id);
   return found != pending_invites.end() &&
          std::chrono::steady_clock::now() - found->second < INVITE_LIFETIME;
@@ -672,12 +672,12 @@ void set_master_presence(const game::XUID steam_id, const std::string &address,
 }
 
 void clear_browser_routes() {
-  std::lock_guard lock(browser_routes_mutex);
+  std::scoped_lock lock(browser_routes_mutex);
   browser_routes.clear();
 }
 
 void forget_browser_routes(const game::XUID steam_id) {
-  std::lock_guard lock(browser_routes_mutex);
+  std::scoped_lock lock(browser_routes_mutex);
   std::erase_if(browser_routes, [steam_id](const auto &route) {
     return route.second == steam_id;
   });
@@ -690,7 +690,7 @@ void remember_browser_route(const game::XUID steam_id,
   const auto parsed = network::address_from_string(address);
   if (!network::is_ip_address(parsed))
     return;
-  std::lock_guard lock(browser_routes_mutex);
+  std::scoped_lock lock(browser_routes_mutex);
   browser_routes[network::address_to_string(parsed)] = steam_id;
 }
 
@@ -699,7 +699,7 @@ game::XUID find_browser_route(const std::string &address) {
   if (!network::is_ip_address(parsed))
     return 0;
   const std::string normalized = network::address_to_string(parsed);
-  std::lock_guard lock(browser_routes_mutex);
+  std::scoped_lock lock(browser_routes_mutex);
   if (browser_routes.contains(normalized)) {
     return browser_routes[normalized];
   }

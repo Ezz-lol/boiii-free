@@ -39,6 +39,7 @@ using namespace game::db;
 using XZoneName = xzone::XZoneName;
 
 namespace workshop {
+
 game::EngineDependentDvar workshop_timeout;
 game::EngineDependentDvar workshop_retry_attempts;
 

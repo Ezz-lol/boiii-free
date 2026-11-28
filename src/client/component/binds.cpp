@@ -53,7 +53,7 @@ std::string normalize_key(const std::string_view key) {
 }
 
 void save_binds() {
-  std::lock_guard lock(binds_mutex);
+  std::scoped_lock lock(binds_mutex);
   std::string buffer;
   for (const auto &[key, cmd] : custom_binds) {
     buffer += utils::string::va("bind %s \"%s\"\n", key.c_str(), cmd.c_str());
@@ -76,7 +76,7 @@ void schedule_save() {
 void flush_pending() {
   std::vector<pending_op> ops;
   {
-    std::lock_guard lock(pending_mutex);
+    std::scoped_lock lock(pending_mutex);
     ops = std::move(pending_ops);
     pending_ops.clear();
   }
@@ -137,7 +137,7 @@ void flush_pending() {
 
 void queue_op(pending_op op) {
   {
-    std::lock_guard lock(pending_mutex);
+    std::scoped_lock lock(pending_mutex);
     pending_ops.push_back(std::move(op));
   }
   const int ver = ++pending_version;
@@ -224,7 +224,7 @@ bool patch_command(const char *name, game::cmd::xcommand_t wrapper,
 
 constexpr const char BIND_PREFIX[] = "bind ";
 void parse_binds_file(const std::string &data) {
-  std::lock_guard lock(binds_mutex);
+  std::scoped_lock lock(binds_mutex);
   custom_binds.clear();
 
   std::istringstream stream(data);
@@ -290,7 +290,7 @@ struct component final : client_component {
 
     // List current custom binds
     command::add("bindlist_custom", [](const command::params &params) {
-      std::lock_guard lock(binds_mutex);
+      std::scoped_lock lock(binds_mutex);
       if (custom_binds.empty()) {
         game::println("[Binds] No custom binds saved.");
         return;
