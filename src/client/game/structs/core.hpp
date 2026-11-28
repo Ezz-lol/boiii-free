@@ -556,7 +556,7 @@ constexpr bool validate_count(const ClientNum_t clientNum) {
   }
 }
 
-enum ClientNum16_t : int16_t {
+enum class ClientNum16_t : int16_t {
   INVALID_CLIENT_INDEX_16 = -1,
   CLIENT_INDEX_16_0 = 0x0,
   CLIENT_INDEX_16_FIRST = 0x0,
@@ -595,12 +595,12 @@ enum ClientNum16_t : int16_t {
 };
 IMPL_ENUM_OPERATORS(ClientNum16_t);
 [[nodiscard]] constexpr const char *serialize(const ClientNum16_t clientNum) {
-  return serialize(clientNum == INVALID_CLIENT_INDEX_16
+  return serialize(clientNum == ClientNum16_t::INVALID_CLIENT_INDEX_16
                        ? INVALID_CLIENT_INDEX
                        : static_cast<ClientNum_t>(clientNum));
 }
 
-enum ClientNum8_t : int8_t {
+enum class ClientNum8_t : int8_t {
   INVALID_CLIENT_INDEX_8 = -1,
   CLIENT_INDEX_8_0 = 0x0,
   CLIENT_INDEX_8_FIRST = 0x0,
@@ -639,7 +639,7 @@ enum ClientNum8_t : int8_t {
 };
 IMPL_ENUM_OPERATORS(ClientNum8_t);
 [[nodiscard]] constexpr const char *serialize(const ClientNum8_t clientNum) {
-  return serialize(clientNum == INVALID_CLIENT_INDEX_8
+  return serialize(clientNum == ClientNum8_t::INVALID_CLIENT_INDEX_8
                        ? INVALID_CLIENT_INDEX
                        : static_cast<ClientNum_t>(clientNum));
 }
@@ -650,6 +650,10 @@ enum ControllerIndex_t : int32_t {
   CONTROLLER_INDEX_0 = 0x0,
   CONTROLLER_INDEX_1 = 0x1,
   CONTROLLER_INDEX_COUNT = 0x2,
+
+  // Extension
+  CONTROLLER_INDEX_2 = 0x2,
+  CONTROLLER_INDEX_3 = 0x3,
 };
 IMPL_ENUM_OPERATORS(ControllerIndex_t);
 
@@ -670,7 +674,7 @@ constexpr bool validate(const ControllerIndex_t controllerIndex) {
          controllerIndex < ControllerIndex_t::CONTROLLER_INDEX_COUNT;
 }
 
-enum gamepadType_e : int32_t {
+enum class gamepadType_e : int32_t {
   GAMEPAD_TYPE_ORBIS = 0x0,
   GAMEPAD_TYPE_DURANGO = 0x1,
   GAMEPAD_TYPE_STEAM = 0x2,

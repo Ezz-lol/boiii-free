@@ -38,8 +38,8 @@ tcp_server *find_server(const SOCKET socket) {
 }
 
 bool socket_link(const SOCKET socket, const uint32_t address) {
-  auto *server = tcp_servers.find(address);
-  if (!server) {
+  tcp_server *server = tcp_servers.find(address);
+  if (server == nullptr) {
     return false;
   }
 
@@ -137,9 +137,9 @@ void freeaddrinfo_stub(addrinfo *ai) {
 }
 
 int getpeername_stub(const SOCKET s, sockaddr *addr, socklen_t *addrlen) {
-  auto *server = find_server(s);
+  tcp_server *server = find_server(s);
 
-  if (server) {
+  if (server != nullptr) {
     sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(addr);
     in_addr->sin_addr.s_addr = server->get_address();
     in_addr->sin_family = AF_INET;
@@ -152,9 +152,9 @@ int getpeername_stub(const SOCKET s, sockaddr *addr, socklen_t *addrlen) {
 }
 
 int getsockname_stub(const SOCKET s, sockaddr *addr, socklen_t *addrlen) {
-  auto *server = find_server(s);
+  tcp_server *server = find_server(s);
 
-  if (server) {
+  if (server != nullptr) {
     sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(addr);
     in_addr->sin_addr.s_addr = server->get_address();
     in_addr->sin_family = AF_INET;
@@ -178,7 +178,7 @@ hostent *gethostbyname_stub(const char *name) {
     server = udp_servers.find(name);
   }
 
-  if (!server) {
+  if (server == nullptr) {
 #pragma warning(push)
 #pragma warning(disable : 4996)
     return gethostbyname(name);
@@ -291,32 +291,31 @@ int select_stub(const int nfds, fd_set *readfds, fd_set *writefds,
   std::vector<SOCKET> read_sockets;
   std::vector<SOCKET> write_sockets;
 
-  socket_map.access(
-      [&](std::unordered_map<const SOCKET, tcp_server *> &sockets) {
-        for (const std::pair<const SOCKET, tcp_server *> &s : sockets) {
-          if (readfds) {
-            if (FD_ISSET(s.first, readfds)) {
-              if (s.second->pending_data()) {
-                read_sockets.push_back(s.first);
-                FD_CLR(s.first, readfds);
-              }
-            }
-          }
-
-          if (writefds) {
-            if (FD_ISSET(s.first, writefds)) {
-              write_sockets.push_back(s.first);
-              FD_CLR(s.first, writefds);
-            }
-          }
-
-          if (exceptfds) {
-            if (FD_ISSET(s.first, exceptfds)) {
-              FD_CLR(s.first, exceptfds);
-            }
+  socket_map.access([&](std::unordered_map<SOCKET, tcp_server *> &sockets) {
+    for (const std::pair<const SOCKET, tcp_server *> &s : sockets) {
+      if (readfds) {
+        if (FD_ISSET(s.first, readfds)) {
+          if (s.second->pending_data()) {
+            read_sockets.push_back(s.first);
+            FD_CLR(s.first, readfds);
           }
         }
-      });
+      }
+
+      if (writefds) {
+        if (FD_ISSET(s.first, writefds)) {
+          write_sockets.push_back(s.first);
+          FD_CLR(s.first, writefds);
+        }
+      }
+
+      if (exceptfds) {
+        if (FD_ISSET(s.first, exceptfds)) {
+          FD_CLR(s.first, exceptfds);
+        }
+      }
+    }
+  });
 
   if ((readfds == nullptr || readfds->fd_count == 0) &&
       (writefds == nullptr || writefds->fd_count == 0)) {

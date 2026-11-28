@@ -615,10 +615,10 @@ template <int32_t index> game::XUID extra_client_guid() {
 
 game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
   switch (controllerIndex) {
-  case 2:
-    return extra_client_guid<2>();
-  case 3:
-    return extra_client_guid<3>();
+  case game::ControllerIndex_t::CONTROLLER_INDEX_2:
+    return extra_client_guid<game::ControllerIndex_t::CONTROLLER_INDEX_2>();
+  case game::ControllerIndex_t::CONTROLLER_INDEX_3:
+    return extra_client_guid<game::ControllerIndex_t::CONTROLLER_INDEX_3>();
   default:
     return client_guids()[game::validate(controllerIndex)
                               ? controllerIndex

@@ -1,6 +1,9 @@
 #pragma once
+
 #include "memory.hpp"
 #include "str.hpp"
+
+#include <algorithm>
 
 namespace utils::string {
 

@@ -194,10 +194,6 @@ std::string ecc::key::serialize(const int type) const {
   int result = ecc_export(buffer, &length, type, &this->key_storage_);
   if (result == CRYPT_OK) {
     return {cs(buffer), length};
-  } else {
-    game::println("cryptography: ecc::key::serialize - ecc_export failed with "
-                  "error code: {}",
-                  result);
   }
 
   return {};
@@ -284,8 +280,6 @@ std::string ecc::sign_message(const key &key, const std::string &message) {
     if (err == CRYPT_OK) {
       return {cs(buffer), length};
     }
-
-    game::println("Signature generation failed with error code: {}", err);
   }
 
   return {};

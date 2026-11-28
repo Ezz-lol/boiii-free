@@ -19,7 +19,8 @@ bool GPad_IsDurangoGamepad_Impl(const LocalClientNum_t localClientNum) {
       }
     }
   }
-  return GPad_GetGamepadType(controllerIndex) == GAMEPAD_TYPE_DURANGO;
+  return GPad_GetGamepadType(controllerIndex) ==
+         gamepadType_e::GAMEPAD_TYPE_DURANGO;
 }
 
 } // namespace in
