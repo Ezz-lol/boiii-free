@@ -488,8 +488,8 @@ std::string format_hint_text(const std::string &text) {
 }
 
 void reposition_completion_hint(const int32_t popup_height_requested) {
-  if (completion_hint_hwnd != nullptr && *game::s_wcd::hwndInputLine &&
-      *game::s_wcd::hWnd) {
+  if (completion_hint_hwnd != nullptr &&
+      *game::s_wcd::hwndInputLine != nullptr && *game::s_wcd::hWnd != nullptr) {
     const int32_t popup_height =
         std::min(popup_height_requested, COMPLETION_HINT_MAX_HEIGHT);
 
@@ -1019,8 +1019,8 @@ void force_exit_after(const DWORD grace_ms) {
 }
 
 void resize_console_controls(const HWND hwnd) {
-  if (hwnd != nullptr && *game::s_wcd::hwndBuffer &&
-      *game::s_wcd::hwndInputLine && IsIconic(hwnd)) {
+  if (hwnd != nullptr && *game::s_wcd::hwndBuffer != nullptr &&
+      *game::s_wcd::hwndInputLine != nullptr && IsIconic(hwnd) == 0) {
     RECT rect{};
     GetClientRect(hwnd, &rect);
 
@@ -1035,7 +1035,7 @@ void resize_console_controls(const HWND hwnd) {
       int32_t logo_width = 0;
       int32_t logo_height = 0;
       HBITMAP logo_bmp = nullptr;
-      if (*game::s_wcd::codLogo) {
+      if (*game::s_wcd::codLogo != nullptr) {
         logo_bmp = reinterpret_cast<HBITMAP>(
             SendMessageA(*game::s_wcd::codLogo, STM_GETIMAGE, IMAGE_BITMAP, 0));
         BITMAP bm{};
@@ -1071,7 +1071,7 @@ void resize_console_controls(const HWND hwnd) {
         reposition_completion_hint(popup_height);
       }
 
-      if (*game::s_wcd::codLogo && logo_width > 0) {
+      if (*game::s_wcd::codLogo != nullptr && logo_width > 0) {
         const int32_t x =
             std::max(MARGIN, MARGIN + ((client_width - logo_width) / 2));
         constexpr int32_t Y = 6;
@@ -1681,17 +1681,6 @@ struct component final : generic_component {
     while (!started.load(std::memory_order_seq_cst)) {
       std::this_thread::sleep_for(10ms);
     }
-
-#ifndef NDEBUG
-    scheduler::once(
-        []() {
-          const utils::nt::library game_module{};
-          game::println(
-              "Entry Point: 0x{:X}\n",
-              reinterpret_cast<uint64_t>(game_module.get_entry_point()));
-        },
-        scheduler::pipeline::main);
-#endif
   }
 
   void pre_destroy() override {
