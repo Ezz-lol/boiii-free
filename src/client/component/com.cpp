@@ -11,10 +11,18 @@ namespace com {
 namespace {
 using LoadTasks = std::vector<LoadTask>;
 utils::concurrency::container<LoadTasks> com_loadlevelfastfiles_tasks;
+utils::concurrency::container<LoadTasks> com_preloadlevelfastfiles_tasks;
 utils::concurrency::container<LoadTasks> com_unloadlevelfastfiles_tasks;
 
 utils::hook::detour Com_LoadLevelFastFiles_hook;
 void Com_LoadLevelFastFiles_stub(const char *level) {
+  if (level != nullptr && level[0] != NULL) {
+    com_preloadlevelfastfiles_tasks.access([level](LoadTasks &tasks) {
+      for (const LoadTask &func : tasks) {
+        func(level);
+      }
+    });
+  }
   Com_LoadLevelFastFiles_hook.invoke(level);
   if (level != nullptr && level[0] != NULL) {
     com_loadlevelfastfiles_tasks.access([level](LoadTasks &tasks) {
@@ -71,6 +79,11 @@ void DB_LoadXAssets_stub(game::db::xzone::XZoneInfo *zoneInfo,
 
 void on_level_load(const LoadTask &callback) {
   com_loadlevelfastfiles_tasks.access(
+      [&callback](LoadTasks &tasks) { tasks.emplace_back(callback); });
+}
+
+void on_level_preload(const LoadTask &callback) {
+  com_preloadlevelfastfiles_tasks.access(
       [&callback](LoadTasks &tasks) { tasks.emplace_back(callback); });
 }
 

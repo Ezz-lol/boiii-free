@@ -2,6 +2,7 @@
 
 #include "mod_stack.hpp"
 #include "scheduler.hpp"
+#include "weapon_kits.hpp"
 #include "workshop/workshop.hpp"
 
 #include <component/lua/lua_state.hpp>
@@ -648,6 +649,7 @@ XAssetEntry *link_asset_stub(XAssetEntry *entry, const game::qboolean allow) {
     track_script_owner(entry);
   }
   XAssetEntry *result = link_asset_hook.invoke<XAssetEntry *>(entry, allow);
+  weapon_kits::on_asset_linked(result);
   if (game::is_client() && entry->asset.type == XAssetType::SOUND) {
     for (const XAssetEntry *linked : {entry, result}) {
       const std::optional<route> owner =
